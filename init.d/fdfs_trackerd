@@ -1,0 +1,82 @@
+#!/bin/bash
+#
+# fdfs_trackerd Starts fdfs_trackerd
+#
+#
+# chkconfig: 2345 99 01
+# description: FastDFS tracker server
+### BEGIN INIT INFO
+# Provides: $fdfs_trackerd
+### END INIT INFO
+
+# Source function library.
+. /etc/init.d/functions
+
+PRG=/usr/local/bin/fdfs_trackerd
+CONF=/etc/fdfs/tracker.conf
+
+if [ ! -f $PRG ]; then
+  echo "file $PRG does not exist!"
+  exit 2
+fi
+
+if [ ! -f /usr/local/bin/stop.sh ]; then
+  echo "file /usr/local/bin/stop.sh does not exist!"
+  exit 2
+fi
+
+if [ ! -f /usr/local/bin/restart.sh ]; then
+  echo "file /usr/local/bin/restart.sh does not exist!"
+  exit 2
+fi
+
+if [ ! -f $CONF ]; then
+  echo "file $CONF does not exist!"
+  exit 2
+fi
+
+CMD="$PRG $CONF"
+RETVAL=0
+
+start() {
+ 	echo -n $"Starting FastDFS tracker server: "
+	$CMD &
+	RETVAL=$?
+	echo
+	return $RETVAL
+}
+stop() {
+        /usr/local/bin/stop.sh $CMD
+	RETVAL=$?
+	return $RETVAL
+}
+rhstatus() {
+	status fdfs_trackerd
+}
+restart() {
+        /usr/local/bin/restart.sh $CMD &
+}
+
+case "$1" in
+  start)
+  	start
+	;;
+  stop)
+  	stop
+	;;
+  status)
+  	rhstatus
+	;;
+  restart|reload)
+  	restart
+	;;
+  condrestart)
+  	restart
+	;;
+  *)
+	echo $"Usage: $0 {start|stop|status|restart|condrestart}"
+	exit 1
+esac
+
+exit $?
+
