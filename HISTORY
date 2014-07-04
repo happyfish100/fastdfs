@@ -1,8 +1,9 @@
 
-Version 5.02  2014-06-23
+Version 5.02  2014-07-04
  * corect README spell mistake
  * bug fixed: can't deal sync truncate file exception
  * remove tracker_global.c extern keyword to tracker_global.h
+ * change log level from ERROR to DEBUG when IOEVENT_ERROR
 
 Version 5.01  2014-02-02
  * trunk binlog be compressed when trunk init
