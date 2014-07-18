@@ -2858,12 +2858,16 @@ static int php_fdfs_upload_callback(void *arg, const int64_t file_size, int sock
 	int result;
 	TSRMLS_FETCH();
 
+    INIT_ZVAL(ret);
 	ZVAL_NULL(&ret);
+
+    INIT_ZVAL(zsock);
 	ZVAL_LONG(&zsock, sock);
 
 	pUploadCallback = (php_fdfs_upload_callback_t *)arg;
 	if (pUploadCallback->callback.args == NULL)
 	{
+        INIT_ZVAL(null_args);
 		ZVAL_NULL(&null_args);
 		pUploadCallback->callback.args = &null_args;
 	}
@@ -2907,13 +2911,19 @@ static int php_fdfs_download_callback(void *arg, const int64_t file_size, \
 	int result;
 	TSRMLS_FETCH();
 
+    INIT_ZVAL(ret);
 	ZVAL_NULL(&ret);
+
+    INIT_ZVAL(zfilesize);
 	ZVAL_LONG(&zfilesize, file_size);
+
+    INIT_ZVAL(zdata);
 	ZVAL_STRINGL(&zdata, (char *)data, current_size, 0);
 
 	pCallback = (php_fdfs_callback_t *)arg;
 	if (pCallback->args == NULL)
 	{
+        INIT_ZVAL(null_args);
 		ZVAL_NULL(&null_args);
 		pCallback->args = &null_args;
 	}
