@@ -147,6 +147,21 @@ char *hex2bin(const char *s, char *szBinBuff, int *nDestLen);
 */
 void printBuffHex(const char *s, const int len);
 
+/** 16 bits int convert to buffer (big-endian)
+ *  parameters:
+ *  	n: 16 bits int value
+ *  	buff: the buffer, at least 2 bytes space, no tail \0
+ *  return: none
+*/
+void short2buff(const short n, char *buff);
+
+/** buffer convert to 16 bits int
+ *  parameters:
+ *  	buff: big-endian 2 bytes buffer
+ *  return: 16 bits int value
+*/
+short buff2short(const char *buff);
+
 /** 32 bits int convert to buffer (big-endian)
  *  parameters:
  *  	n: 32 bits int value

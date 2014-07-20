@@ -22,6 +22,11 @@ extern "C" {
 #define LOG_TIME_PRECISION_MSECOND	'm'  //millisecond
 #define LOG_TIME_PRECISION_USSECOND	'u'  //microsecond
 
+struct log_context;
+
+//log header line callback
+typedef void (*LogHeaderCallback)(struct log_context *pContext);
+
 typedef struct log_context
 {
 	/* log level value please see: sys/syslog.h
@@ -61,6 +66,19 @@ typedef struct log_context
 
 	/* save the log filename */
 	char log_filename[MAX_PATH_SIZE];
+
+	/* the time format for rotated filename,
+     * default: %Y%m%d_%H%M%S
+     * */
+    char rotate_time_format[32];
+
+    /* keep days for rotated log files */
+    int keep_days;
+
+    /*
+     * log the header (title line) callback
+     * */
+    LogHeaderCallback print_header_callback;
 } LogContext;
 
 extern LogContext g_log_context;
@@ -122,6 +140,30 @@ void log_set_cache_ex(LogContext *pContext, const bool bLogCache);
 */
 void log_set_time_precision(LogContext *pContext, const int time_precision);
 
+/** set rotate time format, the time format same as function strftime
+ *  parameters:
+ *           pContext: the log context
+ *           time_format: rotate time format
+ *  return: none
+*/
+void log_set_rotate_time_format(LogContext *pContext, const char *time_format);
+
+/** set keep days
+ *  parameters:
+ *           pContext: the log context
+ *           keep_days: the keep days
+ *  return: none
+*/
+void log_set_keep_days(LogContext *pContext, const int keep_days);
+
+/** set print header callback
+ *  parameters:
+ *           pContext: the log context
+ *           header_callback: the callback
+ *  return: none
+*/
+void log_set_header_callback(LogContext *pContext, LogHeaderCallback header_callback);
+
 /** destroy function
  *  parameters:
  *           pContext: the log context
@@ -152,6 +194,20 @@ void log_it_ex(LogContext *pContext, const int priority, \
 void log_it_ex1(LogContext *pContext, const int priority, \
 		const char *text, const int text_len);
 
+/** log to file
+ *  parameters:
+ *           pContext: the log context
+ *           caption: such as INFO, ERROR, NULL for no caption
+ *           text: text string to log
+ *           text_len: text string length (bytes)
+ *           bNeedSync: if sync to file immediatelly
+ *  return: none
+*/
+void log_it_ex2(LogContext *pContext, const char *caption, \
+		const char *text, const int text_len, \
+        const bool bNeedSync, const bool bNeedLock);
+
+
 /** sync log buffer to log file
  *  parameters:
  *           args: should be (LogContext *)
@@ -165,6 +221,13 @@ int log_sync_func(void *args);
  *  return: error no, 0 for success, != 0 fail
 */
 int log_notify_rotate(void *args);
+
+/** delete old log files
+ *  parameters:
+ *           args: should be (LogContext *)
+ *  return: error no, 0 for success, != 0 fail
+*/
+int log_delete_old_files(void *args);
 
 void logEmergEx(LogContext *pContext, const char *format, ...);
 void logCritEx(LogContext *pContext, const char *format, ...);

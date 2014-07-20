@@ -1,10 +1,18 @@
 
-Version 5.02  2014-07-18
+Version 5.02  2014-07-20
  * corect README spell mistake
  * bug fixed: can't deal sync truncate file exception
  * remove tracker_global.c extern keyword to tracker_global.h
  * change log level from ERROR to DEBUG when IOEVENT_ERROR
  * php callback should use INIT_ZVAL to init zval variable
+ * add function short2buff and buff2short
+ * add get_url_content_ex to support buffer passed by caller
+ * logger can set rotate time format
+ * logger can log header line
+ * #include <stdbool.h> to use C99 bool
+ * logger can delete old rotated files
+ * bug fixed: connection pool should NOT increase counter when connect fail
+ * logger.c do NOT call fsync after write
 
 Version 5.01  2014-02-02
  * trunk binlog be compressed when trunk init

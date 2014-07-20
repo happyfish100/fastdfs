@@ -202,6 +202,10 @@ ConnectionInfo *conn_pool_get_connection(ConnectionPool *cp,
 					cp->connect_timeout);
 			if (*err_no != 0)
 			{
+                pthread_mutex_lock(&cm->lock);
+                cm->total_count--;  //rollback
+                pthread_mutex_unlock(&cm->lock);
+
 				free(p);
 				return NULL;
 			}

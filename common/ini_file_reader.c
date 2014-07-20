@@ -139,7 +139,7 @@ int iniLoadFromFile(const char *szFilename, IniContext *pContext)
 				int tail_len;
 
 				tail_len = pLast - szFilename;
-				if (len + tail_len >= sizeof( \
+				if (len + 1 + tail_len >= sizeof( \
 						pContext->config_path))
 				{
 					logError("file: "__FILE__", line: %d, "\
@@ -149,6 +149,7 @@ int iniLoadFromFile(const char *szFilename, IniContext *pContext)
 					return ENOSPC;
 				}
 
+                *(pContext->config_path + len++) = '/';
 				memcpy(pContext->config_path + len, \
 					szFilename, tail_len);
 				len += tail_len;

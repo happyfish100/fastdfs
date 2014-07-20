@@ -22,21 +22,21 @@
 #include "logger.h"
 #include "shared_func.h"
 
-int get_url_content(const char *url, const int connect_timeout, \
-	const int network_timeout, int *http_status, \
-	char **content, int *content_len, char *error_info)
+int get_url_content_ex(const char *url, const int url_len,
+        const int connect_timeout, const int network_timeout,
+        int *http_status, char **content, int *content_len, char *error_info)
 {
 	char domain_name[256];
 	char ip_addr[IP_ADDRESS_SIZE];
 	char out_buff[4096];
 	int domain_len;
-	int url_len;
 	int out_len;
 	int alloc_size;
 	int recv_bytes;
 	int result;
 	int sock;
 	int port;
+    bool bNeedAlloc;
 	const char *pDomain;
 	const char *pContent;
 	const char *pURI;
@@ -44,10 +44,18 @@ int get_url_content(const char *url, const int connect_timeout, \
 	char *pSpace;
 
 	*http_status = 0;
+    if (*content == NULL)
+    {
+        bNeedAlloc = true;
+        alloc_size = 64 * 1024;
+    }
+    else
+    {
+        bNeedAlloc = false;
+        alloc_size = *content_len - 1;
+    }
 	*content_len = 0;
-	*content = NULL;
 
-	url_len = strlen(url);
 	if (url_len <= 7 || strncasecmp(url, "http://", 7) != 0)
 	{
 		sprintf(error_info, "file: "__FILE__", line: %d, " \
@@ -137,43 +145,56 @@ int get_url_content(const char *url, const int connect_timeout, \
 		return result;
 	}
 
-	alloc_size = 64 * 1024;
-	*content = (char *)malloc(alloc_size + 1);
-	if (*content == NULL)
-	{
-		close(sock);
-		result = errno != 0 ? errno : ENOMEM;
+    if (bNeedAlloc)
+    {
+        *content = (char *)malloc(alloc_size + 1);
+        if (*content == NULL)
+        {
+            close(sock);
+            result = errno != 0 ? errno : ENOMEM;
 
-		sprintf(error_info, "file: "__FILE__", line: %d, " \
-			"malloc %d bytes fail, errno: %d, " \
-			"error info: %s", __LINE__, alloc_size + 1, \
-			result, STRERROR(result));
+            sprintf(error_info, "file: "__FILE__", line: %d, " \
+                    "malloc %d bytes fail, errno: %d, " \
+                    "error info: %s", __LINE__, alloc_size + 1, \
+                    result, STRERROR(result));
 
-		return result;
-	}
+            return result;
+        }
+    }
 
 	do
 	{
 		recv_bytes = alloc_size - *content_len;
 		if (recv_bytes <= 0)
 		{
-			alloc_size *= 2;
-			*content = (char *)realloc(*content, alloc_size + 1);
-			if (*content == NULL)
-			{
-				close(sock);
-				result = errno != 0 ? errno : ENOMEM;
+            if (bNeedAlloc)
+            {
+                alloc_size *= 2;
+                *content = (char *)realloc(*content, alloc_size + 1);
+                if (*content == NULL)
+                {
+                    *content_len = 0;
+                    close(sock);
+                    result = errno != 0 ? errno : ENOMEM;
 
-				sprintf(error_info, "file: "__FILE__", line: %d, " \
-					"realloc %d bytes fail, errno: %d, " \
-					"error info: %s", __LINE__, \
-					alloc_size + 1, \
-					result, STRERROR(result));
+                    sprintf(error_info, "file: "__FILE__", line: %d, " \
+                            "realloc %d bytes fail, errno: %d, " \
+                            "error info: %s", __LINE__, \
+                            alloc_size + 1, \
+                            result, STRERROR(result));
 
-				return result;
-			}
+                    return result;
+                }
 
-			recv_bytes = alloc_size - *content_len;
+                recv_bytes = alloc_size - *content_len;
+            }
+            else
+            {
+                    sprintf(error_info, "file: "__FILE__", line: %d, " \
+                            "buffer size: %d is too small", \
+                            __LINE__, alloc_size);
+                    return ENOSPC;
+            }
 		}
 
 		result = tcprecvdata_ex(sock, *content + *content_len, \
@@ -182,62 +203,70 @@ int get_url_content(const char *url, const int connect_timeout, \
 		*content_len += recv_bytes;
 	} while (result == 0);
 
-	if (result != ENOTCONN)
-	{
-		close(sock);
-		free(*content);
-		*content = NULL;
-		*content_len = 0;
+    do
+    {
+        if (result == ENOTCONN)
+        {
+            result = 0;
+        }
+        else {
+            sprintf(error_info, "file: "__FILE__", line: %d, " \
+                    "recv data from %s:%d fail, errno: %d, " \
+                    "error info: %s", __LINE__, domain_name, \
+                    port, result, STRERROR(result));
 
-		sprintf(error_info, "file: "__FILE__", line: %d, " \
-			"recv data from %s:%d fail, errno: %d, " \
-			"error info: %s", __LINE__, domain_name, \
-			port, result, STRERROR(result));
+            break;
+        }
 
-		return result;
-	}
+        *(*content + *content_len) = '\0';
+        pContent = strstr(*content, "\r\n\r\n");
+        if (pContent == NULL)
+        {
+            sprintf(error_info, "file: "__FILE__", line: %d, " \
+                    "response data from %s:%d is invalid", \
+                    __LINE__, domain_name, port);
 
-	*(*content + *content_len) = '\0';
-	pContent = strstr(*content, "\r\n\r\n");
-	if (pContent == NULL)
-	{
-		close(sock);
-		free(*content);
-		*content = NULL;
-		*content_len = 0;
+            result = EINVAL;
+            break;
+        }
 
-		sprintf(error_info, "file: "__FILE__", line: %d, " \
-			"response data from %s:%d is invalid", \
-			__LINE__, domain_name, port);
+        pContent += 4;
+        pSpace = strchr(*content, ' ');
+        if (pSpace == NULL || pSpace >= pContent)
+        {
+            sprintf(error_info, "file: "__FILE__", line: %d, " \
+                    "response data from %s:%d is invalid", \
+                    __LINE__, domain_name, port);
 
-		return EINVAL;
-	}
+            result = EINVAL;
+            break;
+        }
 
-	pContent += 4;
-	pSpace = strchr(*content, ' ');
-	if (pSpace == NULL || pSpace >= pContent)
-	{
-		close(sock);
-		free(*content);
-		*content = NULL;
-		*content_len = 0;
-
-		sprintf(error_info, "file: "__FILE__", line: %d, " \
-			"response data from %s:%d is invalid", \
-			__LINE__, domain_name, port);
-
-		return EINVAL;
-	}
-
-	*http_status = atoi(pSpace + 1);
-	*content_len -= pContent - *content;
-	memcpy(*content, pContent, *content_len);
-	*(*content + *content_len) = '\0';
+        *http_status = atoi(pSpace + 1);
+        *content_len -= pContent - *content;
+        memcpy(*content, pContent, *content_len);
+        *(*content + *content_len) = '\0';
+        *error_info = '\0';
+    } while (0);
 
 	close(sock);
+    if (result != 0 && bNeedAlloc)
+    {
+        free(*content);
+        *content = NULL;
+        *content_len = 0;
+    }
 
-	*error_info = '\0';
-	return 0;
+	return result;
+}
+
+int get_url_content(const char *url, const int connect_timeout, \
+	const int network_timeout, int *http_status, \
+	char **content, int *content_len, char *error_info)
+{
+    *content = NULL;
+    return get_url_content_ex(url, strlen(url), connect_timeout, network_timeout,
+            http_status, content, content_len, error_info);
 }
 
 int http_parse_query(char *url, KeyValuePair *params, const int max_count)

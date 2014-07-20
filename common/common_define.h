@@ -27,6 +27,7 @@ typedef DWORD (WINAPI *ThreadEntranceFunc)(LPVOID lpThreadParameter);
 
 #include <unistd.h>
 #include <signal.h>
+#include <stdbool.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <sys/types.h>
@@ -88,14 +89,6 @@ extern int pthread_mutexattr_settype(pthread_mutexattr_t *attr, int kind);
 
 #define IP_ADDRESS_SIZE	16
 #define INFINITE_FILE_SIZE (256 * 1024LL * 1024 * 1024 * 1024 * 1024LL)
-
-#ifndef __cplusplus
-#ifndef true
-typedef char  bool;
-#define true  1
-#define false 0
-#endif
-#endif
 
 #ifndef byte
 #define byte signed char

@@ -70,9 +70,8 @@ int log_init_ex(LogContext *pContext)
 	memset(pContext, 0, sizeof(LogContext));
 	pContext->log_level = LOG_INFO;
 	pContext->log_fd = STDERR_FILENO;
-	pContext->log_to_cache = false;
-	pContext->rotate_immediately = false;
 	pContext->time_precision = LOG_TIME_PRECISION_SECOND;
+    strcpy(pContext->rotate_time_format, "%Y%m%d_%H%M%S");
 
 	pContext->log_buff = (char *)malloc(LOG_BUFF_SIZE);
 	if (pContext->log_buff == NULL)
@@ -112,6 +111,10 @@ static int log_open(LogContext *pContext)
 			pContext->log_filename, errno, STRERROR(errno));
 		return errno != 0 ? errno : EACCES;
 	}
+    if (pContext->current_size == 0 && pContext->print_header_callback != NULL)
+    {
+        pContext->print_header_callback(pContext);
+    }
 
 	return 0;
 }
@@ -146,6 +149,32 @@ void log_set_cache_ex(LogContext *pContext, const bool bLogCache)
 void log_set_time_precision(LogContext *pContext, const int time_precision)
 {
 	pContext->time_precision = time_precision;
+}
+
+void log_set_rotate_time_format(LogContext *pContext, const char *time_format)
+{
+    snprintf(pContext->rotate_time_format,
+            sizeof(pContext->rotate_time_format),
+            "%s", time_format);
+}
+
+void log_set_keep_days(LogContext *pContext, const int keep_days)
+{
+	pContext->keep_days = keep_days;
+}
+
+void log_set_header_callback(LogContext *pContext, LogHeaderCallback header_callback)
+{
+	pContext->print_header_callback = header_callback;
+    if (pContext->print_header_callback != NULL)
+    {
+		pthread_mutex_lock(&(pContext->log_thread_lock));
+        if (pContext->current_size == 0)
+        {
+          pContext->print_header_callback(pContext);
+        }
+		pthread_mutex_unlock(&(pContext->log_thread_lock));
+    }
 }
 
 void log_destroy_ex(LogContext *pContext)
@@ -189,11 +218,59 @@ int log_notify_rotate(void *args)
 	return 0;
 }
 
+int log_delete_old_files(void *args)
+{
+    LogContext *pContext;
+	char old_filename[MAX_PATH_SIZE + 32];
+    int len;
+	struct tm tm;
+	time_t the_time;
+
+	if (args == NULL)
+	{
+		return EINVAL;
+	}
+
+	pContext = (LogContext *)args;
+	if (*(pContext->log_filename) == '\0' || \
+            *(pContext->rotate_time_format) == '\0')
+	{
+		return EINVAL;
+	}
+
+    if (pContext->keep_days <= 0) {
+        return 0;
+    }
+
+	the_time = get_current_time() - pContext->keep_days * 86400;
+    while (1) {
+        the_time -= 86400;
+        localtime_r(&the_time, &tm);
+        memset(old_filename, 0, sizeof(old_filename));
+        len = sprintf(old_filename, "%s.", pContext->log_filename);
+        strftime(old_filename + len, sizeof(old_filename) - len,
+                pContext->rotate_time_format, &tm);
+        if (unlink(old_filename) != 0)
+        {
+            if (errno != ENOENT)
+            {
+                fprintf(stderr, "file: "__FILE__", line: %d, " \
+                        "unlink %s fail, errno: %d, error info: %s\n", \
+                        __LINE__, old_filename, errno, STRERROR(errno));
+            }
+            break;
+        }
+    }
+
+	return 0;
+}
+
 static int log_rotate(LogContext *pContext)
 {
 	struct tm tm;
 	time_t current_time;
-	char new_filename[MAX_PATH_SIZE + 32];
+    int len;
+	char old_filename[MAX_PATH_SIZE + 32];
 
 	if (*(pContext->log_filename) == '\0')
 	{
@@ -204,15 +281,22 @@ static int log_rotate(LogContext *pContext)
 
 	current_time = get_current_time();
 	localtime_r(&current_time, &tm);
-	sprintf(new_filename, "%s.%04d%02d%02d_%02d%02d%02d", \
-			pContext->log_filename, \
-			tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday, \
-			tm.tm_hour, tm.tm_min, tm.tm_sec);
-	if (rename(pContext->log_filename, new_filename) != 0)
+
+    memset(old_filename, 0, sizeof(old_filename));
+	len = sprintf(old_filename, "%s.", pContext->log_filename);
+    strftime(old_filename + len, sizeof(old_filename) - len,
+            pContext->rotate_time_format, &tm);
+    if (access(old_filename, F_OK) == 0)
+    {
+		fprintf(stderr, "file: "__FILE__", line: %d, " \
+			"file: %s already exist, rotate file fail\n",
+			__LINE__, old_filename);
+    }
+    else if (rename(pContext->log_filename, old_filename) != 0)
 	{
 		fprintf(stderr, "file: "__FILE__", line: %d, " \
-			"rename %s to %s fail, errno: %d, error info: %s", \
-			__LINE__, pContext->log_filename, new_filename, \
+			"rename %s to %s fail, errno: %d, error info: %s\n", \
+			__LINE__, pContext->log_filename, old_filename, \
 			errno, STRERROR(errno));
 	}
 
@@ -307,6 +391,7 @@ static int log_fsync(LogContext *pContext, const bool bNeedLock)
 		break;
 	}
 
+    /*
 	if (pContext->log_fd != STDERR_FILENO)
 	{
 		if (fsync(pContext->log_fd) != 0)
@@ -318,6 +403,7 @@ static int log_fsync(LogContext *pContext, const bool bNeedLock)
 			break;
 		}
 	}
+    */
 
 	if (pContext->rotate_immediately)
 	{
@@ -340,7 +426,7 @@ static int log_fsync(LogContext *pContext, const bool bNeedLock)
 
 static void doLogEx(LogContext *pContext, struct timeval *tv, \
 		const char *caption, const char *text, const int text_len, \
-		const bool bNeedSync)
+		const bool bNeedSync, const bool bNeedLock)
 {
 	struct tm tm;
 	int time_fragment;
@@ -364,7 +450,7 @@ static void doLogEx(LogContext *pContext, struct timeval *tv, \
 	}
 
 	localtime_r(&tv->tv_sec, &tm);
-	if ((result=pthread_mutex_lock(&pContext->log_thread_lock)) != 0)
+	if (bNeedLock && (result=pthread_mutex_lock(&pContext->log_thread_lock)) != 0)
 	{
 		fprintf(stderr, "file: "__FILE__", line: %d, " \
 			"call pthread_mutex_lock fail, " \
@@ -377,7 +463,10 @@ static void doLogEx(LogContext *pContext, struct timeval *tv, \
 		fprintf(stderr, "file: "__FILE__", line: %d, " \
 			"log buff size: %d < log text length: %d ", \
 			__LINE__, LOG_BUFF_SIZE, text_len + 64);
-		pthread_mutex_unlock(&(pContext->log_thread_lock));
+        if (bNeedLock)
+        {
+		    pthread_mutex_unlock(&(pContext->log_thread_lock));
+        }
 		return;
 	}
 
@@ -417,7 +506,7 @@ static void doLogEx(LogContext *pContext, struct timeval *tv, \
 		log_fsync(pContext, false);
 	}
 
-	if ((result=pthread_mutex_unlock(&(pContext->log_thread_lock))) != 0)
+	if (bNeedLock && (result=pthread_mutex_unlock(&(pContext->log_thread_lock))) != 0)
 	{
 		fprintf(stderr, "file: "__FILE__", line: %d, " \
 			"call pthread_mutex_unlock fail, " \
@@ -426,8 +515,9 @@ static void doLogEx(LogContext *pContext, struct timeval *tv, \
 	}
 }
 
-static void doLog(LogContext *pContext, const char *caption, \
-		const char *text, const int text_len, const bool bNeedSync)
+void log_it_ex2(LogContext *pContext, const char *caption, \
+		const char *text, const int text_len, \
+        const bool bNeedSync, const bool bNeedLock)
 {
 	struct timeval tv;
 
@@ -441,7 +531,7 @@ static void doLog(LogContext *pContext, const char *caption, \
 		gettimeofday(&tv, NULL);
 	}
 
-	doLogEx(pContext, &tv, caption, text, text_len, bNeedSync);
+	doLogEx(pContext, &tv, caption, text, text_len, bNeedSync, bNeedLock);
 }
 
 void log_it_ex1(LogContext *pContext, const int priority, \
@@ -490,7 +580,7 @@ void log_it_ex1(LogContext *pContext, const int priority, \
 			break;
 	}
 
-	doLog(pContext, caption, text, text_len, bNeedSync);
+	log_it_ex2(pContext, caption, text, text_len, bNeedSync, true);
 }
 
 void log_it_ex(LogContext *pContext, const int priority, const char *format, ...)
@@ -545,7 +635,7 @@ void log_it_ex(LogContext *pContext, const int priority, const char *format, ...
 			break;
 	}
 
-	doLog(pContext, caption, text, len, bNeedSync);
+	log_it_ex2(pContext, caption, text, len, bNeedSync, true);
 }
 
 
@@ -565,7 +655,7 @@ void log_it_ex(LogContext *pContext, const int priority, const char *format, ...
 	va_end(ap); \
 	} \
 \
-	doLog(pContext, caption, text, len, bNeedSync); \
+	log_it_ex2(pContext, caption, text, len, bNeedSync, true); \
 
 
 void logEmergEx(LogContext *pContext, const char *format, ...)
@@ -619,7 +709,7 @@ void logAccess(LogContext *pContext, struct timeval *tvStart, \
 	len = vsnprintf(text, sizeof(text), format, ap);
 	va_end(ap);
 
-	doLogEx(pContext, tvStart, NULL, text, len, false);
+	doLogEx(pContext, tvStart, NULL, text, len, false, true);
 }
 
 #ifndef LOG_FORMAT_CHECK
