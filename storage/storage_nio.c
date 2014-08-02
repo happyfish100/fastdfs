@@ -322,6 +322,10 @@ static void client_sock_read(int sock, short event, void *arg)
 			if (errno == EAGAIN || errno == EWOULDBLOCK)
 			{
 			}
+			else if (errno == EINTR)
+			{
+				continue;
+			}
 			else
 			{
 				logError("file: "__FILE__", line: %d, " \
@@ -455,6 +459,10 @@ static void client_sock_write(int sock, short event, void *arg)
 			if (errno == EAGAIN || errno == EWOULDBLOCK)
 			{
 				set_send_event(pTask);
+			}
+			else if (errno == EINTR)
+			{
+				continue;
 			}
 			else
 			{

@@ -1,4 +1,7 @@
 
+Version 5.03  2014-08-02
+ * network send and recv retry when error EINTR happen
+
 Version 5.02  2014-07-20
  * corect README spell mistake
  * bug fixed: can't deal sync truncate file exception
