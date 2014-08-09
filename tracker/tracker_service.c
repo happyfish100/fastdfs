@@ -1632,7 +1632,7 @@ static int tracker_unlock_by_client(struct fast_task_info *pTask)
 
 	tracker_mem_file_unlock();
 
-	logInfo("file: "__FILE__", line: %d, " \
+	logDebug("file: "__FILE__", line: %d, " \
 		"unlock by client: %s, locked count: %d", \
 		__LINE__, pTask->client_ip, lock_by_client_count);
 
@@ -1651,7 +1651,7 @@ static int tracker_lock_by_client(struct fast_task_info *pTask)
 	pTask->finish_callback = tracker_unlock_by_client; //make sure to release lock
 	lock_by_client_count++;
 
-	logInfo("file: "__FILE__", line: %d, " \
+	logDebug("file: "__FILE__", line: %d, " \
 		"lock by client: %s, locked count: %d", \
 		__LINE__, pTask->client_ip, lock_by_client_count);
 
