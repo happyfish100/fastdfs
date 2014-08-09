@@ -447,7 +447,7 @@ bool fdfs_tracker_group_equals(TrackerServerGroup *pGroup1, \
     ConnectionInfo *pServer2;
     ConnectionInfo *pEnd1;
 
-    if (pGroup1->server_count != pGroup1->server_count)
+    if (pGroup1->server_count != pGroup2->server_count)
     {
         return false;
     }

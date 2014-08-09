@@ -167,6 +167,7 @@ static int combine_stat_by(const char *file_prefix, EntryStat *stats, const int 
 					{
 						printf("sscanf %s fail, errno: %d, error info: %s\n", 
 							filename, errno, STRERROR(errno));
+		                fclose(fp);
 						return errno != 0 ? errno : EINVAL;
 					}
 				}
@@ -174,6 +175,7 @@ static int combine_stat_by(const char *file_prefix, EntryStat *stats, const int 
 				{
 					printf("sscanf %s fail, errno: %d, error info: %s\n", 
 						filename, errno, STRERROR(errno));
+		            fclose(fp);
 					return errno != 0 ? errno : EINVAL;
 				}
 			}
@@ -192,6 +194,7 @@ static int combine_stat_by(const char *file_prefix, EntryStat *stats, const int 
 				if (*entry_count >= max_entries)
 				{
 					printf("entry count: %d >= max entries: %d\n", *entry_count, max_entries);
+		            fclose(fp);
 					return ENOSPC;
 				}
 

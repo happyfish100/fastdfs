@@ -55,6 +55,7 @@ int main()
 			{
 				printf("write file %s fail, errno: %d, error info: %s\n", 
 					files[i].filename, errno, STRERROR(errno));
+		        fclose(fp);
 				return 1;
 			}
 		}
@@ -64,6 +65,7 @@ int main()
 		{
 			printf("write file %s fail, errno: %d, error info: %s\n", 
 				files[i].filename, errno, STRERROR(errno));
+		    fclose(fp);
 			return 1;
 		}
 

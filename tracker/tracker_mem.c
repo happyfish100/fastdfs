@@ -2940,6 +2940,7 @@ static int tracker_mem_realloc_store_servers(FDFSGroupInfo *pGroup, \
 			{
 				free(new_servers);
 				free(new_sorted_servers);
+		        free(new_active_servers);
 
 				return result;
 			}
