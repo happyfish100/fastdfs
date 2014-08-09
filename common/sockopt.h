@@ -61,12 +61,24 @@ int tcprecvdata_ex(int sock, void *data, const int size, \
  *          sock: the socket
  *          data: the buffer
  *          size: buffer size (max bytes can receive)
- *          timeout: read timeout
+ *          timeout: read timeout in seconds
  *          count: store the bytes recveived
  *  return: error no, 0 success, != 0 fail
 */
 int tcprecvdata_nb_ex(int sock, void *data, const int size, \
 		const int timeout, int *count);
+
+/** recv data (non-block mode) in ms
+ *  parameters:
+ *          sock: the socket
+ *          data: the buffer
+ *          size: buffer size (max bytes can receive)
+ *          timeout: read timeout in milliseconds
+ *          count: store the bytes recveived
+ *  return: error no, 0 success, != 0 fail
+*/
+int tcprecvdata_nb_ms(int sock, void *data, const int size, \
+		const int timeout_ms, int *count);
 
 /** send data (block mode)
  *  parameters:
