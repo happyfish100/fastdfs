@@ -1029,7 +1029,7 @@ static int tracker_check_response(ConnectionInfo *pTrackerServer, \
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"tracker server %s:%d, " \
-			"package size "INT64_PRINTF_FORMAT" is not correct", \
+			"package size %"PRId64" is not correct", \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, nInPackLen);
 		return EINVAL;
@@ -1039,7 +1039,7 @@ static int tracker_check_response(ConnectionInfo *pTrackerServer, \
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"tracker server %s:%d, package size " \
-			INT64_PRINTF_FORMAT" is too large, " \
+			"%"PRId64" is too large, " \
 			"exceed max: %d", \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, \
@@ -1374,7 +1374,7 @@ int tracker_sync_src_req(ConnectionInfo *pTrackerServer, \
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"tracker server %s:%d, " \
-			"recv body length: "INT64_PRINTF_FORMAT" is invalid, " \
+			"recv body length: %"PRId64" is invalid, " \
 			"expect body length: %d", \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, in_bytes, \
@@ -1430,7 +1430,7 @@ static int tracker_sync_dest_req(ConnectionInfo *pTrackerServer)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"tracker server %s:%d, " \
-			"recv body length: "INT64_PRINTF_FORMAT" is invalid, " \
+			"recv body length: %"PRId64" is invalid, " \
 			"expect body length: %d", \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, in_bytes, \
@@ -1486,7 +1486,7 @@ static int tracker_sync_dest_query(ConnectionInfo *pTrackerServer)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"tracker server %s:%d, " \
-			"recv body length: "INT64_PRINTF_FORMAT" is invalid, " \
+			"recv body length: %"PRId64" is invalid, " \
 			"expect body length: %d", \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, in_bytes, \
@@ -1536,7 +1536,7 @@ static int tracker_report_trunk_fid(ConnectionInfo *pTrackerServer)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"tracker server %s:%d, recv body length: " \
-			INT64_PRINTF_FORMAT" != 0",  \
+			"%"PRId64" != 0",  \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, in_bytes);
 		return EINVAL;
@@ -1579,7 +1579,7 @@ static int tracker_report_trunk_free_space(ConnectionInfo *pTrackerServer)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"tracker server %s:%d, recv body length: " \
-			INT64_PRINTF_FORMAT" != 0",  \
+			"%"PRId64" != 0",  \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, in_bytes);
 		return EINVAL;
@@ -1624,7 +1624,7 @@ static int tracker_fetch_trunk_fid(ConnectionInfo *pTrackerServer)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"tracker server %s:%d, recv body length: " \
-			INT64_PRINTF_FORMAT" != %d",  \
+			"%"PRId64" != %d",  \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, in_bytes, (int)sizeof(in_buff));
 		return EINVAL;
@@ -1693,7 +1693,7 @@ static int tracker_sync_notify(ConnectionInfo *pTrackerServer)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"tracker server %s:%d, recv body length: " \
-			INT64_PRINTF_FORMAT" != 0",  \
+			"%"PRId64" != 0",  \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, in_bytes);
 		return EINVAL;
@@ -1827,7 +1827,7 @@ int tracker_report_join(ConnectionInfo *pTrackerServer, \
 		logError("file: "__FILE__", line: %d, " \
 			"tracker server %s:%d, recv data fail, " \
 			"expect %d bytes, but recv " \
-			INT64_PRINTF_FORMAT" bytes", \
+			"%"PRId64" bytes", \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, \
 			(int)sizeof(respBody), in_bytes);

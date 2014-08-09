@@ -253,7 +253,7 @@ int storage_trunk_init()
 	logInfo("file: "__FILE__", line: %d, " \
 		"tree by space size node count: %d, tree by trunk file id " \
 		"node count: %d, free block count: %d, " \
-		"trunk_total_free_space: "INT64_PRINTF_FORMAT, __LINE__, \
+		"trunk_total_free_space: %"PRId64, __LINE__, \
 		count, trunk_free_block_tree_node_count(), \
 		trunk_free_block_total_count(), \
 		g_trunk_total_free_space);
@@ -422,7 +422,7 @@ static int storage_trunk_do_save()
 		return result;
 	}
 
-	len = sprintf(callback_args.pCurrent, INT64_PRINTF_FORMAT"\n", \
+	len = sprintf(callback_args.pCurrent, "%"PRId64"\n", \
 			trunk_binlog_size);
 	callback_args.pCurrent += len;
 
@@ -682,16 +682,16 @@ static int storage_trunk_restore(const int64_t restore_offset)
 	if (restore_offset > trunk_binlog_size)
 	{
 		logWarning("file: "__FILE__", line: %d, " \
-			"restore_offset: "INT64_PRINTF_FORMAT \
-			" > trunk_binlog_size: "INT64_PRINTF_FORMAT, \
+			"restore_offset: %"PRId64 \
+			" > trunk_binlog_size: %"PRId64, \
 			__LINE__, restore_offset, trunk_binlog_size);
 		return storage_trunk_save();
 	}
 
 	logDebug("file: "__FILE__", line: %d, " \
 		"trunk metadata recovering, start offset: " \
-		INT64_PRINTF_FORMAT", need recovery binlog bytes: " \
-		INT64_PRINTF_FORMAT, __LINE__, \
+		"%"PRId64", need recovery binlog bytes: " \
+		"%"PRId64, __LINE__, \
 		restore_offset, trunk_binlog_size - restore_offset);
 
 	trunk_init_reload_from_binlog = (restore_offset == 0);
@@ -739,8 +739,8 @@ static int storage_trunk_restore(const int64_t restore_offset)
 				if (result != 0)
 				{
 				logError("file: "__FILE__", line: %d, " \
-					"binlog offset: "INT64_PRINTF_FORMAT \
-					" < binlog size: "INT64_PRINTF_FORMAT \
+					"binlog offset: %"PRId64 \
+					" < binlog size: %"PRId64 \
 					", please check the end of trunk " \
 					"binlog", __LINE__, \
 					reader.binlog_offset, trunk_binlog_size);
@@ -794,7 +794,7 @@ static int storage_trunk_restore(const int64_t restore_offset)
 							buff, sizeof(buff));
 					logWarning("file: "__FILE__", line: %d"\
 						", trunk data line: " \
-						INT64_PRINTF_FORMAT", trunk "\
+						"%"PRId64", trunk "\
 						"space already exist, "\
 						"trunk info: %s", \
 						__LINE__, line_count, buff);
@@ -819,8 +819,8 @@ static int storage_trunk_restore(const int64_t restore_offset)
 				trunk_info_dump(&(record.trunk), \
 						buff, sizeof(buff));
 				logWarning("file: "__FILE__", line: %d"\
-					", binlog offset: "INT64_PRINTF_FORMAT \
-					", trunk data line: "INT64_PRINTF_FORMAT \
+					", binlog offset: %"PRId64 \
+					", trunk data line: %"PRId64 \
 					" trunk node not exist, " \
 					"trunk info: %s", __LINE__, \
 					reader.binlog_offset, \
@@ -833,8 +833,8 @@ static int storage_trunk_restore(const int64_t restore_offset)
 				if (result == ENOENT)
 				{
 				logDebug("file: "__FILE__", line: %d, "\
-					"binlog offset: "INT64_PRINTF_FORMAT \
-					", trunk data line: "INT64_PRINTF_FORMAT,\
+					"binlog offset: %"PRId64 \
+					", trunk data line: %"PRId64,\
 					__LINE__, reader.binlog_offset, \
 					line_count);
 
@@ -890,8 +890,8 @@ static int storage_trunk_restore(const int64_t restore_offset)
 	{
 		logDebug("file: "__FILE__", line: %d, " \
 			"trunk metadata recovery done. start offset: " \
-			INT64_PRINTF_FORMAT", recovery file size: " \
-			INT64_PRINTF_FORMAT, __LINE__, \
+			"%"PRId64", recovery file size: " \
+			"%"PRId64, __LINE__, \
 			restore_offset, trunk_binlog_size - restore_offset);
 		return storage_trunk_save();
 	}
@@ -1814,8 +1814,8 @@ int trunk_check_and_init_file_ex(const char *filename, const int64_t file_size)
 	}
 
 	logWarning("file: "__FILE__", line: %d, " \
-		"file: %s, file size: "INT64_PRINTF_FORMAT \
-		" < "INT64_PRINTF_FORMAT", should be resize", \
+		"file: %s, file size: %"PRId64 \
+		" < %"PRId64", should be resize", \
 		__LINE__, filename, (int64_t)file_stat.st_size, file_size);
 
 	fd = open(filename, O_WRONLY, 0644);

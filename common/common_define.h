@@ -28,6 +28,7 @@ typedef DWORD (WINAPI *ThreadEntranceFunc)(LPVOID lpThreadParameter);
 #include <unistd.h>
 #include <signal.h>
 #include <stdbool.h>
+#include <inttypes.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <sys/types.h>

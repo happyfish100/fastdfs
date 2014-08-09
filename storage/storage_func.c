@@ -404,44 +404,44 @@ int storage_write_to_stat_file()
 	int write_ret;
 
 	len = sprintf(buff, 
-		"%s="INT64_PRINTF_FORMAT"\n"  \
-		"%s="INT64_PRINTF_FORMAT"\n"  \
-		"%s="INT64_PRINTF_FORMAT"\n"  \
-		"%s="INT64_PRINTF_FORMAT"\n"  \
-		"%s="INT64_PRINTF_FORMAT"\n"  \
-		"%s="INT64_PRINTF_FORMAT"\n"  \
-		"%s="INT64_PRINTF_FORMAT"\n"  \
-		"%s="INT64_PRINTF_FORMAT"\n"  \
-		"%s="INT64_PRINTF_FORMAT"\n"  \
-		"%s="INT64_PRINTF_FORMAT"\n"  \
-		"%s="INT64_PRINTF_FORMAT"\n"  \
-		"%s="INT64_PRINTF_FORMAT"\n"  \
-		"%s="INT64_PRINTF_FORMAT"\n"  \
-		"%s="INT64_PRINTF_FORMAT"\n"  \
-		"%s="INT64_PRINTF_FORMAT"\n"  \
-		"%s="INT64_PRINTF_FORMAT"\n"  \
-		"%s="INT64_PRINTF_FORMAT"\n"  \
-		"%s="INT64_PRINTF_FORMAT"\n"  \
-		"%s="INT64_PRINTF_FORMAT"\n"  \
-		"%s="INT64_PRINTF_FORMAT"\n"  \
-		"%s="INT64_PRINTF_FORMAT"\n"  \
-		"%s="INT64_PRINTF_FORMAT"\n"  \
-		"%s="INT64_PRINTF_FORMAT"\n"  \
-		"%s="INT64_PRINTF_FORMAT"\n"  \
-		"%s="INT64_PRINTF_FORMAT"\n"  \
-		"%s="INT64_PRINTF_FORMAT"\n"  \
-		"%s="INT64_PRINTF_FORMAT"\n"  \
-		"%s="INT64_PRINTF_FORMAT"\n"  \
-		"%s="INT64_PRINTF_FORMAT"\n"  \
-		"%s="INT64_PRINTF_FORMAT"\n"  \
-		"%s="INT64_PRINTF_FORMAT"\n"  \
-		"%s="INT64_PRINTF_FORMAT"\n"  \
-		"%s="INT64_PRINTF_FORMAT"\n"  \
-		"%s="INT64_PRINTF_FORMAT"\n"  \
-		"%s="INT64_PRINTF_FORMAT"\n"  \
-		"%s="INT64_PRINTF_FORMAT"\n"  \
-		"%s="INT64_PRINTF_FORMAT"\n"  \
-		"%s="INT64_PRINTF_FORMAT"\n"  \
+		"%s=%"PRId64"\n"  \
+		"%s=%"PRId64"\n"  \
+		"%s=%"PRId64"\n"  \
+		"%s=%"PRId64"\n"  \
+		"%s=%"PRId64"\n"  \
+		"%s=%"PRId64"\n"  \
+		"%s=%"PRId64"\n"  \
+		"%s=%"PRId64"\n"  \
+		"%s=%"PRId64"\n"  \
+		"%s=%"PRId64"\n"  \
+		"%s=%"PRId64"\n"  \
+		"%s=%"PRId64"\n"  \
+		"%s=%"PRId64"\n"  \
+		"%s=%"PRId64"\n"  \
+		"%s=%"PRId64"\n"  \
+		"%s=%"PRId64"\n"  \
+		"%s=%"PRId64"\n"  \
+		"%s=%"PRId64"\n"  \
+		"%s=%"PRId64"\n"  \
+		"%s=%"PRId64"\n"  \
+		"%s=%"PRId64"\n"  \
+		"%s=%"PRId64"\n"  \
+		"%s=%"PRId64"\n"  \
+		"%s=%"PRId64"\n"  \
+		"%s=%"PRId64"\n"  \
+		"%s=%"PRId64"\n"  \
+		"%s=%"PRId64"\n"  \
+		"%s=%"PRId64"\n"  \
+		"%s=%"PRId64"\n"  \
+		"%s=%"PRId64"\n"  \
+		"%s=%"PRId64"\n"  \
+		"%s=%"PRId64"\n"  \
+		"%s=%"PRId64"\n"  \
+		"%s=%"PRId64"\n"  \
+		"%s=%"PRId64"\n"  \
+		"%s=%"PRId64"\n"  \
+		"%s=%"PRId64"\n"  \
+		"%s=%"PRId64"\n"  \
 		"%s=%d\n"  \
 		"%s=%d\n"  \
 		"%s=%d\n"  \
@@ -1597,7 +1597,7 @@ int storage_func_init(const char *filename, \
 		{
 			logWarning("file: "__FILE__", line: %d, " \
 				"item \"rotate_access_log_size\": " \
-				INT64_PRINTF_FORMAT" is too small, " \
+				"%"PRId64" is too small, " \
 				"change to 1 MB", __LINE__, \
 				rotate_access_log_size);
 			rotate_access_log_size = FDFS_ONE_MB;
@@ -1620,7 +1620,7 @@ int storage_func_init(const char *filename, \
 		{
 			logWarning("file: "__FILE__", line: %d, " \
 				"item \"rotate_error_log_size\": " \
-				INT64_PRINTF_FORMAT" is too small, " \
+				"%"PRId64" is too small, " \
 				"change to 1 MB", __LINE__, \
 				rotate_error_log_size);
 			rotate_error_log_size = FDFS_ONE_MB;
@@ -1693,8 +1693,8 @@ int storage_func_init(const char *filename, \
 			"access_log_rotate_time=%02d:%02d, " \
 			"rotate_error_log=%d, " \
 			"error_log_rotate_time=%02d:%02d, " \
-			"rotate_access_log_size="INT64_PRINTF_FORMAT", " \
-			"rotate_error_log_size="INT64_PRINTF_FORMAT", " \
+			"rotate_access_log_size=%"PRId64", " \
+			"rotate_error_log_size=%"PRId64", " \
 			"file_sync_skip_invalid_record=%d, " \
 			"use_connection_pool=%d, " \
 			"g_connection_pool_max_idle_time=%ds", \

@@ -334,7 +334,7 @@ int tracker_list_servers(ConnectionInfo *pTrackerServer, \
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"tracker server %s:%d response data " \
-			"length: "INT64_PRINTF_FORMAT" is invalid", \
+			"length: %"PRId64" is invalid", \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, in_bytes);
 		*storage_count = 0;
@@ -523,7 +523,7 @@ int tracker_list_one_group(ConnectionInfo *pTrackerServer, \
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"tracker server %s:%d response data " \
-			"length: "INT64_PRINTF_FORMAT" is invalid", \
+			"length: %"PRId64" is invalid", \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, in_bytes);
 		return EINVAL;
@@ -598,7 +598,7 @@ int tracker_list_groups(ConnectionInfo *pTrackerServer, \
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"tracker server %s:%d response data " \
-			"length: "INT64_PRINTF_FORMAT" is invalid", \
+			"length: %"PRId64" is invalid", \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, in_bytes);
 		*group_count = 0;
@@ -708,7 +708,7 @@ int tracker_do_query_storage(ConnectionInfo *pTrackerServer, \
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"tracker server %s:%d response data " \
-			"length: "INT64_PRINTF_FORMAT" is invalid, " \
+			"length: %"PRId64" is invalid, " \
 			"expect length: %d", __LINE__, \
 			pTrackerServer->ip_addr, \
 			pTrackerServer->port, in_bytes, \
@@ -787,7 +787,7 @@ int tracker_query_storage_list(ConnectionInfo *pTrackerServer, \
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"tracker server %s:%d response data " \
-			"length: "INT64_PRINTF_FORMAT" is invalid", \
+			"length: %"PRId64" is invalid", \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, in_bytes);
 		return EINVAL;
@@ -879,7 +879,7 @@ int tracker_query_storage_store_without_group(ConnectionInfo *pTrackerServer,
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"tracker server %s:%d response data " \
-			"length: "INT64_PRINTF_FORMAT" is invalid, " \
+			"length: %"PRId64" is invalid, " \
 			"expect length: %d", __LINE__, \
 			pTrackerServer->ip_addr, pTrackerServer->port, \
 			in_bytes, TRACKER_QUERY_STORAGE_STORE_BODY_LEN);
@@ -956,7 +956,7 @@ int tracker_query_storage_store_with_group(ConnectionInfo *pTrackerServer, \
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"tracker server %s:%d response data " \
-			"length: "INT64_PRINTF_FORMAT" is invalid, " \
+			"length: %"PRId64" is invalid, " \
 			"expect length: %d", __LINE__, \
 			pTrackerServer->ip_addr, pTrackerServer->port, \
 			in_bytes, TRACKER_QUERY_STORAGE_STORE_BODY_LEN);
@@ -1045,7 +1045,7 @@ int tracker_query_storage_store_list_with_group( \
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"tracker server %s:%d response data " \
-			"length: "INT64_PRINTF_FORMAT" is invalid, " \
+			"length: %"PRId64" is invalid, " \
 			"expect length >= %d", __LINE__, \
 			pTrackerServer->ip_addr, pTrackerServer->port, \
 			in_bytes, TRACKER_QUERY_STORAGE_STORE_BODY_LEN);
@@ -1059,7 +1059,7 @@ int tracker_query_storage_store_list_with_group( \
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"tracker server %s:%d response data " \
-			"length: "INT64_PRINTF_FORMAT" is invalid", \
+			"length: %"PRId64" is invalid", \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, in_bytes);
 		return EINVAL;
@@ -1382,7 +1382,7 @@ int tracker_get_storage_status(ConnectionInfo *pTrackerServer, \
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"tracker server %s:%d response data " \
-			"length: "INT64_PRINTF_FORMAT" is invalid", \
+			"length: %"PRId64" is invalid", \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, in_bytes);
 		return EINVAL;
@@ -1463,7 +1463,7 @@ int tracker_get_storage_id(ConnectionInfo *pTrackerServer, \
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"tracker server %s:%d response data " \
-			"length: "INT64_PRINTF_FORMAT" is invalid", \
+			"length: %"PRId64" is invalid", \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, in_bytes);
 		return EINVAL;

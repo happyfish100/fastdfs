@@ -106,7 +106,7 @@ static int storage_do_fetch_binlog(ConnectionInfo *pSrcStorage, \
 	}
 
 	logInfo("file: "__FILE__", line: %d, " \
-		"recovery binlog file size: "INT64_PRINTF_FORMAT, \
+		"recovery binlog file size: %"PRId64, \
 		__LINE__, file_bytes);
 
 	return 0;
@@ -361,7 +361,7 @@ static int recovery_write_to_mark_file(const char *pBasePath, \
 
 	len = sprintf(buff, \
 		"%s=%d\n" \
-		"%s="INT64_PRINTF_FORMAT"\n"  \
+		"%s=%"PRId64"\n"  \
 		"%s=1\n",  \
 		MARK_ITEM_SAVED_STORAGE_STATUS, saved_storage_status, \
 		MARK_ITEM_BINLOG_OFFSET, pReader->binlog_offset, \
@@ -469,7 +469,7 @@ static int recovery_reader_init(const char *pBasePath, \
 
 		logError("file: "__FILE__", line: %d, " \
 			"in mark file \"%s\", %s: "\
-			INT64_PRINTF_FORMAT" < 0", __LINE__, \
+			"%"PRId64" < 0", __LINE__, \
 			full_mark_filename, MARK_ITEM_BINLOG_OFFSET, \
 			pReader->binlog_offset);
 		return EINVAL;
@@ -691,8 +691,8 @@ static int storage_do_recovery(const char *pBasePath, StorageBinLogReader *pRead
 		{
 			logDebug("file: "__FILE__", line: %d, " \
 				"disk recovery: recover path: %s, " \
-				"file count: "INT64_PRINTF_FORMAT \
-				", success count: "INT64_PRINTF_FORMAT, \
+				"file count: %"PRId64 \
+				", success count: %"PRId64, \
 				__LINE__, pBasePath, total_count, \
 				success_count);
 			recovery_write_to_mark_file(pBasePath, pReader);
@@ -708,8 +708,8 @@ static int storage_do_recovery(const char *pBasePath, StorageBinLogReader *pRead
 
 		logInfo("file: "__FILE__", line: %d, " \
 			"disk recovery: recover path: %s, " \
-			"file count: "INT64_PRINTF_FORMAT \
-			", success count: "INT64_PRINTF_FORMAT, \
+			"file count: %"PRId64 \
+			", success count: %"PRId64, \
 			__LINE__, pBasePath, total_count, success_count);
 	}
 	else

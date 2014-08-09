@@ -40,8 +40,8 @@ static int fdfs_dump_group_stat(FDFSGroupInfo *pGroup, char *buff, const int buf
 
 	total_len = snprintf(buff, buffSize, 
 		"group_name=%s\n"
-		"total_mb="INT64_PRINTF_FORMAT"\n"
-		"free_mb="INT64_PRINTF_FORMAT"\n"
+		"total_mb=%"PRId64"\n"
+		"free_mb=%"PRId64"\n"
 		"alloc_size=%d\n"
 		"server count=%d\n"
 		"active server count=%d\n"
@@ -178,9 +178,9 @@ static int fdfs_dump_storage_stat(FDFSStorageDetail *pServer,
 		"sync_until_timestamp=%s\n"
 		"join_time=%s\n"
 		"up_time=%s\n"
-		"total_mb="INT64_PRINTF_FORMAT" MB\n"
-		"free_mb="INT64_PRINTF_FORMAT" MB\n"
-		"changelog_offset="INT64_PRINTF_FORMAT"\n"
+		"total_mb=%"PRId64" MB\n"
+		"free_mb=%"PRId64" MB\n"
+		"changelog_offset=%"PRId64"\n"
 		"store_path_count=%d\n"
 		"storage_port=%d\n"
 		"storage_http_port=%d\n"
@@ -195,20 +195,20 @@ static int fdfs_dump_storage_stat(FDFSStorageDetail *pServer,
 		"http_check_error_info=%s\n"
 #endif
 
-		"total_upload_count="INT64_PRINTF_FORMAT"\n"
-		"success_upload_count="INT64_PRINTF_FORMAT"\n"
-		"total_set_meta_count="INT64_PRINTF_FORMAT"\n"
-		"success_set_meta_count="INT64_PRINTF_FORMAT"\n"
-		"total_delete_count="INT64_PRINTF_FORMAT"\n"
-		"success_delete_count="INT64_PRINTF_FORMAT"\n"
-		"total_download_count="INT64_PRINTF_FORMAT"\n"
-		"success_download_count="INT64_PRINTF_FORMAT"\n"
-		"total_get_meta_count="INT64_PRINTF_FORMAT"\n"
-		"success_get_meta_count="INT64_PRINTF_FORMAT"\n"
-		"total_create_link_count="INT64_PRINTF_FORMAT"\n"
-		"success_create_link_count="INT64_PRINTF_FORMAT"\n"
-		"total_delete_link_count="INT64_PRINTF_FORMAT"\n"
-		"success_delete_link_count="INT64_PRINTF_FORMAT"\n"
+		"total_upload_count=%"PRId64"\n"
+		"success_upload_count=%"PRId64"\n"
+		"total_set_meta_count=%"PRId64"\n"
+		"success_set_meta_count=%"PRId64"\n"
+		"total_delete_count=%"PRId64"\n"
+		"success_delete_count=%"PRId64"\n"
+		"total_download_count=%"PRId64"\n"
+		"success_download_count=%"PRId64"\n"
+		"total_get_meta_count=%"PRId64"\n"
+		"success_get_meta_count=%"PRId64"\n"
+		"total_create_link_count=%"PRId64"\n"
+		"success_create_link_count=%"PRId64"\n"
+		"total_delete_link_count=%"PRId64"\n"
+		"success_delete_link_count=%"PRId64"\n"
 		"last_source_update=%s\n"
 		"last_sync_update=%s\n"
 		"last_synced_timestamp=%s\n"
@@ -275,8 +275,8 @@ static int fdfs_dump_storage_stat(FDFSStorageDetail *pServer,
 	for (i=0; i<pServer->store_path_count; i++)
 	{
 		total_len += snprintf(buff + total_len, buffSize - total_len, 
-			"disk %d: total_mb="INT64_PRINTF_FORMAT" MB, "
-			"free_mb="INT64_PRINTF_FORMAT" MB\n",
+			"disk %d: total_mb=%"PRId64" MB, "
+			"free_mb=%"PRId64" MB\n",
 			i+1, pServer->path_total_mbs[i],
 			pServer->path_free_mbs[i]);
 	}
@@ -313,7 +313,7 @@ static int fdfs_dump_global_vars(char *buff, const int buffSize)
 		"slot_min_size=%d\n"
 		"slot_max_size=%d MB\n"
 		"trunk_file_size=%d MB\n"
-		"g_changelog_fsize="INT64_PRINTF_FORMAT"\n"
+		"g_changelog_fsize=%"PRId64"\n"
 		"g_storage_sync_file_max_delay=%ds\n"
 		"g_storage_sync_file_max_time=%ds\n"
 		"g_up_time=%d\n"

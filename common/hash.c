@@ -757,12 +757,12 @@ int64_t hash_inc_value(const HashData *old_data, const int inc,
 		{
 			n = inc;
 		}
-		*new_value_len = sprintf(new_value, INT64_PRINTF_FORMAT, n);
+		*new_value_len = sprintf(new_value, "%"PRId64, n);
 	}
 	else
 	{
 		n = inc;
-		*new_value_len = sprintf(new_value, INT64_PRINTF_FORMAT, n);
+		*new_value_len = sprintf(new_value, "%"PRId64, n);
 	}
 
 	return n;

@@ -183,7 +183,7 @@ static int trunk_client_trunk_confirm_or_free(ConnectionInfo *pTrunkServer,\
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"storage server %s:%d response data " \
-			"length: "INT64_PRINTF_FORMAT" is invalid, " \
+			"length: %"PRId64" is invalid, " \
 			"should == 0", __LINE__, pTrunkServer->ip_addr, \
 			pTrunkServer->port, in_bytes);
 		return EINVAL;

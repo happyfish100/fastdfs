@@ -195,7 +195,7 @@ int free_queue_init(const int max_connections, const int min_buff_size, \
 	logDebug("file: "__FILE__", line: %d, " \
 		"max_connections: %d, min_buff_size: %d, max_buff_size: %d, " \
 		"block_size: %d, arg_size: %d, max_data_size: %d, " \
-		"total_size: "INT64_PRINTF_FORMAT, __LINE__, \
+		"total_size: %"PRId64, __LINE__, \
 		max_connections, aligned_min_size, aligned_max_size, \
 		block_size, aligned_arg_size, (int)max_data_size, total_size);
 

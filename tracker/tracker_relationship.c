@@ -76,7 +76,7 @@ static int fdfs_ping_leader(ConnectionInfo *pTrackerServer)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"tracker server ip: %s, invalid body length: " \
-			INT64_PRINTF_FORMAT, __LINE__, \
+			"%"PRId64, __LINE__, \
 			pTrackerServer->ip_addr, in_bytes);
 		return EINVAL;
 	}
@@ -289,7 +289,7 @@ static int do_notify_leader_changed(ConnectionInfo *pTrackerServer, \
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"tracker server %s:%d response data " \
-			"length: "INT64_PRINTF_FORMAT" is invalid, " \
+			"length: %"PRId64" is invalid, " \
 			"expect length: %d.", __LINE__, \
 			pTrackerServer->ip_addr, pTrackerServer->port, \
 			in_bytes, 0);

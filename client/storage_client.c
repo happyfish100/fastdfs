@@ -371,7 +371,7 @@ int storage_query_file_info_ex(ConnectionInfo *pTrackerServer, \
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"recv data from storage server %s:%d fail, " \
-			"recv bytes: "INT64_PRINTF_FORMAT" != %d", __LINE__, \
+			"recv bytes: %"PRId64" != %d", __LINE__, \
 			pStorageServer->ip_addr, pStorageServer->port, \
 			in_bytes, (int)sizeof(in_buff));
 		result = EINVAL;
@@ -980,7 +980,7 @@ int storage_do_upload_file(ConnectionInfo *pTrackerServer, \
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"storage server %s:%d response data " \
-			"length: "INT64_PRINTF_FORMAT" is invalid, " \
+			"length: %"PRId64" is invalid, " \
 			"should > %d", __LINE__, \
 			pStorageServer->ip_addr, pStorageServer->port, \
 			in_bytes, FDFS_GROUP_NAME_MAX_LEN);
@@ -1433,7 +1433,7 @@ int storage_client_create_link(ConnectionInfo *pTrackerServer, \
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"storage server %s:%d response data " \
-			"length: "INT64_PRINTF_FORMAT" is invalid, " \
+			"length: %"PRId64" is invalid, " \
 			"should > %d", __LINE__, \
 			pStorageServer->ip_addr, pStorageServer->port, \
 			in_bytes, FDFS_GROUP_NAME_MAX_LEN);
@@ -1757,7 +1757,7 @@ int storage_do_append_file(ConnectionInfo *pTrackerServer, \
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"storage server %s:%d response data " \
-			"length: "INT64_PRINTF_FORMAT" is invalid, " \
+			"length: %"PRId64" is invalid, " \
 			"should == 0", __LINE__, pStorageServer->ip_addr, \
 			pStorageServer->port, in_bytes);
 		result = EINVAL;
@@ -1885,7 +1885,7 @@ int storage_do_modify_file(ConnectionInfo *pTrackerServer, \
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"storage server %s:%d response data " \
-			"length: "INT64_PRINTF_FORMAT" is invalid, " \
+			"length: %"PRId64" is invalid, " \
 			"should == 0", __LINE__, pStorageServer->ip_addr, \
 			pStorageServer->port, in_bytes);
 		result = EINVAL;
@@ -2297,7 +2297,7 @@ int storage_truncate_file(ConnectionInfo *pTrackerServer, \
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"storage server %s:%d response data " \
-			"length: "INT64_PRINTF_FORMAT" is invalid, " \
+			"length: %"PRId64" is invalid, " \
 			"should == 0", __LINE__, pStorageServer->ip_addr, \
 			pStorageServer->port, in_bytes);
 		result = EINVAL;

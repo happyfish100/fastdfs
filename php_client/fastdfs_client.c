@@ -546,7 +546,7 @@ static int php_fdfs_get_upload_callback_from_hash(HashTable *callback_hash, \
 	if (pUploadCallback->file_size < 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"file_size: "INT64_PRINTF_FORMAT" is invalid!", \
+			"file_size: %"PRId64" is invalid!", \
 			__LINE__, pUploadCallback->file_size);
 		return EINVAL;
 	}

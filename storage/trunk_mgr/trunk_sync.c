@@ -810,7 +810,7 @@ int trunk_open_readable_binlog(TrunkBinLogReader *pReader, \
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"seek binlog file \"%s\" fail, file offset=" \
-			INT64_PRINTF_FORMAT", errno: %d, error info: %s", \
+			"%"PRId64", errno: %d, error info: %s", \
 			__LINE__, full_filename, pReader->binlog_offset, \
 			errno, STRERROR(errno));
 
@@ -971,7 +971,7 @@ int trunk_reader_init(FDFSStorageBrief *pStorage, TrunkBinLogReader *pReader)
 			iniFreeContext(&iniContext);
 			logError("file: "__FILE__", line: %d, " \
 				"in mark file \"%s\", binlog_offset: "\
-				INT64_PRINTF_FORMAT" < 0", \
+				"%"PRId64" < 0", \
 				__LINE__, full_filename, \
 				pReader->binlog_offset);
 			return EINVAL;
@@ -1046,7 +1046,7 @@ static int trunk_write_to_mark_file(TrunkBinLogReader *pReader)
 	int result;
 
 	len = sprintf(buff, \
-		"%s="INT64_PRINTF_FORMAT"\n",  \
+		"%s=%"PRId64"\n",  \
 		MARK_ITEM_BINLOG_FILE_OFFSET, pReader->binlog_offset);
 
 	if ((result=storage_write_to_fd(pReader->mark_fd, \
@@ -1094,7 +1094,7 @@ static int trunk_binlog_preread(TrunkBinLogReader *pReader)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"read from binlog file \"%s\" fail, " \
-			"file offset: "INT64_PRINTF_FORMAT", " \
+			"file offset: %"PRId64", " \
 			"error no: %d, error info: %s", __LINE__, \
 			get_binlog_readable_filename(pReader, NULL), \
 			pReader->binlog_offset + pReader->binlog_buff.length, \
@@ -1133,7 +1133,7 @@ static int trunk_binlog_do_line_read(TrunkBinLogReader *pReader, \
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"read from binlog file \"%s\" fail, " \
-			"file offset: "INT64_PRINTF_FORMAT", " \
+			"file offset: %"PRId64", " \
 			"line buffer size: %d is too small! " \
 			"<= line length: %d", __LINE__, \
 			get_binlog_readable_filename(pReader, NULL), \
@@ -1191,7 +1191,7 @@ int trunk_binlog_read(TrunkBinLogReader *pReader, \
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"read data from binlog file \"%s\" fail, " \
-			"file offset: "INT64_PRINTF_FORMAT", " \
+			"file offset: %"PRId64", " \
 			"read item count: %d < %d", \
 			__LINE__, get_binlog_readable_filename(pReader, NULL), \
 			pReader->binlog_offset, result, COL_COUNT);

@@ -57,7 +57,7 @@ int fdfs_recv_header(ConnectionInfo *pTrackerServer, int64_t *in_bytes)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"server: %s:%d, recv package size " \
-			INT64_PRINTF_FORMAT" is not correct", \
+			"%"PRId64" is not correct", \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, *in_bytes);
 		*in_bytes = 0;
@@ -93,7 +93,7 @@ int fdfs_recv_response(ConnectionInfo *pTrackerServer, \
 			*in_bytes = 0;
 
 			logError("file: "__FILE__", line: %d, " \
-				"malloc "INT64_PRINTF_FORMAT" bytes fail", \
+				"malloc %"PRId64" bytes fail", \
 				__LINE__, (*in_bytes) + 1);
 			return errno != 0 ? errno : ENOMEM;
 		}
@@ -106,7 +106,7 @@ int fdfs_recv_response(ConnectionInfo *pTrackerServer, \
 		{
 			logError("file: "__FILE__", line: %d, " \
 				"server: %s:%d, recv body bytes: " \
-				INT64_PRINTF_FORMAT" exceed max: %d", \
+				"%"PRId64" exceed max: %d", \
 				__LINE__, pTrackerServer->ip_addr, \
 				pTrackerServer->port, *in_bytes, buff_size);
 			*in_bytes = 0;
@@ -194,7 +194,7 @@ int fdfs_deal_no_body_cmd(ConnectionInfo *pTrackerServer, const int cmd)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"server ip: %s, expect body length 0, " \
-			"but received: "INT64_PRINTF_FORMAT, __LINE__, \
+			"but received: %"PRId64, __LINE__, \
 			pTrackerServer->ip_addr, in_bytes);
 		return EINVAL;
 	}
@@ -498,7 +498,7 @@ static int fdfs_do_parameter_req(ConnectionInfo *pTrackerServer, \
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"server: %s:%d, recv body bytes: " \
-			INT64_PRINTF_FORMAT" exceed max: %d", \
+			"%"PRId64" exceed max: %d", \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, in_bytes, buff_size);
 		return ENOSPC;

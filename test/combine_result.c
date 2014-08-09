@@ -156,13 +156,13 @@ static int combine_stat_by(const char *file_prefix, EntryStat *stats, const int 
 				continue;
 			}
 
-			if (sscanf(buff, "%s %d %d "INT64_PRINTF_FORMAT, id, \
+			if (sscanf(buff, "%s %d %d %"PRId64, id, \
 				&total_count, &success_count, &time_used) != 4)
 			{
 				if (*buff == ' ') //empty id (eg. storage ip)
 				{
 					*id = '\0';
-					if (sscanf(buff+1, "%d %d "INT64_PRINTF_FORMAT, \
+					if (sscanf(buff+1, "%d %d %"PRId64, \
 					&total_count, &success_count, &time_used) != 3)
 					{
 						printf("sscanf %s fail, errno: %d, error info: %s\n", 

@@ -310,7 +310,7 @@ static void client_sock_read(int sock, short event, void *arg)
 		}
 
 		/*
-		logInfo("total_length="INT64_PRINTF_FORMAT", recv_bytes=%d, "
+		logInfo("total_length=%"PRId64", recv_bytes=%d, "
 			"pTask->length=%d, pTask->offset=%d",
 			pClientInfo->total_length, recv_bytes, 
 			pTask->length, pTask->offset);
@@ -364,7 +364,7 @@ static void client_sock_read(int sock, short event, void *arg)
 			{
 				logError("file: "__FILE__", line: %d, " \
 					"client ip: %s, pkg length: " \
-					INT64_PRINTF_FORMAT" < 0", \
+					"%"PRId64" < 0", \
 					__LINE__, pTask->client_ip, \
 					pClientInfo->total_length);
 

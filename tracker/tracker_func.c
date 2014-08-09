@@ -599,7 +599,7 @@ int tracker_load_from_conf_file(const char *filename, \
 		{
 			logWarning("file: "__FILE__", line: %d, " \
 				"item \"rotate_error_log_size\": " \
-				INT64_PRINTF_FORMAT" is too small, " \
+				"%"PRId64" is too small, " \
 				"change to 1 MB", __LINE__, \
 				rotate_error_log_size);
 			rotate_error_log_size = FDFS_ONE_MB;
@@ -691,7 +691,7 @@ int tracker_load_from_conf_file(const char *filename, \
 			"storage_id_count=%d, " \
 			"rotate_error_log=%d, " \
 			"error_log_rotate_time=%02d:%02d, " \
-			"rotate_error_log_size="INT64_PRINTF_FORMAT", " \
+			"rotate_error_log_size=%"PRId64", " \
 			"store_slave_file_use_link=%d, " \
 			"use_connection_pool=%d, " \
 			"g_connection_pool_max_idle_time=%ds", \

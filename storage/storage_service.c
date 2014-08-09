@@ -272,8 +272,8 @@ static void storage_log_access_log(struct fast_task_info *pTask, \
 		  + (tv_end.tv_usec - pClientInfo->file_context. \
 			tv_deal_start.tv_usec) / 1000;
 	logAccess(&g_access_log_context, &(pClientInfo->file_context. \
-		tv_deal_start), "%s %s %s %d %d "INT64_PRINTF_FORMAT" " \
-		INT64_PRINTF_FORMAT, pTask->client_ip, action, \
+		tv_deal_start), "%s %s %s %d %d %"PRId64" " \
+		"%"PRId64, pTask->client_ip, action, \
 		pClientInfo->file_context.fname2log, status, time_used, \
 		pClientInfo->request_length, pClientInfo->total_length);
 }
@@ -1328,7 +1328,7 @@ static void storage_append_file_done_callback(struct fast_task_info *pTask, \
 				"regular", pFileContext->filename)
 		}
 
-		sprintf(extra, INT64_PRINTF_FORMAT" "INT64_PRINTF_FORMAT, \
+		sprintf(extra, "%"PRId64" %"PRId64, \
 				pFileContext->start, \
 				pFileContext->end - pFileContext->start);
 		result = storage_binlog_write_ex(pFileContext->timestamp2log, \
@@ -1398,7 +1398,7 @@ static void storage_modify_file_done_callback(struct fast_task_info *pTask, \
 				"regular", pFileContext->filename)
 		}
 
-		sprintf(extra, INT64_PRINTF_FORMAT" "INT64_PRINTF_FORMAT, \
+		sprintf(extra, "%"PRId64" %"PRId64, \
 				pFileContext->start, \
 				pFileContext->end - pFileContext->start);
 		result = storage_binlog_write_ex(pFileContext->timestamp2log, \
@@ -1467,7 +1467,7 @@ static void storage_do_truncate_file_done_callback(struct fast_task_info *pTask,
 			STORAGE_STAT_FILE_FAIL_LOG(result, pTask->client_ip,
 				"regular", pFileContext->filename)
 		}
-		sprintf(extra, INT64_PRINTF_FORMAT" "INT64_PRINTF_FORMAT, \
+		sprintf(extra, "%"PRId64" %"PRId64, \
 				pFileContext->end - pFileContext->start,
 				pFileContext->offset);
 		result = storage_binlog_write_ex(pFileContext->timestamp2log, \
@@ -3201,7 +3201,7 @@ static int storage_server_set_metadata(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"cmd=%d, client ip: %s, package size " \
-			INT64_PRINTF_FORMAT" is not correct, " \
+			"%"PRId64" is not correct, " \
 			"expect length > %d", \
 			__LINE__, STORAGE_PROTO_CMD_SET_METADATA, \
 			pTask->client_ip,  nInPackLen, \
@@ -3215,7 +3215,7 @@ static int storage_server_set_metadata(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"cmd=%d, client ip: %s, package size " \
-			INT64_PRINTF_FORMAT" is not correct, " \
+			"%"PRId64" is not correct, " \
 			"expect length < %d", \
 			__LINE__, STORAGE_PROTO_CMD_SET_METADATA, \
 			pTask->client_ip,  nInPackLen, \
@@ -3347,7 +3347,7 @@ static int storage_server_report_server_id(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"cmd=%d, client ip: %s, package size " \
-			INT64_PRINTF_FORMAT" is not correct, " \
+			"%"PRId64" is not correct, " \
 			"expect length: %d", __LINE__, \
 			STORAGE_PROTO_CMD_REPORT_SERVER_ID, \
 			pTask->client_ip,  nInPackLen, \
@@ -3390,7 +3390,7 @@ static int storage_server_trunk_sync_binlog(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"cmd=%d, client ip: %s, package size " \
-			INT64_PRINTF_FORMAT" is not correct", __LINE__, \
+			"%"PRId64" is not correct", __LINE__, \
 			STORAGE_PROTO_CMD_TRUNK_SYNC_BINLOG, \
 			pTask->client_ip,  nInPackLen);
 		return EINVAL;
@@ -3456,7 +3456,7 @@ static int storage_server_query_file_info(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"cmd=%d, client ip: %s, package size " \
-			INT64_PRINTF_FORMAT" is not correct, " \
+			"%"PRId64" is not correct, " \
 			"expect length > %d", __LINE__, \
 			STORAGE_PROTO_CMD_QUERY_FILE_INFO, \
 			pTask->client_ip,  nInPackLen, \
@@ -3718,7 +3718,7 @@ static int storage_server_trunk_alloc_space(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"cmd=%d, client ip: %s, package size " \
-			INT64_PRINTF_FORMAT" is not correct, " \
+			"%"PRId64" is not correct, " \
 			"expect length: %d", __LINE__, \
 			STORAGE_PROTO_CMD_TRUNK_ALLOC_SPACE, \
 			pTask->client_ip,  nInPackLen, \
@@ -3790,7 +3790,7 @@ static int storage_server_trunk_get_binlog_size(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"cmd=%d, client ip: %s, package size " \
-			INT64_PRINTF_FORMAT" is not correct, " \
+			"%"PRId64" is not correct, " \
 			"expect length: 0", __LINE__, \
 			pHeader->cmd, pTask->client_ip,  nInPackLen);
 		pClientInfo->total_length = sizeof (TrackerHeader);
@@ -3842,7 +3842,7 @@ static int storage_server_trunk_truncate_binlog_file(struct fast_task_info *pTas
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"cmd=%d, client ip: %s, package size " \
-			INT64_PRINTF_FORMAT" is not correct, " \
+			"%"PRId64" is not correct, " \
 			"expect length: 0", __LINE__, \
 			pHeader->cmd, pTask->client_ip,  nInPackLen);
 		return EINVAL;
@@ -3884,7 +3884,7 @@ static int storage_server_trunk_delete_binlog_marks(struct fast_task_info *pTask
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"cmd=%d, client ip: %s, package size " \
-			INT64_PRINTF_FORMAT" is not correct, " \
+			"%"PRId64" is not correct, " \
 			"expect length: 0", __LINE__, \
 			pHeader->cmd, pTask->client_ip,  nInPackLen);
 		return EINVAL;
@@ -3947,7 +3947,7 @@ static int storage_server_trunk_confirm_or_free(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"cmd=%d, client ip: %s, package size " \
-			INT64_PRINTF_FORMAT" is not correct, " \
+			"%"PRId64" is not correct, " \
 			"expect length: %d", __LINE__, \
 			pHeader->cmd, pTask->client_ip,  nInPackLen, \
 			(int)STORAGE_TRUNK_ALLOC_CONFIRM_REQ_BODY_LEN);
@@ -4310,7 +4310,7 @@ static int storage_server_fetch_one_path_binlog(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"cmd=%d, client ip: %s, package size " \
-			INT64_PRINTF_FORMAT" is not correct, " \
+			"%"PRId64" is not correct, " \
 			"expect length = %d", __LINE__, \
 			STORAGE_PROTO_CMD_FETCH_ONE_PATH_BINLOG, \
 			pTask->client_ip,  \
@@ -4376,7 +4376,7 @@ static int storage_upload_file(struct fast_task_info *pTask, bool bAppenderFile)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"cmd=%d, client ip: %s, package size " \
-			INT64_PRINTF_FORMAT" is not correct, " \
+			"%"PRId64" is not correct, " \
 			"expect length >= %d", __LINE__, \
 			STORAGE_PROTO_CMD_UPLOAD_FILE, \
 			pTask->client_ip,  nInPackLen, \
@@ -4421,8 +4421,8 @@ static int storage_upload_file(struct fast_task_info *pTask, bool bAppenderFile)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"client ip: %s, pkg length is not correct, " \
-			"invalid file bytes: "INT64_PRINTF_FORMAT \
-			", total body length: "INT64_PRINTF_FORMAT, \
+			"invalid file bytes: %"PRId64 \
+			", total body length: %"PRId64, \
 			__LINE__, pTask->client_ip, file_bytes, nInPackLen);
 		pClientInfo->total_length = sizeof(TrackerHeader);
 		return EINVAL;
@@ -4505,7 +4505,7 @@ static int storage_upload_file(struct fast_task_info *pTask, bool bAppenderFile)
 			logError("file: "__FILE__", line: %d, " \
 				"no space to upload file, "
 				"free space: %d MB is too small, file bytes: " \
-				INT64_PRINTF_FORMAT", reserved space: %s", \
+				"%"PRId64", reserved space: %s", \
 				__LINE__, g_path_space_list[store_path_index].\
 				free_mb, file_bytes, \
 				fdfs_storage_reserved_space_to_string_ex( \
@@ -4559,7 +4559,7 @@ static int storage_deal_active_test(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"cmd=%d, client ip: %s, package size " \
-			INT64_PRINTF_FORMAT" is not correct, " \
+			"%"PRId64" is not correct, " \
 			"expect length 0", __LINE__, \
 			FDFS_PROTO_CMD_ACTIVE_TEST, pTask->client_ip, \
 			nInPackLen);
@@ -4603,7 +4603,7 @@ static int storage_append_file(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"cmd=%d, client ip: %s, package size " \
-			INT64_PRINTF_FORMAT" is not correct, " \
+			"%"PRId64" is not correct, " \
 			"expect length > %d", __LINE__, \
 			STORAGE_PROTO_CMD_APPEND_FILE, \
 			pTask->client_ip,  \
@@ -4633,7 +4633,7 @@ static int storage_append_file(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"client ip: %s, pkg length is not correct, " \
-			"invalid file bytes: "INT64_PRINTF_FORMAT, \
+			"invalid file bytes: %"PRId64, \
 			__LINE__, pTask->client_ip, file_bytes);
 		return EINVAL;
 	}
@@ -4705,7 +4705,7 @@ static int storage_append_file(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"client ip: %s, file: %s is not a valid " \
-			"appender file, file size: "INT64_PRINTF_FORMAT, \
+			"appender file, file size: %"PRId64, \
 			__LINE__, pTask->client_ip, appender_filename, \
 			appender_file_size);
 
@@ -4779,7 +4779,7 @@ static int storage_modify_file(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"cmd=%d, client ip: %s, package size " \
-			INT64_PRINTF_FORMAT" is not correct, " \
+			"%"PRId64" is not correct, " \
 			"expect length > %d", __LINE__, \
 			STORAGE_PROTO_CMD_MODIFY_FILE, \
 			pTask->client_ip,  \
@@ -4810,7 +4810,7 @@ static int storage_modify_file(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"client ip: %s, in request pkg, " \
-			"file offset: "INT64_PRINTF_FORMAT" is invalid, "\
+			"file offset: %"PRId64" is invalid, "\
 			"which < 0", __LINE__, pTask->client_ip, file_offset);
 		return EINVAL;
 	}
@@ -4820,7 +4820,7 @@ static int storage_modify_file(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"client ip: %s, pkg length is not correct, " \
-			"invalid file bytes: "INT64_PRINTF_FORMAT, \
+			"invalid file bytes: %"PRId64, \
 			__LINE__, pTask->client_ip, file_bytes);
 		return EINVAL;
 	}
@@ -4892,7 +4892,7 @@ static int storage_modify_file(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"client ip: %s, file: %s is not a valid " \
-			"appender file, file size: "INT64_PRINTF_FORMAT, \
+			"appender file, file size: %"PRId64, \
 			__LINE__, pTask->client_ip, appender_filename, \
 			appender_file_size);
 
@@ -4902,7 +4902,7 @@ static int storage_modify_file(struct fast_task_info *pTask)
 	if (file_offset > stat_buf.st_size)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"client ip: %s, file offset: "INT64_PRINTF_FORMAT \
+			"client ip: %s, file offset: %"PRId64 \
 			" is invalid, which > appender file size: " \
 			OFF_PRINTF_FORMAT, __LINE__, pTask->client_ip, \
 			file_offset, stat_buf.st_size);
@@ -4973,7 +4973,7 @@ static int storage_do_truncate_file(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"cmd=%d, client ip: %s, package size " \
-			INT64_PRINTF_FORMAT" is not correct, " \
+			"%"PRId64" is not correct, " \
 			"expect length > %d", __LINE__, \
 			STORAGE_PROTO_CMD_TRUNCATE_FILE, \
 			pTask->client_ip,  \
@@ -5002,7 +5002,7 @@ static int storage_do_truncate_file(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"client ip: %s, pkg length is not correct, " \
-			"invalid file bytes: "INT64_PRINTF_FORMAT, \
+			"invalid file bytes: %"PRId64, \
 			__LINE__, pTask->client_ip, remain_bytes);
 		return EINVAL;
 	}
@@ -5074,7 +5074,7 @@ static int storage_do_truncate_file(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"client ip: %s, file: %s is not a valid " \
-			"appender file, file size: "INT64_PRINTF_FORMAT, \
+			"appender file, file size: %"PRId64, \
 			__LINE__, pTask->client_ip, appender_filename, \
 			appender_file_size);
 
@@ -5085,7 +5085,7 @@ static int storage_do_truncate_file(struct fast_task_info *pTask)
 	{
 		logWarning("file: "__FILE__", line: %d, " \
 			"client ip: %s, truncated file size: " \
-			INT64_PRINTF_FORMAT" == appender file size: " \
+			"%"PRId64" == appender file size: " \
 			OFF_PRINTF_FORMAT", skip truncate file", \
 			__LINE__, pTask->client_ip, \
 			remain_bytes, stat_buf.st_size);
@@ -5095,7 +5095,7 @@ static int storage_do_truncate_file(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"client ip: %s, truncated file size: " \
-			INT64_PRINTF_FORMAT" is invalid, " \
+			"%"PRId64" is invalid, " \
 			"which > appender file size: " \
 			OFF_PRINTF_FORMAT, __LINE__, pTask->client_ip, \
 			remain_bytes, stat_buf.st_size);
@@ -5167,7 +5167,7 @@ static int storage_upload_slave_file(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"cmd=%d, client ip: %s, package size " \
-			INT64_PRINTF_FORMAT" is not correct, " \
+			"%"PRId64" is not correct, " \
 			"expect length > %d", __LINE__, \
 			STORAGE_PROTO_CMD_UPLOAD_FILE, \
 			pTask->client_ip,  \
@@ -5201,7 +5201,7 @@ static int storage_upload_slave_file(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"client ip: %s, pkg length is not correct, " \
-			"invalid file bytes: "INT64_PRINTF_FORMAT, \
+			"invalid file bytes: %"PRId64, \
 			__LINE__, pTask->client_ip, file_bytes);
 		pClientInfo->total_length = sizeof(TrackerHeader);
 		return EINVAL;
@@ -5266,7 +5266,7 @@ static int storage_upload_slave_file(struct fast_task_info *pTask)
 		logError("file: "__FILE__", line: %d, " \
 			"no space to upload file, "
 			"free space: %d MB is too small, file bytes: " \
-			INT64_PRINTF_FORMAT", reserved space: %s", __LINE__,\
+			"%"PRId64", reserved space: %s", __LINE__,\
 			g_path_space_list[store_path_index].free_mb, \
 			file_bytes, fdfs_storage_reserved_space_to_string_ex(\
 				g_storage_reserved_space.flag, \
@@ -5415,7 +5415,7 @@ static int storage_sync_copy_file(struct fast_task_info *pTask, \
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"cmd=%d, client ip: %s, package size " \
-			INT64_PRINTF_FORMAT"is not correct, " \
+			"%"PRId64"is not correct, " \
 			"expect length > %d", __LINE__, \
 			proto_cmd, pTask->client_ip, nInPackLen, \
 			2 * FDFS_PROTO_PKG_LEN_SIZE + 4+FDFS_GROUP_NAME_MAX_LEN);
@@ -5442,7 +5442,7 @@ static int storage_sync_copy_file(struct fast_task_info *pTask, \
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"client ip: %s, in request pkg, " \
-			"file size: "INT64_PRINTF_FORMAT" is invalid, "\
+			"file size: %"PRId64" is invalid, "\
 			"which < 0", __LINE__, pTask->client_ip, file_bytes);
 		return EINVAL;
 	}
@@ -5470,8 +5470,8 @@ static int storage_sync_copy_file(struct fast_task_info *pTask, \
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"client ip: %s, in request pkg, " \
-			"file size: "INT64_PRINTF_FORMAT \
-			" != remain bytes: "INT64_PRINTF_FORMAT"", \
+			"file size: %"PRId64 \
+			" != remain bytes: %"PRId64"", \
 			__LINE__, pTask->client_ip, file_bytes, \
 			nInPackLen - (2*FDFS_PROTO_PKG_LEN_SIZE + \
 			FDFS_GROUP_NAME_MAX_LEN + filename_len));
@@ -5485,7 +5485,7 @@ static int storage_sync_copy_file(struct fast_task_info *pTask, \
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"client ip: %s, in request pkg, " \
-			" remain bytes: "INT64_PRINTF_FORMAT" != 0 ", \
+			" remain bytes: %"PRId64" != 0 ", \
 			__LINE__, pTask->client_ip, \
 			nInPackLen - (2*FDFS_PROTO_PKG_LEN_SIZE + \
 			FDFS_GROUP_NAME_MAX_LEN + filename_len));
@@ -5560,7 +5560,7 @@ static int storage_sync_copy_file(struct fast_task_info *pTask, \
 			logWarning("file: "__FILE__", line: %d, " \
 				"client ip: %s, logic file %s, " \
 				"my file size: "OFF_PRINTF_FORMAT \
-				" != src file size: "INT64_PRINTF_FORMAT \
+				" != src file size: %"PRId64 \
 				", will be overwrited", __LINE__, \
 				pTask->client_ip, filename, \
 				stat_buf.st_size, file_bytes);
@@ -5618,7 +5618,7 @@ static int storage_sync_copy_file(struct fast_task_info *pTask, \
 			pthread_mutex_lock(&g_storage_thread_lock);
 
 			sprintf(pFileContext->filename, "%s/data/.cp" \
-				INT64_PRINTF_FORMAT".tmp", \
+				"%"PRId64".tmp", \
 				g_fdfs_store_paths.paths[store_path_index], \
 				temp_file_sequence++);
 
@@ -5737,7 +5737,7 @@ static int storage_sync_append_file(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"cmd=%d, client ip: %s, package size " \
-			INT64_PRINTF_FORMAT"is not correct, " \
+			"%"PRId64"is not correct, " \
 			"expect length > %d", __LINE__, \
 			STORAGE_PROTO_CMD_SYNC_APPEND_FILE, \
 			pTask->client_ip, nInPackLen, \
@@ -5767,7 +5767,7 @@ static int storage_sync_append_file(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"client ip: %s, in request pkg, " \
-			"start offset: "INT64_PRINTF_FORMAT" is invalid, "\
+			"start offset: %"PRId64" is invalid, "\
 			"which < 0", __LINE__, pTask->client_ip, start_offset);
 		return EINVAL;
 	}
@@ -5776,7 +5776,7 @@ static int storage_sync_append_file(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"client ip: %s, in request pkg, " \
-			"append bytes: "INT64_PRINTF_FORMAT" is invalid, "\
+			"append bytes: %"PRId64" is invalid, "\
 			"which < 0", __LINE__, pTask->client_ip, append_bytes);
 		return EINVAL;
 	}
@@ -5801,8 +5801,8 @@ static int storage_sync_append_file(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"client ip: %s, in request pkg, " \
-			"file size: "INT64_PRINTF_FORMAT \
-			" != remain bytes: "INT64_PRINTF_FORMAT"", \
+			"file size: %"PRId64 \
+			" != remain bytes: %"PRId64"", \
 			__LINE__, pTask->client_ip, append_bytes, \
 			nInPackLen - (3 * FDFS_PROTO_PKG_LEN_SIZE + \
 			FDFS_GROUP_NAME_MAX_LEN + filename_len));
@@ -5867,7 +5867,7 @@ static int storage_sync_append_file(struct fast_task_info *pTask)
 		logDebug("file: "__FILE__", line: %d, " \
 			"client ip: %s, file %s,  my file size: " \
 			OFF_PRINTF_FORMAT" >= src file size: " \
-			INT64_PRINTF_FORMAT", do not append", \
+			"%"PRId64", do not append", \
 			__LINE__, pTask->client_ip, pFileContext->filename, \
 			stat_buf.st_size, start_offset + append_bytes);
 		}
@@ -5875,8 +5875,8 @@ static int storage_sync_append_file(struct fast_task_info *pTask)
 		{
 		logWarning("file: "__FILE__", line: %d, " \
 			"client ip: %s, file %s,  my file size: " \
-			OFF_PRINTF_FORMAT" > "INT64_PRINTF_FORMAT \
-			", but < "INT64_PRINTF_FORMAT", need be resynced", \
+			OFF_PRINTF_FORMAT" > %"PRId64 \
+			", but < %"PRId64", need be resynced", \
 			__LINE__, pTask->client_ip, pFileContext->filename, \
 			stat_buf.st_size, start_offset, \
 			start_offset + append_bytes);
@@ -5890,7 +5890,7 @@ static int storage_sync_append_file(struct fast_task_info *pTask)
 		logWarning("file: "__FILE__", line: %d, " \
 			"client ip: %s, file %s,  my file size: " \
 			OFF_PRINTF_FORMAT" < start offset " \
-			INT64_PRINTF_FORMAT", need to resync this file!", \
+			"%"PRId64", need to resync this file!", \
 			__LINE__, pTask->client_ip, pFileContext->filename, \
 			stat_buf.st_size, start_offset);
 		need_write_file = false;
@@ -5906,7 +5906,7 @@ static int storage_sync_append_file(struct fast_task_info *pTask)
 
 		snprintf(pFileContext->fname2log, \
 			sizeof(pFileContext->fname2log), \
-			"%s "INT64_PRINTF_FORMAT" "INT64_PRINTF_FORMAT, \
+			"%s %"PRId64" %"PRId64, \
 			filename, start_offset, append_bytes);
 	}
 	else
@@ -5965,7 +5965,7 @@ static int storage_sync_modify_file(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"cmd=%d, client ip: %s, package size " \
-			INT64_PRINTF_FORMAT"is not correct, " \
+			"%"PRId64"is not correct, " \
 			"expect length > %d", __LINE__, \
 			STORAGE_PROTO_CMD_SYNC_MODIFY_FILE, \
 			pTask->client_ip, nInPackLen, \
@@ -5996,7 +5996,7 @@ static int storage_sync_modify_file(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"client ip: %s, in request pkg, " \
-			"start offset: "INT64_PRINTF_FORMAT" is invalid, "\
+			"start offset: %"PRId64" is invalid, "\
 			"which < 0", __LINE__, pTask->client_ip, start_offset);
 		return EINVAL;
 	}
@@ -6005,7 +6005,7 @@ static int storage_sync_modify_file(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"client ip: %s, in request pkg, " \
-			"modify file bytes: "INT64_PRINTF_FORMAT" is invalid, "\
+			"modify file bytes: %"PRId64" is invalid, "\
 			"which < 0", __LINE__, pTask->client_ip, modify_bytes);
 		return EINVAL;
 	}
@@ -6030,8 +6030,8 @@ static int storage_sync_modify_file(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"client ip: %s, in request pkg, " \
-			"file size: "INT64_PRINTF_FORMAT \
-			" != remain bytes: "INT64_PRINTF_FORMAT"", \
+			"file size: %"PRId64 \
+			" != remain bytes: %"PRId64"", \
 			__LINE__, pTask->client_ip, modify_bytes, \
 			nInPackLen - (3 * FDFS_PROTO_PKG_LEN_SIZE + \
 			FDFS_GROUP_NAME_MAX_LEN + filename_len));
@@ -6090,7 +6090,7 @@ static int storage_sync_modify_file(struct fast_task_info *pTask)
 		logWarning("file: "__FILE__", line: %d, " \
 			"client ip: %s, file %s,  my file size: " \
 			OFF_PRINTF_FORMAT" < start offset " \
-			INT64_PRINTF_FORMAT", need to resync this file!", \
+			"%"PRId64", need to resync this file!", \
 			__LINE__, pTask->client_ip, pFileContext->filename, \
 			stat_buf.st_size, start_offset);
 		need_write_file = false;
@@ -6109,7 +6109,7 @@ static int storage_sync_modify_file(struct fast_task_info *pTask)
 
 		snprintf(pFileContext->fname2log, \
 			sizeof(pFileContext->fname2log), \
-			"%s "INT64_PRINTF_FORMAT" "INT64_PRINTF_FORMAT, \
+			"%s %"PRId64" %"PRId64, \
 			filename, start_offset, modify_bytes);
 	}
 	else
@@ -6165,7 +6165,7 @@ static int storage_sync_truncate_file(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"cmd=%d, client ip: %s, package size " \
-			INT64_PRINTF_FORMAT"is not correct, " \
+			"%"PRId64"is not correct, " \
 			"expect length > %d", __LINE__, \
 			STORAGE_PROTO_CMD_SYNC_TRUNCATE_FILE, \
 			pTask->client_ip, nInPackLen, \
@@ -6209,7 +6209,7 @@ static int storage_sync_truncate_file(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"client ip: %s, in request pkg, " \
-			"start offset: "INT64_PRINTF_FORMAT \
+			"start offset: %"PRId64 \
 			"is invalid, which < 0", __LINE__, \
 			pTask->client_ip, old_file_size);
 		return EINVAL;
@@ -6219,7 +6219,7 @@ static int storage_sync_truncate_file(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"client ip: %s, in request pkg, " \
-			"modify file bytes: "INT64_PRINTF_FORMAT \
+			"modify file bytes: %"PRId64 \
 			" is invalid, which < 0", __LINE__, \
 			pTask->client_ip, new_file_size);
 		return EINVAL;
@@ -6291,7 +6291,7 @@ static int storage_sync_truncate_file(struct fast_task_info *pTask)
 		logWarning("file: "__FILE__", line: %d, " \
 			"client ip: %s, file %s,  my file size: " \
 			OFF_PRINTF_FORMAT" != before truncated size: " \
-			INT64_PRINTF_FORMAT", skip!", __LINE__, \
+			"%"PRId64", skip!", __LINE__, \
 			pTask->client_ip, pFileContext->filename, \
 			stat_buf.st_size, old_file_size);
 		return EEXIST;
@@ -6303,7 +6303,7 @@ static int storage_sync_truncate_file(struct fast_task_info *pTask)
 
 	snprintf(pFileContext->fname2log, \
 		sizeof(pFileContext->fname2log), \
-		"%s "INT64_PRINTF_FORMAT" "INT64_PRINTF_FORMAT, \
+		"%s %"PRId64" %"PRId64, \
 		filename, old_file_size, new_file_size);
 
 	pFileContext->calc_crc32 = false;
@@ -6398,7 +6398,7 @@ static int storage_do_sync_link_file(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"client ip: %s, in request pkg, " \
-			"pgk length: "INT64_PRINTF_FORMAT \
+			"pgk length: %"PRId64 \
 			" != bytes: %d", __LINE__, pTask->client_ip, \
 			nInPackLen, 2 * FDFS_PROTO_PKG_LEN_SIZE + \
 			FDFS_GROUP_NAME_MAX_LEN + dest_filename_len + \
@@ -6579,7 +6579,7 @@ static int storage_sync_link_file(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"client ip: %s, package size " \
-			INT64_PRINTF_FORMAT" is not correct, " \
+			"%"PRId64" is not correct, " \
 			"expect length > %d", __LINE__, \
 			pTask->client_ip,  nInPackLen, \
 			2 * FDFS_PROTO_PKG_LEN_SIZE + \
@@ -6615,7 +6615,7 @@ static int storage_sync_link_file(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"client ip: %s, in request pkg, " \
-			"pgk length: "INT64_PRINTF_FORMAT \
+			"pgk length: %"PRId64 \
 			" != bytes: %d", __LINE__, pTask->client_ip, \
 			nInPackLen, 2 * FDFS_PROTO_PKG_LEN_SIZE + \
 			FDFS_GROUP_NAME_MAX_LEN + dest_filename_len + \
@@ -6693,7 +6693,7 @@ static int storage_server_get_metadata(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"cmd=%d, client ip: %s, package size " \
-			INT64_PRINTF_FORMAT" is not correct, " \
+			"%"PRId64" is not correct, " \
 			"expect length > %d", __LINE__, \
 			STORAGE_PROTO_CMD_UPLOAD_FILE, \
 			pTask->client_ip, nInPackLen, FDFS_GROUP_NAME_MAX_LEN);
@@ -6704,7 +6704,7 @@ static int storage_server_get_metadata(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, " \
 				"cmd=%d, client ip: %s, package size " \
-				INT64_PRINTF_FORMAT" is too large, " \
+				"%"PRId64" is too large, " \
 				"expect length should < %d", __LINE__, \
 				STORAGE_PROTO_CMD_UPLOAD_FILE, \
 				pTask->client_ip,  \
@@ -6819,7 +6819,7 @@ static int storage_server_download_file(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"cmd=%d, client ip: %s, package size " \
-			INT64_PRINTF_FORMAT" is not correct, " \
+			"%"PRId64" is not correct, " \
 			"expect length > %d", __LINE__, \
 			STORAGE_PROTO_CMD_UPLOAD_FILE, \
 			pTask->client_ip,  \
@@ -6831,7 +6831,7 @@ static int storage_server_download_file(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"cmd=%d, client ip: %s, package size " \
-			INT64_PRINTF_FORMAT" is too large, " \
+			"%"PRId64" is too large, " \
 			"expect length should < %d", __LINE__, \
 			STORAGE_PROTO_CMD_UPLOAD_FILE, \
 			pTask->client_ip,  \
@@ -6849,7 +6849,7 @@ static int storage_server_download_file(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"client ip:%s, invalid file offset: " \
-			INT64_PRINTF_FORMAT,  __LINE__, \
+			"%"PRId64,  __LINE__, \
 			pTask->client_ip, file_offset);
 		return EINVAL;
 	}
@@ -6857,7 +6857,7 @@ static int storage_server_download_file(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"client ip:%s, invalid download file bytes: " \
-			INT64_PRINTF_FORMAT,  __LINE__, \
+			"%"PRId64,  __LINE__, \
 			pTask->client_ip, download_bytes);
 		return EINVAL;
 	}
@@ -6937,8 +6937,8 @@ static int storage_server_download_file(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"client ip:%s, invalid download file bytes: " \
-			INT64_PRINTF_FORMAT" > file remain bytes: " \
-			INT64_PRINTF_FORMAT,  __LINE__, \
+			"%"PRId64" > file remain bytes: " \
+			"%"PRId64,  __LINE__, \
 			pTask->client_ip, download_bytes, \
 			file_bytes - file_offset);
 		if (pFileContext->fd >= 0)
@@ -7121,7 +7121,7 @@ static int storage_sync_delete_file(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"cmd=%d, client ip: %s, package size " \
-			INT64_PRINTF_FORMAT" is not correct, " \
+			"%"PRId64" is not correct, " \
 			"expect length <= %d", __LINE__, \
 			STORAGE_PROTO_CMD_SYNC_DELETE_FILE, \
 			pTask->client_ip,  \
@@ -7133,7 +7133,7 @@ static int storage_sync_delete_file(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"cmd=%d, client ip: %s, package size " \
-			INT64_PRINTF_FORMAT" is too large, " \
+			"%"PRId64" is too large, " \
 			"expect length should < %d", __LINE__, \
 			STORAGE_PROTO_CMD_SYNC_DELETE_FILE, \
 			pTask->client_ip,  nInPackLen, pTask->size);
@@ -7247,7 +7247,7 @@ static int storage_server_delete_file(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"cmd=%d, client ip: %s, package size " \
-			INT64_PRINTF_FORMAT" is not correct, " \
+			"%"PRId64" is not correct, " \
 			"expect length <= %d", __LINE__, \
 			STORAGE_PROTO_CMD_UPLOAD_FILE, \
 			pTask->client_ip,  \
@@ -7259,7 +7259,7 @@ static int storage_server_delete_file(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"cmd=%d, client ip: %s, package size " \
-			INT64_PRINTF_FORMAT" is too large, " \
+			"%"PRId64" is too large, " \
 			"expect length should < %d", __LINE__, \
 			STORAGE_PROTO_CMD_UPLOAD_FILE, \
 			pTask->client_ip,  nInPackLen, pTask->size);
@@ -7674,7 +7674,7 @@ static int storage_do_create_link(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"cmd=%d, client ip: %s, package size " \
-			INT64_PRINTF_FORMAT" is not correct, " \
+			"%"PRId64" is not correct, " \
 			"expect length > %d", __LINE__, \
 			STORAGE_PROTO_CMD_UPLOAD_FILE, pTask->client_ip, \
 			 nInPackLen, 4 * FDFS_PROTO_PKG_LEN_SIZE + \
@@ -7861,7 +7861,7 @@ static int storage_create_link(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"cmd=%d, client ip: %s, package size " \
-			INT64_PRINTF_FORMAT" is not correct, " \
+			"%"PRId64" is not correct, " \
 			"expect length > %d", __LINE__, \
 			STORAGE_PROTO_CMD_UPLOAD_FILE, pTask->client_ip, \
 			 nInPackLen, 4 * FDFS_PROTO_PKG_LEN_SIZE + \

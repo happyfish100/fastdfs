@@ -230,8 +230,8 @@ bool fdfs_check_reserved_space_path(const int64_t total_mb, \
 		}
 
 		/*
-		logInfo("storage path, free_mb="INT64_PRINTF_FORMAT \
-			", total_mb="INT64_PRINTF_FORMAT", " \
+		logInfo("storage path, free_mb=%"PRId64 \
+			", total_mb=%"PRId64", " \
 			"real ratio=%.4f, rs.ratio=%.4f", \
 			free_mb, total_mb, ((double)free_mb / total_mb), \
 			pStorageReservedSpace->rs.ratio);

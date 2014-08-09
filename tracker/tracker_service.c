@@ -672,7 +672,7 @@ static int tracker_deal_parameter_req(struct fast_task_info *pTask)
 		"trunk_create_file_advance=%d\n" \
 		"trunk_create_file_time_base=%02d:%02d\n" \
 		"trunk_create_file_interval=%d\n" \
-		"trunk_create_file_space_threshold="INT64_PRINTF_FORMAT"\n" \
+		"trunk_create_file_space_threshold=%"PRId64"\n" \
 		"trunk_init_check_occupying=%d\n"     \
 		"trunk_init_reload_from_binlog=%d\n"  \
 		"trunk_compress_binlog_min_interval=%d\n"  \
@@ -808,7 +808,7 @@ static int tracker_deal_report_trunk_free_space(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"client ip: %s, invalid trunk free space: " \
-			INT64_PRINTF_FORMAT, __LINE__, pTask->client_ip, \
+			"%"PRId64, __LINE__, pTask->client_ip, \
 			trunk_free_space);
 		return EINVAL;
 	}
@@ -1820,7 +1820,7 @@ static int tracker_deal_get_one_sys_file(struct fast_task_info *pTask)
 	if (offset < 0 || offset > file_stat.st_size)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"client ip: %s, invalid offset: "INT64_PRINTF_FORMAT
+			"client ip: %s, invalid offset: %"PRId64
 			" < 0 or > "OFF_PRINTF_FORMAT,  \
 			__LINE__, pTask->client_ip, offset, \
 			file_stat.st_size);
@@ -1850,8 +1850,8 @@ static int tracker_deal_get_one_sys_file(struct fast_task_info *pTask)
 	if (bytes != read_bytes)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"client ip: %s, read bytes: "INT64_PRINTF_FORMAT
-			" != expect bytes: "INT64_PRINTF_FORMAT,  \
+			"client ip: %s, read bytes: %"PRId64
+			" != expect bytes: %"PRId64,  \
 			__LINE__, pTask->client_ip, bytes, read_bytes);
 
 		pTask->length = sizeof(TrackerHeader);

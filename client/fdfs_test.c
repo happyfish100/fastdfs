@@ -303,7 +303,7 @@ int main(int argc, char *argv[])
 		printf("file timestamp=%s\n", formatDatetime(
 			file_info.create_timestamp, "%Y-%m-%d %H:%M:%S", \
 			szDatetime, sizeof(szDatetime)));
-		printf("file size="INT64_PRINTF_FORMAT"\n", file_info.file_size);
+		printf("file size=%"PRId64"\n", file_info.file_size);
 		printf("file crc32=%u\n", file_info.crc32);
 		printf("example file url: %s\n", file_url);
 
@@ -396,7 +396,7 @@ int main(int argc, char *argv[])
 		printf("file timestamp=%s\n", formatDatetime(
 			file_info.create_timestamp, "%Y-%m-%d %H:%M:%S", \
 			szDatetime, sizeof(szDatetime)));
-		printf("file size="INT64_PRINTF_FORMAT"\n", file_info.file_size);
+		printf("file size=%"PRId64"\n", file_info.file_size);
 		printf("file crc32=%u\n", file_info.crc32);
 		printf("example file url: %s\n", file_url);
 
@@ -561,7 +561,7 @@ int main(int argc, char *argv[])
 			if (result == 0)
 			{
 				printf("download file success, " \
-					"file size="INT64_PRINTF_FORMAT", file save to %s\n", \
+					"file size=%"PRId64", file save to %s\n", \
 					 file_size, local_filename);
 			}
 			else
