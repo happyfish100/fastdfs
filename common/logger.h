@@ -61,6 +61,12 @@ typedef struct log_context
 	/* if rotate the access log */
 	bool rotate_immediately;
 
+	/* if stderr to the log file */
+    bool take_over_stderr;
+
+	/* if stdout to the log file */
+    bool take_over_stdout;
+
 	/* time precision */
 	char time_precision;
 
@@ -88,6 +94,11 @@ extern LogContext g_log_context;
 */
 int log_init();
 
+/** init function using global log context, take over stderr and stdout
+ *  return: 0 for success, != 0 fail
+*/
+int log_init2();
+
 #define log_set_prefix(base_path, filename_prefix) \
 	log_set_prefix_ex(&g_log_context, base_path, filename_prefix)
 
@@ -95,6 +106,9 @@ int log_init();
 	log_set_filename_ex(&g_log_context, log_filename)
 
 #define log_set_cache(bLogCache)  log_set_cache_ex(&g_log_context, bLogCache)
+
+#define log_take_over_stderr()  log_take_over_stderr_ex(&g_log_context)
+#define log_take_over_stdout()  log_take_over_stdout_ex(&g_log_context)
 
 #define log_destroy()  log_destroy_ex(&g_log_context)
 
@@ -163,6 +177,16 @@ void log_set_keep_days(LogContext *pContext, const int keep_days);
  *  return: none
 */
 void log_set_header_callback(LogContext *pContext, LogHeaderCallback header_callback);
+
+/** set take_over_stderr to true
+ *  return: none
+*/
+void log_take_over_stderr_ex(LogContext *pContext);
+
+/** set take_over_stdout to true
+ *  return: none
+*/
+void log_take_over_stdout_ex(LogContext *pContext);
 
 /** destroy function
  *  parameters:

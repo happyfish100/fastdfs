@@ -106,7 +106,7 @@ int main(int argc, char *argv[])
 	g_current_time = time(NULL);
 	g_up_time = g_current_time;
 
-	log_init();
+	log_init2();
 	trunk_shared_init();
 
 	conf_filename = argv[1];
@@ -168,22 +168,12 @@ int main(int argc, char *argv[])
 		return result;
 	}
 
-	daemon_init(true);
+	daemon_init(false);
 	umask(0);
 	if ((result=write_to_pid_file(pidFilename)) != 0)
 	{
 		log_destroy();
 		return result;
-	}
-
-	if (dup2(g_log_context.log_fd, STDOUT_FILENO) < 0 || \
-		dup2(g_log_context.log_fd, STDERR_FILENO) < 0)
-	{
-		logCrit("file: "__FILE__", line: %d, " \
-			"call dup2 fail, errno: %d, error info: %s, " \
-			"program exit!", __LINE__, errno, STRERROR(errno));
-		g_continue_flag = false;
-		return errno;
 	}
 
 	if ((result=storage_sync_init()) != 0)

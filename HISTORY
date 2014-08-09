@@ -1,6 +1,8 @@
 
-Version 5.03  2014-08-02
+Version 5.03  2014-08-11
  * network send and recv retry when error EINTR happen
+ * support mac OS Darwin
+ * use newest logger from libfastcommon
 
 Version 5.02  2014-07-20
  * corect README spell mistake
