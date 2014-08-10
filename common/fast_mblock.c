@@ -3,6 +3,7 @@
 #include <errno.h>
 #include <sys/resource.h>
 #include <pthread.h>
+#include <assert.h>
 #include "fast_mblock.h"
 #include "logger.h"
 #include "shared_func.h"
@@ -21,7 +22,7 @@ int fast_mblock_init(struct fast_mblock_man *mblock, const int element_size, \
 		return EINVAL;
 	}
 
-	mblock->element_size = element_size;
+	mblock->element_size = MEM_ALIGN(element_size);
 	if (alloc_elements_once > 0)
 	{
 		mblock->alloc_elements_once = alloc_elements_once;
@@ -30,7 +31,7 @@ int fast_mblock_init(struct fast_mblock_man *mblock, const int element_size, \
 	{
 		int block_size;
 		block_size = MEM_ALIGN(sizeof(struct fast_mblock_node) \
-			+ element_size);
+			+ mblock->element_size);
 		mblock->alloc_elements_once = (1024 * 1024) / block_size;
 	}
 
@@ -44,6 +45,7 @@ int fast_mblock_init(struct fast_mblock_man *mblock, const int element_size, \
 
 	mblock->malloc_chain_head = NULL;
 	mblock->free_chain_head = NULL;
+    mblock->total_count = 0;
 
 	return 0;
 }
@@ -84,12 +86,12 @@ static int fast_mblock_prealloc(struct fast_mblock_man *mblock)
 		pNode = (struct fast_mblock_node *)p;
 		pNode->next = (struct fast_mblock_node *)(p + block_size);
 	}
-
 	((struct fast_mblock_node *)pLast)->next = NULL;
 	mblock->free_chain_head = (struct fast_mblock_node *)pTrunkStart;
 
 	pMallocNode->next = mblock->malloc_chain_head;
 	mblock->malloc_chain_head = pMallocNode;
+    mblock->total_count += mblock->alloc_elements_once;
 
 	return 0;
 }
@@ -114,6 +116,7 @@ void fast_mblock_destroy(struct fast_mblock_man *mblock)
 	}
 	mblock->malloc_chain_head = NULL;
 	mblock->free_chain_head = NULL;
+    mblock->total_count = 0;
 
 	pthread_mutex_destroy(&(mblock->lock));
 }
@@ -189,7 +192,7 @@ int fast_mblock_free(struct fast_mblock_man *mblock, \
 	return 0;
 }
 
-int fast_mblock_count(struct fast_mblock_man *mblock)
+int fast_mblock_free_count(struct fast_mblock_man *mblock)
 {
 	struct fast_mblock_node *pNode;
 	int count;

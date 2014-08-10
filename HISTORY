@@ -5,7 +5,7 @@ Version 5.03  2014-08-10
  * use newest logger from libfastcommon
  * patches by liangry@ucweb.com
  * bug fixed: can't sync large files cause by v5.02
- * use newest ioevent_loop from libfastcommon
+ * use newest files from libfastcommon
 
 Version 5.02  2014-07-20
  * corect README spell mistake

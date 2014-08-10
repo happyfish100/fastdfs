@@ -239,7 +239,6 @@ int tcpsenddata(int sock, void* data, const int size, const int timeout)
 		if (pollfds.revents & POLLHUP)
 		{
 			return ENOTCONN;
-			break;
 		}
 #endif
 

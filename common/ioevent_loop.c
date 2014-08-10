@@ -19,20 +19,20 @@ static void deal_ioevents(IOEventPoller *ioevent, const int count)
 static void deal_timeouts(FastTimerEntry *head)
 {
 	FastTimerEntry *entry;
-	FastTimerEntry *curent;
+	FastTimerEntry *current;
 	IOEventEntry *pEventEntry;
 
 	entry = head->next;
 	while (entry != NULL)
 	{
-		curent = entry;
+		current = entry;
 		entry = entry->next;
 
-		pEventEntry = (IOEventEntry *)curent->data;
+		pEventEntry = (IOEventEntry *)current->data;
 		if (pEventEntry != NULL)
 		{
 			pEventEntry->callback(pEventEntry->fd, IOEVENT_TIMEOUT,
-						curent->data);
+						current->data);
 		}
 	}
 }

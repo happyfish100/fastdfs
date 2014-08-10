@@ -47,7 +47,7 @@ struct nio_thread_data
 
 struct fast_task_info
 {
-	IOEventEntry event;
+	IOEventEntry event;  //must first
 	char client_ip[IP_ADDRESS_SIZE];
 	void *arg;  //extra argument pointer
 	char *data; //buffer for write or recv

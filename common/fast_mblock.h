@@ -37,11 +37,12 @@ struct fast_mblock_man
 	struct fast_mblock_malloc *malloc_chain_head; //malloc chain to be freed
 	int element_size;         //element size
 	int alloc_elements_once;  //alloc elements once
+    int total_count;          //total element count
 	pthread_mutex_t lock;     //the lock for read / write free node chain
 };
 
 #define fast_mblock_to_node_ptr(data_ptr) \
-        (struct fast_mblock_node *)(data_ptr - ((size_t)(char *) \
+        (struct fast_mblock_node *)((char *)data_ptr - ((size_t)(char *) \
                     &((struct fast_mblock_node *)0)->data))
 
 #ifdef __cplusplus
@@ -90,7 +91,9 @@ parameters:
 	mblock: the mblock pointer
 return the free node count of the mblock, return -1 if fail
 */
-int fast_mblock_count(struct fast_mblock_man *mblock);
+int fast_mblock_free_count(struct fast_mblock_man *mblock);
+
+#define fast_mblock_total_count(mblock) (mblock)->total_count
 
 #ifdef __cplusplus
 }

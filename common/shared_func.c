@@ -13,6 +13,7 @@
 #include <ctype.h>
 #include <unistd.h>
 #include <signal.h>
+#include <inttypes.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <netinet/in.h>
@@ -1770,8 +1771,7 @@ int parse_bytes(char *pStr, const int default_unit_bytes, int64_t *bytes)
 	if (*bytes < 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"bytes: %"PRId64" < 0", \
-			__LINE__, *bytes);
+			"bytes: %"PRId64" < 0", __LINE__, *bytes);
 		return EINVAL;
 	}
 
