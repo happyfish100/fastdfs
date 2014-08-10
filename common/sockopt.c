@@ -165,6 +165,10 @@ int tcprecvdata_ex(int sock, void *data, const int size, \
 
 		if (res < 0)
 		{
+            if (errno == EINTR)
+            {
+                continue;
+            }
 			ret_code = errno != 0 ? errno : EINTR;
 			break;
 		}
@@ -177,6 +181,10 @@ int tcprecvdata_ex(int sock, void *data, const int size, \
 		read_bytes = recv(sock, p, left_bytes, 0);
 		if (read_bytes < 0)
 		{
+            if (errno == EINTR)
+            {
+                continue;
+            }
 			ret_code = errno != 0 ? errno : EINTR;
 			break;
 		}
@@ -244,6 +252,10 @@ int tcpsenddata(int sock, void* data, const int size, const int timeout)
 
 		if (result < 0)
 		{
+            if (errno == EINTR)
+            {
+                continue;
+            }
 			return errno != 0 ? errno : EINTR;
 		}
 		else if (result == 0)
@@ -254,6 +266,10 @@ int tcpsenddata(int sock, void* data, const int size, const int timeout)
 		write_bytes = send(sock, p, left_bytes, 0);
 		if (write_bytes < 0)
 		{
+            if (errno == EINTR)
+            {
+                continue;
+            }
 			return errno != 0 ? errno : EINTR;
 		}
 
@@ -309,7 +325,7 @@ int tcprecvdata_nb_ms(int sock, void *data, const int size, \
 
 		if (read_bytes < 0)
 		{
-			if (!(errno == EAGAIN || errno == EWOULDBLOCK))
+			if (!(errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR))
 			{
 				ret_code = errno != 0 ? errno : EINTR;
 				break;
@@ -343,6 +359,10 @@ int tcprecvdata_nb_ms(int sock, void *data, const int size, \
 
 		if (res < 0)
 		{
+            if (errno == EINTR)
+            {
+                continue;
+            }
 			ret_code = errno != 0 ? errno : EINTR;
 			break;
 		}
@@ -389,7 +409,7 @@ int tcpsenddata_nb(int sock, void* data, const int size, const int timeout)
 		write_bytes = send(sock, p, left_bytes, 0);
 		if (write_bytes < 0)
 		{
-			if (!(errno == EAGAIN || errno == EWOULDBLOCK))
+			if (!(errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR))
 			{
 				return errno != 0 ? errno : EINTR;
 			}
@@ -422,6 +442,10 @@ int tcpsenddata_nb(int sock, void* data, const int size, const int timeout)
 
 		if (result < 0)
 		{
+            if (errno == EINTR)
+            {
+                continue;
+            }
 			return errno != 0 ? errno : EINTR;
 		}
 		else if (result == 0)
@@ -1106,12 +1130,7 @@ int tcpsendfile_ex(int sock, const char *filename, const int64_t file_offset, \
 #ifdef USE_SENDFILE
    #if defined(OS_FREEBSD) || defined(OS_LINUX)
 	off_t offset;
-	#ifdef OS_LINUX
 	int64_t remain_bytes;
-    #elif defined(DARWIN)
-	int64_t remain_bytes;
-	off_t len;
-	#endif
    #endif
 #else
 	int64_t remain_bytes;
@@ -1175,13 +1194,16 @@ int tcpsendfile_ex(int sock, const char *filename, const int64_t file_offset, \
 		if (send_bytes <= 0)
 		{
 			result = errno != 0 ? errno : EIO;
+            if (result == EINTR)
+            {
+                continue;
+            }
 			break;
 		}
 
 		remain_bytes -= send_bytes;
 	}
 
-	*total_send_bytes = file_bytes - remain_bytes;
 #else
 #ifdef OS_FREEBSD
 	offset = file_offset;
@@ -1190,27 +1212,38 @@ int tcpsendfile_ex(int sock, const char *filename, const int64_t file_offset, \
 	remain_bytes = file_bytes;
 	while (remain_bytes > 0)
 	{
+        off_t len;
         len = remain_bytes;
         if (sendfile(fd, sock, offset, &len, NULL, 0) != 0) {
 			result = errno != 0 ? errno : EIO;
-			break;
+            if (result != EINTR)
+            {
+                break;
+            }
         }
 		remain_bytes -= len;
     }
-	*total_send_bytes = file_bytes - remain_bytes;
 #else
-	if (sendfile(fd, sock, offset, file_offset, NULL, NULL, 0) != 0)
-	{
-		*total_send_bytes = 0;
-		result = errno != 0 ? errno : EIO;
-	}
-	else
-	{
-		*total_send_bytes = file_bytes;
-		result = 0;
-	}
+	remain_bytes = file_bytes;
+    result = 0;
+	while (remain_bytes > 0)
+    {
+        off_t sbytes;
+        sbytes = 0;
+        if (sendfile(fd, sock, offset, remain_bytes, NULL, &sbytes, 0) != 0)
+        {
+            result = errno != 0 ? errno : EIO;
+            if (result != EINTR)
+            {
+                break;
+            }
+        }
+        remain_bytes -= fsbytes;
+    }
 #endif
 #endif
+
+	*total_send_bytes = file_bytes - remain_bytes;
 #endif
 
 	if (flags & O_NONBLOCK)  //restore
