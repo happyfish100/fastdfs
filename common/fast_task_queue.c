@@ -3,6 +3,7 @@
 #include <errno.h>
 #include <sys/resource.h>
 #include <pthread.h>
+#include <inttypes.h>
 #include "fast_task_queue.h"
 #include "logger.h"
 #include "shared_func.h"

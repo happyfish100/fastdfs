@@ -54,6 +54,7 @@ static void tracker_find_max_free_space_group();
 int tracker_service_init()
 {
 	int result;
+	int bytes;
 	struct nio_thread_data *pThreadData;
 	struct nio_thread_data *pDataEnd;
 	pthread_t tid;
@@ -81,17 +82,16 @@ int tracker_service_init()
 	{
 		return result;
 	}
-
-	g_thread_data = (struct nio_thread_data *)malloc(sizeof( \
-				struct nio_thread_data) * g_work_threads);
+	bytes = sizeof(struct nio_thread_data) * g_work_threads;
+	g_thread_data = (struct nio_thread_data *)malloc(bytes );
 	if (g_thread_data == NULL)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"malloc %d bytes fail, errno: %d, error info: %s", \
-			__LINE__, (int)sizeof(struct nio_thread_data) * \
-			g_work_threads, errno, STRERROR(errno));
+			__LINE__, bytes, errno, STRERROR(errno));
 		return errno != 0 ? errno : ENOMEM;
 	}
+	memset(g_thread_data, 0, bytes);
 
 	g_tracker_thread_count = 0;
 	pDataEnd = g_thread_data + g_work_threads;

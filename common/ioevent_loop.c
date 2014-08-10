@@ -38,7 +38,7 @@ static void deal_timeouts(FastTimerEntry *head)
 }
 
 int ioevent_loop(struct nio_thread_data *pThreadData,
-	IOEventCallback recv_notify_callback, TaskCleanUpCallBack
+	IOEventCallback recv_notify_callback, TaskCleanUpCallback
 	clean_up_callback, volatile bool *continue_flag)
 {
 	int result;
@@ -109,6 +109,10 @@ int ioevent_loop(struct nio_thread_data *pThreadData,
 				deal_timeouts(&head);
 			}
 		}
+
+        if (pThreadData->thread_loop_callback != NULL) {
+            pThreadData->thread_loop_callback(pThreadData);
+        }
 	}
 
 	return 0;
