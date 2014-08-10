@@ -6,6 +6,7 @@ Version 5.03  2014-08-10
  * patches by liangry@ucweb.com
  * bug fixed: can't sync large files cause by v5.02
  * use newest files from libfastcommon
+ * change TRACKER_SYNC_STATUS_FILE_INTERVAL from 3600 to 300
 
 Version 5.02  2014-07-20
  * corect README spell mistake

@@ -3919,6 +3919,15 @@ static int tracker_mem_cmp_tracker_running_status(const void *p1, const void *p2
 	pStatus1 = (TrackerRunningStatus *)p1;
 	pStatus2 = (TrackerRunningStatus *)p2;
 
+    if (pStatus1->if_leader)
+    {
+        return 1;
+    }
+    else if (pStatus2->if_leader)
+    {
+        return -1;
+    }
+
 	sub = pStatus1->running_time - pStatus2->running_time;
 	if (sub != 0)
 	{
@@ -4108,23 +4117,20 @@ static int tracker_mem_get_tracker_server(FDFSStorageJoinBody *pJoinBody, \
 		return result == 0 ? ENOENT : result;
 	}
 
-	if (count == 1)
+	if (count > 1)
 	{
-		memcpy(pTrackerStatus, trackerStatus, \
-			sizeof(TrackerRunningStatus));
-		return 0;
+		qsort(trackerStatus, count, sizeof(TrackerRunningStatus), \
+			tracker_mem_cmp_tracker_running_status);
 	}
-
-	qsort(trackerStatus, count, sizeof(TrackerRunningStatus), \
-		tracker_mem_cmp_tracker_running_status);
 
 	for (i=0; i<count; i++)
 	{
 		logDebug("file: "__FILE__", line: %d, " \
-			"%s:%d running time: %d, restart interval: %d", \
-			__LINE__, \
+			"%s:%d leader: %d, running time: %d, " \
+			"restart interval: %d", __LINE__, \
 			trackerStatus[i].pTrackerServer->ip_addr, \
 			trackerStatus[i].pTrackerServer->port, \
+			trackerStatus[i].if_leader, \
 			trackerStatus[i].running_time, \
 			trackerStatus[i].restart_interval);
 	}
@@ -4239,6 +4245,7 @@ int tracker_mem_add_group_and_storage(TrackerClientInfo *pClientInfo, \
 		{ /* stop time exceeds 2 * interval */
 			TrackerRunningStatus runningStatus;
 
+			runningStatus.if_leader = false;
 			tracker_calc_running_times(&runningStatus);
 			result = tracker_mem_get_sys_files_from_others(\
 						pJoinBody, &runningStatus);
