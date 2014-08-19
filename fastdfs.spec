@@ -1,13 +1,13 @@
-%define FastDFS     fastdfs
-%define FastdfsServer fastdfs-server
-%define ClientName  libfdfsclient
-%define FastTool    fastdfs-tool
-%define FastVersion 5.0.3
+%define FastDFS    fastdfs
+%define FDFSServer fastdfs-server
+%define FDFSClient libfdfsclient
+%define FDFSTool   fastdfs-tool
+%define FDFSVersion 5.0.4
 
 Name: %{FastDFS}
-Version: %{FastVersion}
+Version: %{FDFSVersion}
 Release: 1%{?dist}
-Summary: The fastdfs manager
+Summary: FastDFS server and client
 License: GPL
 Group: Arch/Tech
 URL: 	http://perso.orange.fr/sebastien.godard/
@@ -20,31 +20,32 @@ Requires: %__cp %__mv %__chmod %__grep %__mkdir %__install %__id
 %description
 This package provides tracker & storage of fastdfs
 
-%package -n %{FastdfsServer}
+%package -n %{FDFSServer}
+Requires: libfastcommon
 Summary: fastdfs tracker & storage
 
-%package -n %{FastTool}
+%package -n %{FDFSTool}
 Requires: libfastcommon
 Summary: fastdfs tools
 
-%package -n %{ClientName}
+%package -n %{FDFSClient}
 Requires: libfastcommon
 Summary: The client dynamic library of fastdfs
 
-%package -n %{ClientName}-devel
-Requires: %{ClientName}
+%package -n %{FDFSClient}-devel
+Requires: %{FDFSClient}
 Summary: The client header of fastdfs
 
-%description -n %{FastdfsServer}
+%description -n %{FDFSServer}
 This package provides tracker & storage of fastdfs
 
-%description -n %{ClientName}
+%description -n %{FDFSClient}
 This package is client dynamic library of fastdfs
 
-%description -n %{ClientName}-devel
-This package is client header of fastdfs
+%description -n %{FDFSClient}-devel
+This package is client header of fastdfs client
 
-%description -n %{FastTool}
+%description -n %{FDFSTool}
 This package is tools for fastdfs
 
 %prep
@@ -65,11 +66,11 @@ DESTDIR=$RPM_BUILD_ROOT ./make.sh install
 
 #%find_lang %{name}
 
-%post -n %{FastdfsServer}
+%post -n %{FDFSServer}
 /sbin/chkconfig --add fdfs_trackerd
 /sbin/chkconfig --add fdfs_storaged
 
-%preun -n %{FastdfsServer}
+%preun -n %{FDFSServer}
 /sbin/chkconfig --del fdfs_trackerd
 /sbin/chkconfig --del fdfs_storaged
 
@@ -83,7 +84,7 @@ DESTDIR=$RPM_BUILD_ROOT ./make.sh install
 #/usr/local/bin/*
 #/usr/local/include/*
 
-%files -n %{FastdfsServer}
+%files -n %{FDFSServer}
 %defattr(-,root,root,-)
 /usr/bin/fdfs_trackerd
 /usr/bin/fdfs_storaged
@@ -93,15 +94,15 @@ DESTDIR=$RPM_BUILD_ROOT ./make.sh install
 /etc/fdfs/tracker.conf.sample
 /etc/fdfs/storage.conf.sample
 
-%files -n %{ClientName}
+%files -n %{FDFSClient}
 /usr/lib64/libfdfsclient*
 /etc/fdfs/client.conf.sample
 
-%files -n %{ClientName}-devel
+%files -n %{FDFSClient}-devel
 %defattr(-,root,root,-)
 /usr/include/fastdfs/*
 
-%files -n %{FastTool}
+%files -n %{FDFSTool}
 /usr/bin/fdfs_monitor
 /usr/bin/fdfs_test
 /usr/bin/fdfs_test1

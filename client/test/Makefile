@@ -1,7 +1,7 @@
 .SUFFIXES: .c .o
 
 COMPILE = $(CC) -Wall -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE -g -O -DDEBUG_FLAG -DOS_LINUX -DIOEVENT_USE_EPOLL
-INC_PATH = -I/usr/local/include/fastcommon -I/usr/local/include/fastdfs
+INC_PATH = -I/usr/include/fastcommon -I/usr/include/fastdfs
 LIB_PATH = -L/usr/local/lib -lfastcommon -lfdfsclient  -lpthread -ldl -rdynamic
 TARGET_PATH = $(TARGET_PATH)
 

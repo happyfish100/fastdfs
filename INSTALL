@@ -6,43 +6,47 @@ Please visit the FastDFS Home Page for more detail.
 English language: http://english.csource.org/
 Chinese language: http://www.csource.org/
 
-#step 1. download FastDFS source package and unpack it, 
+#step 1. download libfastcommon source package from github and install it,
+   the github address:
+   https://github.com/happyfish100/libfastcommon.git
+
+#step 2. download FastDFS source package and unpack it, 
 tar xzf FastDFS_v5.x.tar.gz
 #for example:
-tar xzf FastDFS_v5.01.tar.gz
+tar xzf FastDFS_v5.04.tar.gz
 
-#step 2. enter the FastDFS dir
+#step 3. enter the FastDFS dir
 cd FastDFS
 
-#step 3. execute:
+#step 4. execute:
 ./make.sh
 
-#step 4. make install
+#step 5. make install
 ./make.sh install
 
-#step 5. edit/modify the config file of tracker and storage
+#step 6. edit/modify the config file of tracker and storage
 
-#step 6. run server programs
+#step 7. run server programs
 #start the tracker server:
-/usr/local/bin/fdfs_trackerd /etc/fdfs/tracker.conf restart
+/usr/bin/fdfs_trackerd /etc/fdfs/tracker.conf restart
 #in Linux, you can start fdfs_trackerd as a service:
 /sbin/service fdfs_trackerd start
 
 #start the storage server:
-/usr/local/bin/fdfs_storaged /etc/fdfs/storage.conf restart
+/usr/bin/fdfs_storaged /etc/fdfs/storage.conf restart
 #in Linux, you can start fdfs_storaged as a service:
 /sbin/service fdfs_storaged start
 
-#step 7. run test program
+#step 8. run test program
 #run the client test program:
-/usr/local/bin/fdfs_test <client_conf_filename> <operation>
-/usr/local/bin/fdfs_test1 <client_conf_filename> <operation>
+/usr/bin/fdfs_test <client_conf_filename> <operation>
+/usr/bin/fdfs_test1 <client_conf_filename> <operation>
 #for example, upload a file:
-/usr/local/bin/fdfs_test conf/client.conf upload /usr/include/stdlib.h
+/usr/bin/fdfs_test conf/client.conf upload /usr/include/stdlib.h
 
-#step 8. run monitor program
+#step 9. run monitor program
 #run the monitor program:
-/usr/local/bin/fdfs_monitor <client_conf_filename>
+/usr/bin/fdfs_monitor <client_conf_filename>
 
 
 tracker server config file sample please see conf/tracker.conf

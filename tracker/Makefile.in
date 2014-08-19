@@ -1,19 +1,12 @@
 .SUFFIXES: .c .o
 
 COMPILE = $(CC) $(CFLAGS)
-INC_PATH = -I../common -I/usr/local/include
-LIB_PATH = -L/usr/local/lib $(LIBS)
+INC_PATH = -I../common -I/usr/include/fastcommon
+LIB_PATH = -L/usr/local/lib $(LIBS) -lfastcommon
 TARGET_PATH = $(TARGET_PREFIX)/bin
 CONFIG_PATH = $(TARGET_CONF_PATH)
 
-SHARED_OBJS = ../common/hash.o ../common/chain.o ../common/base64.o \
-              ../common/shared_func.o ../common/ini_file_reader.o \
-              ../common/logger.o ../common/sockopt.o ../common/fdfs_global.o \
-              ../common/sched_thread.o ../common/http_func.o ../common/md5.o \
-              ../common/pthread_func.o ../common/local_ip_func.o \
-              ../common/connection_pool.o ../common/process_ctrl.o \
-              ../common/ioevent.o ../common/fast_timer.o \
-              ../common/fast_task_queue.o ../common/ioevent_loop.o \
+SHARED_OBJS = ../common/fdfs_global.o \
               tracker_proto.o tracker_mem.o tracker_service.o tracker_status.o \
               tracker_global.o tracker_func.o \
               fdfs_shared_func.o tracker_nio.o tracker_relationship.o \
@@ -21,7 +14,7 @@ SHARED_OBJS = ../common/hash.o ../common/chain.o ../common/base64.o \
 
 ALL_OBJS = $(SHARED_OBJS)
 
-ALL_PRGS = fdfs_trackerd 
+ALL_PRGS = fdfs_trackerd
 
 all: $(ALL_OBJS) $(ALL_PRGS)
 .o:
@@ -34,6 +27,6 @@ install:
 	mkdir -p $(TARGET_PATH)
 	mkdir -p $(CONFIG_PATH)
 	cp -f $(ALL_PRGS) $(TARGET_PATH)
-	if [ ! -f $(CONFIG_PATH)/tracker.conf ]; then cp -f ../conf/tracker.conf $(CONFIG_PATH)/tracker.conf.sample; fi
+	if [ ! -f $(CONFIG_PATH)/tracker.conf.sample ]; then cp -f ../conf/tracker.conf $(CONFIG_PATH)/tracker.conf.sample; fi
 clean:
 	rm -f $(ALL_OBJS) $(ALL_PRGS)

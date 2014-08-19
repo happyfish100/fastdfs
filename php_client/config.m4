@@ -7,7 +7,7 @@ if test "$PHP_FASTDFS_CLIENT" != "no"; then
   PHP_SUBST(FASTDFS_CLIENT_SHARED_LIBADD)
 
   if test -z "$ROOT"; then
-	ROOT=/usr/local
+	ROOT=/usr
   fi
 
   PHP_ADD_INCLUDE($ROOT/include/fastcommon)

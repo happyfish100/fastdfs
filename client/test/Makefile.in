@@ -1,7 +1,7 @@
 .SUFFIXES: .c .o
 
 COMPILE = $(CC) $(CFLAGS)
-INC_PATH = -I/usr/local/include/fastcommon -I/usr/local/include/fastdfs
+INC_PATH = -I/usr/include/fastcommon -I/usr/include/fastdfs
 LIB_PATH = -L/usr/local/lib -lfastcommon -lfdfsclient $(LIBS)
 TARGET_PATH = $(TARGET_PATH)
 
