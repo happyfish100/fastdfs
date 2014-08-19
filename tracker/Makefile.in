@@ -34,6 +34,6 @@ install:
 	mkdir -p $(TARGET_PATH)
 	mkdir -p $(CONFIG_PATH)
 	cp -f $(ALL_PRGS) $(TARGET_PATH)
-	if [ ! -f $(CONFIG_PATH)/tracker.conf ]; then cp -f ../conf/tracker.conf ../conf/mime.types ../conf/http.conf $(CONFIG_PATH); fi
+	if [ ! -f $(CONFIG_PATH)/tracker.conf ]; then cp -f ../conf/tracker.conf $(CONFIG_PATH)/tracker.conf.sample; fi
 clean:
 	rm -f $(ALL_OBJS) $(ALL_PRGS)

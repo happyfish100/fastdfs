@@ -58,10 +58,11 @@ EOF
 
 ENABLE_STATIC_LIB=0
 ENABLE_SHARED_LIB=1
-TARGET_PREFIX=/usr/local
-TARGET_CONF_PATH=/etc/fdfs
+TARGET_PREFIX=$DESTDIR/usr
+TARGET_CONF_PATH=$DESTDIR/etc/fdfs
+TARGET_INIT_PATH=$DESTDIR/etc/init.d
 
-#WITH_LINUX_SERVICE=1
+WITH_LINUX_SERVICE=1
 
 DEBUG_FLAG=1
 
@@ -194,17 +195,15 @@ if [ "$1" = "install" ]; then
     if [ "$WITH_LINUX_SERVICE" = "1" ]; then
       if [ ! -d /etc/fdfs ]; then
         mkdir -p /etc/fdfs
-        cp -f conf/tracker.conf /etc/fdfs/
-        cp -f conf/storage.conf /etc/fdfs/
-        cp -f conf/client.conf /etc/fdfs/
-        cp -f conf/http.conf /etc/fdfs/
-        cp -f conf/mime.types /etc/fdfs/
+        cp -f conf/tracker.conf $TARGET_CONF_PATH/tracker.conf.sample
+        cp -f conf/storage.conf $TARGET_CONF_PATH/storage.conf.sample
+        cp -f conf/client.conf $TARGET_CONF_PATH/client.conf.sample
       fi
-
-      cp -f init.d/fdfs_trackerd /etc/rc.d/init.d/
-      cp -f init.d/fdfs_storaged /etc/rc.d/init.d/
-      /sbin/chkconfig --add fdfs_trackerd 
-      /sbin/chkconfig --add fdfs_storaged
+      mkdir -p $TARGET_INIT_PATH
+      cp -f init.d/fdfs_trackerd $TARGET_INIT_PATH
+      cp -f init.d/fdfs_storaged $TARGET_INIT_PATH
+#      /sbin/chkconfig --add fdfs_trackerd 
+#      /sbin/chkconfig --add fdfs_storaged
     fi
   fi
 fi

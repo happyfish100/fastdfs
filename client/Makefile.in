@@ -3,10 +3,10 @@
 COMPILE = $(CC) $(CFLAGS)
 ENABLE_STATIC_LIB = $(ENABLE_STATIC_LIB)
 ENABLE_SHARED_LIB = $(ENABLE_SHARED_LIB)
-INC_PATH = -I../common -I../tracker -I/usr/local/include
+INC_PATH = -I../common -I../tracker -I/usr/include
 LIB_PATH = $(LIBS)
 TARGET_PATH = $(TARGET_PREFIX)/bin
-TARGET_LIB = $(TARGET_PREFIX)/lib
+TARGET_LIB = $(TARGET_PREFIX)/lib64
 TARGET_INC = $(TARGET_PREFIX)/include
 CONFIG_PATH = $(TARGET_CONF_PATH)
 
@@ -77,17 +77,18 @@ ALL_PRGS = fdfs_monitor fdfs_test fdfs_test1 fdfs_crc32 fdfs_upload_file \
 
 STATIC_LIBS = libfastcommon.a libfdfsclient.a
 
-SHARED_LIBS = libfastcommon.so.1 libfdfsclient.so.1
+SHARED_LIBS = libfastcommon.so libfdfsclient.so
+CLIENT_SHARED_LIBS = libfdfsclient.so
 
 ALL_LIBS = $(STATIC_LIBS) $(SHARED_LIBS)
 
 all: $(ALL_OBJS) $(ALL_PRGS) $(ALL_LIBS)
-libfastcommon.so.1:
+libfastcommon.so:
 	$(COMPILE) -o $@ $< -shared $(FAST_SHARED_OBJS) $(LIB_PATH)
-	ln -fs libfastcommon.so.1 libfastcommon.so
-libfdfsclient.so.1:
-	$(COMPILE) -o $@ $< -shared $(FDFS_SHARED_OBJS) $(LIB_PATH) -L. -lfastcommon
-	ln -fs libfdfsclient.so.1 libfdfsclient.so
+#	ln -fs libfastcommon.so.1 libfastcommon.so
+libfdfsclient.so:
+	$(COMPILE) -o $@ $< -shared $(FDFS_SHARED_OBJS) $(LIB_PATH) -lfastcommon
+#	ln -fs libfdfsclient.so.1 libfdfsclient.so
 libfastcommon.a:
 	ar cru $@ $< $(FAST_STATIC_OBJS)
 libfdfsclient.a:
@@ -106,19 +107,11 @@ install:
 	mkdir -p $(TARGET_LIB)
 	cp -f $(ALL_PRGS) $(TARGET_PATH)
 	if [ $(ENABLE_STATIC_LIB) -eq 1 ]; then cp -f $(STATIC_LIBS) $(TARGET_LIB); fi
-	if [ $(ENABLE_SHARED_LIB) -eq 1 ]; then cp -f $(SHARED_LIBS) $(TARGET_LIB); fi
-	if [ $(ENABLE_SHARED_LIB) -eq 1 ]; then ln -fs $(TARGET_LIB)/libfastcommon.so.1 $(TARGET_LIB)/libfastcommon.so; fi
-	if [ $(ENABLE_SHARED_LIB) -eq 1 ]; then ln -fs $(TARGET_LIB)/libfdfsclient.so.1 $(TARGET_LIB)/libfdfsclient.so; fi
+	if [ $(ENABLE_SHARED_LIB) -eq 1 ]; then cp -f $(CLIENT_SHARED_LIBS) $(TARGET_LIB); fi
 
-	if [ ! -f $(CONFIG_PATH)/client.conf ]; then cp -f ../conf/client.conf ../conf/http.conf $(CONFIG_PATH); fi
-
-	mkdir -p $(TARGET_INC)
-	mkdir -p $(TARGET_INC)/fastcommon
 	mkdir -p $(TARGET_INC)/fastdfs
-	cp -f $(FAST_HEADER_FILES) $(TARGET_INC)/fastcommon
 	cp -f $(FDFS_HEADER_FILES) $(TARGET_INC)/fastdfs
-
-	if [ $(ENABLE_SHARED_LIB) -eq 1 -a $(TARGET_LIB) = "/usr/local/lib" ]; then sh ./fdfs_link_library.sh; fi
+	if [ ! -f $(CONFIG_PATH)/client.conf ]; then cp -f ../conf/client.conf $(CONFIG_PATH)/client.conf.sample; fi
 clean:
-	rm -f $(ALL_OBJS) $(ALL_PRGS) $(ALL_LIBS) libfastcommon.so libfdfsclient.so
+	rm -f $(ALL_OBJS) $(ALL_PRGS) $(ALL_LIBS)
 

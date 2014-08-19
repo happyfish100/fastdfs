@@ -44,6 +44,6 @@ install:
 	mkdir -p $(TARGET_PATH)
 	mkdir -p $(CONFIG_PATH)
 	cp -f $(ALL_PRGS) $(TARGET_PATH)
-	if [ ! -f $(CONFIG_PATH)/storage.conf ]; then cp -f ../conf/storage.conf ../conf/mime.types ../conf/http.conf $(CONFIG_PATH); fi
+	if [ ! -f $(CONFIG_PATH)/storage.conf ]; then cp -f ../conf/storage.conf $(CONFIG_PATH)/storage.conf.sample; fi
 clean:
 	rm -f $(ALL_OBJS) $(ALL_PRGS)
