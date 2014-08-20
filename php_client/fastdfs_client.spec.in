@@ -12,7 +12,7 @@ BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 #Requires: /sbin/chkconfig
 #Requires: sh-utils textutils grep fileutils /etc/cron.d
 #BuildRequires: libfdfsclient-devel
-Requires: %__cp %__mv %__chmod %__grep %__mkdir %__install %__id
+#Requires: %__cp %__mv %__chmod %__grep %__mkdir %__install %__id
 Requires: libfdfsclient
 
 %description
@@ -35,7 +35,7 @@ rm -rf %{buildroot}
 mkdir -p %{buildroot}/usr/lib64/php/modules
 mkdir -p %{buildroot}/etc/php.d
 cp -f .libs/fastdfs_client.so  %{buildroot}/usr/lib64/php/modules/
-cp -f fastdfs_client.ini %{buildroot}/etc/php.d/
+cp -f fastdfs_client.ini %{buildroot}/etc/php.d/fastdfs_client.ini.sample
 
 #make install IGNORE_MAN_GROUP=y DOC_DIR=%{_docdir}/%{name}-%{version} INIT_DIR=%{_initrddir}
 
