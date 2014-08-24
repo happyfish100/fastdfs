@@ -1395,6 +1395,30 @@ static int tracker_deal_storage_join(struct fast_task_info *pTask)
 	return 0;
 }
 
+static int tracker_deal_server_delete_group(struct fast_task_info *pTask)
+{
+	char group_name[FDFS_GROUP_NAME_MAX_LEN + 1];
+	int nPkgLen;
+
+	nPkgLen = pTask->length - sizeof(TrackerHeader);
+	pTask->length = sizeof(TrackerHeader);
+	if (nPkgLen != FDFS_GROUP_NAME_MAX_LEN)
+	{
+		logError("file: "__FILE__", line: %d, " \
+			"cmd=%d, client ip: %s, package size " \
+			PKG_LEN_PRINTF_FORMAT" is not correct, " \
+			"expect length: %d", __LINE__, \
+			TRACKER_PROTO_CMD_SERVER_DELETE_GROUP, \
+			pTask->client_ip, nPkgLen, FDFS_GROUP_NAME_MAX_LEN);
+		return EINVAL;
+	}
+
+	memcpy(group_name, pTask->data + sizeof(TrackerHeader), \
+			FDFS_GROUP_NAME_MAX_LEN);
+	group_name[FDFS_GROUP_NAME_MAX_LEN] = '\0';
+	return tracker_mem_delete_group(group_name);
+}
+
 static int tracker_deal_server_delete_storage(struct fast_task_info *pTask)
 {
 	char group_name[FDFS_GROUP_NAME_MAX_LEN + 1];
@@ -3648,6 +3672,9 @@ int tracker_deal_task(struct fast_task_info *pTask)
 			break;
 		case TRACKER_PROTO_CMD_STORAGE_SYNC_DEST_QUERY:
 			result = tracker_deal_storage_sync_dest_query(pTask);
+			break;
+		case TRACKER_PROTO_CMD_SERVER_DELETE_GROUP:
+			result = tracker_deal_server_delete_group(pTask);
 			break;
 		case TRACKER_PROTO_CMD_SERVER_DELETE_STORAGE:
 			result = tracker_deal_server_delete_storage(pTask);

@@ -175,15 +175,26 @@ int main(int argc, char *argv[])
 	}
 	else if (strcmp(op_type, "delete") == 0)
 	{
-		char *storage_id;
 		if (arg_index >= argc)
 		{
-			usage(argv);
-			return 1;
+		if ((result=tracker_delete_group(&g_tracker_group, \
+				group_name)) == 0)
+		{
+			printf("delete group: %s success\n", \
+				group_name);
 		}
+		else
+		{
+			printf("delete group: %s fail, " \
+				"error no: %d, error info: %s\n", \
+				group_name, result, STRERROR(result));
+		}
+		}
+        else
+        {
+		char *storage_id;
 
 		storage_id = argv[arg_index++];
-
 		if ((result=tracker_delete_storage(&g_tracker_group, \
 				group_name, storage_id)) == 0)
 		{
@@ -197,6 +208,7 @@ int main(int argc, char *argv[])
 				group_name, storage_id, \
 				result, STRERROR(result));
 		}
+        }
 	}
 	else if (strcmp(op_type, "set_trunk_server") == 0)
 	{

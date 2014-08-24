@@ -6,6 +6,7 @@ Version 5.04  2014-08-24
    online / active and the storage status is wait_sync or syncing,
    the tracker adjust storage status to newer, and the storage rejoin
    to the tracker server
+ * fdfs_monitor support delete empty group
 
 Version 5.03  2014-08-10
  * network send and recv retry when error EINTR happen

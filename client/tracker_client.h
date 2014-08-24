@@ -292,6 +292,16 @@ int tracker_delete_storage(TrackerServerGroup *pTrackerGroup, \
 
 
 /**
+* delete a group from cluster
+* params:
+*	pTrackerGroup: the tracker group
+*	group_name: the group name to delete
+* return: 0 success, !=0 fail, return the error code
+**/
+int tracker_delete_group(TrackerServerGroup *pTrackerGroup, \
+		const char *group_name);
+
+/**
 * set trunk server of the specified group
 * params:
 *	pTrackerGroup: the tracker group

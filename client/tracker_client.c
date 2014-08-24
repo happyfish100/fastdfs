@@ -1218,6 +1218,63 @@ int tracker_delete_storage(TrackerServerGroup *pTrackerGroup, \
 	return result == ENOENT ? 0 : result;
 }
 
+int tracker_delete_group(TrackerServerGroup *pTrackerGroup, \
+		const char *group_name)
+{
+	ConnectionInfo *conn;
+	TrackerHeader *pHeader;
+	ConnectionInfo tracker_server;
+	ConnectionInfo *pServer;
+	ConnectionInfo *pEnd;
+	char out_buff[sizeof(TrackerHeader) + FDFS_GROUP_NAME_MAX_LEN]; 
+	char in_buff[1];
+	char *pInBuff;
+	int64_t in_bytes;
+	int result;
+
+	memset(out_buff, 0, sizeof(out_buff));
+	pHeader = (TrackerHeader *)out_buff;
+	snprintf(out_buff + sizeof(TrackerHeader), sizeof(out_buff) - \
+			sizeof(TrackerHeader),  "%s", group_name);
+	
+	long2buff(FDFS_GROUP_NAME_MAX_LEN, pHeader->pkg_len);
+	pHeader->cmd = TRACKER_PROTO_CMD_SERVER_DELETE_GROUP;
+
+	result = 0;
+	pEnd = pTrackerGroup->servers + pTrackerGroup->server_count;
+	for (pServer=pTrackerGroup->servers; pServer<pEnd; pServer++)
+	{
+		memcpy(&tracker_server, pServer, sizeof(ConnectionInfo));
+		tracker_server.sock = -1;
+		if ((conn=tracker_connect_server(&tracker_server, &result)) == NULL)
+		{
+			return result;
+		}
+
+		if ((result=tcpsenddata_nb(conn->sock, out_buff, \
+			sizeof(TrackerHeader) + FDFS_GROUP_NAME_MAX_LEN,
+            g_fdfs_network_timeout)) != 0)
+		{
+			logError("file: "__FILE__", line: %d, " \
+				"send data to tracker server %s:%d fail, " \
+				"errno: %d, error info: %s", __LINE__, \
+				tracker_server.ip_addr, tracker_server.port, \
+				result, STRERROR(result));
+            break;
+		}
+
+        pInBuff = in_buff;
+        result = fdfs_recv_response(conn, &pInBuff, 0, &in_bytes);
+		tracker_disconnect_server_ex(conn, result != 0 && result != ENOENT);
+		if (result != 0)
+		{
+            break;
+		}
+	}
+
+	return result;
+}
+
 int tracker_set_trunk_server(TrackerServerGroup *pTrackerGroup, \
 		const char *group_name, const char *storage_id, \
 		char *new_trunk_server_id)
