@@ -4690,9 +4690,7 @@ int tracker_mem_sync_storages(FDFSGroupInfo *pGroup, \
 		{
 			pServer->id[FDFS_STORAGE_ID_MAX_SIZE - 1] = '\0';
 			pServer->ip_addr[IP_ADDRESS_SIZE - 1] = '\0';
-			if (pServer->status == FDFS_STORAGE_STATUS_NONE \
-			 || pServer->status == FDFS_STORAGE_STATUS_ACTIVE \
-			 || pServer->status == FDFS_STORAGE_STATUS_ONLINE)
+			if (pServer->status == FDFS_STORAGE_STATUS_NONE)
 			{
 				continue;
 			}
@@ -4709,6 +4707,8 @@ int tracker_mem_sync_storages(FDFSGroupInfo *pGroup, \
 			{
 				if ((*ppFound)->status == pServer->status \
 				 || (*ppFound)->status == \
+					FDFS_STORAGE_STATUS_INIT \
+				 || (*ppFound)->status == \
 					FDFS_STORAGE_STATUS_ONLINE \
 				 || (*ppFound)->status == \
 					FDFS_STORAGE_STATUS_ACTIVE
@@ -4717,6 +4717,13 @@ int tracker_mem_sync_storages(FDFSGroupInfo *pGroup, \
 				{
 					continue;
 				}
+
+                logWarning("file: "__FILE__", line: %d, "
+                        "storage server: %s:%d, dest status: %d, "
+                        "my status: %d, should change my status!",
+                        __LINE__, (*ppFound)->ip_addr,
+                        (*ppFound)->storage_port,
+                        pServer->status, (*ppFound)->status);
 
 				if (pServer->status == \
 					FDFS_STORAGE_STATUS_DELETED
@@ -4739,6 +4746,11 @@ int tracker_mem_sync_storages(FDFSGroupInfo *pGroup, \
 			{
 				//ignore deleted storage server
 			}
+            else if (pServer->status == FDFS_STORAGE_STATUS_ACTIVE
+			   || pServer->status == FDFS_STORAGE_STATUS_ONLINE)
+            {
+				//ignore online or active storage server
+            }
 			else
 			{
 				FDFSStorageDetail *pStorageServer;

@@ -44,6 +44,7 @@ static pthread_mutex_t reporter_thread_lock;
 static pthread_t *report_tids = NULL;
 static int *src_storage_status = NULL; //returned by tracker server
 static signed char *my_report_status = NULL;  //returned by tracker server
+static bool need_rejoin_tracker = false;
 
 static int tracker_heart_beat(ConnectionInfo *pTrackerServer, \
 		int *pstat_chg_sync_count, bool *bServerPortChanged);
@@ -540,6 +541,11 @@ static void *tracker_report_thread_entrance(void *arg)
 			}
 			}
 
+			if (need_rejoin_tracker)
+			{
+				need_rejoin_tracker = false;
+				break;
+			}
 			sleep(1);
 		}
 
@@ -844,6 +850,21 @@ static int tracker_merge_servers(ConnectionInfo *pTrackerServer, \
 					FDFS_STORAGE_STATUS_SYNCING)) && \
 				((*ppFound)->server.status > pServer->status))
 			{
+                *(pServer->ip_addr + IP_ADDRESS_SIZE - 1) = '\0';
+				if (is_local_host_ip(pServer->ip_addr) && \
+					buff2int(pServer->port) == g_server_port)
+				{
+					need_rejoin_tracker = true;
+					logWarning("file: "__FILE__", line: %d, " \
+						"tracker response status: %d, " \
+						"local status: %d, need rejoin " \
+						"tracker server: %s:%d", \
+						__LINE__, pServer->status, \
+						(*ppFound)->server.status, \
+						pTrackerServer->ip_addr,
+						pTrackerServer->port);
+				}
+
 				memcpy(pDiffServer++, &((*ppFound)->server), \
 					sizeof(FDFSStorageBrief));
 			}
