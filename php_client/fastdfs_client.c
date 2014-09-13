@@ -901,6 +901,21 @@ static void php_fdfs_tracker_list_groups_impl(INTERNAL_FUNCTION_PARAMETERS, \
 			pStorageStat = &(pStorage->stat);
 
 			add_assoc_long_ex(server_info_array, \
+				"connection.alloc_count", \
+				sizeof("connection.alloc_count"), \
+				pStorageStat->connection.alloc_count);
+
+			add_assoc_long_ex(server_info_array, \
+				"connection.current_count", \
+				sizeof("connection.current_count"), \
+				pStorageStat->connection.current_count);
+
+			add_assoc_long_ex(server_info_array, \
+				"connection.max_count", \
+				sizeof("connection.max_count"), \
+				pStorageStat->connection.max_count);
+
+			add_assoc_long_ex(server_info_array, \
 				"total_upload_count", \
 				sizeof("total_upload_count"), \
 				pStorageStat->total_upload_count);
