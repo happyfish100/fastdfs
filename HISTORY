@@ -8,6 +8,7 @@ Version 5.04  2014-09-13
    to the tracker server
  * fdfs_monitor support delete empty group
  * bug fixed: two tracker leaders occur in rare case
+ * add connection stats
 
 Version 5.03  2014-08-10
  * network send and recv retry when error EINTR happen

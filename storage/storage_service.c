@@ -1565,8 +1565,11 @@ static void storage_set_metadata_done_callback( \
 
 int storage_service_init()
 {
+#define ALLOC_CONNECTIONS_ONCE 256
+
 	int result;
 	int bytes;
+    int init_connections;
 	struct storage_nio_thread_data *pThreadData;
 	struct storage_nio_thread_data *pDataEnd;
 	pthread_t tid;
@@ -1594,8 +1597,11 @@ int storage_service_init()
 		return result;
 	}
 
-	if ((result=free_queue_init(g_max_connections, g_buff_size, \
-                g_buff_size, sizeof(StorageClientInfo))) != 0)
+    init_connections = g_max_connections < ALLOC_CONNECTIONS_ONCE ?
+        g_max_connections : ALLOC_CONNECTIONS_ONCE;
+	if ((result=free_queue_init_ex(g_max_connections, init_connections,
+                    ALLOC_CONNECTIONS_ONCE, g_buff_size,
+                    g_buff_size, sizeof(StorageClientInfo))) != 0)
 	{
 		return result;
 	}
@@ -1843,6 +1849,15 @@ static void *accept_thread_entrance(void* arg)
 				"errno: %d, error info: %s", \
 				__LINE__, errno, STRERROR(errno));
 		}
+        else
+        {
+            int current_connections;
+            current_connections = __sync_add_and_fetch(&g_connection_stat.
+                    current_count, 1);
+            if (current_connections > g_connection_stat.max_count) {
+                g_connection_stat.max_count = current_connections;
+            }
+        }
 	}
 
 	return NULL;

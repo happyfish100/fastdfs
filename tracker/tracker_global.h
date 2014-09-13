@@ -97,6 +97,8 @@ extern bool g_http_servers_dirty;
 extern char g_exe_name[256];
 #endif
 
+extern FDFSConnectionStat g_connection_stat;
+
 #ifdef __cplusplus
 }
 #endif

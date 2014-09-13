@@ -72,6 +72,7 @@ void task_finish_clean_up(struct fast_task_info *pTask)
 
 	memset(pTask->arg, 0, sizeof(TrackerClientInfo));
 	free_queue_push(pTask);
+    __sync_fetch_and_sub(&g_connection_stat.current_count, 1);
 }
 
 void recv_notify_read(int sock, short event, void *arg)

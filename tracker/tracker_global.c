@@ -73,3 +73,5 @@ bool g_http_servers_dirty = false;
 char g_exe_name[256] = {0};
 #endif
 
+FDFSConnectionStat g_connection_stat = {0, 0};
+

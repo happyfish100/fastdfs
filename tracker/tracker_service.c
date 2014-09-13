@@ -53,8 +53,10 @@ static void tracker_find_max_free_space_group();
 
 int tracker_service_init()
 {
+#define ALLOC_CONNECTIONS_ONCE 1024
 	int result;
 	int bytes;
+    int init_connections;
 	struct nio_thread_data *pThreadData;
 	struct nio_thread_data *pDataEnd;
 	pthread_t tid;
@@ -77,8 +79,11 @@ int tracker_service_init()
 		return result;
 	}
 
-	if ((result=free_queue_init(g_max_connections, TRACKER_MAX_PACKAGE_SIZE,\
-                TRACKER_MAX_PACKAGE_SIZE, sizeof(TrackerClientInfo))) != 0)
+    init_connections = g_max_connections < ALLOC_CONNECTIONS_ONCE ?
+        g_max_connections : ALLOC_CONNECTIONS_ONCE;
+	if ((result=free_queue_init_ex(g_max_connections, init_connections,
+                    ALLOC_CONNECTIONS_ONCE, TRACKER_MAX_PACKAGE_SIZE,
+                    TRACKER_MAX_PACKAGE_SIZE, sizeof(TrackerClientInfo))) != 0)
 	{
 		return result;
 	}
@@ -259,6 +264,15 @@ static void *accept_thread_entrance(void* arg)
 				"errno: %d, error info: %s", \
 				__LINE__, errno, STRERROR(errno));
 		}
+        else
+        {
+            int current_connections;
+            current_connections = __sync_add_and_fetch(&g_connection_stat.
+                    current_count, 1);
+            if (current_connections > g_connection_stat.max_count) {
+                g_connection_stat.max_count = current_connections;
+            }
+        }
 	}
 
 	return NULL;
@@ -3505,6 +3519,13 @@ static int tracker_deal_storage_beat(struct fast_task_info *pTask)
 		pStatBuff = (FDFSStorageStatBuff *)(pTask->data + \
 					sizeof(TrackerHeader));
 		pStat = &(pClientInfo->pStorage->stat);
+
+		pStat->connection.alloc_count = \
+			buff2long(pStatBuff->connection.sz_alloc_count);
+		pStat->connection.current_count = \
+			buff2long(pStatBuff->connection.sz_current_count);
+		pStat->connection.max_count = \
+			buff2long(pStatBuff->connection.sz_max_count);
 
 		pStat->total_upload_count = \
 			buff2long(pStatBuff->sz_total_upload_count);

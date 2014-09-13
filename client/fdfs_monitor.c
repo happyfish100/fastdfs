@@ -417,8 +417,11 @@ static int list_storages(FDFSGroupStat *pGroupStat)
 			"\t\tstorage_port = %d\n" \
 			"\t\tstorage_http_port = %d\n" \
 			"\t\tcurrent_write_path = %d\n" \
-			"\t\tsource storage id= %s\n" \
-			"\t\tif_trunk_server= %d\n" \
+			"\t\tsource storage id = %s\n" \
+			"\t\tif_trunk_server = %d\n" \
+			"\t\tconnection.alloc_count = %d\n"   \
+			"\t\tconnection.current_count = %d\n"   \
+			"\t\tconnection.max_count = %d\n"   \
 			"\t\ttotal_upload_count = %"PRId64"\n"   \
 			"\t\tsuccess_upload_count = %"PRId64"\n" \
 			"\t\ttotal_append_count = %"PRId64"\n"   \
@@ -478,6 +481,9 @@ static int list_storages(FDFSGroupStat *pGroupStat)
 			pStorage->current_write_path,  \
 			pStorage->src_id,  \
 			pStorage->if_trunk_server,  \
+			pStorageStat->connection.alloc_count, \
+			pStorageStat->connection.current_count, \
+			pStorageStat->connection.max_count, \
 			pStorageStat->total_upload_count, \
 			pStorageStat->success_upload_count, \
 			pStorageStat->total_append_count, \

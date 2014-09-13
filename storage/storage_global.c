@@ -124,6 +124,8 @@ char g_exe_name[256] = {0};
 struct storage_nio_thread_data *g_nio_thread_data = NULL;
 struct storage_dio_thread_data *g_dio_thread_data = NULL;
 
+FDFSConnectionStat g_connection_stat = {0, 0};
+
 int storage_cmp_by_server_id(const void *p1, const void *p2)
 {
 	return strcmp((*((FDFSStorageServer **)p1))->server.id,

@@ -25,6 +25,7 @@
 #include "shared_func.h"
 #include "pthread_func.h"
 #include "sched_thread.h"
+#include "fast_task_queue.h"
 #include "tracker_types.h"
 #include "tracker_proto.h"
 #include "tracker_client_thread.h"
@@ -2131,6 +2132,14 @@ static int tracker_heart_beat(ConnectionInfo *pTrackerServer, \
 	{
 		pStatBuff = (FDFSStorageStatBuff *)( \
 				out_buff + sizeof(TrackerHeader));
+
+		long2buff(free_queue_alloc_connections(), \
+			pStatBuff->connection.sz_alloc_count);
+		long2buff(g_storage_stat.connection.current_count, \
+			pStatBuff->connection.sz_current_count);
+		long2buff(g_storage_stat.connection.max_count, \
+			pStatBuff->connection.sz_max_count);
+
 		long2buff(g_storage_stat.total_upload_count, \
 			pStatBuff->sz_total_upload_count);
 		long2buff(g_storage_stat.success_upload_count, \

@@ -207,11 +207,23 @@ typedef struct
 
 	/* last heart beat time */
 	time_t last_heart_beat_time;
+
+    struct {
+        int alloc_count;
+        int current_count;
+        int max_count;
+    } connection;
 } FDFSStorageStat;
 
 /* struct for network transfering */
 typedef struct
 {
+    struct {
+        char sz_alloc_count[4];
+        char sz_current_count[4];
+        char sz_max_count[4];
+    } connection;
+
 	char sz_total_upload_count[8];
 	char sz_success_upload_count[8];
 	char sz_total_append_count[8];
@@ -439,6 +451,11 @@ typedef struct {
 	int restart_interval; //restart interval, less mean higher weight
 	bool if_leader;       //if leader
 } TrackerRunningStatus;
+
+typedef struct fdfs_connection_stat {
+    volatile int current_count;
+    volatile int max_count;
+} FDFSConnectionStat;
 
 #endif
 
