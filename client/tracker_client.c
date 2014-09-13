@@ -381,6 +381,13 @@ int tracker_list_servers(ConnectionInfo *pTrackerServer, \
 		pDest->current_write_path = buff2long( \
 					pSrc->sz_current_write_path);
 
+		pStorageStat->connection.alloc_count = buff2int( \
+			pStatBuff->connection.sz_alloc_count);
+		pStorageStat->connection.current_count = buff2int( \
+			pStatBuff->connection.sz_current_count);
+		pStorageStat->connection.max_count = buff2int( \
+			pStatBuff->connection.sz_max_count);
+
 		pStorageStat->total_upload_count = buff2long( \
 			pStatBuff->sz_total_upload_count);
 		pStorageStat->success_upload_count = buff2long( \

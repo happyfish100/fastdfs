@@ -1857,6 +1857,7 @@ static void *accept_thread_entrance(void* arg)
             if (current_connections > g_connection_stat.max_count) {
                 g_connection_stat.max_count = current_connections;
             }
+            ++g_stat_change_count;
         }
 	}
 

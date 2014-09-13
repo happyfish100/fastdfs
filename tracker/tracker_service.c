@@ -2223,6 +2223,13 @@ static int tracker_deal_server_list_group_storages(struct fast_task_info *pTask)
 		long2buff((*ppServer)->current_write_path, \
 				pDest->sz_current_write_path);
 
+		int2buff(pStorageStat->connection.alloc_count, \
+				pStatBuff->connection.sz_alloc_count);
+		int2buff(pStorageStat->connection.current_count, \
+				pStatBuff->connection.sz_current_count);
+		int2buff(pStorageStat->connection.max_count, \
+				pStatBuff->connection.sz_max_count);
+
 		long2buff(pStorageStat->total_upload_count, \
 				pStatBuff->sz_total_upload_count);
 		long2buff(pStorageStat->success_upload_count, \
@@ -3521,11 +3528,11 @@ static int tracker_deal_storage_beat(struct fast_task_info *pTask)
 		pStat = &(pClientInfo->pStorage->stat);
 
 		pStat->connection.alloc_count = \
-			buff2long(pStatBuff->connection.sz_alloc_count);
+			buff2int(pStatBuff->connection.sz_alloc_count);
 		pStat->connection.current_count = \
-			buff2long(pStatBuff->connection.sz_current_count);
+			buff2int(pStatBuff->connection.sz_current_count);
 		pStat->connection.max_count = \
-			buff2long(pStatBuff->connection.sz_max_count);
+			buff2int(pStatBuff->connection.sz_max_count);
 
 		pStat->total_upload_count = \
 			buff2long(pStatBuff->sz_total_upload_count);

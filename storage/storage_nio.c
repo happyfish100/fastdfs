@@ -68,7 +68,9 @@ void task_finish_clean_up(struct fast_task_info *pTask)
 
 	memset(pTask->arg, 0, sizeof(StorageClientInfo));
 	free_queue_push(pTask);
+
     __sync_fetch_and_sub(&g_connection_stat.current_count, 1);
+    ++g_stat_change_count;
 }
 
 static int set_recv_event(struct fast_task_info *pTask)
