@@ -1009,6 +1009,94 @@ static int tracker_merge_servers(ConnectionInfo *pTrackerServer, \
 			diffServers, pDiffServer - diffServers);
 }
 
+static int _notify_reselect_tleader(ConnectionInfo *pTrackerServer)
+{
+	char out_buff[sizeof(TrackerHeader)];
+	TrackerHeader *pHeader;
+	int64_t in_bytes;
+	int result;
+
+	pHeader = (TrackerHeader *)out_buff;
+	memset(out_buff, 0, sizeof(out_buff));
+	pHeader->cmd = TRACKER_PROTO_CMD_TRACKER_NOTIFY_RESELECT_LEADER;
+	if ((result=tcpsenddata_nb(pTrackerServer->sock, out_buff, \
+			sizeof(out_buff), g_fdfs_network_timeout)) != 0)
+	{
+		logError("file: "__FILE__", line: %d, " \
+			"tracker server %s:%d, send data fail, " \
+			"errno: %d, error info: %s.", \
+			__LINE__, pTrackerServer->ip_addr, \
+			pTrackerServer->port, \
+			result, STRERROR(result));
+		return result;
+	}
+
+	if ((result=fdfs_recv_header(pTrackerServer, &in_bytes)) != 0)
+	{
+		return result;
+	}
+
+	if (in_bytes != 0)
+	{
+		logError("file: "__FILE__", line: %d, " \
+			"tracker server %s:%d, recv body length: " \
+			"%"PRId64" != 0",  __LINE__, pTrackerServer->ip_addr, \
+			pTrackerServer->port, in_bytes);
+		return EINVAL;
+	}
+
+	return 0;
+}
+
+static int notify_reselect_tracker_leader(ConnectionInfo *pTrackerServer)
+{
+    int result;
+
+	pTrackerServer->sock = -1;
+	if ((conn=tracker_connect_server(pTrackerServer, &result)) == NULL)
+	{
+		return result;
+	}
+
+    result = _notify_reselect_tleader(pTrackerServer);
+	tracker_disconnect_server_ex(conn, result != 0);
+    return result;
+}
+
+static void set_tracker_leader(const int leader_index)
+{
+    int old_index;
+    old_index = g_tracker_group.leader_index;
+    if (old_index >= 0 && old_index != leader_index)
+    {
+        TrackerRunningStatus tracker_status;
+        ConnectionInfo old_leader_server;
+        memcpy(&old_leader_server, g_tracker_group.servers + old_index,
+                sizeof(ConnectionInfo));
+        if (fdfs_get_tracker_status(&old_leader_server, &tracker_status) == 0)
+        {
+            if (tracker_status.if_leader)
+            {
+                ConnectionInfo new_leader_server;
+                memcpy(&new_leader_server, g_tracker_group.servers + leader_index,
+                        sizeof(ConnectionInfo));
+                logWarning("file: "__FILE__", line: %d, "
+                        "two tracker leaders occur, old leader is %s:%d, "
+                        "new leader is %s:%d, notify to re-select "
+                        "tracker leader", __LINE__,
+                        old_leader_server.ip_addr, old_leader_server.port,
+                        new_leader_server.ip_addr, new_leader_server.port);
+
+                notify_reselect_tracker_leader(&old_leader_server);
+                notify_reselect_tracker_leader(&new_leader_server);
+                g_tracker_group.leader_index = -1;
+                return;
+            }
+        }
+    }
+	g_tracker_group.leader_index = leader_index;
+}
+
 static int tracker_check_response(ConnectionInfo *pTrackerServer, \
 	bool *bServerPortChanged)
 {
@@ -1146,7 +1234,9 @@ static int tracker_check_response(ConnectionInfo *pTrackerServer, \
 				pTrackerServer->ip_addr, pTrackerServer->port,\
 				tracker_leader_ip, tracker_leader_port);
 
-			g_tracker_group.leader_index = leader_index;
+            pthread_mutex_lock(&reporter_thread_lock);
+            set_tracker_leader(leader_index);
+            pthread_mutex_unlock(&reporter_thread_lock);
 			}
 		}
 

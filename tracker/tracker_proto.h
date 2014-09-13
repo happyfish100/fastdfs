@@ -36,13 +36,14 @@
 #define TRACKER_PROTO_CMD_STORAGE_GET_SERVER_ID	    70  //get storage server id from tracker
 #define TRACKER_PROTO_CMD_STORAGE_FETCH_STORAGE_IDS 69  //get all storage ids from tracker
 
-#define TRACKER_PROTO_CMD_TRACKER_GET_SYS_FILES_START 61  //start of tracker get system data files
-#define TRACKER_PROTO_CMD_TRACKER_GET_SYS_FILES_END   62  //end of tracker get system data files
-#define TRACKER_PROTO_CMD_TRACKER_GET_ONE_SYS_FILE    63  //tracker get a system data file
-#define TRACKER_PROTO_CMD_TRACKER_GET_STATUS          64  //tracker get status of other tracker
-#define TRACKER_PROTO_CMD_TRACKER_PING_LEADER         65  //tracker ping leader
-#define TRACKER_PROTO_CMD_TRACKER_NOTIFY_NEXT_LEADER  66  //notify next leader to other trackers
-#define TRACKER_PROTO_CMD_TRACKER_COMMIT_NEXT_LEADER  67  //commit next leader to other trackers
+#define TRACKER_PROTO_CMD_TRACKER_GET_SYS_FILES_START    61  //start of tracker get system data files
+#define TRACKER_PROTO_CMD_TRACKER_GET_SYS_FILES_END      62  //end of tracker get system data files
+#define TRACKER_PROTO_CMD_TRACKER_GET_ONE_SYS_FILE       63  //tracker get a system data file
+#define TRACKER_PROTO_CMD_TRACKER_GET_STATUS             64  //tracker get status of other tracker
+#define TRACKER_PROTO_CMD_TRACKER_PING_LEADER            65  //tracker ping leader
+#define TRACKER_PROTO_CMD_TRACKER_NOTIFY_NEXT_LEADER     66  //notify next leader to other trackers
+#define TRACKER_PROTO_CMD_TRACKER_COMMIT_NEXT_LEADER     67  //commit next leader to other trackers
+#define TRACKER_PROTO_CMD_TRACKER_NOTIFY_RESELECT_LEADER 68  //storage notify reselect leader when split-brain
 
 #define TRACKER_PROTO_CMD_SERVER_LIST_ONE_GROUP			90
 #define TRACKER_PROTO_CMD_SERVER_LIST_ALL_GROUPS		91
@@ -275,6 +276,9 @@ FDFSMetaData *fdfs_split_metadata_ex(char *meta_buff, \
 int fdfs_get_ini_context_from_tracker(TrackerServerGroup *pTrackerGroup, \
                 IniContext *iniContext, bool * volatile continue_flag, \
                 const bool client_bind_addr, const char *bind_addr);
+
+int fdfs_get_tracker_status(ConnectionInfo *pTrackerServer, \
+		TrackerRunningStatus *pStatus);
 
 #ifdef __cplusplus
 }

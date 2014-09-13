@@ -3740,72 +3740,6 @@ static int _tracker_mem_add_storage(FDFSGroupInfo *pGroup, \
 	return result;
 }
 
-int tracker_mem_get_status(ConnectionInfo *pTrackerServer, \
-		TrackerRunningStatus *pStatus)
-{
-	char in_buff[1 + 2 * FDFS_PROTO_PKG_LEN_SIZE];
-	TrackerHeader header;
-	char *pInBuff;
-	ConnectionInfo *conn;
-	int64_t in_bytes;
-	int result;
-
-	pTrackerServer->sock = -1;
-	if ((conn=tracker_connect_server(pTrackerServer, &result)) == NULL)
-	{
-		return result;
-	}
-
-	do
-	{
-	memset(&header, 0, sizeof(header));
-	header.cmd = TRACKER_PROTO_CMD_TRACKER_GET_STATUS;
-	if ((result=tcpsenddata_nb(conn->sock, &header, \
-			sizeof(header), g_fdfs_network_timeout)) != 0)
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"send data to tracker server %s:%d fail, " \
-			"errno: %d, error info: %s", __LINE__, \
-			pTrackerServer->ip_addr, \
-			pTrackerServer->port, \
-			result, STRERROR(result));
-
-		result = (result == ENOENT ? EACCES : result);
-		break;
-	}
-
-	pInBuff = in_buff;
-	result = fdfs_recv_response(conn, &pInBuff, \
-				sizeof(in_buff), &in_bytes);
-	if (result != 0)
-	{
-		break;
-	}
-
-	if (in_bytes != sizeof(in_buff))
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%d response data " \
-			"length: %"PRId64" is invalid, " \
-			"expect length: %d.", __LINE__, \
-			pTrackerServer->ip_addr, pTrackerServer->port, \
-			in_bytes, (int)sizeof(in_buff));
-		result = EINVAL;
-		break;
-	}
-
-	pStatus->if_leader = *in_buff;
-	pStatus->running_time = buff2long(in_buff + 1);
-	pStatus->restart_interval = buff2long(in_buff + 1 + \
-					FDFS_PROTO_PKG_LEN_SIZE);
-
-	} while (0);
-
-	tracker_disconnect_server_ex(conn, result != 0);
-
-	return result;
-}
-
 void tracker_calc_running_times(TrackerRunningStatus *pStatus)
 {
 	pStatus->running_time = g_current_time - g_up_time;
@@ -4186,7 +4120,7 @@ static int tracker_mem_get_tracker_server(FDFSStorageJoinBody *pJoinBody, \
 		}
 
 		pStatus->pTrackerServer = pTrackerServer;
-		r = tracker_mem_get_status(pTrackerServer, pStatus);
+		r = fdfs_get_tracker_status(pTrackerServer, pStatus);
 		if (r == 0)
 		{
 			pStatus++;
@@ -5422,6 +5356,7 @@ void tracker_mem_find_trunk_servers()
 			tracker_mem_find_trunk_server(*ppGroup, true);
 		}
 	}
+	g_trunk_server_chg_count++;
 	pthread_mutex_unlock(&mem_thread_lock);
 }
 

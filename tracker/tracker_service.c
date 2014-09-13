@@ -879,7 +879,7 @@ static int tracker_deal_notify_next_leader(struct fast_task_info *pTask)
 		g_tracker_leader_chg_count++;
 
 		logError("file: "__FILE__", line: %d, " \
-			"client ip: %s, two leader occur, " \
+			"client ip: %s, two leaders occur, " \
 			"new leader is %s:%d", \
 			__LINE__, pTask->client_ip, \
 			leader.ip_addr, leader.port);
@@ -1642,6 +1642,44 @@ static int tracker_deal_ping_leader(struct fast_task_info *pTask)
 	pClientInfo->chg_count.trunk_server = g_trunk_server_chg_count;
 
 	return 0;
+}
+
+static int tracker_deal_reselect_leader(struct fast_task_info *pTask)
+{
+	TrackerClientInfo *pClientInfo;
+	
+	pClientInfo = (TrackerClientInfo *)pTask->arg;
+	if (pTask->length - sizeof(TrackerHeader) != 0)
+	{
+		logError("file: "__FILE__", line: %d, " \
+			"cmd=%d, client ip: %s, package size " \
+			PKG_LEN_PRINTF_FORMAT" is not correct, " \
+			"expect length 0", __LINE__, \
+			TRACKER_PROTO_CMD_TRACKER_NOTIFY_RESELECT_LEADER, \
+			pTask->client_ip, \
+			pTask->length - (int)sizeof(TrackerHeader));
+		pTask->length = sizeof(TrackerHeader);
+		return EINVAL;
+	}
+
+    pTask->length = sizeof(TrackerHeader);
+	if (!g_if_leader_self)
+	{
+		logError("file: "__FILE__", line: %d, " \
+			"cmd=%d, client ip: %s, i am not the leader!", \
+			__LINE__, TRACKER_PROTO_CMD_TRACKER_NOTIFY_RESELECT_LEADER, \
+			pTask->client_ip);
+		return EOPNOTSUPP;
+	}
+
+    g_if_leader_self = false;
+    g_tracker_servers.leader_index = -1;
+    g_tracker_leader_chg_count++;
+
+    logWarning("file: "__FILE__", line: %d, " \
+            "client ip: %s, i be notified that two leaders occur, " \
+            "should re-select leader", __LINE__, pTask->client_ip);
+    return 0;
 }
 
 static int tracker_unlock_by_client(struct fast_task_info *pTask)
@@ -3729,6 +3767,9 @@ int tracker_deal_task(struct fast_task_info *pTask)
 			break;
 		case TRACKER_PROTO_CMD_TRACKER_COMMIT_NEXT_LEADER:
 			result = tracker_deal_commit_next_leader(pTask);
+			break;
+		case TRACKER_PROTO_CMD_TRACKER_NOTIFY_RESELECT_LEADER:
+			result = tracker_deal_reselect_leader(pTask);
 			break;
 		default:
 			logError("file: "__FILE__", line: %d, "  \

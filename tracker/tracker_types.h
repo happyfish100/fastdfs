@@ -433,5 +433,12 @@ typedef struct {
 	char **paths; //file store paths
 } FDFSStorePaths;
 
+typedef struct {
+	ConnectionInfo *pTrackerServer;
+	int running_time;     //running seconds, more means higher weight
+	int restart_interval; //restart interval, less mean higher weight
+	bool if_leader;       //if leader
+} TrackerRunningStatus;
+
 #endif
 

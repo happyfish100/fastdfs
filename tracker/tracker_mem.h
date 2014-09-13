@@ -25,13 +25,6 @@
 #define TRUNK_SERVER_CHANGELOG_FILENAME    "trunk_server_change.log"
 #define STORAGE_DATA_FIELD_SEPERATOR	   ','
 
-typedef struct {
-	ConnectionInfo *pTrackerServer;
-	int running_time;     //running seconds, more means higher weight
-	int restart_interval; //restart interval, less mean higher weight
-	bool if_leader;       //if leader
-} TrackerRunningStatus;
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -123,9 +116,6 @@ int tracker_mem_get_storage_index(FDFSGroupInfo *pGroup, \
 		TRACKER_PROTO_CMD_TRACKER_GET_SYS_FILES_END)
 
 void tracker_calc_running_times(TrackerRunningStatus *pStatus);
-
-int tracker_mem_get_status(ConnectionInfo *pTrackerServer, \
-		TrackerRunningStatus *pStatus);
 
 int tracker_save_groups();
 

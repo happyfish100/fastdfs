@@ -191,7 +191,7 @@ static int relationship_get_tracker_leader(TrackerRunningStatus *pTrackerStatus)
 		pTrackerServer<pTrackerEnd; pTrackerServer++)
 	{
 		pStatus->pTrackerServer = pTrackerServer;
-		r = tracker_mem_get_status(pTrackerServer, pStatus);
+		r = fdfs_get_tracker_status(pTrackerServer, pStatus);
 		if (r == 0)
 		{
 			pStatus++;
