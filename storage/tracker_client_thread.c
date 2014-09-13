@@ -1051,6 +1051,7 @@ static int _notify_reselect_tleader(ConnectionInfo *pTrackerServer)
 static int notify_reselect_tracker_leader(ConnectionInfo *pTrackerServer)
 {
     int result;
+    ConnectionInfo *conn;
 
 	pTrackerServer->sock = -1;
 	if ((conn=tracker_connect_server(pTrackerServer, &result)) == NULL)
