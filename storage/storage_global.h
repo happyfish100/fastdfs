@@ -171,8 +171,6 @@ extern char g_exe_name[256];
 extern struct storage_nio_thread_data *g_nio_thread_data;  //network io thread data
 extern struct storage_dio_thread_data *g_dio_thread_data;  //disk io thread data
 
-extern FDFSConnectionStat g_connection_stat;
-
 int storage_cmp_by_server_id(const void *p1, const void *p2);
 
 #ifdef __cplusplus

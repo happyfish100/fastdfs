@@ -2223,6 +2223,7 @@ static int tracker_deal_server_list_group_storages(struct fast_task_info *pTask)
 		long2buff((*ppServer)->current_write_path, \
 				pDest->sz_current_write_path);
 
+
 		int2buff(pStorageStat->connection.alloc_count, \
 				pStatBuff->connection.sz_alloc_count);
 		int2buff(pStorageStat->connection.current_count, \

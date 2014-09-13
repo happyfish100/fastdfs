@@ -331,6 +331,9 @@ static int fdfs_dump_storage_stat(char *buff, const int buffSize)
 	total_len = snprintf(buff, buffSize,
 		"\ng_stat_change_count=%d\n"
 		"g_sync_change_count=%d\n"
+		"alloc_count=%d\n"
+		"current_count=%d\n"
+		"max_count=%d\n"
 		"total_upload_count=%"PRId64"\n"
 		"success_upload_count=%"PRId64"\n"
 		"total_set_meta_count=%"PRId64"\n"
@@ -350,6 +353,9 @@ static int fdfs_dump_storage_stat(char *buff, const int buffSize)
 		"last_synced_timestamp=%s\n"
 		"last_heart_beat_time=%s\n",
 		g_stat_change_count, g_sync_change_count,
+        free_queue_alloc_connections(),
+		g_storage_stat.connection.current_count,
+		g_storage_stat.connection.max_count,
 		g_storage_stat.total_upload_count,
 		g_storage_stat.success_upload_count,
 		g_storage_stat.total_set_meta_count,

@@ -210,7 +210,7 @@ typedef struct
 
     struct {
         int alloc_count;
-        int current_count;
+        volatile int current_count;
         int max_count;
     } connection;
 } FDFSStorageStat;
@@ -454,7 +454,7 @@ typedef struct {
 
 typedef struct fdfs_connection_stat {
     volatile int current_count;
-    volatile int max_count;
+    int max_count;
 } FDFSConnectionStat;
 
 #endif

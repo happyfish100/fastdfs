@@ -1852,10 +1852,10 @@ static void *accept_thread_entrance(void* arg)
         else
         {
             int current_connections;
-            current_connections = __sync_add_and_fetch(&g_connection_stat.
+            current_connections = __sync_add_and_fetch(&g_storage_stat.connection.
                     current_count, 1);
-            if (current_connections > g_connection_stat.max_count) {
-                g_connection_stat.max_count = current_connections;
+            if (current_connections > g_storage_stat.connection.max_count) {
+                g_storage_stat.connection.max_count = current_connections;
             }
             ++g_stat_change_count;
         }
