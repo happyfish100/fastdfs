@@ -606,6 +606,9 @@ int tracker_load_from_conf_file(const char *filename, \
 		}
 		g_log_context.rotate_size = rotate_error_log_size;
 
+		g_log_file_keep_days = iniGetIntValue(NULL, \
+				"log_file_keep_days", &iniContext, 0);
+
 		g_store_slave_file_use_link = iniGetBoolValue(NULL, \
 			"store_slave_file_use_link", &iniContext, false);
 
@@ -692,6 +695,7 @@ int tracker_load_from_conf_file(const char *filename, \
 			"rotate_error_log=%d, " \
 			"error_log_rotate_time=%02d:%02d, " \
 			"rotate_error_log_size=%"PRId64", " \
+			"log_file_keep_days=%d, " \
 			"store_slave_file_use_link=%d, " \
 			"use_connection_pool=%d, " \
 			"g_connection_pool_max_idle_time=%ds", \
@@ -725,7 +729,8 @@ int tracker_load_from_conf_file(const char *filename, \
 			FDFS_ID_TYPE_SERVER_ID ? "id" : "ip", g_storage_id_count, \
 			g_rotate_error_log, g_error_log_rotate_time.hour, \
 			g_error_log_rotate_time.minute, \
-			g_log_context.rotate_size, g_store_slave_file_use_link, \
+			g_log_context.rotate_size, g_log_file_keep_days,
+            g_store_slave_file_use_link, \
 			g_use_connection_pool, g_connection_pool_max_idle_time);
 
 #ifdef WITH_HTTPD

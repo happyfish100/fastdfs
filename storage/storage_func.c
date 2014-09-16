@@ -1627,6 +1627,9 @@ int storage_func_init(const char *filename, \
 		}
 		g_log_context.rotate_size = rotate_error_log_size;
 
+		g_log_file_keep_days = iniGetIntValue(NULL, \
+				"log_file_keep_days", &iniContext, 0);
+
 		g_file_sync_skip_invalid_record = iniGetBoolValue(NULL, \
 			"file_sync_skip_invalid_record", &iniContext, false);
 
@@ -1695,6 +1698,7 @@ int storage_func_init(const char *filename, \
 			"error_log_rotate_time=%02d:%02d, " \
 			"rotate_access_log_size=%"PRId64", " \
 			"rotate_error_log_size=%"PRId64", " \
+			"log_file_keep_days=%d, " \
 			"file_sync_skip_invalid_record=%d, " \
 			"use_connection_pool=%d, " \
 			"g_connection_pool_max_idle_time=%ds", \
@@ -1730,7 +1734,7 @@ int storage_func_init(const char *filename, \
 			g_rotate_error_log, g_error_log_rotate_time.hour, \
 			g_error_log_rotate_time.minute, \
 			g_access_log_context.rotate_size, \
-			g_log_context.rotate_size, \
+			g_log_context.rotate_size, g_log_file_keep_days, \
 			g_file_sync_skip_invalid_record, \
 			g_use_connection_pool, g_connection_pool_max_idle_time);
 

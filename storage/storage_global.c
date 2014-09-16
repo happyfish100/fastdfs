@@ -121,6 +121,7 @@ int g_http_trunk_size = 64 * 1024;
 char g_exe_name[256] = {0};
 #endif
 
+int g_log_file_keep_days = 0;
 struct storage_nio_thread_data *g_nio_thread_data = NULL;
 struct storage_dio_thread_data *g_dio_thread_data = NULL;
 

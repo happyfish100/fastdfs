@@ -76,7 +76,7 @@ static void sigSegvHandler(int signum, siginfo_t *info, void *ptr);
 static void sigDumpHandler(int sig);
 #endif
 
-#define SCHEDULE_ENTRIES_MAX_COUNT 7
+#define SCHEDULE_ENTRIES_MAX_COUNT 9
 
 static void usage(const char *program)
 {
@@ -372,12 +372,27 @@ int main(int argc, char *argv[])
 			scheduleEntries[scheduleArray.count].func_args = \
 					&g_access_log_context;
 			scheduleArray.count++;
-		}
+
+            if (g_log_file_keep_days > 0)
+            {
+                log_set_keep_days(&g_access_log_context,
+                        g_log_file_keep_days);
+                scheduleEntries[scheduleArray.count].id = 7;
+                scheduleEntries[scheduleArray.count].time_base.hour = 1;
+                scheduleEntries[scheduleArray.count].time_base.minute = 0;
+                scheduleEntries[scheduleArray.count].interval = 24 * 3600;
+                scheduleEntries[scheduleArray.count].task_func =
+                    log_delete_old_files;
+                scheduleEntries[scheduleArray.count].func_args =
+                    &g_access_log_context;
+                scheduleArray.count++;
+            }
+        }
 	}
 
 	if (g_rotate_error_log)
 	{
-		scheduleEntries[scheduleArray.count].id = 7;
+		scheduleEntries[scheduleArray.count].id = 8;
 		scheduleEntries[scheduleArray.count].time_base = \
 				g_error_log_rotate_time;
 		scheduleEntries[scheduleArray.count].interval = \
@@ -387,7 +402,21 @@ int main(int argc, char *argv[])
 		scheduleEntries[scheduleArray.count].func_args = \
 				&g_log_context;
 		scheduleArray.count++;
-	}
+
+        if (g_log_file_keep_days > 0)
+        {
+            log_set_keep_days(&g_log_context, g_log_file_keep_days);
+            scheduleEntries[scheduleArray.count].id = 9;
+            scheduleEntries[scheduleArray.count].time_base.hour = 1;
+            scheduleEntries[scheduleArray.count].time_base.minute = 0;
+            scheduleEntries[scheduleArray.count].interval = 24 * 3600;
+            scheduleEntries[scheduleArray.count].task_func =
+                log_delete_old_files;
+            scheduleEntries[scheduleArray.count].func_args =
+                &g_log_context;
+            scheduleArray.count++;
+        }
+    }
 
 	if ((result=sched_start(&scheduleArray, &schedule_tid, \
 		g_thread_stack_size, (bool * volatile)&g_continue_flag)) != 0)

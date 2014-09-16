@@ -168,6 +168,8 @@ extern int g_http_trunk_size;
 extern char g_exe_name[256];
 #endif
 
+extern int g_log_file_keep_days;
+
 extern struct storage_nio_thread_data *g_nio_thread_data;  //network io thread data
 extern struct storage_dio_thread_data *g_dio_thread_data;  //disk io thread data
 

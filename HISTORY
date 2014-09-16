@@ -1,5 +1,5 @@
 
-Version 5.04  2014-09-13
+Version 5.04  2014-09-16
  * add fastdfs.spec for build RPM on Linux
  * depend on libfastcommon
  * in multi tracker servers case, when receive higher status like
@@ -9,6 +9,7 @@ Version 5.04  2014-09-13
  * fdfs_monitor support delete empty group
  * bug fixed: two tracker leaders occur in rare case
  * add connection stats
+ * delete old log files, add parameter: log_file_keep_days
 
 Version 5.03  2014-08-10
  * network send and recv retry when error EINTR happen
