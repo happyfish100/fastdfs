@@ -4272,6 +4272,9 @@ int tracker_mem_add_group_and_storage(TrackerClientInfo *pClientInfo, \
 			if (result != 0)
 			{
 				tracker_mem_file_unlock();
+			    logError("file: "__FILE__", line: %d, "
+                        "get sys files from other trackers fail, errno: %d",
+                        __LINE__, result);
 				return EAGAIN;
 			}
 
@@ -4289,6 +4292,9 @@ int tracker_mem_add_group_and_storage(TrackerClientInfo *pClientInfo, \
 				pJoinBody, NULL)) != 0)
 			{
 				tracker_mem_file_unlock();
+			    logError("file: "__FILE__", line: %d, "
+                        "get sys files from other trackers fail, errno: %d",
+                        __LINE__, result);
 				return EAGAIN;
 			}
 
