@@ -18,6 +18,8 @@
 
 FDFSStorageIdInfo *g_storage_ids_by_ip = NULL;  //sorted by group name and storage IP
 FDFSStorageIdInfo **g_storage_ids_by_id = NULL; //sorted by storage ID
+static FDFSStorageIdInfo **g_storage_ids_by_ip_port = NULL;  //sorted by storage ip and port
+
 int g_storage_id_count = 0;
 
 int fdfs_get_tracker_leader_index_ex(TrackerServerGroup *pServerGroup, \
@@ -301,6 +303,20 @@ static int fdfs_cmp_server_id(const void *p1, const void *p2)
 		(*((FDFSStorageIdInfo **)p2))->id);
 }
 
+static int fdfs_cmp_ip_and_port(const void *p1, const void *p2)
+{
+	int result;
+    result = strcmp((*((FDFSStorageIdInfo **)p1))->ip_addr,
+            (*((FDFSStorageIdInfo **)p2))->ip_addr);
+    if (result != 0)
+    {
+        return result;
+    }
+
+    return (*((FDFSStorageIdInfo **)p1))->port -
+        (*((FDFSStorageIdInfo **)p2))->port;
+}
+
 FDFSStorageIdInfo *fdfs_get_storage_id_by_ip(const char *group_name, \
 		const char *pIpAddr)
 {
@@ -335,6 +351,117 @@ FDFSStorageIdInfo *fdfs_get_storage_by_id(const char *id)
 	}
 }
 
+static int fdfs_init_ip_port_array()
+{
+    int result;
+    int alloc_bytes;
+    int i;
+    int port_count;
+    FDFSStorageIdInfo *previous;
+
+    alloc_bytes = sizeof(FDFSStorageIdInfo *) * g_storage_id_count;
+    g_storage_ids_by_ip_port = (FDFSStorageIdInfo **)malloc(alloc_bytes);
+    if (g_storage_ids_by_ip_port == NULL)
+    {
+        result = errno != 0 ? errno : ENOMEM;
+        logError("file: "__FILE__", line: %d, " \
+                "malloc %d bytes fail, " \
+                "errno: %d, error info: %s", __LINE__, \
+                alloc_bytes, result, STRERROR(result));
+        return result;
+    }
+
+    port_count = 0;
+    for (i=0; i<g_storage_id_count; i++)
+    {
+        g_storage_ids_by_ip_port[i] = g_storage_ids_by_ip + i;
+        if (g_storage_ids_by_ip_port[i]->port > 0)
+        {
+            port_count++;
+        }
+    }
+    if (port_count > 0 && port_count != g_storage_id_count)
+    {
+        logError("file: "__FILE__", line: %d, "
+                "config file: storage_ids.conf, some storages without port, "
+                "must be the same format as host:port", __LINE__);
+
+        free(g_storage_ids_by_ip_port);
+        g_storage_ids_by_ip_port = NULL;
+        return EINVAL;
+    }
+
+	qsort(g_storage_ids_by_ip_port, g_storage_id_count,
+		sizeof(FDFSStorageIdInfo *), fdfs_cmp_ip_and_port);
+
+    previous = g_storage_ids_by_ip_port[0];
+    for (i=1; i<g_storage_id_count; i++)
+    {
+        if (fdfs_cmp_ip_and_port(&g_storage_ids_by_ip_port[i],
+                    &previous) == 0)
+        {
+            char szPortPart[16];
+            if (previous->port > 0)
+            {
+                sprintf(szPortPart, ":%d", previous->port);
+            }
+            else
+            {
+                *szPortPart = '\0';
+            }
+            logError("file: "__FILE__", line: %d, "
+                    "config file: storage_ids.conf, "
+                    "duplicate storage: %s%s", __LINE__,
+                    previous->ip_addr, szPortPart);
+
+            free(g_storage_ids_by_ip_port);
+            g_storage_ids_by_ip_port = NULL;
+            return EEXIST;
+        }
+
+        previous = g_storage_ids_by_ip_port[i];
+    }
+
+    return 0;
+}
+
+FDFSStorageIdInfo *fdfs_get_storage_id_by_ip_port(const char *pIpAddr,
+        const int port)
+{
+	FDFSStorageIdInfo target;
+	FDFSStorageIdInfo *pTarget;
+	FDFSStorageIdInfo **ppFound;
+    int ports[2];
+    int i;
+
+    if (g_storage_ids_by_ip_port == NULL)
+    {
+        if (fdfs_init_ip_port_array() != 0)
+        {
+            return NULL;
+        }
+    }
+
+	pTarget = &target;
+	memset(&target, 0, sizeof(FDFSStorageIdInfo));
+	snprintf(target.ip_addr, sizeof(target.ip_addr), "%s", pIpAddr);
+    ports[0] = port;
+    ports[1] = 0;
+    for (i=0; i<2; i++)
+    {
+        target.port = ports[i];
+        ppFound = (FDFSStorageIdInfo **)bsearch(&pTarget,
+                g_storage_ids_by_ip_port, g_storage_id_count,
+                sizeof(FDFSStorageIdInfo *), fdfs_cmp_ip_and_port);
+        if (ppFound != NULL)
+        {
+            return *ppFound;
+        }
+    }
+
+    return NULL;
+}
+
 int fdfs_check_storage_id(const char *group_name, const char *id)
 {
 	FDFSStorageIdInfo *pFound;
@@ -354,7 +481,9 @@ int fdfs_load_storage_ids(char *content, const char *pStorageIdsFilename)
 	char *line;
 	char *id;
 	char *group_name;
+	char *pHost;
 	char *pIpAddr;
+	char *pPort;
 	FDFSStorageIdInfo *pStorageIdInfo;
 	FDFSStorageIdInfo **ppStorageIdInfo;
 	FDFSStorageIdInfo **ppStorageIdEnd;
@@ -455,14 +584,14 @@ int fdfs_load_storage_ids(char *content, const char *pStorageIdsFilename)
 				group_name++;
 			}
 		
-			pIpAddr = group_name;
-			while (!(*pIpAddr == ' ' || *pIpAddr == '\t' \
-				|| *pIpAddr == '\0'))
+			pHost = group_name;
+			while (!(*pHost == ' ' || *pHost == '\t' \
+				|| *pHost == '\0'))
 			{
-				pIpAddr++;
+				pHost++;
 			}
 
-			if (*pIpAddr == '\0')
+			if (*pHost == '\0')
 			{
 				logError("file: "__FILE__", line: %d, " \
 					"config file: %s, line no: %d, " \
@@ -473,19 +602,29 @@ int fdfs_load_storage_ids(char *content, const char *pStorageIdsFilename)
 				break;
 			}
 
-			*pIpAddr = '\0';
-			pIpAddr++;  //skip space char
-			while (*pIpAddr == ' ' || *pIpAddr == '\t')
+			*pHost = '\0';
+			pHost++;  //skip space char
+			while (*pHost == ' ' || *pHost == '\t')
 			{
-				pIpAddr++;
+				pHost++;
 			}
 
+            pIpAddr = pHost;
+            pPort = strchr(pHost, ':');
+            if (pPort != NULL)
+            {
+                *pPort = '\0';
+                pStorageIdInfo->port = atoi(pPort + 1);
+            }
+            else
+            {
+                pStorageIdInfo->port = 0;
+            }
 			if (getIpaddrByName(pIpAddr, pStorageIdInfo->ip_addr, \
 				sizeof(pStorageIdInfo->ip_addr)) == INADDR_NONE)
 			{
 				logError("file: "__FILE__", line: %d, " \
-					"invalid host name: %s", \
-					__LINE__, pIpAddr);
+					"invalid host name: %s", __LINE__, pIpAddr);
 				result = EINVAL;
 				break;
 			}
@@ -520,9 +659,18 @@ int fdfs_load_storage_ids(char *content, const char *pStorageIdsFilename)
 	pStorageIdInfo = g_storage_ids_by_ip;
 	for (i=0; i<g_storage_id_count; i++)
 	{
-		logDebug("%s  %s  %s", pStorageIdInfo->id, \
-			pStorageIdInfo->group_name, 
-			pStorageIdInfo->ip_addr);
+        char szPortPart[16];
+        if (pStorageIdInfo->port > 0)
+        {
+            sprintf(szPortPart, ":%d", pStorageIdInfo->port);
+        }
+        else
+        {
+            *szPortPart = '\0';
+        }
+		logDebug("%s  %s  %s%s", pStorageIdInfo->id,
+			pStorageIdInfo->group_name,
+			pStorageIdInfo->ip_addr, szPortPart);
 
 		pStorageIdInfo++;
 	}
@@ -539,6 +687,7 @@ int fdfs_load_storage_ids(char *content, const char *pStorageIdsFilename)
 		sizeof(FDFSStorageIdInfo), fdfs_cmp_group_name_and_ip);
 	qsort(g_storage_ids_by_id, g_storage_id_count, \
 		sizeof(FDFSStorageIdInfo *), fdfs_cmp_server_id);
+
 	return result;
 }
 

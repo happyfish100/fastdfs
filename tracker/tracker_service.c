@@ -1120,6 +1120,77 @@ static int tracker_deal_get_storage_id(struct fast_task_info *pTask)
 	return 0;
 }
 
+static int tracker_deal_get_storage_group_name(struct fast_task_info *pTask)
+{
+	char ip_addr[IP_ADDRESS_SIZE];
+	FDFSStorageIdInfo *pFDFSStorageIdInfo;
+    char *pPort;
+    int port;
+	int nPkgLen;
+
+	if (!g_use_storage_id)
+	{
+		logError("file: "__FILE__", line: %d, "
+                "use_storage_id is disabled, can't get group name "
+                "from storage ip and port!", __LINE__);
+		pTask->length = sizeof(TrackerHeader);
+		return EOPNOTSUPP;
+    }
+
+	nPkgLen = pTask->length - sizeof(TrackerHeader);
+	if (nPkgLen < 4)
+	{
+		logError("file: "__FILE__", line: %d, " \
+			"cmd=%d, client ip addr: %s, " \
+			"package size %d is not correct", __LINE__, \
+			TRACKER_PROTO_CMD_STORAGE_GET_GROUP_NAME, \
+			pTask->client_ip, nPkgLen);
+		pTask->length = sizeof(TrackerHeader);
+		return EINVAL;
+	}
+
+	if (nPkgLen == 4)  //port only
+	{
+		strcpy(ip_addr, pTask->client_ip);
+        pPort = pTask->data + sizeof(TrackerHeader);
+	}
+	else  //ip_addr and port
+	{
+		int ip_len;
+
+		ip_len = nPkgLen - 4;
+		if (ip_len >= IP_ADDRESS_SIZE)
+		{
+            logError("file: "__FILE__", line: %d, " \
+                    "ip address is too long, length: %d",
+                    __LINE__, ip_len);
+            pTask->length = sizeof(TrackerHeader);
+            return ENAMETOOLONG;
+		}
+
+		memcpy(ip_addr, pTask->data + sizeof(TrackerHeader), ip_len);
+		*(ip_addr + ip_len) = '\0';
+        pPort = pTask->data + sizeof(TrackerHeader) + ip_len;
+	}
+    port = buff2int(pPort);
+
+    pFDFSStorageIdInfo = fdfs_get_storage_id_by_ip_port(ip_addr, port);
+    if (pFDFSStorageIdInfo == NULL)
+    {
+        logError("file: "__FILE__", line: %d, "
+                "client ip: %s, can't get group name for storage %s:%d",
+                __LINE__, pTask->client_ip, ip_addr, port);
+        pTask->length = sizeof(TrackerHeader);
+        return ENOENT;
+    }
+
+	pTask->length = sizeof(TrackerHeader) + FDFS_GROUP_NAME_MAX_LEN;
+    memset(pTask->data + sizeof(TrackerHeader), 0, FDFS_GROUP_NAME_MAX_LEN);
+	strcpy(pTask->data + sizeof(TrackerHeader), pFDFSStorageIdInfo->group_name);
+
+	return 0;
+}
+
 static int tracker_deal_fetch_storage_ids(struct fast_task_info *pTask)
 {
 	FDFSStorageIdInfo *pIdsStart;
@@ -1172,13 +1243,22 @@ static int tracker_deal_fetch_storage_ids(struct fast_task_info *pTask)
 	pIdsEnd = g_storage_ids_by_ip + g_storage_id_count;
 	for (pIdInfo = pIdsStart; pIdInfo < pIdsEnd; pIdInfo++)
 	{
+        char szPortPart[16];
 		if ((int)(p - pTask->data) > pTask->size - 64)
 		{
 			break;
 		}
 
-		p += sprintf(p, "%s %s %s\n", pIdInfo->id, \
-			pIdInfo->group_name, pIdInfo->ip_addr);
+        if (pIdInfo->port > 0)
+        {
+            sprintf(szPortPart, ":%d", pIdInfo->port);
+        }
+        else
+        {
+            *szPortPart = '\0';
+        }
+		p += sprintf(p, "%s %s %s%s\n", pIdInfo->id,
+			pIdInfo->group_name, pIdInfo->ip_addr, szPortPart);
 	}
 
 	int2buff((int)(pIdInfo - pIdsStart), (char *)pCurrentCount);
@@ -3682,6 +3762,9 @@ int tracker_deal_task(struct fast_task_info *pTask)
 			break;
 		case TRACKER_PROTO_CMD_STORAGE_GET_SERVER_ID:
 			result = tracker_deal_get_storage_id(pTask);
+			break;
+		case TRACKER_PROTO_CMD_STORAGE_GET_GROUP_NAME:
+			result = tracker_deal_get_storage_group_name(pTask);
 			break;
 		case TRACKER_PROTO_CMD_STORAGE_FETCH_STORAGE_IDS:
 			result = tracker_deal_fetch_storage_ids(pTask);

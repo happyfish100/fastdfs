@@ -423,6 +423,7 @@ typedef struct
 	char id[FDFS_STORAGE_ID_MAX_SIZE];
 	char group_name[FDFS_GROUP_NAME_MAX_LEN + 8];  //for 8 bytes alignment
 	char ip_addr[IP_ADDRESS_SIZE];
+    int port;   //since v5.05
 } FDFSStorageIdInfo;
 
 typedef struct

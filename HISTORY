@@ -2,6 +2,7 @@
 Version 5.05  2014-11-22
  * tracker_mem.c log more info
  * remove useless global variable: g_network_tv
+ * storage can fetch it's group_name from tracker server
 
 Version 5.04  2014-09-16
  * add fastdfs.spec for build RPM on Linux
