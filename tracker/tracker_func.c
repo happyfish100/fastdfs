@@ -221,7 +221,6 @@ int tracker_load_from_conf_file(const char *filename, \
 		{
 			g_fdfs_network_timeout = DEFAULT_NETWORK_TIMEOUT;
 		}
-		g_network_tv.tv_sec = g_fdfs_network_timeout;
 
 		g_server_port = iniGetIntValue(NULL, "port", &iniContext, \
 				FDFS_TRACKER_SERVER_DEF_PORT);

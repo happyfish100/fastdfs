@@ -84,8 +84,6 @@ extern int g_file_distribute_path_mode;
 extern int g_file_distribute_rotate_count;
 extern int g_fsync_after_written_bytes;
 
-extern struct timeval g_network_tv;
-
 extern int g_dist_path_index_high; //current write to high path
 extern int g_dist_path_index_low;  //current write to low path
 extern int g_dist_write_file_count; //current write file count
