@@ -74,6 +74,12 @@ else
 fi
 
 LIBS=''
+if [ $OS_BITS -eq 64 ]; then
+  LIBS='-L/usr/lib64'
+else
+  LIBS='-L/usr/lib'
+fi
+
 uname=$(uname)
 if [ "$uname" = "Linux" ]; then
   CFLAGS="$CFLAGS -DOS_LINUX -DIOEVENT_USE_EPOLL"

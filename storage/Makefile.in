@@ -2,7 +2,7 @@
 
 COMPILE = $(CC) $(CFLAGS)
 INC_PATH = -I. -Itrunk_mgr -I../common -I../tracker -I../client -Ifdht_client -I/usr/include/fastcommon
-LIB_PATH = -L/usr/local/lib $(LIBS) -lfastcommon
+LIB_PATH = $(LIBS)  -lfastcommon
 TARGET_PATH = $(TARGET_PREFIX)/bin
 CONFIG_PATH = $(TARGET_CONF_PATH)
 
