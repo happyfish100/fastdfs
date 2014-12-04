@@ -12,21 +12,11 @@
 # Source function library.
 . /etc/init.d/functions
 
-PRG=/usr/local/bin/fdfs_trackerd
+PRG=/usr/bin/fdfs_trackerd
 CONF=/etc/fdfs/tracker.conf
 
 if [ ! -f $PRG ]; then
   echo "file $PRG does not exist!"
-  exit 2
-fi
-
-if [ ! -f /usr/local/bin/stop.sh ]; then
-  echo "file /usr/local/bin/stop.sh does not exist!"
-  exit 2
-fi
-
-if [ ! -f /usr/local/bin/restart.sh ]; then
-  echo "file /usr/local/bin/restart.sh does not exist!"
   exit 2
 fi
 
@@ -46,7 +36,7 @@ start() {
 	return $RETVAL
 }
 stop() {
-        /usr/local/bin/stop.sh $CMD
+    $CMD stop
 	RETVAL=$?
 	return $RETVAL
 }
@@ -54,7 +44,7 @@ rhstatus() {
 	status fdfs_trackerd
 }
 restart() {
-        /usr/local/bin/restart.sh $CMD &
+        $CMD restart &
 }
 
 case "$1" in

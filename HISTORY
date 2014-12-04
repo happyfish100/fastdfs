@@ -1,6 +1,7 @@
 
-Version 5.06  2014-11-30
+Version 5.06  2014-12-04
  * compile passed in mac OS Darwin
+ * correct scripts in subdir init.d
 
 Version 5.05  2014-11-22
  * tracker_mem.c log more info
