@@ -1530,12 +1530,12 @@ int storage_func_init(const char *filename, \
 		}
 		g_thread_stack_size = (int)thread_stack_size;
 
-		if (g_thread_stack_size < 64 * 1024)
+		if (g_thread_stack_size < FAST_WRITE_BUFF_SIZE + 64 * 1024)
 		{
 			logError("file: "__FILE__", line: %d, " \
 				"item \"thread_stack_size\" %d is invalid, " \
 				"which < %d", __LINE__, g_thread_stack_size, \
-				64 * 1024);
+				FAST_WRITE_BUFF_SIZE + 64 * 1024);
 			result = EINVAL;
 			break;
 		}
@@ -2155,7 +2155,7 @@ int recv_file_serialized(int sock, const char *filename, \
 		const int64_t file_bytes)
 {
 	int fd;
-	char buff[FDFS_WRITE_BUFF_SIZE];
+	char buff[FAST_WRITE_BUFF_SIZE];
 	int64_t remain_bytes;
 	int recv_bytes;
 	int result;
