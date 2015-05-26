@@ -5,7 +5,7 @@ Public License V3, which may be found in the FastDFS source kit.
 Please visit the FastDFS Home Page for more detail.
 English language: http://english.csource.org/
 Chinese language: http://www.csource.org/
-
+Wiki: https://github.com/happyfish100/fastdfs/wiki
 
 FastDFS is an open source high performance distributed file system. It's major 
 functions include: file storing, file syncing and file accessing (file uploading
