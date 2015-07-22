@@ -317,6 +317,7 @@ int main(int argc, char *argv[])
 	scheduleEntries[0].id = 1;
 	scheduleEntries[0].time_base.hour = TIME_NONE;
 	scheduleEntries[0].time_base.minute = TIME_NONE;
+	scheduleEntries[0].time_base.second = TIME_NONE;
 	scheduleEntries[0].interval = g_sync_log_buff_interval;
 	scheduleEntries[0].task_func = log_sync_func;
 	scheduleEntries[0].func_args = &g_log_context;
@@ -324,6 +325,7 @@ int main(int argc, char *argv[])
 	scheduleEntries[1].id = 2;
 	scheduleEntries[1].time_base.hour = TIME_NONE;
 	scheduleEntries[1].time_base.minute = TIME_NONE;
+	scheduleEntries[1].time_base.second = TIME_NONE;
 	scheduleEntries[1].interval = g_sync_binlog_buff_interval;
 	scheduleEntries[1].task_func = fdfs_binlog_sync_func;
 	scheduleEntries[1].func_args = NULL;
@@ -331,6 +333,7 @@ int main(int argc, char *argv[])
 	scheduleEntries[2].id = 3;
 	scheduleEntries[2].time_base.hour = TIME_NONE;
 	scheduleEntries[2].time_base.minute = TIME_NONE;
+	scheduleEntries[2].time_base.second = TIME_NONE;
 	scheduleEntries[2].interval = g_sync_stat_file_interval;
 	scheduleEntries[2].task_func = fdfs_stat_file_sync_func;
 	scheduleEntries[2].func_args = NULL;
@@ -341,6 +344,7 @@ int main(int argc, char *argv[])
 		scheduleEntries[scheduleArray.count].id = 4;
 		scheduleEntries[scheduleArray.count].time_base.hour = TIME_NONE;
 		scheduleEntries[scheduleArray.count].time_base.minute=TIME_NONE;
+		scheduleEntries[scheduleArray.count].time_base.second=TIME_NONE;
 		scheduleEntries[scheduleArray.count].interval = 1;
 		scheduleEntries[scheduleArray.count].task_func = \
 					trunk_binlog_sync_func;
@@ -353,6 +357,7 @@ int main(int argc, char *argv[])
 		scheduleEntries[scheduleArray.count].id = 5;
 		scheduleEntries[scheduleArray.count].time_base.hour = TIME_NONE;
 		scheduleEntries[scheduleArray.count].time_base.minute=TIME_NONE;
+		scheduleEntries[scheduleArray.count].time_base.second=TIME_NONE;
 		scheduleEntries[scheduleArray.count].interval = \
 					g_sync_log_buff_interval;
 		scheduleEntries[scheduleArray.count].task_func = log_sync_func;
@@ -380,6 +385,7 @@ int main(int argc, char *argv[])
                 scheduleEntries[scheduleArray.count].id = 7;
                 scheduleEntries[scheduleArray.count].time_base.hour = 1;
                 scheduleEntries[scheduleArray.count].time_base.minute = 0;
+                scheduleEntries[scheduleArray.count].time_base.second = 0;
                 scheduleEntries[scheduleArray.count].interval = 24 * 3600;
                 scheduleEntries[scheduleArray.count].task_func =
                     log_delete_old_files;
@@ -409,6 +415,7 @@ int main(int argc, char *argv[])
             scheduleEntries[scheduleArray.count].id = 9;
             scheduleEntries[scheduleArray.count].time_base.hour = 1;
             scheduleEntries[scheduleArray.count].time_base.minute = 0;
+            scheduleEntries[scheduleArray.count].time_base.second = 0;
             scheduleEntries[scheduleArray.count].interval = 24 * 3600;
             scheduleEntries[scheduleArray.count].task_func =
                 log_delete_old_files;

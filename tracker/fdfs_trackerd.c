@@ -317,6 +317,7 @@ int main(int argc, char *argv[])
 	scheduleEntries[0].id = 1;
 	scheduleEntries[0].time_base.hour = TIME_NONE;
 	scheduleEntries[0].time_base.minute = TIME_NONE;
+	scheduleEntries[0].time_base.second = TIME_NONE;
 	scheduleEntries[0].interval = g_sync_log_buff_interval;
 	scheduleEntries[0].task_func = log_sync_func;
 	scheduleEntries[0].func_args = &g_log_context;
@@ -324,6 +325,7 @@ int main(int argc, char *argv[])
 	scheduleEntries[1].id = 2;
 	scheduleEntries[1].time_base.hour = TIME_NONE;
 	scheduleEntries[1].time_base.minute = TIME_NONE;
+	scheduleEntries[1].time_base.second = TIME_NONE;
 	scheduleEntries[1].interval = g_check_active_interval;
 	scheduleEntries[1].task_func = tracker_mem_check_alive;
 	scheduleEntries[1].func_args = NULL;
@@ -331,6 +333,7 @@ int main(int argc, char *argv[])
 	scheduleEntries[2].id = 3;
 	scheduleEntries[2].time_base.hour = 0;
 	scheduleEntries[2].time_base.minute = 0;
+	scheduleEntries[2].time_base.second = 0;
 	scheduleEntries[2].interval = TRACKER_SYNC_STATUS_FILE_INTERVAL;
 	scheduleEntries[2].task_func = tracker_write_status_to_file;
 	scheduleEntries[2].func_args = NULL;
@@ -356,6 +359,7 @@ int main(int argc, char *argv[])
             scheduleEntries[scheduleArray.count].id = 5;
             scheduleEntries[scheduleArray.count].time_base.hour = 1;
             scheduleEntries[scheduleArray.count].time_base.minute = 0;
+            scheduleEntries[scheduleArray.count].time_base.second = 0;
             scheduleEntries[scheduleArray.count].interval = 24 * 3600;
             scheduleEntries[scheduleArray.count].task_func =
                 log_delete_old_files;

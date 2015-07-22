@@ -46,16 +46,6 @@ else
  OFF_BITS=32
 fi
 
-cat <<EOF > common/_os_bits.h
-#ifndef _OS_BITS_H
-#define _OS_BITS_H
-
-#define OS_BITS  $OS_BITS
-#define OFF_BITS $OFF_BITS
-
-#endif
-EOF
-
 ENABLE_STATIC_LIB=0
 ENABLE_SHARED_LIB=1
 TARGET_PREFIX=$DESTDIR/usr
@@ -82,21 +72,21 @@ fi
 
 uname=$(uname)
 if [ "$uname" = "Linux" ]; then
-  CFLAGS="$CFLAGS -DOS_LINUX -DIOEVENT_USE_EPOLL"
+  CFLAGS="$CFLAGS"
 elif [ "$uname" = "FreeBSD" ] || [ "$uname" = "Darwin" ]; then
-  CFLAGS="$CFLAGS -DOS_FREEBSD -DIOEVENT_USE_KQUEUE"
+  CFLAGS="$CFLAGS"
   if [ "$uname" = "Darwin" ]; then
     CFLAGS="$CFLAGS -DDARWIN"
   fi
 elif [ "$uname" = "SunOS" ]; then
-  CFLAGS="$CFLAGS -DOS_SUNOS -D_THREAD_SAFE -DIOEVENT_USE_PORT"
+  CFLAGS="$CFLAGS -D_THREAD_SAFE"
   LIBS="$LIBS -lsocket -lnsl -lresolv"
   export CC=gcc
 elif [ "$uname" = "AIX" ]; then
-  CFLAGS="$CFLAGS -DOS_AIX -D_THREAD_SAFE"
+  CFLAGS="$CFLAGS -D_THREAD_SAFE"
   export CC=gcc
 elif [ "$uname" = "HP-UX" ]; then
-  CFLAGS="$CFLAGS -DOS_HPUX"
+  CFLAGS="$CFLAGS"
 fi
 
 have_pthread=0

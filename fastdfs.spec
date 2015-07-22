@@ -2,7 +2,7 @@
 %define FDFSServer fastdfs-server
 %define FDFSClient libfdfsclient
 %define FDFSTool   fastdfs-tool
-%define FDFSVersion 5.0.6
+%define FDFSVersion 5.0.7
 
 Name: %{FastDFS}
 Version: %{FDFSVersion}
