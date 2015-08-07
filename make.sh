@@ -63,7 +63,7 @@ else
   CFLAGS="$CFLAGS -O3"
 fi
 
-LIBS='-lm'
+LIBS=''
 if [ $OS_BITS -eq 64 ]; then
   LIBS="$LIBS -L/usr/lib64"
 else
