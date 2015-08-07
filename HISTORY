@@ -1,7 +1,7 @@
 
-Version 5.07  2015-07-22
+Version 5.07  2015-08-07
  * schedule task add the "second" field
- * make.sh changed, you must upgrade libfastcommon to V1.18 or later
+ * make.sh changed, you must upgrade libfastcommon to V1.20 or later
 
 Version 5.06  2015-05-12
  * compile passed in mac OS Darwin
