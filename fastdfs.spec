@@ -21,7 +21,7 @@ Requires: %__cp %__mv %__chmod %__grep %__mkdir %__install %__id
 This package provides tracker & storage of fastdfs
 
 %package -n %{FDFSServer}
-Requires: libfastcommon >= 1.0.18
+Requires: libfastcommon >= 1.0.20
 Summary: fastdfs tracker & storage
 
 %package -n %{FDFSTool}
