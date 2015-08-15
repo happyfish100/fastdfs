@@ -144,6 +144,9 @@ int main(int argc, char *argv[])
 	}
 #endif
 
+	daemon_init(false);
+	umask(0);
+
 	memset(g_bind_addr, 0, sizeof(g_bind_addr));
 	if ((result=storage_func_init(conf_filename, \
 			g_bind_addr, sizeof(g_bind_addr))) != 0)
@@ -168,8 +171,6 @@ int main(int argc, char *argv[])
 		return result;
 	}
 
-	daemon_init(false);
-	umask(0);
 	if ((result=write_to_pid_file(pidFilename)) != 0)
 	{
 		log_destroy();
