@@ -4268,6 +4268,7 @@ static int storage_server_do_fetch_one_path_binlog( \
 	if ((result=storage_reader_init(NULL, pReader)) != 0)
 	{
 		storage_reader_destroy(pReader);
+        free(pReader);
 		return result;
 	}
 

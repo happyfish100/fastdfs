@@ -1117,7 +1117,7 @@ int storage_disk_recovery_start(const int store_path_index)
 	}
 
 	result = storage_do_fetch_binlog(pStorageConn, store_path_index);
-	tracker_disconnect_server_ex(pStorageConn, result != 0);
+	tracker_disconnect_server(pStorageConn, true);
 	if (result != 0)
 	{
 		return result;
