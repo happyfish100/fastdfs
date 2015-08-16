@@ -13,6 +13,7 @@
 
 #include "common_define.h"
 #include "ini_file_reader.h"
+#include "logger.h"
 #include "tracker_types.h"
 
 #ifdef __cplusplus
@@ -76,6 +77,8 @@ int fdfs_connection_pool_init(const char *config_filename, \
 		IniContext *pItemContext);
 
 void fdfs_connection_pool_destroy();
+
+void fdfs_set_log_rotate_size(LogContext *pContext, const int64_t log_rotate_size);
 
 #ifdef __cplusplus
 }
