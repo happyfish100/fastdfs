@@ -750,6 +750,15 @@ static int storage_trunk_restore(const int64_t restore_offset)
 			break;
 		}
 
+        if (record.trunk.path.store_path_index < 0 ||
+                record.trunk.path.store_path_index >= g_fdfs_store_paths.count)
+        {
+	    	logError("file: "__FILE__", line: %d, " \
+		    	"store_path_index: %d is invalid", __LINE__, \
+		    	record.trunk.path.store_path_index);
+		    return EINVAL;
+        }
+
 		line_count++;
 		if (record.op_type == TRUNK_OP_TYPE_ADD_SPACE)
 		{
@@ -784,8 +793,7 @@ static int storage_trunk_restore(const int64_t restore_offset)
 					logError("file: "__FILE__", line: %d, "\
 						"avl_tree_insert fail, " \
 						"errno: %d, error info: %s", \
-						__LINE__, result, \
-						STRERROR(result));
+						__LINE__, result, STRERROR(result));
 					return result;
 				}
 				else if (result == 0)
