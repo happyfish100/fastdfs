@@ -1,7 +1,7 @@
 
-Version 5.07  2015-08-17
+Version 5.07  2015-09-05
  * schedule task add the "second" field
- * make.sh changed, you must upgrade libfastcommon to V1.20 or later
+ * make.sh changed, you must upgrade libfastcommon to V1.21 or later
  * bug fixed: storage_disk_recovery.c skip the first file (binlog first line)
  * bug fixed: should close connection after fetch binlog
  * fdfs_storaged.c: advance the position of daemon_init
