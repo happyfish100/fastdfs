@@ -2,7 +2,7 @@
 %define FDFSServer fastdfs-server
 %define FDFSClient libfdfsclient
 %define FDFSTool   fastdfs-tool
-%define FDFSVersion 5.0.5
+%define FDFSVersion 5.0.7
 
 Name: %{FastDFS}
 Version: %{FDFSVersion}
@@ -16,12 +16,13 @@ Source: http://perso.orange.fr/sebastien.godard/%{name}-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n) 
 
 Requires: %__cp %__mv %__chmod %__grep %__mkdir %__install %__id
+BuildRequires: libfastcommon-devel >= 1.0.21
 
 %description
 This package provides tracker & storage of fastdfs
 
 %package -n %{FDFSServer}
-Requires: libfastcommon
+Requires: libfastcommon >= 1.0.21
 Summary: fastdfs tracker & storage
 
 %package -n %{FDFSTool}

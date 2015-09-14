@@ -144,6 +144,9 @@ int main(int argc, char *argv[])
 	}
 #endif
 
+	daemon_init(false);
+	umask(0);
+
 	memset(g_bind_addr, 0, sizeof(g_bind_addr));
 	if ((result=storage_func_init(conf_filename, \
 			g_bind_addr, sizeof(g_bind_addr))) != 0)
@@ -168,8 +171,6 @@ int main(int argc, char *argv[])
 		return result;
 	}
 
-	daemon_init(false);
-	umask(0);
 	if ((result=write_to_pid_file(pidFilename)) != 0)
 	{
 		log_destroy();
@@ -312,111 +313,76 @@ int main(int argc, char *argv[])
 	}
 
 	scheduleArray.entries = scheduleEntries;
-
+	scheduleArray.count = 0;
 	memset(scheduleEntries, 0, sizeof(scheduleEntries));
-	scheduleEntries[0].id = 1;
-	scheduleEntries[0].time_base.hour = TIME_NONE;
-	scheduleEntries[0].time_base.minute = TIME_NONE;
-	scheduleEntries[0].interval = g_sync_log_buff_interval;
-	scheduleEntries[0].task_func = log_sync_func;
-	scheduleEntries[0].func_args = &g_log_context;
 
-	scheduleEntries[1].id = 2;
-	scheduleEntries[1].time_base.hour = TIME_NONE;
-	scheduleEntries[1].time_base.minute = TIME_NONE;
-	scheduleEntries[1].interval = g_sync_binlog_buff_interval;
-	scheduleEntries[1].task_func = fdfs_binlog_sync_func;
-	scheduleEntries[1].func_args = NULL;
+	INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
+		scheduleArray.count + 1, TIME_NONE, TIME_NONE, TIME_NONE,
+		g_sync_log_buff_interval, log_sync_func, &g_log_context);
+	scheduleArray.count++;
 
-	scheduleEntries[2].id = 3;
-	scheduleEntries[2].time_base.hour = TIME_NONE;
-	scheduleEntries[2].time_base.minute = TIME_NONE;
-	scheduleEntries[2].interval = g_sync_stat_file_interval;
-	scheduleEntries[2].task_func = fdfs_stat_file_sync_func;
-	scheduleEntries[2].func_args = NULL;
+	INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
+		scheduleArray.count + 1, TIME_NONE, TIME_NONE, TIME_NONE,
+		g_sync_binlog_buff_interval, fdfs_binlog_sync_func, NULL);
+	scheduleArray.count++;
 
-	scheduleArray.count = 3;
+	INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
+		scheduleArray.count + 1, TIME_NONE, TIME_NONE, TIME_NONE,
+		g_sync_stat_file_interval, fdfs_stat_file_sync_func, NULL);
+	scheduleArray.count++;
+
 	if (g_if_use_trunk_file)
 	{
-		scheduleEntries[scheduleArray.count].id = 4;
-		scheduleEntries[scheduleArray.count].time_base.hour = TIME_NONE;
-		scheduleEntries[scheduleArray.count].time_base.minute=TIME_NONE;
-		scheduleEntries[scheduleArray.count].interval = 1;
-		scheduleEntries[scheduleArray.count].task_func = \
-					trunk_binlog_sync_func;
-		scheduleEntries[scheduleArray.count].func_args = NULL;
+		INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
+			scheduleArray.count + 1, TIME_NONE, TIME_NONE, TIME_NONE,
+			1, trunk_binlog_sync_func, NULL);
 		scheduleArray.count++;
 	}
 
 	if (g_use_access_log)
 	{
-		scheduleEntries[scheduleArray.count].id = 5;
-		scheduleEntries[scheduleArray.count].time_base.hour = TIME_NONE;
-		scheduleEntries[scheduleArray.count].time_base.minute=TIME_NONE;
-		scheduleEntries[scheduleArray.count].interval = \
-					g_sync_log_buff_interval;
-		scheduleEntries[scheduleArray.count].task_func = log_sync_func;
-		scheduleEntries[scheduleArray.count].func_args = \
-					&g_access_log_context;
+		INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
+			scheduleArray.count + 1, TIME_NONE, TIME_NONE, TIME_NONE,
+			g_sync_log_buff_interval, log_sync_func, &g_access_log_context);
 		scheduleArray.count++;
 
 		if (g_rotate_access_log)
 		{
-			scheduleEntries[scheduleArray.count].id = 6;
-			scheduleEntries[scheduleArray.count].time_base = \
-					g_access_log_rotate_time;
-			scheduleEntries[scheduleArray.count].interval = \
-					24 * 3600;
-			scheduleEntries[scheduleArray.count].task_func = \
-					log_notify_rotate;
-			scheduleEntries[scheduleArray.count].func_args = \
-					&g_access_log_context;
+			INIT_SCHEDULE_ENTRY_EX(scheduleEntries[scheduleArray.count],
+				scheduleArray.count + 1, g_access_log_rotate_time,
+				24 * 3600, log_notify_rotate, &g_access_log_context);
 			scheduleArray.count++;
 
-            if (g_log_file_keep_days > 0)
-            {
-                log_set_keep_days(&g_access_log_context,
-                        g_log_file_keep_days);
-                scheduleEntries[scheduleArray.count].id = 7;
-                scheduleEntries[scheduleArray.count].time_base.hour = 1;
-                scheduleEntries[scheduleArray.count].time_base.minute = 0;
-                scheduleEntries[scheduleArray.count].interval = 24 * 3600;
-                scheduleEntries[scheduleArray.count].task_func =
-                    log_delete_old_files;
-                scheduleEntries[scheduleArray.count].func_args =
-                    &g_access_log_context;
-                scheduleArray.count++;
-            }
-        }
+			if (g_log_file_keep_days > 0)
+			{
+				log_set_keep_days(&g_access_log_context,
+					g_log_file_keep_days);
+
+				INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
+					scheduleArray.count + 1, 1, 0, 0, 24 * 3600,
+					log_delete_old_files, &g_access_log_context);
+				scheduleArray.count++;
+			}
+		}
 	}
 
 	if (g_rotate_error_log)
 	{
-		scheduleEntries[scheduleArray.count].id = 8;
-		scheduleEntries[scheduleArray.count].time_base = \
-				g_error_log_rotate_time;
-		scheduleEntries[scheduleArray.count].interval = \
-				24 * 3600;
-		scheduleEntries[scheduleArray.count].task_func = \
-				log_notify_rotate;
-		scheduleEntries[scheduleArray.count].func_args = \
-				&g_log_context;
+		INIT_SCHEDULE_ENTRY_EX(scheduleEntries[scheduleArray.count],
+			scheduleArray.count + 1, g_error_log_rotate_time,
+			24 * 3600, log_notify_rotate, &g_log_context);
 		scheduleArray.count++;
 
-        if (g_log_file_keep_days > 0)
-        {
-            log_set_keep_days(&g_log_context, g_log_file_keep_days);
-            scheduleEntries[scheduleArray.count].id = 9;
-            scheduleEntries[scheduleArray.count].time_base.hour = 1;
-            scheduleEntries[scheduleArray.count].time_base.minute = 0;
-            scheduleEntries[scheduleArray.count].interval = 24 * 3600;
-            scheduleEntries[scheduleArray.count].task_func =
-                log_delete_old_files;
-            scheduleEntries[scheduleArray.count].func_args =
-                &g_log_context;
-            scheduleArray.count++;
-        }
-    }
+		if (g_log_file_keep_days > 0)
+		{
+			log_set_keep_days(&g_log_context, g_log_file_keep_days);
+
+			INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
+				scheduleArray.count + 1, 1, 0, 0, 24 * 3600,
+				log_delete_old_files, &g_log_context);
+			scheduleArray.count++;
+		}
+	}
 
 	if ((result=sched_start(&scheduleArray, &schedule_tid, \
 		g_thread_stack_size, (bool * volatile)&g_continue_flag)) != 0)

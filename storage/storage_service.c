@@ -3758,6 +3758,15 @@ static int storage_server_trunk_alloc_space(struct fast_task_info *pTask)
 	}
 
 	trunkInfo.path.store_path_index = *(in_buff+FDFS_GROUP_NAME_MAX_LEN+4);
+    if (trunkInfo.path.store_path_index < 0 ||
+            trunkInfo.path.store_path_index >= g_fdfs_store_paths.count)
+    {
+		logError("file: "__FILE__", line: %d, " \
+			"client ip: %s, store_path_index: %d " \
+			"is invalid", __LINE__, \
+			pTask->client_ip, trunkInfo.path.store_path_index);
+		return EINVAL;
+    }
 	if ((result=trunk_alloc_space(file_size, &trunkInfo)) != 0)
 	{
 		return result;
@@ -3980,6 +3989,16 @@ static int storage_server_trunk_confirm_or_free(struct fast_task_info *pTask)
 	trunkInfo.file.id = buff2int(pTrunkBuff->id);
 	trunkInfo.file.offset = buff2int(pTrunkBuff->offset);
 	trunkInfo.file.size = buff2int(pTrunkBuff->size);
+
+    if (trunkInfo.path.store_path_index < 0 ||
+            trunkInfo.path.store_path_index >= g_fdfs_store_paths.count)
+    {
+		logError("file: "__FILE__", line: %d, " \
+			"client ip: %s, store_path_index: %d " \
+			"is invalid", __LINE__, \
+			pTask->client_ip, trunkInfo.path.store_path_index);
+		return EINVAL;
+    }
 
 	if (pHeader->cmd == STORAGE_PROTO_CMD_TRUNK_ALLOC_CONFIRM)
 	{
@@ -4268,6 +4287,7 @@ static int storage_server_do_fetch_one_path_binlog( \
 	if ((result=storage_reader_init(NULL, pReader)) != 0)
 	{
 		storage_reader_destroy(pReader);
+        free(pReader);
 		return result;
 	}
 

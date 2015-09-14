@@ -1530,12 +1530,12 @@ int storage_func_init(const char *filename, \
 		}
 		g_thread_stack_size = (int)thread_stack_size;
 
-		if (g_thread_stack_size < 64 * 1024)
+		if (g_thread_stack_size < FAST_WRITE_BUFF_SIZE + 64 * 1024)
 		{
 			logError("file: "__FILE__", line: %d, " \
 				"item \"thread_stack_size\" %d is invalid, " \
 				"which < %d", __LINE__, g_thread_stack_size, \
-				64 * 1024);
+				FAST_WRITE_BUFF_SIZE + 64 * 1024);
 			result = EINVAL;
 			break;
 		}
@@ -1684,7 +1684,7 @@ int storage_func_init(const char *filename, \
 			break;
 		}
 		if (rotate_access_log_size > 0 && \
-			rotate_access_log_size< FDFS_ONE_MB)
+			rotate_access_log_size < FDFS_ONE_MB)
 		{
 			logWarning("file: "__FILE__", line: %d, " \
 				"item \"rotate_access_log_size\": " \
@@ -1693,7 +1693,7 @@ int storage_func_init(const char *filename, \
 				rotate_access_log_size);
 			rotate_access_log_size = FDFS_ONE_MB;
 		}
-		g_access_log_context.rotate_size = rotate_access_log_size;
+		fdfs_set_log_rotate_size(&g_access_log_context, rotate_access_log_size);
 
 		pRotateErrorLogSize = iniGetStrValue(NULL, \
 			"rotate_error_log_size", &iniContext);
@@ -1716,7 +1716,7 @@ int storage_func_init(const char *filename, \
 				rotate_error_log_size);
 			rotate_error_log_size = FDFS_ONE_MB;
 		}
-		g_log_context.rotate_size = rotate_error_log_size;
+		fdfs_set_log_rotate_size(&g_log_context, rotate_error_log_size);
 
 		g_log_file_keep_days = iniGetIntValue(NULL, \
 				"log_file_keep_days", &iniContext, 0);
@@ -2155,7 +2155,7 @@ int recv_file_serialized(int sock, const char *filename, \
 		const int64_t file_bytes)
 {
 	int fd;
-	char buff[FDFS_WRITE_BUFF_SIZE];
+	char buff[FAST_WRITE_BUFF_SIZE];
 	int64_t remain_bytes;
 	int recv_bytes;
 	int result;

@@ -497,6 +497,17 @@ static int recovery_reader_init(const char *pBasePath, \
 	return 0;
 }
 
+static int recovery_reader_check_init(const char *pBasePath, \
+                        StorageBinLogReader *pReader)
+{
+    if (pReader->binlog_fd >= 0 && pReader->binlog_buff.buffer != NULL)
+    {
+        return 0;
+    }
+
+    return recovery_reader_init(pBasePath, pReader);
+}
+
 static int storage_do_recovery(const char *pBasePath, StorageBinLogReader *pReader, \
 		ConnectionInfo *pSrcStorage)
 {
@@ -512,6 +523,7 @@ static int storage_do_recovery(const char *pBasePath, StorageBinLogReader *pRead
 	int64_t file_size;
 	int64_t total_count;
 	int64_t success_count;
+	int64_t noent_count;
 	bool bContinueFlag;
 	char local_filename[MAX_PATH_SIZE];
 	char src_filename[MAX_PATH_SIZE];
@@ -520,6 +532,7 @@ static int storage_do_recovery(const char *pBasePath, StorageBinLogReader *pRead
 	count = 0;
 	total_count = 0;
 	success_count = 0;
+    noent_count = 0;
 	result = 0;
 
 	logInfo("file: "__FILE__", line: %d, " \
@@ -529,6 +542,10 @@ static int storage_do_recovery(const char *pBasePath, StorageBinLogReader *pRead
 	bContinueFlag = true;
 	while (bContinueFlag)
 	{
+    if ((result=recovery_reader_check_init(pBasePath, pReader)) != 0)
+    {
+        break;
+    }
 	if ((pStorageConn=tracker_connect_server(pSrcStorage, &result)) == NULL)
 	{
 		sleep(5);
@@ -605,8 +622,13 @@ static int storage_do_recovery(const char *pBasePath, StorageBinLogReader *pRead
 
 				success_count++;
 			}
-			else if (result != ENOENT)
+			else if (result == ENOENT)
 			{
+                result = 0;
+                noent_count++;
+            }
+            else
+            {
 				break;
 			}
 		}
@@ -673,6 +695,10 @@ static int storage_do_recovery(const char *pBasePath, StorageBinLogReader *pRead
 					bContinueFlag = false;
 					break;
 				}
+                else
+                {
+                    result = 0;
+                }
 			}
 		}
 		else
@@ -692,25 +718,30 @@ static int storage_do_recovery(const char *pBasePath, StorageBinLogReader *pRead
 			logDebug("file: "__FILE__", line: %d, " \
 				"disk recovery: recover path: %s, " \
 				"file count: %"PRId64 \
-				", success count: %"PRId64, \
+				", success count: %"PRId64", noent_count: %"PRId64, \
 				__LINE__, pBasePath, total_count, \
-				success_count);
+				success_count, noent_count);
 			recovery_write_to_mark_file(pBasePath, pReader);
 			count = 0;
 		}
 	}
 
 	tracker_disconnect_server_ex(pStorageConn, result != 0);
+    recovery_write_to_mark_file(pBasePath, pReader);
+    if (bContinueFlag)
+    {
+	    storage_reader_destroy(pReader);
+    }
+
 	if (count > 0)
 	{
-		recovery_write_to_mark_file(pBasePath, pReader);
 		count = 0;
 
 		logInfo("file: "__FILE__", line: %d, " \
 			"disk recovery: recover path: %s, " \
 			"file count: %"PRId64 \
-			", success count: %"PRId64, \
-			__LINE__, pBasePath, total_count, success_count);
+            ", success count: %"PRId64", noent_count: %"PRId64, \
+			__LINE__, pBasePath, total_count, success_count, noent_count);
 	}
 	else
 	{
@@ -1086,7 +1117,7 @@ int storage_disk_recovery_start(const int store_path_index)
 	}
 
 	result = storage_do_fetch_binlog(pStorageConn, store_path_index);
-	tracker_disconnect_server_ex(pStorageConn, result != 0);
+	tracker_disconnect_server_ex(pStorageConn, true);
 	if (result != 0)
 	{
 		return result;
