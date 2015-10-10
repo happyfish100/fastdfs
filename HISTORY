@@ -1,4 +1,7 @@
 
+Version 5.08  2015-10-10
+ * install library to $(TARGET_PREFIX)/lib anyway
+
 Version 5.07  2015-09-13
  * schedule task add the "second" field
  * make.sh changed, you must upgrade libfastcommon to V1.21 or later
