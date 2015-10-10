@@ -64,28 +64,32 @@ else
 fi
 
 LIBS=''
-if [ $OS_BITS -eq 64 ]; then
-  LIBS="$LIBS -L/usr/lib64"
-else
-  LIBS="$LIBS -L/usr/lib"
-fi
 
 uname=$(uname)
 if [ "$uname" = "Linux" ]; then
+  if [ $OS_BITS -eq 64 ]; then
+    LIBS="$LIBS -L/usr/lib64"
+  else
+    LIBS="$LIBS -L/usr/lib"
+  fi
   CFLAGS="$CFLAGS"
 elif [ "$uname" = "FreeBSD" ] || [ "$uname" = "Darwin" ]; then
+  LIBS="$LIBS -L/usr/lib"
   CFLAGS="$CFLAGS"
   if [ "$uname" = "Darwin" ]; then
     CFLAGS="$CFLAGS -DDARWIN"
   fi
 elif [ "$uname" = "SunOS" ]; then
+  LIBS="$LIBS -L/usr/lib"
   CFLAGS="$CFLAGS -D_THREAD_SAFE"
   LIBS="$LIBS -lsocket -lnsl -lresolv"
   export CC=gcc
 elif [ "$uname" = "AIX" ]; then
+  LIBS="$LIBS -L/usr/lib"
   CFLAGS="$CFLAGS -D_THREAD_SAFE"
   export CC=gcc
 elif [ "$uname" = "HP-UX" ]; then
+  LIBS="$LIBS -L/usr/lib"
   CFLAGS="$CFLAGS"
 fi
 
