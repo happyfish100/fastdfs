@@ -74,12 +74,30 @@ static void sigSegvHandler(int signum, siginfo_t *info, void *ptr);
 static void sigDumpHandler(int sig);
 #endif
 
-#define SCHEDULE_ENTRIES_COUNT 5
+#define SCHEDULE_ENTRIES_COUNT 15
 
 static void usage(const char *program)
 {
 	fprintf(stderr, "Usage: %s <config_file> [start | stop | restart]\n",
 		program);
+}
+
+static int counter = 0;
+static int test_delay(void *args)
+{
+    logInfo("free arg: %p, count: %d", args, --counter);
+    free(args);
+    return 0;
+}
+
+static int test_malloc(void *args)
+{
+    int delay;
+    args = malloc(1024);
+    delay = (30L * rand()) / RAND_MAX;
+    logInfo("malloc arg: %p, delay: %d, count: %d", args, delay, ++counter);
+    sched_add_delay_task(test_delay, args, delay, true);
+    return 0;
 }
 
 int main(int argc, char *argv[])
@@ -349,6 +367,35 @@ int main(int argc, char *argv[])
 			scheduleArray.count++;
 		}
 	}
+
+    //sched_set_delay_params(0, 0);
+    sched_enable_delay_task();
+   
+    srand(time(NULL));
+    INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
+            scheduleArray.count + 1, TIME_NONE, TIME_NONE, TIME_NONE,
+            1, test_malloc, NULL);
+    scheduleArray.count++;
+
+    INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
+            scheduleArray.count + 1, TIME_NONE, TIME_NONE, TIME_NONE,
+            1, test_malloc, NULL);
+    scheduleArray.count++;
+
+    INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
+            scheduleArray.count + 1, TIME_NONE, TIME_NONE, TIME_NONE,
+            2, test_malloc, NULL);
+    scheduleArray.count++;
+
+    INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
+            scheduleArray.count + 1, TIME_NONE, TIME_NONE, TIME_NONE,
+            5, test_malloc, NULL);
+    scheduleArray.count++;
+
+    INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
+            scheduleArray.count + 1, TIME_NONE, TIME_NONE, TIME_NONE,
+            10, test_malloc, NULL);
+    scheduleArray.count++;
 
 	if ((result=sched_start(&scheduleArray, &schedule_tid, \
 		g_thread_stack_size, (bool * volatile)&g_continue_flag)) != 0)

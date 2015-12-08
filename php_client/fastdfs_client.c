@@ -40,9 +40,9 @@ typedef struct
 
 typedef struct
 {
-        FDFSConfigInfo *pConfigInfo;
+    zend_object zo;
+    FDFSConfigInfo *pConfigInfo;
 	FDFSPhpContext context;
-        zend_object zo;
 } php_fdfs_t;
 
 typedef struct
@@ -170,6 +170,8 @@ static inline int fdfs_zend_get_configuration_directive(char *name, int len, zva
 
 static int php_fdfs_download_callback(void *arg, const int64_t file_size, \
 		const char *data, const int current_size);
+
+static void php_fdfs_free_storage(php_fdfs_t *i_obj);
 
 static FDFSConfigInfo *config_list = NULL;
 static int config_count = 0;
@@ -5504,7 +5506,7 @@ static PHP_METHOD(FastDFS, __construct)
 	long config_index;
 	bool bMultiThread;
 	zval *object = getThis();
-	php_fdfs_t *i_obj;
+	php_fdfs_t *i_obj = NULL;
 
 	config_index = 0;
 	bMultiThread = false;
@@ -5527,6 +5529,8 @@ static PHP_METHOD(FastDFS, __construct)
 	}
 
 	i_obj = (php_fdfs_t *) fdfs_get_object(object);
+    fprintf(stderr, "i_obj in __construct: %p\n", i_obj);
+
 	i_obj->pConfigInfo = config_list + config_index;
 	i_obj->context.err_no = 0;
 	if (bMultiThread)
@@ -5557,7 +5561,12 @@ static PHP_METHOD(FastDFS, __construct)
 
 static PHP_METHOD(FastDFS, __destruct)
 {
-	logInfo("file: "__FILE__",line: %d, __destruct", __LINE__);
+	zval *object = getThis();
+	php_fdfs_t *i_obj;
+
+	i_obj = (php_fdfs_t *) fdfs_get_object(object);
+    php_fdfs_free_storage(i_obj);
+	fprintf(stderr, "file: "__FILE__",line: %d, __destruct: %p\n", __LINE__, i_obj);
 }
 
 /*
@@ -6666,6 +6675,8 @@ PHP_METHOD(FastDFS, close)
 }
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo___construct, 0, 0, 0)
+ZEND_ARG_INFO(0, config_index)
+ZEND_ARG_INFO(0, bMultiThread)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo___destruct, 0, 0, 0)
@@ -7247,10 +7258,11 @@ static zend_function_entry fdfs_class_methods[] = {
 #undef FDFS_ME
 /* }}} */
 
-static void php_fdfs_free_storage(php_fdfs_t *i_obj TSRMLS_DC)
+static void php_fdfs_free_storage(php_fdfs_t *i_obj)
 {
 	zend_object_std_dtor(&i_obj->zo TSRMLS_CC);
 	php_fdfs_destroy(i_obj TSRMLS_CC);
+    fprintf(stderr, "destroy obj: %p\n", i_obj);
 }
 
 #if PHP_MAJOR_VERSION < 7
@@ -7264,10 +7276,10 @@ zend_object_value php_fdfs_new(zend_class_entry *ce TSRMLS_DC)
 	zend_object_std_init(&i_obj->zo, ce TSRMLS_CC);
 	retval.handle = zend_objects_store_put(i_obj, \
 		(zend_objects_store_dtor_t)zend_objects_destroy_object, \
-		(zend_objects_free_object_storage_t)php_fdfs_free_storage, \
-		NULL TSRMLS_CC);
+        NULL, NULL TSRMLS_CC);
 	retval.handlers = zend_get_std_object_handlers();
 
+    fprintf(stderr, "retval.handle: %d, i_obj: %p\n", retval.handle, i_obj);
 	return retval;
 }
 
@@ -7276,11 +7288,13 @@ zend_object_value php_fdfs_new(zend_class_entry *ce TSRMLS_DC)
 zend_object* php_fdfs_new(zend_class_entry *ce)
 {
 	php_fdfs_t *i_obj;
+    int handle;
 
 	i_obj = (php_fdfs_t *)ecalloc(1, sizeof(php_fdfs_t));
 
 	zend_object_std_init(&i_obj->zo, ce TSRMLS_CC);
-	zend_objects_store_put(&i_obj->zo);
+	handle = zend_objects_store_put(&i_obj->zo);
+    fprintf(stderr, "retval.handle: %d, i_obj: %p\n", handle, i_obj);
 	return &i_obj->zo;
 }
 #endif
@@ -7305,6 +7319,7 @@ PHP_FASTDFS_API zend_class_entry *php_fdfs_get_exception_base(int root TSRMLS_DC
 			zend_class_entry *pce;
 			zval *value;
 
+            fprintf(stderr, "file: "__FILE__", line: %d\n", __LINE__);
 			if (fdfs_zend_hash_find(CG(class_table), "runtimeexception",
 			   sizeof("RuntimeException"), &value) == SUCCESS)
 			{

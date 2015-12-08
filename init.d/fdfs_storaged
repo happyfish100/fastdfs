@@ -29,7 +29,7 @@ CMD="$PRG $CONF"
 RETVAL=0
 
 start() {
- 	echo -n $"Starting FastDFS storage server: "
+ 	echo -n "Starting FastDFS storage server: "
 	$CMD &
 	RETVAL=$?
 	echo
@@ -64,7 +64,7 @@ case "$1" in
   	restart
 	;;
   *)
-	echo $"Usage: $0 {start|stop|status|restart|condrestart}"
+	echo "Usage: $0 {start|stop|status|restart|condrestart}"
 	exit 1
 esac
 
