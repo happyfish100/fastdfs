@@ -63,6 +63,8 @@ typedef int zend_size_t;
 #define ZEND_RETURN_STRINGL(s, l, dup) RETURN_STRINGL(s, l, dup)
 #define ZEND_TYPE_OF(z)  (z)->type
 #define ZEND_IS_BOOL(z) (ZEND_TYPE_OF(z) == IS_BOOL)
+#define Z_CE_P(z)  ((zend_class_entry *)z)
+
 #define fdfs_get_object(obj) zend_object_store_get_object(obj)
 
 #define fdfs_zend_hash_update   zend_hash_update
