@@ -1,5 +1,5 @@
 Name: fastdfs_client
-Version: 5.0.4
+Version: 5.0.8
 Release: 1%{?dist}
 Summary: The php extension of fastdfs client
 License: GPL

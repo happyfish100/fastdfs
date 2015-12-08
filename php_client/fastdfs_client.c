@@ -209,7 +209,10 @@ static int le_fdfs;
 
 static zend_class_entry *fdfs_ce = NULL;
 static zend_class_entry *fdfs_exception_ce = NULL;
-static zend_object_handlers zip_object_handlers;
+
+#if PHP_MAJOR_VERSION >= 7
+static zend_object_handlers fdfs_object_handlers;
+#endif
 
 #if HAVE_SPL
 static zend_class_entry *spl_ce_RuntimeException = NULL;
@@ -2184,7 +2187,6 @@ static void php_fdfs_storage_download_file_to_buff_impl( \
 	char *group_name;
 	char *remote_filename;
 	char *file_buff;
-	//char *new_file_buff;
 	zend_size_t group_nlen;
 	zend_size_t filename_len;
 	long file_offset;
@@ -2341,25 +2343,7 @@ static void php_fdfs_storage_download_file_to_buff_impl( \
 		RETURN_BOOL(false);
 	}
 
-/*
-	new_file_buff = (char *)emalloc(file_size + 1);
-	if (new_file_buff == NULL)
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"emalloc %d bytes fail, errno: %d, error info: %s", \
-			__LINE__, (int)file_size + 1, errno, STRERROR(errno));
-		free(file_buff);
-		pContext->err_no = errno != 0 ? errno : ENOMEM;
-		RETURN_BOOL(false);
-	}
-
-	memcpy(new_file_buff, file_buff, file_size);
-	*(new_file_buff + file_size) = '\0';
-	free(file_buff);
-*/
-
 	pContext->err_no = 0;
-//	ZEND_RETURN_STRINGL_EX(new_file_buff, file_size, efree);
 	ZEND_RETURN_STRINGL_EX(file_buff, file_size, free);
 }
 
@@ -5547,8 +5531,6 @@ static PHP_METHOD(FastDFS, __construct)
 	zval *object = getThis();
 	php_fdfs_t *i_obj = NULL;
 
-    fprintf(stderr, "i_obj in __construct: %p\n", i_obj);
-
 	config_index = 0;
 	bMultiThread = false;
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|lb", \
@@ -5570,8 +5552,6 @@ static PHP_METHOD(FastDFS, __construct)
 	}
 
 	i_obj = (php_fdfs_t *) fdfs_get_object(object);
-    fprintf(stderr, "i_obj in __construct: %p\n", i_obj);
-
 	i_obj->pConfigInfo = config_list + config_index;
 	i_obj->context.err_no = 0;
 	if (bMultiThread)
@@ -5607,7 +5587,6 @@ static PHP_METHOD(FastDFS, __destruct)
 
 	i_obj = (php_fdfs_t *) fdfs_get_object(object);
 	php_fdfs_free_storage(i_obj);
-	fprintf(stderr, "file: "__FILE__",line: %d, __destruct: %p\n", __LINE__, i_obj);
 }
 
 /*
@@ -7301,7 +7280,6 @@ static zend_function_entry fdfs_class_methods[] = {
 
 static void php_fdfs_free_storage(php_fdfs_t *i_obj)
 {
-    fprintf(stderr, "destroy obj: %p\n", i_obj);
 	zend_object_std_dtor(&i_obj->zo TSRMLS_CC);
 	php_fdfs_destroy(i_obj TSRMLS_CC);
 }
@@ -7332,14 +7310,8 @@ zend_object* php_fdfs_new(zend_class_entry *ce)
 	i_obj = (php_fdfs_t *)ecalloc(1, sizeof(php_fdfs_t) + zend_object_properties_size(ce));
 
 	zend_object_std_init(&i_obj->zo, ce TSRMLS_CC);
-
-    fprintf(stderr, "i_obj new1: %p\n", i_obj);
-
     object_properties_init(&i_obj->zo, ce);
-
-    i_obj->zo.handlers = &zip_object_handlers;
-
-    fprintf(stderr, "i_obj new2: %p\n", i_obj);
+    i_obj->zo.handlers = &fdfs_object_handlers;
 	return &i_obj->zo;
 }
 
@@ -7669,10 +7641,12 @@ PHP_MINIT_FUNCTION(fastdfs_client)
 		return FAILURE;
 	}
 
-	memcpy(&zip_object_handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
-	zip_object_handlers.offset = XtOffsetOf(php_fdfs_t, zo);
-	zip_object_handlers.free_obj = NULL;
-	zip_object_handlers.clone_obj = NULL;
+#if PHP_MAJOR_VERSION >= 7
+	memcpy(&fdfs_object_handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
+	fdfs_object_handlers.offset = XtOffsetOf(php_fdfs_t, zo);
+	fdfs_object_handlers.free_obj = NULL;
+	fdfs_object_handlers.clone_obj = NULL;
+#endif
 
 	le_fdfs = zend_register_list_destructors_ex(NULL, php_fdfs_dtor, \
 			"FastDFS", module_number);
