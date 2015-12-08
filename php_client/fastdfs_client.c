@@ -40,9 +40,14 @@ typedef struct
 
 typedef struct
 {
-    zend_object zo;
-    FDFSConfigInfo *pConfigInfo;
+#if PHP_MAJOR_VERSION < 7
+	zend_object zo;
+#endif
+	FDFSConfigInfo *pConfigInfo;
 	FDFSPhpContext context;
+#if PHP_MAJOR_VERSION >= 7
+	zend_object zo;
+#endif
 } php_fdfs_t;
 
 typedef struct
@@ -60,9 +65,17 @@ typedef struct
 
 #if PHP_MAJOR_VERSION < 7
 typedef int zend_size_t;
-#define ZEND_RETURN_STRINGL(s, l, dup) RETURN_STRINGL(s, l, dup)
+#define ZEND_RETURN_STRINGL_DUP(s, l) RETURN_STRINGL(s, l, 1)
+#define ZEND_RETURN_STRINGL_EX(s, l, cb)  \
+	do { \
+		RETVAL_STRINGL(s, l, 1);  \
+		cb(s);    \
+		return;   \
+	} while (0)
+
 #define ZEND_TYPE_OF(z)  (z)->type
 #define ZEND_IS_BOOL(z) (ZEND_TYPE_OF(z) == IS_BOOL)
+#define ZEND_IS_TRUE(z) ((z)->value.lval != 0)
 #define Z_CE_P(z)  ((zend_class_entry *)z)
 
 #define fdfs_get_object(obj) zend_object_store_get_object(obj)
@@ -107,12 +120,20 @@ static inline int fdfs_zend_get_configuration_directive(char *name, int len, zva
 #else
 
 typedef size_t zend_size_t;
-#define ZEND_RETURN_STRINGL(s, l, dup) RETURN_STRINGL(s, l)
+#define ZEND_RETURN_STRINGL_DUP(s, l) RETURN_STRINGL(s, l)
+#define ZEND_RETURN_STRINGL_EX(s, l, cb)  \
+	do { \
+		RETVAL_STRINGL(s, l);  \
+		cb(s);    \
+		return;   \
+	} while (0)
+
 #define ZEND_TYPE_OF(z)  Z_TYPE_P(z)
 #define ZEND_IS_BOOL(z) (Z_TYPE_P(z) == IS_TRUE || Z_TYPE_P(z) == IS_FALSE)
+#define ZEND_IS_TRUE(z) (Z_TYPE_P(z) == IS_TRUE)
 #define Z_STRVAL_PP(s)   Z_STRVAL_P(*s)
 #define Z_STRLEN_PP(s)   Z_STRLEN_P(*s)
-#define fdfs_get_object(obj) (void *)((char *)(Z_OBJ_P(obj)) - offsetof(php_fdfs_t, zo))
+#define fdfs_get_object(obj) (void *)((char *)(Z_OBJ_P(obj)) - XtOffsetOf(php_fdfs_t, zo))
 
 #define MAKE_STD_ZVAL(p) zval _stack_zval_##p; p = &(_stack_zval_##p)
 #define ALLOC_INIT_ZVAL(p) MAKE_STD_ZVAL(p)
@@ -146,10 +167,16 @@ static inline int fdfs_zend_hash_update(HashTable *ht, char *k, int len, void * 
 }
 
 static inline int fdfs_call_user_function(HashTable *function_table, zval *object,
-	zval *function_name, zval *retval_ptr, uint32_t param_count, zval **params)
+	zval *function_name, zval *retval_ptr, uint32_t param_count, zval **params TSRMLS_DC)
 {
 	int i;
-	zval real_params[param_count];
+	zval real_params[32];
+
+	if (param_count > 32)
+	{
+		return FAILURE;
+	}
+
 	for(i=0; i<param_count; i++)
 	{
 		real_params[i] = *params[i];
@@ -182,6 +209,7 @@ static int le_fdfs;
 
 static zend_class_entry *fdfs_ce = NULL;
 static zend_class_entry *fdfs_exception_ce = NULL;
+static zend_object_handlers zip_object_handlers;
 
 #if HAVE_SPL
 static zend_class_entry *spl_ce_RuntimeException = NULL;
@@ -2156,7 +2184,7 @@ static void php_fdfs_storage_download_file_to_buff_impl( \
 	char *group_name;
 	char *remote_filename;
 	char *file_buff;
-	char *new_file_buff;
+	//char *new_file_buff;
 	zend_size_t group_nlen;
 	zend_size_t filename_len;
 	long file_offset;
@@ -2313,6 +2341,7 @@ static void php_fdfs_storage_download_file_to_buff_impl( \
 		RETURN_BOOL(false);
 	}
 
+/*
 	new_file_buff = (char *)emalloc(file_size + 1);
 	if (new_file_buff == NULL)
 	{
@@ -2327,9 +2356,11 @@ static void php_fdfs_storage_download_file_to_buff_impl( \
 	memcpy(new_file_buff, file_buff, file_size);
 	*(new_file_buff + file_size) = '\0';
 	free(file_buff);
+*/
 
 	pContext->err_no = 0;
-	ZEND_RETURN_STRINGL(new_file_buff, file_size, 0);
+//	ZEND_RETURN_STRINGL_EX(new_file_buff, file_size, efree);
+	ZEND_RETURN_STRINGL_EX(file_buff, file_size, free);
 }
 
 static void php_fdfs_storage_download_file_to_file_impl( \
@@ -3021,9 +3052,13 @@ static int php_fdfs_upload_callback(void *arg, const int64_t file_size, int sock
 		return EINVAL;
 	}
 
-	if (ZEND_TYPE_OF(&ret) == IS_LONG || ZEND_IS_BOOL(&ret))
+	if (ZEND_TYPE_OF(&ret) == IS_LONG)
 	{
-		result = ret.value.lval == 0 ? EFAULT : 0;
+		result = ret.value.lval != 0 ? 0 : EFAULT;
+	}
+	else if (ZEND_IS_BOOL(&ret))
+	{
+		result = ZEND_IS_TRUE(&ret) ? 0 : EFAULT;
 	}
 	else
 	{
@@ -3081,9 +3116,13 @@ static int php_fdfs_download_callback(void *arg, const int64_t file_size, \
 		return EINVAL;
 	}
 
-	if (ZEND_TYPE_OF(&ret) == IS_LONG || ZEND_IS_BOOL(&ret))
+	if (ZEND_TYPE_OF(&ret) == IS_LONG)
 	{
-		result = ret.value.lval == 0 ? EFAULT : 0;
+		result = ret.value.lval != 0 ? 0 : EFAULT;
+	}
+	else if (ZEND_IS_BOOL(&ret))
+	{
+		result = ZEND_IS_TRUE(&ret) ? 0 : EFAULT;
 	}
 	else
 	{
@@ -3369,7 +3408,7 @@ static void php_fdfs_storage_upload_file_impl(INTERNAL_FUNCTION_PARAMETERS, \
 
 		file_id_len = sprintf(file_id, "%s%c%s", group_name, \
 				FDFS_FILE_ID_SEPERATOR, remote_filename);
-		ZEND_RETURN_STRINGL(file_id, file_id_len, 1);
+		ZEND_RETURN_STRINGL_DUP(file_id, file_id_len);
 	}
 	else
 	{
@@ -3677,7 +3716,7 @@ static void php_fdfs_storage_upload_slave_file_impl( \
 
 		file_id_len = sprintf(file_id, "%s%c%s", new_group_name, \
 				FDFS_FILE_ID_SEPERATOR, remote_filename);
-		ZEND_RETURN_STRINGL(file_id, file_id_len, 1);
+		ZEND_RETURN_STRINGL_DUP(file_id, file_id_len);
 	}
 	else
 	{
@@ -4400,7 +4439,7 @@ static void php_fdfs_http_gen_token_impl(INTERNAL_FUNCTION_PARAMETERS, \
 		RETURN_BOOL(false);
 	}
 
-	ZEND_RETURN_STRINGL(token, strlen(token), 1);
+	ZEND_RETURN_STRINGL_DUP(token, strlen(token));
 }
 
 static void php_fdfs_send_data_impl(INTERNAL_FUNCTION_PARAMETERS, \
@@ -4620,7 +4659,7 @@ static void php_fdfs_gen_slave_filename_impl(INTERNAL_FUNCTION_PARAMETERS, \
 		RETURN_BOOL(false);
 	}
 
-	ZEND_RETURN_STRINGL(filename, filename_len, 1);
+	ZEND_RETURN_STRINGL_DUP(filename, filename_len);
 }
 
 /*
@@ -4701,7 +4740,7 @@ ZEND_FUNCTION(fastdfs_get_last_error_info)
 	char *error_info;
 
 	error_info = STRERROR(php_context.err_no);
-	ZEND_RETURN_STRINGL(error_info, strlen(error_info), 1);
+	ZEND_RETURN_STRINGL_DUP(error_info, strlen(error_info));
 }
 
 /*
@@ -4716,7 +4755,7 @@ ZEND_FUNCTION(fastdfs_client_version)
 	len = sprintf(szVersion, "%d.%02d", \
 		g_fdfs_version.major, g_fdfs_version.minor);
 
-	ZEND_RETURN_STRINGL(szVersion, len, 1);
+	ZEND_RETURN_STRINGL_DUP(szVersion, len);
 }
 
 /*
@@ -5508,6 +5547,8 @@ static PHP_METHOD(FastDFS, __construct)
 	zval *object = getThis();
 	php_fdfs_t *i_obj = NULL;
 
+    fprintf(stderr, "i_obj in __construct: %p\n", i_obj);
+
 	config_index = 0;
 	bMultiThread = false;
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|lb", \
@@ -5565,7 +5606,7 @@ static PHP_METHOD(FastDFS, __destruct)
 	php_fdfs_t *i_obj;
 
 	i_obj = (php_fdfs_t *) fdfs_get_object(object);
-    php_fdfs_free_storage(i_obj);
+	php_fdfs_free_storage(i_obj);
 	fprintf(stderr, "file: "__FILE__",line: %d, __destruct: %p\n", __LINE__, i_obj);
 }
 
@@ -6588,7 +6629,7 @@ PHP_METHOD(FastDFS, get_last_error_info)
 
 	i_obj = (php_fdfs_t *) fdfs_get_object(object);
 	error_info = STRERROR(i_obj->context.err_no);
-	ZEND_RETURN_STRINGL(error_info, strlen(error_info), 1);
+	ZEND_RETURN_STRINGL_DUP(error_info, strlen(error_info));
 }
 
 /*
@@ -7260,9 +7301,9 @@ static zend_function_entry fdfs_class_methods[] = {
 
 static void php_fdfs_free_storage(php_fdfs_t *i_obj)
 {
+    fprintf(stderr, "destroy obj: %p\n", i_obj);
 	zend_object_std_dtor(&i_obj->zo TSRMLS_CC);
 	php_fdfs_destroy(i_obj TSRMLS_CC);
-    fprintf(stderr, "destroy obj: %p\n", i_obj);
 }
 
 #if PHP_MAJOR_VERSION < 7
@@ -7279,7 +7320,6 @@ zend_object_value php_fdfs_new(zend_class_entry *ce TSRMLS_DC)
         NULL, NULL TSRMLS_CC);
 	retval.handlers = zend_get_std_object_handlers();
 
-    fprintf(stderr, "retval.handle: %d, i_obj: %p\n", retval.handle, i_obj);
 	return retval;
 }
 
@@ -7289,13 +7329,20 @@ zend_object* php_fdfs_new(zend_class_entry *ce)
 {
 	php_fdfs_t *i_obj;
 
-	i_obj = (php_fdfs_t *)ecalloc(1, sizeof(php_fdfs_t));
+	i_obj = (php_fdfs_t *)ecalloc(1, sizeof(php_fdfs_t) + zend_object_properties_size(ce));
 
 	zend_object_std_init(&i_obj->zo, ce TSRMLS_CC);
-	zend_objects_store_put(&i_obj->zo);
-    fprintf(stderr, "i_obj: %p\n", i_obj);
+
+    fprintf(stderr, "i_obj new1: %p\n", i_obj);
+
+    object_properties_init(&i_obj->zo, ce);
+
+    i_obj->zo.handlers = &zip_object_handlers;
+
+    fprintf(stderr, "i_obj new2: %p\n", i_obj);
 	return &i_obj->zo;
 }
+
 #endif
 
 PHP_FASTDFS_API zend_class_entry *php_fdfs_get_ce(void)
@@ -7387,6 +7434,7 @@ static int load_config_files()
 	conf_filename = pz++;
 	use_conn_pool = pz++;
 	conn_pool_max_idle_time = pz++;
+
 	if (fdfs_zend_get_configuration_directive(ITEM_NAME_CONF_COUNT, 
 		sizeof(ITEM_NAME_CONF_COUNT), &conf_c) == SUCCESS)
 	{
@@ -7468,7 +7516,6 @@ static int load_config_files()
 	{
 		set_log_level(Z_STRVAL_P(log_level));
 	}
-
 
 	if (fdfs_zend_get_configuration_directive(ITEM_NAME_LOG_FILENAME, \
 			sizeof(ITEM_NAME_LOG_FILENAME), \
@@ -7556,7 +7603,6 @@ static int load_config_files()
 		}
 	}
 
-
 	if (fdfs_zend_get_configuration_directive(ITEM_NAME_USE_CONN_POOL,
 		sizeof(ITEM_NAME_USE_CONN_POOL), &use_conn_pool) == SUCCESS)
 	{
@@ -7601,7 +7647,6 @@ static int load_config_files()
 		}
 	}
 
-
 	logDebug("base_path=%s, connect_timeout=%d, network_timeout=%d, " \
 		"anti_steal_secret_key length=%d, " \
 		"tracker_group_count=%d, first tracker group server_count=%d, "\
@@ -7623,6 +7668,11 @@ PHP_MINIT_FUNCTION(fastdfs_client)
 	{
 		return FAILURE;
 	}
+
+	memcpy(&zip_object_handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
+	zip_object_handlers.offset = XtOffsetOf(php_fdfs_t, zo);
+	zip_object_handlers.free_obj = NULL;
+	zip_object_handlers.clone_obj = NULL;
 
 	le_fdfs = zend_register_list_destructors_ex(NULL, php_fdfs_dtor, \
 			"FastDFS", module_number);
