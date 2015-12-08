@@ -7288,13 +7288,12 @@ zend_object_value php_fdfs_new(zend_class_entry *ce TSRMLS_DC)
 zend_object* php_fdfs_new(zend_class_entry *ce)
 {
 	php_fdfs_t *i_obj;
-    int handle;
 
 	i_obj = (php_fdfs_t *)ecalloc(1, sizeof(php_fdfs_t));
 
 	zend_object_std_init(&i_obj->zo, ce TSRMLS_CC);
-	handle = zend_objects_store_put(&i_obj->zo);
-    fprintf(stderr, "retval.handle: %d, i_obj: %p\n", handle, i_obj);
+	zend_objects_store_put(&i_obj->zo);
+    fprintf(stderr, "i_obj: %p\n", i_obj);
 	return &i_obj->zo;
 }
 #endif
@@ -7319,7 +7318,6 @@ PHP_FASTDFS_API zend_class_entry *php_fdfs_get_exception_base(int root TSRMLS_DC
 			zend_class_entry *pce;
 			zval *value;
 
-            fprintf(stderr, "file: "__FILE__", line: %d\n", __LINE__);
 			if (fdfs_zend_hash_find(CG(class_table), "runtimeexception",
 			   sizeof("RuntimeException"), &value) == SUCCESS)
 			{
