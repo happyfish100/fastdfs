@@ -17,12 +17,11 @@
 #include <pthread.h>
 #include "tracker_types.h"
 #include "fast_task_queue.h"
+#include "fast_blocked_queue.h"
 
 struct storage_dio_context
 {
-	struct fast_task_queue queue;
-	pthread_mutex_t lock;
-	pthread_cond_t cond;
+	struct fast_blocked_queue queue;
 };
 
 struct storage_dio_thread_data

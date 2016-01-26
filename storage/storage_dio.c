@@ -100,23 +100,8 @@ int storage_dio_init()
 		for (pContext=pThreadData->contexts; pContext<pContextEnd; \
 			pContext++)
 		{
-			if ((result=task_queue_init(&(pContext->queue))) != 0)
+			if ((result=blocked_queue_init(&(pContext->queue))) != 0)
 			{
-				return result;
-			}
-
-			if ((result=init_pthread_lock(&(pContext->lock))) != 0)
-			{
-				return result;
-			}
-
-			result = pthread_cond_init(&(pContext->cond), NULL);
-			if (result != 0)
-			{
-				logError("file: "__FILE__", line: %d, " \
-					"pthread_cond_init fail, " \
-					"errno: %d, error info: %s", \
-					__LINE__, result, STRERROR(result));
 				return result;
 			}
 
@@ -153,7 +138,7 @@ void storage_dio_terminate()
 	pContextEnd = g_dio_contexts + g_dio_thread_count;
 	for (pContext=g_dio_contexts; pContext<pContextEnd; pContext++)
 	{
-		pthread_cond_signal(&(pContext->cond));
+		blocked_queue_terminate(&(pContext->queue));
 	}
 }
 
@@ -169,19 +154,8 @@ int storage_dio_queue_push(struct fast_task_info *pTask)
 	pContext = g_dio_contexts + pFileContext->dio_thread_index;
 
 	pClientInfo->stage |= FDFS_STORAGE_STAGE_DIO_THREAD;
-	if ((result=task_queue_push(&(pContext->queue), pTask)) != 0)
+	if ((result=blocked_queue_push(&(pContext->queue), pTask)) != 0)
 	{
-		add_to_deleted_list(pTask);
-		return result;
-	}
-
-	if ((result=pthread_cond_signal(&(pContext->cond))) != 0)
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"pthread_cond_signal fail, " \
-			"errno: %d, error info: %s", \
-			__LINE__, result, STRERROR(result));
-
 		add_to_deleted_list(pTask);
 		return result;
 	}
@@ -757,25 +731,13 @@ static void *dio_thread_entrance(void* arg)
 	struct fast_task_info *pTask;
 
 	pContext = (struct storage_dio_context *)arg; 
-
-	pthread_mutex_lock(&(pContext->lock));
 	while (g_continue_flag)
 	{
-		if ((result=pthread_cond_wait(&(pContext->cond), \
-			&(pContext->lock))) != 0)
-		{
-		logError("file: "__FILE__", line: %d, " \
-			"call pthread_cond_wait fail, " \
-			"errno: %d, error info: %s", \
-			__LINE__, result, STRERROR(result));
-		}
-
-		while ((pTask=task_queue_pop(&(pContext->queue))) != NULL)
+		while ((pTask=blocked_queue_pop(&(pContext->queue))) != NULL)
 		{
 			((StorageClientInfo *)pTask->arg)->deal_func(pTask);
 		}
 	}
-	pthread_mutex_unlock(&(pContext->lock));
 
 	if ((result=pthread_mutex_lock(&g_dio_thread_lock)) != 0)
 	{
