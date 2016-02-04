@@ -43,14 +43,6 @@
 #endif
 
 #if defined(DEBUG_FLAG)
-
-/*
-#if defined(OS_LINUX)
-#include "linux_stack_trace.h"
-static bool bSegmentFault = false;
-#endif
-*/
-
 #include "tracker_dump.h"
 #endif
 
@@ -424,29 +416,6 @@ int main(int argc, char *argv[])
 }
 
 #if defined(DEBUG_FLAG)
-/*
-#if defined(OS_LINUX)
-static void sigSegvHandler(int signum, siginfo_t *info, void *ptr)
-{
-	bSegmentFault = true;
-
-	if (!bTerminateFlag)
-	{
-		set_timer(1, 1, sigAlarmHandler);
-
-		bTerminateFlag = true;
-		g_continue_flag = false;
-
-		logCrit("file: "__FILE__", line: %d, " \
-			"catch signal %d, program exiting...", \
-			__LINE__, signum);
-	
-		signal_stack_trace_print(signum, info, ptr);
-	}
-}
-#endif
-*/
-
 static void sigDumpHandler(int sig)
 {
 	static bool bDumpFlag = false;

@@ -1,9 +1,10 @@
 
-Version 5.08  2016-01-26
+Version 5.08  2016-02-04
  * install library to $(TARGET_PREFIX)/lib anyway
  * php extension compiled in PHP 7
  * dio thread use blocked_queue, you must upgrade libfastcommon
    to V1.24 or later
+ * remove common/linux_stack_trace.[hc]
 
 Version 5.07  2015-09-13
  * schedule task add the "second" field
