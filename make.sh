@@ -140,12 +140,6 @@ STORAGE_EXTRA_OBJS=''
 if [ "$DEBUG_FLAG" = "1" ]; then
   TRACKER_EXTRA_OBJS="$TRACKER_EXTRA_OBJS tracker_dump.o"
   STORAGE_EXTRA_OBJS="$STORAGE_EXTRA_OBJS storage_dump.o"
-
-#  if [ "$uname" = "Linux" ]; then
-#    LIBS="$LIBS -ldl -rdynamic"
-#    TRACKER_EXTRA_OBJS="$TRACKER_EXTRA_OBJS ../common/linux_stack_trace.o"
-#    STORAGE_EXTRA_OBJS="$STORAGE_EXTRA_OBJS ../common/linux_stack_trace.o"
-#  fi
 fi
 
 cd tracker
