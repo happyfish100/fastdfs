@@ -1,15 +1,4 @@
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
-#include <php.h>
-
-#ifdef ZTS
-#include "TSRM.h"
-#endif
-
-#include <SAPI.h>
-#include <php_ini.h>
+#include "php7_ext_wrapper.h"
 #include "ext/standard/info.h"
 #include <zend_extensions.h>
 #include <zend_exceptions.h>
@@ -64,136 +53,11 @@ typedef struct
 
 
 #if PHP_MAJOR_VERSION < 7
-typedef int zend_size_t;
-#define ZEND_RETURN_STRINGL_DUP(s, l) RETURN_STRINGL(s, l, 1)
-#define ZEND_RETURN_STRINGL_EX(s, l, cb)  \
-	do { \
-		RETVAL_STRINGL(s, l, 1);  \
-		cb(s);    \
-		return;   \
-	} while (0)
-
-#define ZEND_TYPE_OF(z)  (z)->type
-#define ZEND_IS_BOOL(z) (ZEND_TYPE_OF(z) == IS_BOOL)
-#define ZEND_IS_TRUE(z) ((z)->value.lval != 0)
-#define Z_CE_P(z)  ((zend_class_entry *)z)
-
 #define fdfs_get_object(obj) zend_object_store_get_object(obj)
-
-#define fdfs_zend_hash_update   zend_hash_update
-#define fdfs_call_user_function call_user_function
-
-#define zend_add_assoc_long_ex(z, key, key_len, n) \
-	add_assoc_long_ex(z, key, key_len, n)
-
-#define zend_add_assoc_stringl_ex(z, key, key_len, str, length, dup) \
-	add_assoc_stringl_ex(z, key, key_len, str, length, dup)
-
-#define zend_add_assoc_zval_ex(z, key, key_len, value) \
-	add_assoc_zval_ex(z, key, key_len, value)
-
-#define zend_add_assoc_bool_ex(z, key, key_len, b) \
-	add_assoc_bool_ex(z, key, key_len, b)
-
-static inline int fdfs_zend_hash_find(HashTable *ht, char *key, int key_len, zval **value)
-{
-	zval **pp;
-
-	pp = NULL;
-	if (zend_hash_find(ht, key, key_len, (void **)&pp) == SUCCESS)
-	{
-		*value = *pp;
-		return SUCCESS;
-	}
-	else
-	{
-		*value = NULL;
-		return FAILURE;
-	}
-}
-
-static inline int fdfs_zend_get_configuration_directive(char *name, int len, zval **value)
-{
-	return zend_get_configuration_directive(name, len, *value);
-}
-
 #else
-
-typedef size_t zend_size_t;
-#define ZEND_RETURN_STRINGL_DUP(s, l) RETURN_STRINGL(s, l)
-#define ZEND_RETURN_STRINGL_EX(s, l, cb)  \
-	do { \
-		RETVAL_STRINGL(s, l);  \
-		cb(s);    \
-		return;   \
-	} while (0)
-
-#define ZEND_TYPE_OF(z)  Z_TYPE_P(z)
-#define ZEND_IS_BOOL(z) (Z_TYPE_P(z) == IS_TRUE || Z_TYPE_P(z) == IS_FALSE)
-#define ZEND_IS_TRUE(z) (Z_TYPE_P(z) == IS_TRUE)
-#define Z_STRVAL_PP(s)   Z_STRVAL_P(*s)
-#define Z_STRLEN_PP(s)   Z_STRLEN_P(*s)
 #define fdfs_get_object(obj) (void *)((char *)(Z_OBJ_P(obj)) - XtOffsetOf(php_fdfs_t, zo))
-
-#define MAKE_STD_ZVAL(p) zval _stack_zval_##p; p = &(_stack_zval_##p)
-#define ALLOC_INIT_ZVAL(p) MAKE_STD_ZVAL(p)
-#define INIT_ZVAL(z)
-
-#define zend_add_assoc_long_ex(z, key, key_len, n) \
-	add_assoc_long_ex(z, key, key_len - 1, n)
-
-#define zend_add_assoc_stringl_ex(z, key, key_len, str, length, dup) \
-	add_assoc_stringl_ex(z, key, key_len - 1, str, length)
-
-#define zend_add_assoc_zval_ex(z, key, key_len, value) \
-	add_assoc_zval_ex(z, key, key_len - 1, value)
-
-#define zend_add_assoc_bool_ex(z, key, key_len, b) \
-	add_assoc_bool_ex(z, key, key_len - 1, b)
-
-static inline int fdfs_zend_hash_find(HashTable *ht, char *key, int key_len, zval **value)
-{
-	zval zkey;
-	ZVAL_STRINGL(&zkey, key, key_len - 1);
-	*value = zend_hash_find(ht, Z_STR(zkey));
-	return (*value != NULL ? SUCCESS : FAILURE);
-}
-
-static inline int fdfs_zend_hash_update(HashTable *ht, char *k, int len, void * val, int size, void *ptr)
-{
-	zval key;
-	ZVAL_STRINGL(&key, k, len - 1);
-	return zend_hash_update(ht, Z_STR(key), val) ? SUCCESS : FAILURE;
-}
-
-static inline int fdfs_call_user_function(HashTable *function_table, zval *object,
-	zval *function_name, zval *retval_ptr, uint32_t param_count, zval **params TSRMLS_DC)
-{
-	int i;
-	zval real_params[32];
-
-	if (param_count > 32)
-	{
-		return FAILURE;
-	}
-
-	for(i=0; i<param_count; i++)
-	{
-		real_params[i] = *params[i];
-	}
-	return call_user_function(function_table, object, function_name, retval_ptr,
-			param_count, real_params);
-}
-
-static inline int fdfs_zend_get_configuration_directive(char *name, int len, zval **value)
-{
-	zval key;
-	ZVAL_STRINGL(&key, name, len - 1);
-	*value = zend_get_configuration_directive(Z_STR(key));
-	return (*value != NULL ? SUCCESS : FAILURE);
-}
-
 #endif
+
 
 static int php_fdfs_download_callback(void *arg, const int64_t file_size, \
 		const char *data, const int current_size);
@@ -233,7 +97,7 @@ const zend_fcall_info empty_fcall_info = { 0, NULL, NULL, NULL, NULL, 0, NULL, N
 	    MAKE_STD_ZVAL(sock_zval); \
 	    ZVAL_LONG(sock_zval, -1); \
 	\
-	    fdfs_zend_hash_update(php_hash, "sock", sizeof("sock"), \
+	    zend_hash_update_wrapper(php_hash, "sock", sizeof("sock"), \
 			    &sock_zval, sizeof(zval *), NULL); \
 	}
 
@@ -607,7 +471,7 @@ static void php_fdfs_disconnect_server_impl(INTERNAL_FUNCTION_PARAMETERS, \
 	}
 
 	tracker_hash = Z_ARRVAL_P(server_info);
-	if (fdfs_zend_hash_find(tracker_hash, "sock", sizeof("sock"), \
+	if (zend_hash_find_wrapper(tracker_hash, "sock", sizeof("sock"), \
 			&data) == FAILURE)
 	{
 		pContext->err_no = ENOENT;
@@ -642,7 +506,7 @@ static int php_fdfs_get_callback_from_hash(HashTable *callback_hash, \
 {
 	zval *data;
 
-	if (fdfs_zend_hash_find(callback_hash, "callback", sizeof("callback"), \
+	if (zend_hash_find_wrapper(callback_hash, "callback", sizeof("callback"), \
 			&data) == FAILURE)
 	{
 		logError("file: "__FILE__", line: %d, " \
@@ -658,7 +522,7 @@ static int php_fdfs_get_callback_from_hash(HashTable *callback_hash, \
 	}
 	pCallback->func_name = data;
 
-	if (fdfs_zend_hash_find(callback_hash, "args", sizeof("args"), \
+	if (zend_hash_find_wrapper(callback_hash, "args", sizeof("args"), \
 			&data) == FAILURE)
 	{
 		pCallback->args = NULL;
@@ -683,7 +547,7 @@ static int php_fdfs_get_upload_callback_from_hash(HashTable *callback_hash, \
 		return result;
 	}
 
-	if (fdfs_zend_hash_find(callback_hash, "file_size", sizeof("file_size"), \
+	if (zend_hash_find_wrapper(callback_hash, "file_size", sizeof("file_size"), \
 			&data) == FAILURE)
 	{
 		logError("file: "__FILE__", line: %d, " \
@@ -718,7 +582,7 @@ static int php_fdfs_get_server_from_hash(HashTable *tracker_hash, \
 
 	memset(pTrackerServer, 0, sizeof(ConnectionInfo));
 	data = NULL;
-	if (fdfs_zend_hash_find(tracker_hash, "ip_addr", sizeof("ip_addr"), \
+	if (zend_hash_find_wrapper(tracker_hash, "ip_addr", sizeof("ip_addr"), \
 			&data) == FAILURE)
 	{
 		logError("file: "__FILE__", line: %d, " \
@@ -741,7 +605,7 @@ static int php_fdfs_get_server_from_hash(HashTable *tracker_hash, \
 	}
 	memcpy(pTrackerServer->ip_addr, ip_addr, ip_len);
 
-	if (fdfs_zend_hash_find(tracker_hash, "port", sizeof("port"), \
+	if (zend_hash_find_wrapper(tracker_hash, "port", sizeof("port"), \
 			&data) == FAILURE)
 	{
 		logError("file: "__FILE__", line: %d, " \
@@ -757,7 +621,7 @@ static int php_fdfs_get_server_from_hash(HashTable *tracker_hash, \
 	}
 	pTrackerServer->port = data->value.lval;
 
-	if (fdfs_zend_hash_find(tracker_hash, "sock", sizeof("sock"), \
+	if (zend_hash_find_wrapper(tracker_hash, "sock", sizeof("sock"), \
 			&data) == FAILURE)
 	{
 		logError("file: "__FILE__", line: %d, " \
@@ -2344,7 +2208,7 @@ static void php_fdfs_storage_download_file_to_buff_impl( \
 	}
 
 	pContext->err_no = 0;
-	ZEND_RETURN_STRINGL_EX(file_buff, file_size, free);
+	ZEND_RETURN_STRINGL_CALLBACK(file_buff, file_size, free);
 }
 
 static void php_fdfs_storage_download_file_to_file_impl( \
@@ -3026,7 +2890,7 @@ static int php_fdfs_upload_callback(void *arg, const int64_t file_size, int sock
 	args[0] = &zsock;
 	args[1] = pUploadCallback->callback.args;
 
-	if (fdfs_call_user_function(EG(function_table), NULL, \
+	if (zend_call_user_function_wrapper(EG(function_table), NULL, \
 		pUploadCallback->callback.func_name, 
 		&ret, 2, args TSRMLS_CC) == FAILURE)
 	{
@@ -3090,7 +2954,7 @@ static int php_fdfs_download_callback(void *arg, const int64_t file_size, \
 	args[0] = pCallback->args;
 	args[1] = &zfilesize;
 	args[2] = &zdata;
-	if (fdfs_call_user_function(EG(function_table), NULL, \
+	if (zend_call_user_function_wrapper(EG(function_table), NULL, \
 		pCallback->func_name, 
 		&ret, 3, args TSRMLS_CC) == FAILURE)
 	{
@@ -3275,7 +3139,7 @@ static void php_fdfs_storage_upload_file_impl(INTERNAL_FUNCTION_PARAMETERS, \
 			RETURN_BOOL(false);
 		}
 
-		if (fdfs_zend_hash_find(storage_hash, "store_path_index", \
+		if (zend_hash_find_wrapper(storage_hash, "store_path_index", \
 			sizeof("store_path_index"), &data) == FAILURE)
 		{
 			logError("file: "__FILE__", line: %d, " \
@@ -3392,7 +3256,7 @@ static void php_fdfs_storage_upload_file_impl(INTERNAL_FUNCTION_PARAMETERS, \
 
 		file_id_len = sprintf(file_id, "%s%c%s", group_name, \
 				FDFS_FILE_ID_SEPERATOR, remote_filename);
-		ZEND_RETURN_STRINGL_DUP(file_id, file_id_len);
+		ZEND_RETURN_STRINGL(file_id, file_id_len, 1);
 	}
 	else
 	{
@@ -3700,7 +3564,7 @@ static void php_fdfs_storage_upload_slave_file_impl( \
 
 		file_id_len = sprintf(file_id, "%s%c%s", new_group_name, \
 				FDFS_FILE_ID_SEPERATOR, remote_filename);
-		ZEND_RETURN_STRINGL_DUP(file_id, file_id_len);
+		ZEND_RETURN_STRINGL(file_id, file_id_len, 1);
 	}
 	else
 	{
@@ -4423,7 +4287,7 @@ static void php_fdfs_http_gen_token_impl(INTERNAL_FUNCTION_PARAMETERS, \
 		RETURN_BOOL(false);
 	}
 
-	ZEND_RETURN_STRINGL_DUP(token, strlen(token));
+	ZEND_RETURN_STRINGL(token, strlen(token), 1);
 }
 
 static void php_fdfs_send_data_impl(INTERNAL_FUNCTION_PARAMETERS, \
@@ -4643,7 +4507,7 @@ static void php_fdfs_gen_slave_filename_impl(INTERNAL_FUNCTION_PARAMETERS, \
 		RETURN_BOOL(false);
 	}
 
-	ZEND_RETURN_STRINGL_DUP(filename, filename_len);
+	ZEND_RETURN_STRINGL(filename, filename_len, 1);
 }
 
 /*
@@ -4724,7 +4588,7 @@ ZEND_FUNCTION(fastdfs_get_last_error_info)
 	char *error_info;
 
 	error_info = STRERROR(php_context.err_no);
-	ZEND_RETURN_STRINGL_DUP(error_info, strlen(error_info));
+	ZEND_RETURN_STRINGL(error_info, strlen(error_info), 1);
 }
 
 /*
@@ -4739,7 +4603,7 @@ ZEND_FUNCTION(fastdfs_client_version)
 	len = sprintf(szVersion, "%d.%02d", \
 		g_fdfs_version.major, g_fdfs_version.minor);
 
-	ZEND_RETURN_STRINGL_DUP(szVersion, len);
+	ZEND_RETURN_STRINGL(szVersion, len, 1);
 }
 
 /*
@@ -6608,7 +6472,7 @@ PHP_METHOD(FastDFS, get_last_error_info)
 
 	i_obj = (php_fdfs_t *) fdfs_get_object(object);
 	error_info = STRERROR(i_obj->context.err_no);
-	ZEND_RETURN_STRINGL_DUP(error_info, strlen(error_info));
+	ZEND_RETURN_STRINGL(error_info, strlen(error_info), 1);
 }
 
 /*
@@ -7337,7 +7201,7 @@ PHP_FASTDFS_API zend_class_entry *php_fdfs_get_exception_base(int root TSRMLS_DC
 			zend_class_entry *pce;
 			zval *value;
 
-			if (fdfs_zend_hash_find(CG(class_table), "runtimeexception",
+			if (zend_hash_find_wrapper(CG(class_table), "runtimeexception",
 			   sizeof("RuntimeException"), &value) == SUCCESS)
 			{
 				pce = Z_CE_P(value);
@@ -7407,7 +7271,7 @@ static int load_config_files()
 	use_conn_pool = pz++;
 	conn_pool_max_idle_time = pz++;
 
-	if (fdfs_zend_get_configuration_directive(ITEM_NAME_CONF_COUNT, 
+	if (zend_get_configuration_directive_wrapper(ITEM_NAME_CONF_COUNT, 
 		sizeof(ITEM_NAME_CONF_COUNT), &conf_c) == SUCCESS)
 	{
 		config_count = atoi(Z_STRVAL_P(conf_c));
@@ -7424,7 +7288,7 @@ static int load_config_files()
 		 config_count = 1;
 	}
 
-	if (fdfs_zend_get_configuration_directive(ITEM_NAME_BASE_PATH, \
+	if (zend_get_configuration_directive_wrapper(ITEM_NAME_BASE_PATH, \
 			sizeof(ITEM_NAME_BASE_PATH), &base_path) != SUCCESS)
 	{
 		strcpy(g_fdfs_base_path, "/tmp");
@@ -7452,7 +7316,7 @@ static int load_config_files()
 		return ENOTDIR;
 	}
 
-	if (fdfs_zend_get_configuration_directive(ITEM_NAME_CONNECT_TIMEOUT, \
+	if (zend_get_configuration_directive_wrapper(ITEM_NAME_CONNECT_TIMEOUT, \
 			sizeof(ITEM_NAME_CONNECT_TIMEOUT), \
 			&connect_timeout) == SUCCESS)
 	{
@@ -7467,7 +7331,7 @@ static int load_config_files()
 		g_fdfs_connect_timeout = DEFAULT_CONNECT_TIMEOUT;
 	}
 
-	if (fdfs_zend_get_configuration_directive(ITEM_NAME_NETWORK_TIMEOUT, \
+	if (zend_get_configuration_directive_wrapper(ITEM_NAME_NETWORK_TIMEOUT, \
 			sizeof(ITEM_NAME_NETWORK_TIMEOUT), \
 			&network_timeout) == SUCCESS)
 	{
@@ -7482,14 +7346,14 @@ static int load_config_files()
 		g_fdfs_network_timeout = DEFAULT_NETWORK_TIMEOUT;
 	}
 
-	if (fdfs_zend_get_configuration_directive(ITEM_NAME_LOG_LEVEL, \
+	if (zend_get_configuration_directive_wrapper(ITEM_NAME_LOG_LEVEL, \
 			sizeof(ITEM_NAME_LOG_LEVEL), \
 			&log_level) == SUCCESS)
 	{
 		set_log_level(Z_STRVAL_P(log_level));
 	}
 
-	if (fdfs_zend_get_configuration_directive(ITEM_NAME_LOG_FILENAME, \
+	if (zend_get_configuration_directive_wrapper(ITEM_NAME_LOG_FILENAME, \
 			sizeof(ITEM_NAME_LOG_FILENAME), \
 			&log_filename) == SUCCESS)
 	{
@@ -7499,7 +7363,7 @@ static int load_config_files()
 		}
 	}
 
-	if (fdfs_zend_get_configuration_directive(ITEM_NAME_ANTI_STEAL_SECRET_KEY, \
+	if (zend_get_configuration_directive_wrapper(ITEM_NAME_ANTI_STEAL_SECRET_KEY, \
 			sizeof(ITEM_NAME_ANTI_STEAL_SECRET_KEY), \
 			&anti_steal_secret_key) == SUCCESS)
 	{
@@ -7526,7 +7390,7 @@ static int load_config_files()
 	{
 		nItemLen = sprintf(szItemName, "%s%d", ITEM_NAME_CONF_FILE, \
 				(int)(pConfigInfo - config_list));
-		if (fdfs_zend_get_configuration_directive(szItemName, \
+		if (zend_get_configuration_directive_wrapper(szItemName, \
 			nItemLen + 1, &conf_filename) != SUCCESS)
 		{
 			if (pConfigInfo != config_list)
@@ -7538,7 +7402,7 @@ static int load_config_files()
 				return ENOENT;
 			}
 
-			if (fdfs_zend_get_configuration_directive( \
+			if (zend_get_configuration_directive_wrapper( \
 				ITEM_NAME_CONF_FILE, \
 				sizeof(ITEM_NAME_CONF_FILE), \
 				&conf_filename) != SUCCESS)
@@ -7575,7 +7439,7 @@ static int load_config_files()
 		}
 	}
 
-	if (fdfs_zend_get_configuration_directive(ITEM_NAME_USE_CONN_POOL,
+	if (zend_get_configuration_directive_wrapper(ITEM_NAME_USE_CONN_POOL,
 		sizeof(ITEM_NAME_USE_CONN_POOL), &use_conn_pool) == SUCCESS)
 	{
 		char *use_conn_pool_str;
@@ -7586,7 +7450,7 @@ static int load_config_files()
 			strcasecmp(use_conn_pool_str, "true") == 0 ||
 			strcmp(use_conn_pool_str, "1") == 0)
 		{
-			if (fdfs_zend_get_configuration_directive( \
+			if (zend_get_configuration_directive_wrapper( \
 				ITEM_NAME_CONN_POOL_MAX_IDLE_TIME, \
 				sizeof(ITEM_NAME_CONN_POOL_MAX_IDLE_TIME), \
 				&conn_pool_max_idle_time) == SUCCESS)

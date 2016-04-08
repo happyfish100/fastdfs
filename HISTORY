@@ -1,9 +1,9 @@
 
-Version 5.08  2016-02-04
+Version 5.08  2016-04-08
  * install library to $(TARGET_PREFIX)/lib anyway
  * php extension compiled in PHP 7
- * dio thread use blocked_queue, you must upgrade libfastcommon
-   to V1.24 or later
+ * dio thread use blocked_queue and php extension use php7_ext_wrapper.h,
+   you must upgrade libfastcommon to V1.25 or later
  * remove common/linux_stack_trace.[hc]
 
 Version 5.07  2015-09-13

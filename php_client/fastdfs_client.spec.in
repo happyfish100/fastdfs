@@ -1,3 +1,5 @@
+%define php_inidir %(php --ini | head -n 1 | awk -F ':' '{print $2;}' | sed 's/ //g')
+%define php_extdir %(php-config --extension-dir 2>/dev/null)
 Name: fastdfs_client
 Version: 5.0.8
 Release: 1%{?dist}
@@ -32,10 +34,10 @@ make
 %install
 rm -rf %{buildroot}
 
-mkdir -p %{buildroot}/usr/lib64/php/modules
-mkdir -p %{buildroot}/etc/php.d
-cp -f .libs/fastdfs_client.so  %{buildroot}/usr/lib64/php/modules/
-cp -f fastdfs_client.ini %{buildroot}/etc/php.d/fastdfs_client.ini.sample
+mkdir -p %{buildroot}%{php_extdir}
+mkdir -p %{buildroot}%{php_inidir}/php.d
+cp -f .libs/fastdfs_client.so  %{buildroot}%{php_extdir}
+cp -f fastdfs_client.ini %{buildroot}%{php_inidir}/php.d/fastdfs_client.ini.sample
 
 #make install IGNORE_MAN_GROUP=y DOC_DIR=%{_docdir}/%{name}-%{version} INIT_DIR=%{_initrddir}
 
@@ -54,8 +56,8 @@ cp -f fastdfs_client.ini %{buildroot}/etc/php.d/fastdfs_client.ini.sample
 
 %files
 %defattr(-,root,root,-)
-%{_libdir}/php/modules/*
-/etc/php.d/*
+%{php_extdir}/*
+%{php_inidir}/php.d/*
 
 %changelog
 * Mon Jun 23 2014  Zaixue Liao <liaozaixue@yongche.com>
