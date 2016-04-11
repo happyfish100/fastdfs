@@ -77,7 +77,7 @@
 
  function my_upload_file_callback($sock, $args)
  {
-	var_dump($args);
+	//var_dump($args);
 
 	$ret = fastdfs_send_data($sock, $args['buff']);
 	return $ret;
@@ -85,7 +85,7 @@
 
  function my_download_file_callback($args, $file_size, $data)
  {
-	var_dump($args);
+	//var_dump($args);
 
 	if ($args['fhandle'] == NULL)
 	{

@@ -2255,7 +2255,7 @@ static void php_fdfs_storage_download_file_to_file_impl( \
 	if (argc < min_param_count || argc > max_param_count)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"storage_set_metadata parameters " \
+			"storage_download_file_to_file parameters " \
 			"count: %d < %d or > %d", __LINE__, argc, \
 			min_param_count, max_param_count);
 		pContext->err_no = EINVAL;
