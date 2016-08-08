@@ -2929,6 +2929,11 @@ static int php_fdfs_download_callback(void *arg, const int64_t file_size, \
 	zval ret;
 	zval null_args;
 	int result;
+#if PHP_MAJOR_VERSION >= 7
+    zend_string *sz_data;
+    bool use_heap_data;
+#endif
+
 	TSRMLS_FETCH();
 
 	INIT_ZVAL(ret);
@@ -2937,11 +2942,12 @@ static int php_fdfs_download_callback(void *arg, const int64_t file_size, \
 	INIT_ZVAL(zfilesize);
 	ZVAL_LONG(&zfilesize, file_size);
 
-	INIT_ZVAL(zdata);
 #if PHP_MAJOR_VERSION < 7
+	INIT_ZVAL(zdata);
 	ZVAL_STRINGL(&zdata, (char *)data, current_size, 0);
 #else
-	ZVAL_STRINGL(&zdata, (char *)data, current_size);
+    ZSTR_ALLOCA_INIT(sz_data, (char *)data, current_size, use_heap_data);
+    ZVAL_NEW_STR(&zdata, sz_data);
 #endif
 
 	pCallback = (php_fdfs_callback_t *)arg;
@@ -2979,6 +2985,10 @@ static int php_fdfs_download_callback(void *arg, const int64_t file_size, \
 			__LINE__, ZEND_TYPE_OF(&ret));
 		result = EINVAL;
 	}
+
+#if PHP_MAJOR_VERSION >= 7
+    ZSTR_ALLOCA_FREE(sz_data, use_heap_data);
+#endif
 
 	return result;
 }
