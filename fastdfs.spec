@@ -60,6 +60,7 @@ This package is tools for fastdfs
 
 %install
 rm -rf %{buildroot}
+%{__mkdir_p} %{buildroot}/usr/lib/
 DESTDIR=$RPM_BUILD_ROOT ./make.sh install
 #make install IGNORE_MAN_GROUP=y DOC_DIR=%{_docdir}/%{name}-%{version} INIT_DIR=%{_initrddir}
 
@@ -87,36 +88,36 @@ DESTDIR=$RPM_BUILD_ROOT ./make.sh install
 
 %files -n %{FDFSServer}
 %defattr(-,root,root,-)
-/usr/bin/fdfs_trackerd
-/usr/bin/fdfs_storaged
-/usr/bin/restart.sh
-/usr/bin/stop.sh
-/etc/init.d/*
-/etc/fdfs/tracker.conf.sample
-/etc/fdfs/storage.conf.sample
+%{_bindir}/fdfs_trackerd
+%{_bindir}/fdfs_storaged
+%{_bindir}/restart.sh
+%{_bindir}/stop.sh
+%{_sysconfdir}/init.d/*
+%{_sysconfdir}/fdfs/tracker.conf.sample
+%{_sysconfdir}/fdfs/storage.conf.sample
 
 %files -n %{FDFSClient}
-/usr/lib64/libfdfsclient*
-/usr/lib/libfdfsclient*
-/etc/fdfs/client.conf.sample
+%{_libdir}/libfdfsclient*
+%{_usr}/lib/libfdfsclient*
+%{_sysconfdir}/fdfs/client.conf.sample
 
 %files -n %{FDFSClient}-devel
 %defattr(-,root,root,-)
-/usr/include/fastdfs/*
+%{_includedir}/fastdfs/*
 
 %files -n %{FDFSTool}
-/usr/bin/fdfs_monitor
-/usr/bin/fdfs_test
-/usr/bin/fdfs_test1
-/usr/bin/fdfs_crc32
-/usr/bin/fdfs_upload_file
-/usr/bin/fdfs_download_file
-/usr/bin/fdfs_delete_file
-/usr/bin/fdfs_file_info
-/usr/bin/fdfs_appender_test
-/usr/bin/fdfs_appender_test1
-/usr/bin/fdfs_append_file
-/usr/bin/fdfs_upload_appender
+%{_bindir}/fdfs_monitor
+%{_bindir}/fdfs_test
+%{_bindir}/fdfs_test1
+%{_bindir}/fdfs_crc32
+%{_bindir}/fdfs_upload_file
+%{_bindir}/fdfs_download_file
+%{_bindir}/fdfs_delete_file
+%{_bindir}/fdfs_file_info
+%{_bindir}/fdfs_appender_test
+%{_bindir}/fdfs_appender_test1
+%{_bindir}/fdfs_append_file
+%{_bindir}/fdfs_upload_appender
 
 %changelog
 * Mon Jun 23 2014  Zaixue Liao <liaozaixue@yongche.com>
