@@ -1740,9 +1740,6 @@ static int tracker_deal_ping_leader(struct fast_task_info *pTask)
 
 static int tracker_deal_reselect_leader(struct fast_task_info *pTask)
 {
-	TrackerClientInfo *pClientInfo;
-	
-	pClientInfo = (TrackerClientInfo *)pTask->arg;
 	if (pTask->length - sizeof(TrackerHeader) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
