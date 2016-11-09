@@ -2969,6 +2969,32 @@ static int tracker_deal_server_list_all_groups(struct fast_task_info *pTask)
 		return EINVAL;
 	}
 
+	// avoid coredump when pTask->data is not enough for all "TrackerGroupStat"s
+	int buff_size = (int)(sizeof(TrackerHeader) + g_groups.count * sizeof(TrackerGroupStat));
+	if (pTask->size < buff_size)
+	{
+		char *new_buff = (char *)malloc(buff_size);
+		if (new_buff == NULL)
+		{
+			logWarning("file: "__FILE__", line: %d, " \
+				"malloc %d bytes fail, " \
+				"errno: %d, error info: %s", \
+				__LINE__, buff_size, \
+				errno, STRERROR(errno));
+			return errno != 0 ? errno : ENOMEM;
+		}
+		else
+		{
+			pTask->size = buff_size;
+			pTask->data = new_buff;
+
+			logDebug("file: "__FILE__", line: %d, " \
+				"pTask->data not enough , realloc pTask->data, " \
+				"old pTask->size: %d, new pTask->size: %d", \
+				__LINE__, pTask->size, buff_size);			
+		}
+	}	
+
 	groupStats = (TrackerGroupStat *)(pTask->data + sizeof(TrackerHeader));
 	pDest = groupStats;
 	ppEnd = g_groups.sorted_groups + g_groups.count;
