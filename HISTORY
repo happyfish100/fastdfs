@@ -1,6 +1,7 @@
 
 Version 5.09  2016-11-10
- * bug fixed: list_all_groups expand buffer auto
+ * bug fixed: list_all_groups expand buffer auto for so many groups
+ * tracker.conf add parameters: min_buff_size and max_buff_size
 
 Version 5.08  2016-04-08
  * install library to $(TARGET_PREFIX)/lib anyway

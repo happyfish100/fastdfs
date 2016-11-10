@@ -15,6 +15,8 @@ int g_accept_threads = 1;
 int g_work_threads = DEFAULT_WORK_THREADS;
 int g_sync_log_buff_interval = SYNC_LOG_BUFF_DEF_INTERVAL;
 int g_check_active_interval = CHECK_ACTIVE_DEF_INTERVAL;
+int g_min_buff_size = TRACKER_MAX_PACKAGE_SIZE;
+int g_max_buff_size = 16 * TRACKER_MAX_PACKAGE_SIZE;
 
 FDFSGroups g_groups;
 int g_storage_stat_chg_count = 0;

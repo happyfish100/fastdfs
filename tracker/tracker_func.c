@@ -136,6 +136,8 @@ int tracker_load_from_conf_file(const char *filename, \
 	char *pSpaceThreshold;
 	char *pTrunkFileSize;
 	char *pRotateErrorLogSize;
+    char *pMinBuffSize;
+    char *pMaxBuffSize;
 #ifdef WITH_HTTPD
 	char *pHttpCheckUri;
 	char *pHttpCheckType;
@@ -147,6 +149,8 @@ int tracker_load_from_conf_file(const char *filename, \
 	int64_t slot_min_size;
 	int64_t slot_max_size;
 	int64_t rotate_error_log_size;
+    int64_t min_buff_size;
+    int64_t max_buff_size;
 	char reserved_space_str[32];
 
 	memset(&g_groups, 0, sizeof(FDFSGroups));
@@ -616,6 +620,38 @@ int tracker_load_from_conf_file(const char *filename, \
 			break;
 		}
 
+
+        pMinBuffSize = iniGetStrValue(NULL,
+                "min_buff_size", &iniContext);
+        if (pMinBuffSize == NULL) {
+            min_buff_size = TRACKER_MAX_PACKAGE_SIZE;
+        }
+        else if ((result=parse_bytes(pMinBuffSize, 1,
+                        &min_buff_size)) != 0)
+        {
+            return result;
+        }
+        g_min_buff_size = (int)min_buff_size;
+
+        pMaxBuffSize = iniGetStrValue(NULL,
+                "max_buff_size", &iniContext);
+        if (pMaxBuffSize == NULL) {
+            max_buff_size = 16 * TRACKER_MAX_PACKAGE_SIZE;
+        }
+        else if ((result=parse_bytes(pMaxBuffSize, 1,
+                        &max_buff_size)) != 0)
+        {
+            return result;
+        }
+        g_max_buff_size = (int)max_buff_size;
+
+        if (g_min_buff_size < TRACKER_MAX_PACKAGE_SIZE) {
+            g_min_buff_size = TRACKER_MAX_PACKAGE_SIZE;
+        }
+        if (g_max_buff_size < g_min_buff_size) {
+            g_max_buff_size = g_min_buff_size;
+        }
+
 #ifdef WITH_HTTPD
 		if ((result=fdfs_http_params_load(&iniContext, \
 				filename, &g_http_params)) != 0)
@@ -667,6 +703,8 @@ int tracker_load_from_conf_file(const char *filename, \
 			"max_connections=%d, "    \
 			"accept_threads=%d, "    \
 			"work_threads=%d, "    \
+            "min_buff_size=%d, " \
+            "max_buff_size=%d, " \
 			"store_lookup=%d, store_group=%s, " \
 			"store_server=%d, store_path=%d, " \
 			"reserved_storage_space=%s, " \
@@ -703,6 +741,7 @@ int tracker_load_from_conf_file(const char *filename, \
 			g_fdfs_connect_timeout, \
 			g_fdfs_network_timeout, g_server_port, bind_addr, \
 			g_max_connections, g_accept_threads, g_work_threads, \
+            g_min_buff_size, g_max_buff_size, \
 			g_groups.store_lookup, g_groups.store_group, \
 			g_groups.store_server, g_groups.store_path, \
 			fdfs_storage_reserved_space_to_string( \

@@ -82,8 +82,8 @@ int tracker_service_init()
     init_connections = g_max_connections < ALLOC_CONNECTIONS_ONCE ?
         g_max_connections : ALLOC_CONNECTIONS_ONCE;
 	if ((result=free_queue_init_ex(g_max_connections, init_connections,
-                    ALLOC_CONNECTIONS_ONCE, TRACKER_MAX_PACKAGE_SIZE,
-                    TRACKER_MAX_PACKAGE_SIZE, sizeof(TrackerClientInfo))) != 0)
+                    ALLOC_CONNECTIONS_ONCE, g_min_buff_size,
+                    g_max_buff_size, sizeof(TrackerClientInfo))) != 0)
 	{
 		return result;
 	}
@@ -2969,10 +2969,27 @@ static int tracker_deal_server_list_all_groups(struct fast_task_info *pTask)
 	}
 
     expect_size = sizeof(TrackerHeader) + g_groups.count * sizeof(TrackerGroupStat);
-    if ((result=free_queue_set_buffer_size(pTask, expect_size)) != 0)
+    if (expect_size > g_min_buff_size)
     {
-		pTask->length = sizeof(TrackerHeader);
-		return result;
+        if (expect_size <= g_max_buff_size)
+        {
+            if ((result=free_queue_set_buffer_size(pTask, expect_size)) != 0)
+            {
+                pTask->length = sizeof(TrackerHeader);
+                return result;
+            }
+        }
+        else
+        {
+            logError("file: "__FILE__", line: %d, "
+                    "cmd=%d, client ip: %s, "
+                    "expect buffer size: %d > max_buff_size: %d, "
+                    "you should increase max_buff_size in tracker.conf",
+                    __LINE__, TRACKER_PROTO_CMD_SERVER_LIST_ALL_GROUPS,
+                    pTask->client_ip, expect_size, g_max_buff_size);
+            pTask->length = sizeof(TrackerHeader);
+            return ENOSPC;
+        }
     }
 
 	groupStats = (TrackerGroupStat *)(pTask->data + sizeof(TrackerHeader));
