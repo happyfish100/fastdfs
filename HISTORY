@@ -1,4 +1,7 @@
 
+Version 5.09  2016-11-10
+ * bug fixed: list_all_groups expand buffer auto
+
 Version 5.08  2016-04-08
  * install library to $(TARGET_PREFIX)/lib anyway
  * php extension compiled in PHP 7

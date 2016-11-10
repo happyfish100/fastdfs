@@ -2952,6 +2952,8 @@ static int tracker_deal_server_list_all_groups(struct fast_task_info *pTask)
 	FDFSGroupInfo **ppEnd;
 	TrackerGroupStat *groupStats;
 	TrackerGroupStat *pDest;
+    int result;
+    int expect_size;
 
 	if (pTask->length - sizeof(TrackerHeader) != 0)
 	{
@@ -2965,6 +2967,13 @@ static int tracker_deal_server_list_all_groups(struct fast_task_info *pTask)
 		pTask->length = sizeof(TrackerHeader);
 		return EINVAL;
 	}
+
+    expect_size = sizeof(TrackerHeader) + g_groups.count * sizeof(TrackerGroupStat);
+    if ((result=free_queue_set_buffer_size(pTask, expect_size)) != 0)
+    {
+		pTask->length = sizeof(TrackerHeader);
+		return result;
+    }
 
 	groupStats = (TrackerGroupStat *)(pTask->data + sizeof(TrackerHeader));
 	pDest = groupStats;
