@@ -204,9 +204,10 @@ static int fastdfs_convert_metadata_to_array(zval *metadata_obj, \
 	unsigned int key_len;
 	int value_len;
 	HashPosition pointer;
-	zval ***ppp;
 	zval **data;
-#if PHP_MAJOR_VERSION >= 7
+#if PHP_MAJOR_VERSION < 7
+	zval ***ppp;
+#else
 	zval *for_php7;
 #endif
 	FDFSMetaData *pMetaData;
@@ -232,9 +233,9 @@ static int fastdfs_convert_metadata_to_array(zval *metadata_obj, \
 
 	memset(*meta_list, 0, sizeof(FDFSMetaData) * (*meta_count));
 	pMetaData = *meta_list;
-	ppp = &data;
 
 #if PHP_MAJOR_VERSION < 7
+	ppp = &data;
 	for (zend_hash_internal_pointer_reset_ex(meta_hash, &pointer); \
 		zend_hash_get_current_data_ex(meta_hash, (void **)ppp, &pointer)
 		 == SUCCESS; zend_hash_move_forward_ex(meta_hash, &pointer))
