@@ -94,6 +94,7 @@ DESTDIR=$RPM_BUILD_ROOT ./make.sh install
 /etc/init.d/*
 /etc/fdfs/tracker.conf.sample
 /etc/fdfs/storage.conf.sample
+/etc/fdfs/storage_ids.conf.sample
 
 %files -n %{FDFSClient}
 /usr/lib64/libfdfsclient*
