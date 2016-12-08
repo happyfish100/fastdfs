@@ -6,15 +6,12 @@ Release: 1%{?dist}
 Summary: The php extension of fastdfs client
 License: GPL
 Group: Arch/Tech
-URL: 	http://perso.orange.fr/sebastien.godard/
-Source: http://perso.orange.fr/sebastien.godard/%{name}-%{version}.tar.gz
+URL: 	https://github.com/happyfish100/fastdfs
+Source: https://github.com/happyfish100/fastdfs/%{name}-%{version}.tar.gz
 
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n) 
 
-#Requires: /sbin/chkconfig
-#Requires: sh-utils textutils grep fileutils /etc/cron.d
-#BuildRequires: libfdfsclient-devel
-#Requires: %__cp %__mv %__chmod %__grep %__mkdir %__install %__id
+BuildRequires: libfdfsclient-devel
 Requires: libfdfsclient
 
 %description
@@ -24,9 +21,6 @@ This package provides the php extension for fastdfs client
 %setup -q
 
 %build
-# FIXME: I need to fix the upstream Makefile to use LIBDIR et al. properly and
-# send the upstream maintainer a patch.
-# add DOCDIR to the configure part
 phpize
 %configure
 make
@@ -38,12 +32,6 @@ mkdir -p %{buildroot}%{php_extdir}
 mkdir -p %{buildroot}%{php_inidir}/php.d
 cp -f .libs/fastdfs_client.so  %{buildroot}%{php_extdir}
 cp -f fastdfs_client.ini %{buildroot}%{php_inidir}/php.d/fastdfs_client.ini.sample
-
-#make install IGNORE_MAN_GROUP=y DOC_DIR=%{_docdir}/%{name}-%{version} INIT_DIR=%{_initrddir}
-
-#install -m 0644 sysstat.crond %{buildroot}/%{_sysconfdir}/cron.d/sysstat
-
-#%find_lang %{name}
 
 %post
 
