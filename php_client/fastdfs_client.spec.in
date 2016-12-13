@@ -30,8 +30,8 @@ rm -rf %{buildroot}
 
 mkdir -p %{buildroot}%{php_extdir}
 mkdir -p %{buildroot}%{php_inidir}/php.d
-cp -f .libs/fastdfs_client.so  %{buildroot}%{php_extdir}
-cp -f fastdfs_client.ini %{buildroot}%{php_inidir}/php.d/fastdfs_client.ini.sample
+cp -f .libs/fastdfs_client.so  %{buildroot}%{php_extdir}/
+cp -f fastdfs_client.ini %{buildroot}%{php_inidir}/php.d/
 
 %post
 
