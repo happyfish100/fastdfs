@@ -5180,7 +5180,7 @@ static int storage_upload_slave_file(struct fast_task_info *pTask)
 			"cmd=%d, client ip: %s, package size " \
 			"%"PRId64" is not correct, " \
 			"expect length > %d", __LINE__, \
-			STORAGE_PROTO_CMD_UPLOAD_FILE, \
+			STORAGE_PROTO_CMD_UPLOAD_SLAVE_FILE, \
 			pTask->client_ip,  \
 			nInPackLen, 2 * FDFS_PROTO_PKG_LEN_SIZE + \
 			FDFS_FILE_PREFIX_MAX_LEN + \
@@ -6676,7 +6676,7 @@ static int storage_server_get_metadata(struct fast_task_info *pTask)
 			"cmd=%d, client ip: %s, package size " \
 			"%"PRId64" is not correct, " \
 			"expect length > %d", __LINE__, \
-			STORAGE_PROTO_CMD_UPLOAD_FILE, \
+			STORAGE_PROTO_CMD_GET_METADATA, \
 			pTask->client_ip, nInPackLen, FDFS_GROUP_NAME_MAX_LEN);
 		return EINVAL;
 	}
@@ -6687,7 +6687,7 @@ static int storage_server_get_metadata(struct fast_task_info *pTask)
 				"cmd=%d, client ip: %s, package size " \
 				"%"PRId64" is too large, " \
 				"expect length should < %d", __LINE__, \
-				STORAGE_PROTO_CMD_UPLOAD_FILE, \
+				STORAGE_PROTO_CMD_GET_METADATA, \
 				pTask->client_ip,  \
 				nInPackLen, pTask->size);
 		return EINVAL;
@@ -6800,7 +6800,7 @@ static int storage_server_download_file(struct fast_task_info *pTask)
 			"cmd=%d, client ip: %s, package size " \
 			"%"PRId64" is not correct, " \
 			"expect length > %d", __LINE__, \
-			STORAGE_PROTO_CMD_UPLOAD_FILE, \
+			STORAGE_PROTO_CMD_DOWNLOAD_FILE, \
 			pTask->client_ip,  \
 			nInPackLen, 16 + FDFS_GROUP_NAME_MAX_LEN);
 		return EINVAL;
@@ -6812,7 +6812,7 @@ static int storage_server_download_file(struct fast_task_info *pTask)
 			"cmd=%d, client ip: %s, package size " \
 			"%"PRId64" is too large, " \
 			"expect length should < %d", __LINE__, \
-			STORAGE_PROTO_CMD_UPLOAD_FILE, \
+			STORAGE_PROTO_CMD_DOWNLOAD_FILE, \
 			pTask->client_ip,  \
 			nInPackLen, pTask->size);
 		return EINVAL;
@@ -7226,7 +7226,7 @@ static int storage_server_delete_file(struct fast_task_info *pTask)
 			"cmd=%d, client ip: %s, package size " \
 			"%"PRId64" is not correct, " \
 			"expect length <= %d", __LINE__, \
-			STORAGE_PROTO_CMD_UPLOAD_FILE, \
+			STORAGE_PROTO_CMD_DELETE_FILE, \
 			pTask->client_ip,  \
 			nInPackLen, FDFS_GROUP_NAME_MAX_LEN);
 		return EINVAL;
@@ -7238,7 +7238,7 @@ static int storage_server_delete_file(struct fast_task_info *pTask)
 			"cmd=%d, client ip: %s, package size " \
 			"%"PRId64" is too large, " \
 			"expect length should < %d", __LINE__, \
-			STORAGE_PROTO_CMD_UPLOAD_FILE, \
+			STORAGE_PROTO_CMD_DELETE_FILE, \
 			pTask->client_ip,  nInPackLen, pTask->size);
 		return EINVAL;
 	}
@@ -7653,7 +7653,7 @@ static int storage_do_create_link(struct fast_task_info *pTask)
 			"cmd=%d, client ip: %s, package size " \
 			"%"PRId64" is not correct, " \
 			"expect length > %d", __LINE__, \
-			STORAGE_PROTO_CMD_UPLOAD_FILE, pTask->client_ip, \
+			STORAGE_PROTO_CMD_CREATE_LINK, pTask->client_ip, \
 			 nInPackLen, 4 * FDFS_PROTO_PKG_LEN_SIZE + \
 			FDFS_GROUP_NAME_MAX_LEN + FDFS_FILE_PREFIX_MAX_LEN + \
 			FDFS_FILE_EXT_NAME_MAX_LEN);
@@ -7840,7 +7840,7 @@ static int storage_create_link(struct fast_task_info *pTask)
 			"cmd=%d, client ip: %s, package size " \
 			"%"PRId64" is not correct, " \
 			"expect length > %d", __LINE__, \
-			STORAGE_PROTO_CMD_UPLOAD_FILE, pTask->client_ip, \
+			STORAGE_PROTO_CMD_CREATE_LINK, pTask->client_ip, \
 			 nInPackLen, 4 * FDFS_PROTO_PKG_LEN_SIZE + \
 			FDFS_GROUP_NAME_MAX_LEN + FDFS_FILE_PREFIX_MAX_LEN + \
 			FDFS_FILE_EXT_NAME_MAX_LEN);
