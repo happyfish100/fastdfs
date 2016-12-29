@@ -62,14 +62,10 @@ typedef struct
 static int php_fdfs_download_callback(void *arg, const int64_t file_size, \
 		const char *data, const int current_size);
 
-static void php_fdfs_free_storage(php_fdfs_t *i_obj);
-
 static FDFSConfigInfo *config_list = NULL;
 static int config_count = 0;
 
 static FDFSPhpContext php_context = {&g_tracker_group, 0};
-
-static int le_fdfs;
 
 static zend_class_entry *fdfs_ce = NULL;
 static zend_class_entry *fdfs_exception_ce = NULL;
@@ -5373,28 +5369,6 @@ static void php_fdfs_destroy(php_fdfs_t *i_obj TSRMLS_DC)
 		efree(i_obj->context.pTrackerGroup);
 		i_obj->context.pTrackerGroup = NULL;
 	}
-
-	efree(i_obj);
-}
-
-ZEND_RSRC_DTOR_FUNC(php_fdfs_dtor)
-{
-#if PHP_MAJOR_VERSION < 7
-	if (rsrc->ptr != NULL)
-	{
-		php_fdfs_t *i_obj = (php_fdfs_t *)rsrc->ptr;
-		php_fdfs_destroy(i_obj TSRMLS_CC);
-		rsrc->ptr = NULL;
-	}
-#else
-	if (res->ptr != NULL)
-	{
-		php_fdfs_t *i_obj = (php_fdfs_t *)res->ptr;
-		php_fdfs_destroy(i_obj TSRMLS_CC);
-		res->ptr = NULL;
-	}
-#endif
-
 }
 
 /* FastDFS::__construct([int config_index = 0, bool bMultiThread = false])
@@ -5453,15 +5427,6 @@ static PHP_METHOD(FastDFS, __construct)
 	{
 		i_obj->context.pTrackerGroup = i_obj->pConfigInfo->pTrackerGroup;
 	}
-}
-
-static PHP_METHOD(FastDFS, __destruct)
-{
-	zval *object = getThis();
-	php_fdfs_t *i_obj;
-
-	i_obj = (php_fdfs_t *) fdfs_get_object(object);
-	php_fdfs_free_storage(i_obj);
 }
 
 /*
@@ -6574,9 +6539,6 @@ ZEND_ARG_INFO(0, config_index)
 ZEND_ARG_INFO(0, bMultiThread)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo___destruct, 0, 0, 0)
-ZEND_END_ARG_INFO()
-
 ZEND_BEGIN_ARG_INFO_EX(arginfo_tracker_get_connection, 0, 0, 0)
 ZEND_END_ARG_INFO()
 
@@ -7077,7 +7039,6 @@ ZEND_END_ARG_INFO()
 #define FDFS_ME(name, args) PHP_ME(FastDFS, name, args, ZEND_ACC_PUBLIC)
 static zend_function_entry fdfs_class_methods[] = {
     FDFS_ME(__construct,        arginfo___construct)
-    FDFS_ME(__destruct,         arginfo___destruct)
     FDFS_ME(tracker_get_connection,   arginfo_tracker_get_connection)
     FDFS_ME(tracker_make_all_connections, arginfo_tracker_make_all_connections)
     FDFS_ME(tracker_close_all_connections,arginfo_tracker_close_all_connections)
@@ -7153,11 +7114,23 @@ static zend_function_entry fdfs_class_methods[] = {
 #undef FDFS_ME
 /* }}} */
 
-static void php_fdfs_free_storage(php_fdfs_t *i_obj)
+#if PHP_MAJOR_VERSION < 7
+static void php_fdfs_free_storage(void *object TSRMLS_DC)
 {
+    php_fdfs_t *i_obj = (php_fdfs_t *)object;
+	zend_object_std_dtor(&i_obj->zo TSRMLS_CC);
+	php_fdfs_destroy(i_obj TSRMLS_CC);
+	efree(i_obj);
+}
+#else
+static void php_fdfs_free_storage(zend_object *object)
+{
+    php_fdfs_t *i_obj = (php_fdfs_t *)((char*)(object) -
+            XtOffsetOf(php_fdfs_t , zo));
 	zend_object_std_dtor(&i_obj->zo TSRMLS_CC);
 	php_fdfs_destroy(i_obj TSRMLS_CC);
 }
+#endif
 
 #if PHP_MAJOR_VERSION < 7
 zend_object_value php_fdfs_new(zend_class_entry *ce TSRMLS_DC)
@@ -7170,7 +7143,7 @@ zend_object_value php_fdfs_new(zend_class_entry *ce TSRMLS_DC)
 	zend_object_std_init(&i_obj->zo, ce TSRMLS_CC);
 	retval.handle = zend_objects_store_put(i_obj, \
 		(zend_objects_store_dtor_t)zend_objects_destroy_object, \
-        NULL, NULL TSRMLS_CC);
+        php_fdfs_free_storage, NULL TSRMLS_CC);
 	retval.handlers = zend_get_std_object_handlers();
 
 	return retval;
@@ -7517,14 +7490,12 @@ PHP_MINIT_FUNCTION(fastdfs_client)
 	}
 
 #if PHP_MAJOR_VERSION >= 7
-	memcpy(&fdfs_object_handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
+	memcpy(&fdfs_object_handlers, zend_get_std_object_handlers(),
+            sizeof(zend_object_handlers));
 	fdfs_object_handlers.offset = XtOffsetOf(php_fdfs_t, zo);
-	fdfs_object_handlers.free_obj = NULL;
+	fdfs_object_handlers.free_obj = php_fdfs_free_storage;
 	fdfs_object_handlers.clone_obj = NULL;
 #endif
-
-	le_fdfs = zend_register_list_destructors_ex(NULL, php_fdfs_dtor, \
-			"FastDFS", module_number);
 
 	INIT_CLASS_ENTRY(ce, "FastDFS", fdfs_class_methods);
 	fdfs_ce = zend_register_internal_class(&ce TSRMLS_CC);
