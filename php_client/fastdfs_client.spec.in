@@ -1,7 +1,7 @@
 %define php_inidir %(php --ini | head -n 1 | awk -F ':' '{print $2;}' | sed 's/ //g')
 %define php_extdir %(php-config --extension-dir 2>/dev/null)
 Name: fastdfs_client
-Version: 5.0.8
+Version: 5.0.9
 Release: 1%{?dist}
 Summary: The php extension of fastdfs client
 License: GPL
