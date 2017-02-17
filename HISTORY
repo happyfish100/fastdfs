@@ -1,4 +1,8 @@
 
+Version 5.10  2017-02-17
+ * use fc_safe_read instead of read, and fc_safe_write instead of write
+   you must upgrade libfastcommon to V1.35 or later
+
 Version 5.09  2016-12-29
  * bug fixed: list_all_groups expand buffer auto for so many groups
  * tracker.conf add parameters: min_buff_size and max_buff_size

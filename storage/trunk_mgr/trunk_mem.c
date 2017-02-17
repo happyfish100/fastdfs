@@ -367,7 +367,7 @@ static int tree_walk_callback(void *data, void *args)
 		if (pCallbackArgs->pCurrent - pCallbackArgs->buff > \
 				sizeof(pCallbackArgs->buff) - 128)
 		{
-			if (write(pCallbackArgs->fd, pCallbackArgs->buff, \
+			if (fc_safe_write(pCallbackArgs->fd, pCallbackArgs->buff, \
 			    pCallbackArgs->pCurrent - pCallbackArgs->buff) \
 			      != pCallbackArgs->pCurrent - pCallbackArgs->buff)
 			{
@@ -441,7 +441,7 @@ static int storage_trunk_do_save()
 	len = callback_args.pCurrent - callback_args.buff;
 	if (len > 0 && result == 0)
 	{
-		if (write(callback_args.fd, callback_args.buff, len) != len)
+		if (fc_safe_write(callback_args.fd, callback_args.buff, len) != len)
 		{
 			result = errno != 0 ? errno : EIO;
 			logError("file: "__FILE__", line: %d, "\
@@ -991,7 +991,7 @@ static int storage_trunk_load()
 		return result;
 	}
 
-	if ((bytes=read(fd, buff, sizeof(buff) - 1)) < 0)
+	if ((bytes=fc_safe_read(fd, buff, sizeof(buff) - 1)) < 0)
 	{
 		result = errno != 0 ? errno : EIO;
 		logError("file: "__FILE__", line: %d, " \
@@ -1039,7 +1039,7 @@ static int storage_trunk_load()
 			}
 
 			memcpy(buff, pLineStart, len);
-			if ((bytes=read(fd, buff + len, sizeof(buff) \
+			if ((bytes=fc_safe_read(fd, buff + len, sizeof(buff) \
 					- len - 1)) < 0)
 			{
 				result = errno != 0 ? errno : EIO;
@@ -1890,7 +1890,7 @@ int trunk_file_delete(const char *trunk_filename, \
 	trunkHeader.file_type = FDFS_TRUNK_FILE_TYPE_NONE;
 	trunk_pack_header(&trunkHeader, pack_buff);
 
-	write_bytes = write(fd, pack_buff, FDFS_TRUNK_FILE_HEADER_SIZE);
+	write_bytes = fc_safe_write(fd, pack_buff, FDFS_TRUNK_FILE_HEADER_SIZE);
 	if (write_bytes != FDFS_TRUNK_FILE_HEADER_SIZE)
 	{
 		result = errno != 0 ? errno : EIO;
@@ -1905,7 +1905,7 @@ int trunk_file_delete(const char *trunk_filename, \
 	{
 		write_bytes = remain_bytes > sizeof(buff) ? \
 				sizeof(buff) : remain_bytes;
-		if (write(fd, buff, write_bytes) != write_bytes)
+		if (fc_safe_write(fd, buff, write_bytes) != write_bytes)
 		{
 			result = errno != 0 ? errno : EIO;
 			break;

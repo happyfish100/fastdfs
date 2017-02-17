@@ -432,7 +432,7 @@ int trunk_file_get_content_ex(const FDFSStorePaths *pStorePaths, \
 		}
 	}
 
-	read_bytes = read(fd, buff, file_size);
+	read_bytes = fc_safe_read(fd, buff, file_size);
 	if (read_bytes == file_size)
 	{
 		result = 0;
@@ -626,7 +626,7 @@ int trunk_file_do_lstat_func_ex(const FDFSStorePaths *pStorePaths, \
 		return result;
 	}
 
-	read_bytes = read(fd, buff, FDFS_TRUNK_FILE_HEADER_SIZE);
+	read_bytes = fc_safe_read(fd, buff, FDFS_TRUNK_FILE_HEADER_SIZE);
 	if (read_bytes == FDFS_TRUNK_FILE_HEADER_SIZE)
 	{
 		result = 0;

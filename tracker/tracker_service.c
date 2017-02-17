@@ -510,7 +510,7 @@ static int tracker_changelog_response(struct fast_task_info *pTask, \
 		return result;
 	}
 
-	read_bytes = read(fd, pTask->data + sizeof(TrackerHeader), chg_len);
+	read_bytes = fc_safe_read(fd, pTask->data + sizeof(TrackerHeader), chg_len);
 	close(fd);
 
 	if (read_bytes != chg_len)

@@ -389,9 +389,9 @@ static int trunk_binlog_merge_file(int old_fd)
 		return result;
 	}
 
-	while ((bytes=read(old_fd, buff, sizeof(buff))) > 0)
+	while ((bytes=fc_safe_read(old_fd, buff, sizeof(buff))) > 0)
 	{
-		if (write(tmp_fd, buff, bytes) != bytes)
+		if (fc_safe_write(tmp_fd, buff, bytes) != bytes)
 		{
 			result = errno != 0 ? errno : EACCES;
 			logError("file: "__FILE__", line: %d, " \
@@ -414,9 +414,9 @@ static int trunk_binlog_merge_file(int old_fd)
 			return errno != 0 ? errno : EPERM;
 		}
 
-		while ((bytes=read(binlog_fd, buff, sizeof(buff))) > 0)
+		while ((bytes=fc_safe_read(binlog_fd, buff, sizeof(buff))) > 0)
 		{
-			if (write(tmp_fd, buff, bytes) != bytes)
+			if (fc_safe_write(tmp_fd, buff, bytes) != bytes)
 			{
 				result = errno != 0 ? errno : EACCES;
 				logError("file: "__FILE__", line: %d, " \
@@ -622,23 +622,23 @@ static int trunk_binlog_fsync_ex(const bool bNeedLock, \
 	{
 		write_ret = 0;  //skip
 	}
-	else if (write(trunk_binlog_fd, buff, *length) != *length)
+	else if (fc_safe_write(trunk_binlog_fd, buff, *length) != *length)
 	{
+		write_ret = errno != 0 ? errno : EIO;
 		logError("file: "__FILE__", line: %d, " \
 			"write to binlog file \"%s\" fail, fd=%d, " \
 			"errno: %d, error info: %s",  \
 			__LINE__, get_trunk_binlog_filename(full_filename), \
 			trunk_binlog_fd, errno, STRERROR(errno));
-		write_ret = errno != 0 ? errno : EIO;
 	}
 	else if (fsync(trunk_binlog_fd) != 0)
 	{
+		write_ret = errno != 0 ? errno : EIO;
 		logError("file: "__FILE__", line: %d, " \
 			"sync to binlog file \"%s\" fail, " \
 			"errno: %d, error info: %s",  \
 			__LINE__, get_trunk_binlog_filename(full_filename), \
 			errno, STRERROR(errno));
-		write_ret = errno != 0 ? errno : EIO;
 	}
 	else
 	{
@@ -1087,7 +1087,7 @@ static int trunk_binlog_preread(TrunkBinLogReader *pReader)
 		pReader->binlog_buff.current = pReader->binlog_buff.buffer;
 	}
 
-	bytes_read = read(pReader->binlog_fd, pReader->binlog_buff.buffer \
+	bytes_read = fc_safe_read(pReader->binlog_fd, pReader->binlog_buff.buffer \
 		+ pReader->binlog_buff.length, \
 		TRUNK_BINLOG_BUFFER_SIZE - pReader->binlog_buff.length);
 	if (bytes_read < 0)

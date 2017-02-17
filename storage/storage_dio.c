@@ -331,7 +331,7 @@ int dio_read_file(struct fast_task_info *pTask)
 		read_bytes, pTask->length, pFileContext->offset);
 	*/
 
-	if (read(pFileContext->fd, pTask->data + pTask->length, \
+	if (fc_safe_read(pFileContext->fd, pTask->data + pTask->length, \
 		read_bytes) != read_bytes)
 	{
 		result = errno != 0 ? errno : EIO;
@@ -424,7 +424,7 @@ int dio_write_file(struct fast_task_info *pTask)
 
 	pDataBuff = pTask->data + pFileContext->buff_offset;
 	write_bytes = pTask->length - pFileContext->buff_offset;
-	if (write(pFileContext->fd, pDataBuff, write_bytes) != write_bytes)
+	if (fc_safe_write(pFileContext->fd, pDataBuff, write_bytes) != write_bytes)
 	{
 		result = errno != 0 ? errno : EIO;
 		logError("file: "__FILE__", line: %d, " \
@@ -807,7 +807,7 @@ int dio_check_trunk_file_ex(int fd, const char *filename, const int64_t offset)
 	char old_header[FDFS_TRUNK_FILE_HEADER_SIZE];
 	char expect_header[FDFS_TRUNK_FILE_HEADER_SIZE];
 
-	if (read(fd, old_header, FDFS_TRUNK_FILE_HEADER_SIZE) != 
+	if (fc_safe_read(fd, old_header, FDFS_TRUNK_FILE_HEADER_SIZE) !=
 		FDFS_TRUNK_FILE_HEADER_SIZE)
 	{
 		result = errno != 0 ? errno : EIO;
@@ -903,7 +903,7 @@ int dio_write_chunk_header(struct fast_task_info *pTask)
 	}
 	*/
 
-	if (write(pFileContext->fd, header, FDFS_TRUNK_FILE_HEADER_SIZE) != \
+	if (fc_safe_write(pFileContext->fd, header, FDFS_TRUNK_FILE_HEADER_SIZE) != \
 		FDFS_TRUNK_FILE_HEADER_SIZE)
 	{
 		result = errno != 0 ? errno : EIO;

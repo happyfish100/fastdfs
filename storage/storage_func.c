@@ -293,7 +293,7 @@ int storage_write_to_fd(int fd, get_filename_func filename_func, \
 		return errno != 0 ? errno : ENOENT;
 	}
 
-	if (write(fd, buff, len) != len)
+	if (fc_safe_write(fd, buff, len) != len)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"write to file \"%s\" fail, " \
@@ -657,7 +657,7 @@ int storage_write_to_sync_ini_file()
 		INIT_ITEM_CURRENT_TRUNK_FILE_ID, g_current_trunk_file_id, \
 		INIT_ITEM_TRUNK_LAST_COMPRESS_TIME, (int)g_trunk_last_compress_time
 	    );
-	if (write(fd, buff, len) != len)
+	if (fc_safe_write(fd, buff, len) != len)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"write to file \"%s\" fail, " \
@@ -2019,7 +2019,7 @@ int write_serialized(int fd, const char *buff, size_t count, const bool bSync)
 			__LINE__, result, STRERROR(result));
 	}
 
-	if (write(fd, buff, count) == count)
+	if (fc_safe_write(fd, buff, count) == count)
 	{
 		if (bSync && fsync(fd) != 0)
 		{

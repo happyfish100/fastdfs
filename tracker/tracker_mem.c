@@ -248,7 +248,7 @@ static int tracker_write_to_changelog(FDFSGroupInfo *pGroup, \
 		(int)g_current_time, pGroup->group_name, pStorage->id, \
 		pStorage->status, pArg != NULL ? pArg : "");
 
-	if (write(changelog_fd, buff, len) != len)
+	if (fc_safe_write(changelog_fd, buff, len) != len)
 	{
 		tracker_mem_file_unlock();
 
@@ -1742,7 +1742,7 @@ int tracker_save_groups()
 			"\t%s=%d\n\n", \
 			GROUP_SECTION_NAME_GLOBAL, \
 			GROUP_ITEM_GROUP_COUNT, g_groups.count);
-	if (write(fd, buff, len) != len)
+	if (fc_safe_write(fd, buff, len) != len)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"write to file \"%s\" fail, " \
@@ -1791,7 +1791,7 @@ int tracker_save_groups()
 				(*ppGroup)->last_trunk_server_id
 			);
 
-		if (write(fd, buff, len) != len)
+		if (fc_safe_write(fd, buff, len) != len)
 		{
 			logError("file: "__FILE__", line: %d, " \
 				"write to file \"%s\" fail, " \
@@ -2060,7 +2060,7 @@ int tracker_save_storages()
 				pStorage->changelog_offset \
 	 		     );
 
-			if (write(fd, buff, len) != len)
+			if (fc_safe_write(fd, buff, len) != len)
 			{
 				logError("file: "__FILE__", line: %d, " \
 					"write to file \"%s\" fail, " \
@@ -2081,7 +2081,7 @@ int tracker_save_storages()
 			"\t%s=%d\n", \
 			STORAGE_SECTION_NAME_GLOBAL, \
 			STORAGE_ITEM_STORAGE_COUNT, count);
-		if (write(fd, buff, len) != len)
+		if (fc_safe_write(fd, buff, len) != len)
 		{
 			logError("file: "__FILE__", line: %d, " \
 				"write to file \"%s\" fail, " \
@@ -2198,7 +2198,7 @@ int tracker_save_sync_timestamps()
 			*(buff + len) = '\n';
 			len++;
 
-			if (write(fd, buff, len) != len)
+			if (fc_safe_write(fd, buff, len) != len)
 			{
 				logError("file: "__FILE__", line: %d, " \
 					"write to file \"%s\" fail, " \
@@ -3838,7 +3838,8 @@ static int tracker_mem_get_sys_file_piece(ConnectionInfo *pTrackerServer, \
 	}
 
 	pContent = pInBuff + FDFS_PROTO_PKG_LEN_SIZE;
-	if (write_bytes > 0 && write(fd, pContent, write_bytes) != write_bytes)
+	if (write_bytes > 0 &&
+            fc_safe_write(fd, pContent, write_bytes) != write_bytes)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"write to file %s fail, " \
@@ -4997,7 +4998,7 @@ static int tracker_write_to_trunk_change_log(FDFSGroupInfo *pGroup, \
 		}
 	}
 
-	if (write(fd, buff, len) != len)
+	if (fc_safe_write(fd, buff, len) != len)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"write to file \"%s\" fail, " \
