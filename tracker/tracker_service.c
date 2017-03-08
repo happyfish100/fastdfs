@@ -1992,7 +1992,7 @@ static int tracker_deal_get_one_sys_file(struct fast_task_info *pTask)
 	long2buff(file_stat.st_size, p);
 	p += FDFS_PROTO_PKG_LEN_SIZE;
 
-	bytes = read_bytes;
+	bytes = read_bytes + 1;
 	if (read_bytes > 0 && (result=getFileContentEx(full_filename, \
 					p, offset, &bytes)) != 0)
 	{

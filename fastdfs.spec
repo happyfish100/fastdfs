@@ -17,13 +17,13 @@ Source: http://perso.orange.fr/sebastien.godard/%{name}-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n) 
 
 Requires: %__cp %__mv %__chmod %__grep %__mkdir %__install %__id
-BuildRequires: libfastcommon-devel >= 1.0.35
+BuildRequires: libfastcommon-devel >= 1.0.36
 
 %description
 This package provides tracker & storage of fastdfs
 
 %package -n %{FDFSServer}
-Requires: libfastcommon >= 1.0.35
+Requires: libfastcommon >= 1.0.36
 Summary: fastdfs tracker & storage
 
 %package -n %{FDFSTool}
