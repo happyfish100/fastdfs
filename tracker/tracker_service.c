@@ -1992,24 +1992,27 @@ static int tracker_deal_get_one_sys_file(struct fast_task_info *pTask)
 	long2buff(file_stat.st_size, p);
 	p += FDFS_PROTO_PKG_LEN_SIZE;
 
-	bytes = read_bytes + 1;
-	if (read_bytes > 0 && (result=getFileContentEx(full_filename, \
-					p, offset, &bytes)) != 0)
-	{
-		pTask->length = sizeof(TrackerHeader);
-		return result;
-	}
+    if (read_bytes > 0)
+    {
+        bytes = read_bytes + 1;
+        if ((result=getFileContentEx(full_filename, \
+                        p, offset, &bytes)) != 0)
+        {
+            pTask->length = sizeof(TrackerHeader);
+            return result;
+        }
 
-	if (bytes != read_bytes)
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"client ip: %s, read bytes: %"PRId64
-			" != expect bytes: %"PRId64,  \
-			__LINE__, pTask->client_ip, bytes, read_bytes);
+        if (bytes != read_bytes)
+        {
+            logError("file: "__FILE__", line: %d, " \
+                    "client ip: %s, read bytes: %"PRId64
+                    " != expect bytes: %"PRId64,  \
+                    __LINE__, pTask->client_ip, bytes, read_bytes);
 
-		pTask->length = sizeof(TrackerHeader);
-		return EIO;
-	}
+            pTask->length = sizeof(TrackerHeader);
+            return EIO;
+        }
+    }
 
 	p += read_bytes;
 	pTask->length = p - pTask->data;
