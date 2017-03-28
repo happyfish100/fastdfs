@@ -422,7 +422,6 @@ static int tracker_check_and_sync(struct fast_task_info *pTask, \
 			pClientInfo->pGroup->trunk_chg_count;
 		p = (char *)pDestServer;
 	}
-	}
 
 	if (pClientInfo->pStorage->chg_count != pClientInfo->pGroup->chg_count)
 	{
@@ -447,6 +446,7 @@ static int tracker_check_and_sync(struct fast_task_info *pTask, \
 		pClientInfo->pStorage->chg_count = \
 			pClientInfo->pGroup->chg_count;
 		p = (char *)pDestServer;
+	}
 	}
 
 	pTask->length = p - pTask->data;
@@ -743,9 +743,19 @@ static int tracker_deal_storage_replica_chg(struct fast_task_info *pTask)
 	}
 
 	pTask->length = sizeof(TrackerHeader);
-	briefServers = (FDFSStorageBrief *)(pTask->data + sizeof(TrackerHeader));
-	return tracker_mem_sync_storages(((TrackerClientInfo *)pTask->arg)->pGroup, \
-				briefServers, server_count);
+    if (g_if_leader_self)
+    {
+        logDebug("file: "__FILE__", line: %d, " \
+                "client ip addr: %s, ignore storage info sync, "
+                "server_count: %d", __LINE__, pTask->client_ip, server_count);
+        return 0;
+    }
+    else
+    {
+        briefServers = (FDFSStorageBrief *)(pTask->data + sizeof(TrackerHeader));
+        return tracker_mem_sync_storages(((TrackerClientInfo *)pTask->arg)->pGroup,
+                briefServers, server_count);
+    }
 }
 
 static int tracker_deal_report_trunk_fid(struct fast_task_info *pTask)
