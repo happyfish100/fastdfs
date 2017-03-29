@@ -90,6 +90,9 @@ static int storage_do_fetch_binlog(ConnectionInfo *pSrcStorage, \
 
 	if ((result=fdfs_recv_header(pSrcStorage, &in_bytes)) != 0)
 	{
+		logError("file: "__FILE__", line: %d, "
+                "fdfs_recv_header fail, result: %d",
+                __LINE__, result);
 		return result;
 	}
 
