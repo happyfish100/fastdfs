@@ -1102,6 +1102,31 @@ static void set_tracker_leader(const int leader_index)
 	g_tracker_group.leader_index = leader_index;
 }
 
+static void get_tracker_leader()
+{
+    int i;
+    TrackerRunningStatus tracker_status;
+    ConnectionInfo tracker_server;
+
+    for (i=0; i<g_tracker_group.server_count; i++)
+    {
+        memcpy(&tracker_server, g_tracker_group.servers + i,
+                sizeof(ConnectionInfo));
+        if (fdfs_get_tracker_status(&tracker_server, &tracker_status) == 0)
+        {
+            if (tracker_status.if_leader)
+            {
+                g_tracker_group.leader_index = i;
+                logInfo("file: "__FILE__", line: %d, "
+                        "the tracker server leader is #%d. %s:%d",
+                        __LINE__, i, tracker_server.ip_addr,
+                        tracker_server.port);
+                break;
+            }
+        }
+    }
+}
+
 static int tracker_check_response(ConnectionInfo *pTrackerServer, \
 	bool *bServerPortChanged)
 {
@@ -1822,6 +1847,11 @@ static int tracker_sync_notify(ConnectionInfo *pTrackerServer, const int tracker
     {
         if (result == ENOENT)
         {
+            if (g_tracker_group.leader_index == -1)
+            {
+                get_tracker_leader();
+            }
+
             if (tracker_index == g_tracker_group.leader_index)
             {
                 logWarning("file: "__FILE__", line: %d, "
@@ -1830,10 +1860,9 @@ static int tracker_sync_notify(ConnectionInfo *pTrackerServer, const int tracker
                         __LINE__, g_sync_src_id);
                 *g_sync_src_id = '\0';
                 storage_write_to_sync_ini_file();
-                result = 0;
             }
         }
-        if (result != 0)
+        if (result != 0 && result != ENOENT)
         {
             logError("file: "__FILE__", line: %d, "
                     "fdfs_recv_header fail, result: %d",
@@ -1852,7 +1881,7 @@ static int tracker_sync_notify(ConnectionInfo *pTrackerServer, const int tracker
 		return EINVAL;
 	}
 
-	return 0;
+    return result;
 }
 
 int tracker_report_join(ConnectionInfo *pTrackerServer, \
@@ -1911,8 +1940,12 @@ int tracker_report_join(ConnectionInfo *pTrackerServer, \
 		{
 			for (i=0; i<g_tracker_group.server_count; i++)
 			{
-				if (my_report_status[i] != EFAULT)
+				if (my_report_status[i] == -1)
 				{
+                    logInfo("file: "__FILE__", line: %d, "
+                            "tracker server: #%d. %s:%d, my_report_status: %d",
+                            __LINE__, i, g_tracker_group.servers[i].ip_addr,
+                            g_tracker_group.servers[i].port, my_report_status[i]);
 					break;
 				}
 			}

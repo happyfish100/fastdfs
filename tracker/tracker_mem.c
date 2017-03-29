@@ -3801,6 +3801,9 @@ static int tracker_mem_get_sys_file_piece(ConnectionInfo *pTrackerServer, \
 				sizeof(in_buff), &in_bytes);
 	if (result != 0)
 	{
+        logError("file: "__FILE__", line: %d, "
+                "fdfs_recv_response fail, result: %d",
+                __LINE__, result);
 		return result;
 	}
 
@@ -4868,6 +4871,9 @@ static int _storage_get_trunk_binlog_size(
 	if ((result=fdfs_recv_response(pStorageServer, \
 		&pInBuff, sizeof(in_buff), &in_bytes)) != 0)
 	{
+        logError("file: "__FILE__", line: %d, "
+                "fdfs_recv_response fail, result: %d",
+                __LINE__, result);
 		return result;
 	}
 
@@ -5054,6 +5060,9 @@ static int tracker_mem_do_set_trunk_server(FDFSGroupInfo *pGroup,
 			pGroup->storage_port, 
 			STORAGE_PROTO_CMD_TRUNK_DELETE_BINLOG_MARKS)) != 0)
 		{
+            logError("file: "__FILE__", line: %d, "
+                    "fdfs_deal_no_body_cmd_ex fail, result: %d",
+                    __LINE__, result);
 			return result;
 		}
 	}

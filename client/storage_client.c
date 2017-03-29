@@ -266,6 +266,9 @@ int storage_get_metadata(ConnectionInfo *pTrackerServer, \
 	if ((result=fdfs_recv_response(pStorageServer, \
 		&file_buff, 0, &in_bytes)) != 0)
 	{
+		logError("file: "__FILE__", line: %d, "
+                "fdfs_recv_response fail, result: %d",
+                __LINE__, result);
 		break;
 	}
 
@@ -364,6 +367,9 @@ int storage_query_file_info_ex(ConnectionInfo *pTrackerServer, \
 	if ((result=fdfs_recv_response(pStorageServer, \
 		&pInBuff, sizeof(in_buff), &in_bytes)) != 0)
 	{
+		logError("file: "__FILE__", line: %d, "
+                "fdfs_recv_response fail, result: %d",
+                __LINE__, result);
 		break;
 	}
 
@@ -490,6 +496,9 @@ int storage_delete_file(ConnectionInfo *pTrackerServer, \
 	if ((result=fdfs_recv_response(pStorageServer, \
 		&pBuff, 0, &in_bytes)) != 0)
 	{
+		logError("file: "__FILE__", line: %d, "
+                "fdfs_recv_response fail, result: %d",
+                __LINE__, result);
 		break;
 	}
 
@@ -584,6 +593,9 @@ int storage_do_download_file_ex(ConnectionInfo *pTrackerServer, \
 		if ((result=fdfs_recv_header(pStorageServer, \
 			&in_bytes)) != 0)
 		{
+            logError("file: "__FILE__", line: %d, "
+                    "fdfs_recv_header fail, result: %d",
+                    __LINE__, result);
 			break;
 		}
 
@@ -601,6 +613,9 @@ int storage_do_download_file_ex(ConnectionInfo *pTrackerServer, \
 		if ((result=fdfs_recv_response(pStorageServer, \
 			file_buff, 0, &in_bytes)) != 0)
 		{
+            logError("file: "__FILE__", line: %d, "
+                    "fdfs_recv_response fail, result: %d",
+                    __LINE__, result);
 			break;
 		}
 	}
@@ -614,6 +629,9 @@ int storage_do_download_file_ex(ConnectionInfo *pTrackerServer, \
 		if ((result=fdfs_recv_header(pStorageServer, \
 			&in_bytes)) != 0)
 		{
+            logError("file: "__FILE__", line: %d, "
+                    "fdfs_recv_header fail, result: %d",
+                    __LINE__, result);
 			break;
 		}
 
@@ -973,6 +991,9 @@ int storage_do_upload_file(ConnectionInfo *pTrackerServer, \
 	if ((result=fdfs_recv_response(pStorageServer, \
 		&pInBuff, sizeof(in_buff), &in_bytes)) != 0)
 	{
+		logError("file: "__FILE__", line: %d, "
+                "fdfs_recv_response fail, result: %d",
+                __LINE__, result);
 		break;
 	}
 
@@ -1229,6 +1250,12 @@ int storage_set_metadata(ConnectionInfo *pTrackerServer, \
 	pBuff = in_buff;
 	result = fdfs_recv_response(pStorageServer, \
 		&pBuff, 0, &in_bytes);
+    if (result != 0)
+    {
+		logError("file: "__FILE__", line: %d, "
+                "fdfs_recv_response fail, result: %d",
+                __LINE__, result);
+    }
 	} while (0);
 
 	if (meta_buff != NULL)
@@ -1426,6 +1453,9 @@ int storage_client_create_link(ConnectionInfo *pTrackerServer, \
 	if ((result=fdfs_recv_response(pStorageServer, \
 		&pInBuff, sizeof(in_buff), &in_bytes)) != 0)
 	{
+		logError("file: "__FILE__", line: %d, "
+                "fdfs_recv_response fail, result: %d",
+                __LINE__, result);
 		break;
 	}
 
@@ -1750,6 +1780,9 @@ int storage_do_append_file(ConnectionInfo *pTrackerServer, \
 
 	if ((result=fdfs_recv_header(pStorageServer, &in_bytes)) != 0)
 	{
+        logError("file: "__FILE__", line: %d, "
+                "fdfs_recv_header fail, result: %d",
+                __LINE__, result);
 		break;
 	}
 
@@ -1878,6 +1911,9 @@ int storage_do_modify_file(ConnectionInfo *pTrackerServer, \
 
 	if ((result=fdfs_recv_header(pStorageServer, &in_bytes)) != 0)
 	{
+        logError("file: "__FILE__", line: %d, "
+                "fdfs_recv_header fail, result: %d",
+                __LINE__, result);
 		break;
 	}
 
@@ -2290,6 +2326,9 @@ int storage_truncate_file(ConnectionInfo *pTrackerServer, \
 
 	if ((result=fdfs_recv_header(pStorageServer, &in_bytes)) != 0)
 	{
+        logError("file: "__FILE__", line: %d, "
+                "fdfs_recv_header fail, result: %d",
+                __LINE__, result);
 		break;
 	}
 

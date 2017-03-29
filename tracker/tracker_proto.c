@@ -183,6 +183,9 @@ int fdfs_deal_no_body_cmd(ConnectionInfo *pTrackerServer, const int cmd)
 	result = fdfs_recv_header(pTrackerServer, &in_bytes);
 	if (result != 0)
 	{
+		logError("file: "__FILE__", line: %d, "
+                "fdfs_recv_header fail, cmd: %d, result: %d",
+                __LINE__, cmd, result);
 		return result;
 	}
 

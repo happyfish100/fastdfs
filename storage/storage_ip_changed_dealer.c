@@ -97,6 +97,12 @@ static int storage_report_ip_changed(ConnectionInfo *pTrackerServer)
 
 	if (result == 0 || result == EALREADY || result == ENOENT)
 	{
+        if (result != 0)
+        {
+            logWarning("file: "__FILE__", line: %d, "
+                    "fdfs_recv_response fail, result: %d",
+                    __LINE__, result);
+        }
 		return 0;
 	}
 	else

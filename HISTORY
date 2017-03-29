@@ -7,6 +7,7 @@ Version 5.10  2017-03-29
  * do NOT sync storage server info to tracker leader
  * adjust parameter store_server when use_trunk_file is true
  * clear sync src id when tracker response ENOENT
+ * log more info when fdfs_recv_header / fdfs_recv_response fail
 
 Version 5.09  2016-12-29
  * bug fixed: list_all_groups expand buffer auto for so many groups

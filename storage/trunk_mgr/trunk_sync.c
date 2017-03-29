@@ -1381,6 +1381,9 @@ static int trunk_sync_data(TrunkBinLogReader *pReader, \
 	pBuff = in_buff;
 	if ((result=fdfs_recv_response(pStorage, &pBuff, 0, &in_bytes)) != 0)
 	{
+		logError("file: "__FILE__", line: %d, "
+                "fdfs_recv_response fail, result: %d",
+                __LINE__, result);
 		return result;
 	}
 
@@ -1573,9 +1576,13 @@ static void* trunk_sync_thread_entrance(void* arg)
 
 		if (reader.binlog_offset == 0)
 		{
-			if (fdfs_deal_no_body_cmd(&storage_server, \
-				STORAGE_PROTO_CMD_TRUNK_TRUNCATE_BINLOG_FILE) != 0)
+			if ((result=fdfs_deal_no_body_cmd(&storage_server, \
+				STORAGE_PROTO_CMD_TRUNK_TRUNCATE_BINLOG_FILE)) != 0)
 			{
+                logError("file: "__FILE__", line: %d, "
+                        "fdfs_deal_no_body_cmd fail, result: %d",
+                        __LINE__, result);
+
 				close(storage_server.sock);
 				trunk_reader_destroy(&reader);
 				sleep(5);

@@ -66,6 +66,9 @@ static int trunk_client_trunk_do_alloc_space(ConnectionInfo *pTrunkServer, \
 	if ((result=fdfs_recv_response(pTrunkServer, \
 		&p, sizeof(FDFSTrunkInfoBuff), &in_bytes)) != 0)
 	{
+		logError("file: "__FILE__", line: %d, "
+                "fdfs_recv_response fail, result: %d",
+                __LINE__, result);
 		return result;
 	}
 
@@ -176,6 +179,9 @@ static int trunk_client_trunk_confirm_or_free(ConnectionInfo *pTrunkServer,\
 
 	if ((result=fdfs_recv_header(pTrunkServer, &in_bytes)) != 0)
 	{
+		logError("file: "__FILE__", line: %d, "
+                "fdfs_recv_header fail, result: %d",
+                __LINE__, result);
 		return result;
 	}
 

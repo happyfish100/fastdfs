@@ -745,6 +745,12 @@ int fdfs_get_storage_ids_from_tracker_server(ConnectionInfo *pTrackerServer)
 			response = NULL;
 			result = fdfs_recv_response(conn, \
 				&response, 0, &in_bytes);
+            if (result != 0)
+            {
+                logError("file: "__FILE__", line: %d, "
+                        "fdfs_recv_response fail, result: %d",
+                        __LINE__, result);
+            }
 		}
 
 		if (result != 0)

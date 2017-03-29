@@ -64,6 +64,9 @@ static int fdfs_ping_leader(ConnectionInfo *pTrackerServer)
 	if ((result=fdfs_recv_response(pTrackerServer, &pInBuff, \
 			sizeof(in_buff), &in_bytes)) != 0)
 	{
+        logError("file: "__FILE__", line: %d, "
+                "fdfs_recv_response fail, result: %d",
+                __LINE__, result);
 		return result;
 	}
 
@@ -282,6 +285,9 @@ static int do_notify_leader_changed(ConnectionInfo *pTrackerServer, \
 				0, &in_bytes);
 	if (result != 0)
 	{
+        logError("file: "__FILE__", line: %d, "
+                "fdfs_recv_response fail, result: %d",
+                __LINE__, result);
 		break;
 	}
 
