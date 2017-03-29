@@ -56,7 +56,7 @@ static int tracker_report_sync_timestamp(ConnectionInfo *pTrackerServer, \
 
 static int tracker_sync_dest_req(ConnectionInfo *pTrackerServer);
 static int tracker_sync_dest_query(ConnectionInfo *pTrackerServer);
-static int tracker_sync_notify(ConnectionInfo *pTrackerServer);
+static int tracker_sync_notify(ConnectionInfo *pTrackerServer, const int tracker_index);
 static int tracker_storage_changelog_req(ConnectionInfo *pTrackerServer);
 static int tracker_report_trunk_fid(ConnectionInfo *pTrackerServer);
 static int tracker_fetch_trunk_fid(ConnectionInfo *pTrackerServer);
@@ -401,7 +401,7 @@ static void *tracker_report_thread_entrance(void *arg)
 			}
 			else
 			{
-				if (tracker_sync_notify(pTrackerServer) != 0)
+				if (tracker_sync_notify(pTrackerServer, tracker_index) != 0)
 				{
 					pthread_mutex_unlock( \
 						&reporter_thread_lock);
@@ -424,7 +424,7 @@ static void *tracker_report_thread_entrance(void *arg)
 		}
 
 		src_storage_status[tracker_index] = \
-					tracker_sync_notify(pTrackerServer);
+					tracker_sync_notify(pTrackerServer, tracker_index);
 		if (src_storage_status[tracker_index] != 0)
 		{
 			int k;
@@ -1789,7 +1789,7 @@ static int tracker_fetch_trunk_fid(ConnectionInfo *pTrackerServer)
 	return 0;
 }
 
-static int tracker_sync_notify(ConnectionInfo *pTrackerServer)
+static int tracker_sync_notify(ConnectionInfo *pTrackerServer, const int tracker_index)
 {
 	char out_buff[sizeof(TrackerHeader)+sizeof(TrackerStorageSyncReqBody)];
 	TrackerHeader *pHeader;
@@ -1822,13 +1822,18 @@ static int tracker_sync_notify(ConnectionInfo *pTrackerServer)
     {
         if (result == ENOENT)
         {
-            logWarning("file: "__FILE__", line: %d, "
-                    "clear sync src id: %s",
-                    __LINE__, g_sync_src_id);
-            *g_sync_src_id = '\0';
-            storage_write_to_sync_ini_file();
+            if (tracker_index == g_tracker_group.leader_index)
+            {
+                logWarning("file: "__FILE__", line: %d, "
+                        "clear sync src id: %s because "
+                        "tracker leader response ENOENT",
+                        __LINE__, g_sync_src_id);
+                *g_sync_src_id = '\0';
+                storage_write_to_sync_ini_file();
+                result = 0;
+            }
         }
-        else
+        if (result != 0)
         {
             logError("file: "__FILE__", line: %d, "
                     "fdfs_recv_header fail, result: %d",
@@ -1988,7 +1993,7 @@ int tracker_report_join(ConnectionInfo *pTrackerServer, \
 
 	if (*(respBody.src_id) == '\0' && *g_sync_src_id != '\0')
 	{
-		return tracker_sync_notify(pTrackerServer);
+		return tracker_sync_notify(pTrackerServer, tracker_index);
 	}
 	else
 	{
