@@ -695,6 +695,14 @@ int tracker_load_from_conf_file(const char *filename, \
 
 #endif
 
+        if (g_if_use_trunk_file && g_groups.store_server == FDFS_STORE_SERVER_ROUND_ROBIN)
+        {
+            logInfo("file: "__FILE__", line: %d, "
+                    "set store_server to %d because use_trunk_file is true",
+                    __LINE__, FDFS_STORE_SERVER_FIRST_BY_IP);
+            g_groups.store_server = FDFS_STORE_SERVER_FIRST_BY_IP;
+        }
+
 		logInfo("FastDFS v%d.%02d, base_path=%s, " \
 			"run_by_group=%s, run_by_user=%s, " \
 			"connect_timeout=%ds, "    \
