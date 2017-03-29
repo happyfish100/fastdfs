@@ -1819,12 +1819,23 @@ static int tracker_sync_notify(ConnectionInfo *pTrackerServer)
 	}
 
 	if ((result=fdfs_recv_header(pTrackerServer, &in_bytes)) != 0)
-	{
-		logError("file: "__FILE__", line: %d, "
-                "fdfs_recv_header fail, result: %d",
-                __LINE__, result);
-		return result;
-	}
+    {
+        if (result == ENOENT)
+        {
+            logWarning("file: "__FILE__", line: %d, "
+                    "clear sync src id: %s",
+                    __LINE__, g_sync_src_id);
+            *g_sync_src_id = '\0';
+            storage_write_to_sync_ini_file();
+        }
+        else
+        {
+            logError("file: "__FILE__", line: %d, "
+                    "fdfs_recv_header fail, result: %d",
+                    __LINE__, result);
+            return result;
+        }
+    }
 
 	if (in_bytes != 0)
 	{

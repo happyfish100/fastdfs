@@ -6,6 +6,7 @@ Version 5.10  2017-03-29
    you must upgrade libfastcommon to V1.36 or later
  * do NOT sync storage server info to tracker leader
  * adjust parameter store_server when use_trunk_file is true
+ * clear sync src id when tracker response ENOENT
 
 Version 5.09  2016-12-29
  * bug fixed: list_all_groups expand buffer auto for so many groups
