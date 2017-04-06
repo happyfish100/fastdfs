@@ -4,6 +4,7 @@
 %define FDFSClientDevel libfdfsclient-devel
 %define FDFSTool   fastdfs-tool
 %define FDFSVersion 5.0.10
+%define CommitVersion %(echo $COMMIT_VERSION)
 
 Name: %{FastDFS}
 Version: %{FDFSVersion}
@@ -21,6 +22,7 @@ BuildRequires: libfastcommon-devel >= 1.0.36
 
 %description
 This package provides tracker & storage of fastdfs
+commit version: %{CommitVersion}
 
 %package -n %{FDFSServer}
 Requires: libfastcommon >= 1.0.36
@@ -40,15 +42,19 @@ Summary: The client header of fastdfs
 
 %description -n %{FDFSServer}
 This package provides tracker & storage of fastdfs
+commit version: %{CommitVersion}
 
 %description -n %{FDFSClient}
 This package is client dynamic library of fastdfs
+commit version: %{CommitVersion}
 
 %description -n %{FDFSClient}-devel
 This package is client header of fastdfs client
+commit version: %{CommitVersion}
 
 %description -n %{FDFSTool}
 This package is tools for fastdfs
+commit version: %{CommitVersion}
 
 %prep
 %setup -q
