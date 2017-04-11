@@ -10,7 +10,9 @@
 ### END INIT INFO
 
 # Source function library.
-. /etc/init.d/functions
+if [ -f /etc/init.d/functions ]; then
+  . /etc/init.d/functions
+fi
 
 PRG=/usr/bin/fdfs_storaged
 CONF=/etc/fdfs/storage.conf
