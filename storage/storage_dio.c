@@ -255,41 +255,39 @@ int dio_open_file(StorageFileContext *pFileContext)
 {
 	int result;
 
-	if (pFileContext->fd >= 0)
-	{
-		return 0;
-	}
-
-	pFileContext->fd = open(pFileContext->filename, 
-				pFileContext->open_flags, 0644);
 	if (pFileContext->fd < 0)
-	{
-		result = errno != 0 ? errno : EACCES;
-		logError("file: "__FILE__", line: %d, " \
-			"open file: %s fail, " \
-			"errno: %d, error info: %s", \
-			__LINE__, pFileContext->filename, \
-			result, STRERROR(result));
-	}
-	else
-	{
-		result = 0;
-	}
+    {
+        pFileContext->fd = open(pFileContext->filename,
+                pFileContext->open_flags, 0644);
+        if (pFileContext->fd < 0)
+        {
+            result = errno != 0 ? errno : EACCES;
+            logError("file: "__FILE__", line: %d, " \
+                    "open file: %s fail, " \
+                    "errno: %d, error info: %s", \
+                    __LINE__, pFileContext->filename, \
+                    result, STRERROR(result));
+        }
+        else
+        {
+            result = 0;
+        }
 
-	pthread_mutex_lock(&g_dio_thread_lock);
-	g_storage_stat.total_file_open_count++;
-	if (result == 0)
-	{
-		g_storage_stat.success_file_open_count++;
-	}
-	pthread_mutex_unlock(&g_dio_thread_lock);
+        pthread_mutex_lock(&g_dio_thread_lock);
+        g_storage_stat.total_file_open_count++;
+        if (result == 0)
+        {
+            g_storage_stat.success_file_open_count++;
+        }
+        pthread_mutex_unlock(&g_dio_thread_lock);
 
-	if (result != 0)
-	{
-		return result;
-	}
+        if (result != 0)
+        {
+            return result;
+        }
+    }
 
-	if (pFileContext->offset > 0 && lseek(pFileContext->fd, \
+	if (pFileContext->offset > 0 && lseek(pFileContext->fd,
 		pFileContext->offset, SEEK_SET) < 0)
 	{
 		result = errno != 0 ? errno : EIO;

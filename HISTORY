@@ -1,4 +1,7 @@
 
+Version 5.11  2017-04-28
+ * bug fixed: file_offset has no effect when use trunk file
+
 Version 5.10  2017-03-29
  * use fc_safe_read instead of read, and fc_safe_write instead of write
    you must upgrade libfastcommon to V1.35 or later
