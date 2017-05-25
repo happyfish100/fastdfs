@@ -1041,6 +1041,14 @@ static int storage_load_paths(IniContext *pItemContext)
 	return 0;
 }
 
+void storage_set_access_log_header(struct log_context *pContext)
+{
+#define STORAGE_ACCESS_HEADER_STR "client_ip action filename status time_used_ms req_len resp_len"
+#define STORAGE_ACCESS_HEADER_LEN (sizeof(STORAGE_ACCESS_HEADER_STR) - 1)
+
+    log_header(pContext, STORAGE_ACCESS_HEADER_STR, STORAGE_ACCESS_HEADER_LEN);
+}
+
 int storage_func_init(const char *filename, \
 		char *bind_addr, const int addr_size)
 {
@@ -1655,6 +1663,7 @@ int storage_func_init(const char *filename, \
 			{
 				break;
 			}
+            log_set_header_callback(&g_access_log_context, storage_set_access_log_header);
 		}
 	
 		g_rotate_access_log = iniGetBoolValue(NULL, "rotate_access_log",\
