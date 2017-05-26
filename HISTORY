@@ -1,7 +1,8 @@
 
-Version 5.11  2017-05-25
+Version 5.11  2017-05-26
  * bug fixed: file_offset has no effect when use trunk file
  * add storage access log header
+ * http.conf add parameter http.multi_range.enabed
 
 Version 5.10  2017-03-29
  * use fc_safe_read instead of read, and fc_safe_write instead of write

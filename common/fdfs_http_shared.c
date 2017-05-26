@@ -124,6 +124,10 @@ int fdfs_http_params_load(IniContext *pIniContext, \
 			"http.need_find_content_type", \
 			pIniContext, true);
 
+    pParams->support_multi_range = iniGetBoolValue(NULL, \
+			"http.multi_range.enabed", \
+			pIniContext, true);
+
 	pParams->server_port = iniGetIntValue(NULL, "http.server_port", \
 					pIniContext, 80);
 	if (pParams->server_port <= 0)
@@ -137,7 +141,8 @@ int fdfs_http_params_load(IniContext *pIniContext, \
 	pParams->anti_steal_token = iniGetBoolValue(NULL, \
 				"http.anti_steal.check_token", \
 				pIniContext, false);
-	if (pParams->need_find_content_type || pParams->anti_steal_token)
+	if (pParams->need_find_content_type || pParams->anti_steal_token ||
+            pParams->support_multi_range)
 	{
 	mime_types_filename = iniGetStrValue(NULL, "http.mime_types_filename", \
                                         pIniContext);
@@ -275,7 +280,7 @@ int fdfs_http_params_load(IniContext *pIniContext, \
 		return result;
 	}
 
-	if (!pParams->need_find_content_type)
+	if (!(pParams->need_find_content_type || pParams->support_multi_range))
 	{
 		hash_destroy(&pParams->content_type_hash);
 	}
@@ -294,7 +299,7 @@ int fdfs_http_params_load(IniContext *pIniContext, \
 
 void fdfs_http_params_destroy(FDFSHTTPParams *pParams)
 {
-	if (pParams->need_find_content_type)
+	if (!(pParams->need_find_content_type || pParams->support_multi_range))
 	{
 		hash_destroy(&pParams->content_type_hash);
 	}

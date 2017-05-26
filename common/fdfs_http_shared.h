@@ -25,6 +25,9 @@ typedef struct
 	/* if need find content type by file extension name */
 	bool need_find_content_type;
 
+    /* if support multi range */
+    bool support_multi_range;
+
 	/* the web server port */
 	int server_port;
 
