@@ -12,7 +12,7 @@ In file fastdfs_client.ini, item fastdfs_client.tracker_group# point to
 the FastDFS client config filename. Please read ../INSTALL file to know 
 about how to config FastDFS client.
 
-FastDFS client php extension compiled under PHP 5.2.x, Steps:
+FastDFS client php extension compiled under PHP 5.4 and PHP 7.0, Steps:
 phpize
 ./configure
 make
