@@ -23,7 +23,7 @@
 int g_fdfs_connect_timeout = DEFAULT_CONNECT_TIMEOUT;
 int g_fdfs_network_timeout = DEFAULT_NETWORK_TIMEOUT;
 char g_fdfs_base_path[MAX_PATH_SIZE] = {'/', 't', 'm', 'p', '\0'};
-Version g_fdfs_version = {5, 11};
+Version g_fdfs_version = {5, 12};
 bool g_use_connection_pool = false;
 ConnectionPool g_connection_pool;
 int g_connection_pool_max_idle_time = 3600;
