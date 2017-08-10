@@ -208,6 +208,10 @@ static int relationship_get_tracker_leader(TrackerRunningStatus *pTrackerStatus)
 	count = pStatus - trackerStatus;
 	if (count == 0)
 	{
+		logError("file: "__FILE__", line: %d, "
+                "get tracker status fail, "
+                "tracker server count: %d", __LINE__,
+                g_tracker_servers.server_count);
 		return result == 0 ? ENOENT : result;
 	}
 
@@ -350,6 +354,7 @@ static int relationship_notify_leader_changed(ConnectionInfo *pLeader)
 		return result;
 	}
 
+	result = ENOENT;
 	success_count = 0;
 	for (pTrackerServer=g_tracker_servers.servers; \
 		pTrackerServer<pTrackerEnd; pTrackerServer++)
@@ -420,6 +425,9 @@ static int relationship_select_leader()
 				g_tracker_servers.leader_index >= \
 				g_tracker_servers.server_count)
 			{
+                logError("file: "__FILE__", line: %d, "
+                        "invalid leader_index: %d",
+                        __LINE__, g_tracker_servers.leader_index);
 				g_tracker_servers.leader_index = -1;
 				return EINVAL;
 			}
