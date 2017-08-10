@@ -4917,9 +4917,9 @@ static int storage_modify_file(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"client ip: %s, file offset: %"PRId64 \
-			" is invalid, which > appender file size: " \
-			OFF_PRINTF_FORMAT, __LINE__, pTask->client_ip, \
-			file_offset, stat_buf.st_size);
+			" is invalid, which > appender file size: %" \
+			PRId64, __LINE__, pTask->client_ip, \
+			file_offset, (int64_t)stat_buf.st_size);
 
 		return EINVAL;
 	}
@@ -5097,10 +5097,10 @@ static int storage_do_truncate_file(struct fast_task_info *pTask)
 	{
 		logWarning("file: "__FILE__", line: %d, " \
 			"client ip: %s, truncated file size: " \
-			"%"PRId64" == appender file size: " \
-			OFF_PRINTF_FORMAT", skip truncate file", \
+			"%"PRId64" == appender file size: %" \
+			PRId64", skip truncate file", \
 			__LINE__, pTask->client_ip, \
-			remain_bytes, stat_buf.st_size);
+			remain_bytes, (int64_t)stat_buf.st_size);
 		return 0;
 	}
 	if (remain_bytes > stat_buf.st_size)
@@ -5108,9 +5108,9 @@ static int storage_do_truncate_file(struct fast_task_info *pTask)
 		logError("file: "__FILE__", line: %d, " \
 			"client ip: %s, truncated file size: " \
 			"%"PRId64" is invalid, " \
-			"which > appender file size: " \
-			OFF_PRINTF_FORMAT, __LINE__, pTask->client_ip, \
-			remain_bytes, stat_buf.st_size);
+			"which > appender file size: %" \
+			PRId64, __LINE__, pTask->client_ip, \
+			remain_bytes, (int64_t)stat_buf.st_size);
 
 		return EINVAL;
 	}
@@ -5554,11 +5554,11 @@ static int storage_sync_copy_file(struct fast_task_info *pTask, \
 		{
 			logWarning("file: "__FILE__", line: %d, " \
 				"client ip: %s, logic file %s, " \
-				"my file size: "OFF_PRINTF_FORMAT \
+				"my file size: %"PRId64\
 				" != src file size: %"PRId64 \
 				", will be overwrited", __LINE__, \
 				pTask->client_ip, filename, \
-				stat_buf.st_size, file_bytes);
+				(int64_t)stat_buf.st_size, file_bytes);
 		}
 		else
 		{
@@ -5858,20 +5858,21 @@ static int storage_sync_append_file(struct fast_task_info *pTask)
 		if (stat_buf.st_size >= start_offset + append_bytes)
 		{
 		logDebug("file: "__FILE__", line: %d, " \
-			"client ip: %s, file %s,  my file size: " \
-			OFF_PRINTF_FORMAT" >= src file size: " \
+			"client ip: %s, file %s,  my file size: %" \
+			PRId64" >= src file size: " \
 			"%"PRId64", do not append", \
 			__LINE__, pTask->client_ip, pFileContext->filename, \
-			stat_buf.st_size, start_offset + append_bytes);
+			(int64_t)stat_buf.st_size,
+            start_offset + append_bytes);
 		}
 		else
 		{
 		logWarning("file: "__FILE__", line: %d, " \
-			"client ip: %s, file %s,  my file size: " \
-			OFF_PRINTF_FORMAT" > %"PRId64 \
+			"client ip: %s, file %s,  my file size: %" \
+			PRId64" > %"PRId64 \
 			", but < %"PRId64", need be resynced", \
 			__LINE__, pTask->client_ip, pFileContext->filename, \
-			stat_buf.st_size, start_offset, \
+			(int64_t)stat_buf.st_size, start_offset, \
 			start_offset + append_bytes);
 
 		}
@@ -5881,11 +5882,11 @@ static int storage_sync_append_file(struct fast_task_info *pTask)
 	else //stat_buf.st_size < start_offset
 	{
 		logWarning("file: "__FILE__", line: %d, " \
-			"client ip: %s, file %s,  my file size: " \
-			OFF_PRINTF_FORMAT" < start offset " \
+			"client ip: %s, file %s,  my file size: %" \
+			PRId64" < start offset " \
 			"%"PRId64", need to resync this file!", \
 			__LINE__, pTask->client_ip, pFileContext->filename, \
-			stat_buf.st_size, start_offset);
+			(int64_t)stat_buf.st_size, start_offset);
 		need_write_file = false;
 	}
 
@@ -6079,11 +6080,11 @@ static int storage_sync_modify_file(struct fast_task_info *pTask)
 	else if (stat_buf.st_size < start_offset)
 	{
 		logWarning("file: "__FILE__", line: %d, " \
-			"client ip: %s, file %s,  my file size: " \
-			OFF_PRINTF_FORMAT" < start offset " \
+			"client ip: %s, file %s,  my file size: %" \
+			PRId64" < start offset " \
 			"%"PRId64", need to resync this file!", \
 			__LINE__, pTask->client_ip, pFileContext->filename, \
-			stat_buf.st_size, start_offset);
+			(int64_t)stat_buf.st_size, start_offset);
 		need_write_file = false;
 	}
 	else
@@ -6278,11 +6279,11 @@ static int storage_sync_truncate_file(struct fast_task_info *pTask)
 	if (stat_buf.st_size != old_file_size)
 	{
 		logWarning("file: "__FILE__", line: %d, " \
-			"client ip: %s, file %s,  my file size: " \
-			OFF_PRINTF_FORMAT" != before truncated size: " \
+			"client ip: %s, file %s,  my file size: %" \
+			PRId64" != before truncated size: " \
 			"%"PRId64", skip!", __LINE__, \
 			pTask->client_ip, pFileContext->filename, \
-			stat_buf.st_size, old_file_size);
+			(int64_t)stat_buf.st_size, old_file_size);
 		return EEXIST;
 	}
 

@@ -1,6 +1,7 @@
 
 Version 5.12  2017-08-10
  * code refine for rare case
+ * replace print format OFF_PRINTF_FORMAT to PRId64
 
 Version 5.11  2017-05-26
  * bug fixed: file_offset has no effect when use trunk file

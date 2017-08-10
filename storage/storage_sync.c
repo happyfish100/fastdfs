@@ -151,11 +151,12 @@ static int storage_sync_copy_file(ConnectionInfo *pStorageServer, \
 					"sync data file, logic file: %s " \
 					"on dest server %s:%d already exists, "\
 					"but file size: %"PRId64 \
-					" not same as mine: "OFF_PRINTF_FORMAT\
+					" not same as mine: %"PRId64 \
 					", need re-sync it", __LINE__, \
 					pRecord->filename, pStorageServer->ip_addr,\
 					pStorageServer->port, \
-					file_info.file_size, stat_buf.st_size);
+					file_info.file_size, \
+                    (int64_t)stat_buf.st_size);
 
 				proto_cmd = STORAGE_PROTO_CMD_SYNC_UPDATE_FILE;
 			}

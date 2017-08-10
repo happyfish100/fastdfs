@@ -1985,9 +1985,9 @@ static int tracker_deal_get_one_sys_file(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"client ip: %s, invalid offset: %"PRId64
-			" < 0 or > "OFF_PRINTF_FORMAT,  \
+			" < 0 or > %"PRId64,  \
 			__LINE__, pTask->client_ip, offset, \
-			file_stat.st_size);
+			(int64_t)file_stat.st_size);
 
 		pTask->length = sizeof(TrackerHeader);
 		return EINVAL;
