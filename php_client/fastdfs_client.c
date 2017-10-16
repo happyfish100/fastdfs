@@ -53,7 +53,7 @@ typedef struct
 
 
 #if PHP_MAJOR_VERSION < 7
-#define fdfs_get_object(obj) zend_object_store_get_object(obj)
+#define fdfs_get_object(obj) zend_object_store_get_object(obj TSRMLS_CC)
 #else
 #define fdfs_get_object(obj) (void *)((char *)(Z_OBJ_P(obj)) - XtOffsetOf(php_fdfs_t, zo))
 #endif

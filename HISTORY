@@ -1,7 +1,8 @@
 
-Version 5.12  2017-08-10
+Version 5.12  2017-10-16
  * code refine for rare case
  * replace print format OFF_PRINTF_FORMAT to PRId64
+ * php_ext fix zend_object_store_get_object call in php5.5
 
 Version 5.11  2017-05-26
  * bug fixed: file_offset has no effect when use trunk file
