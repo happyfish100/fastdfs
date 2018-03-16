@@ -77,7 +77,7 @@ elif [ "$uname" = "FreeBSD" ] || [ "$uname" = "Darwin" ]; then
   LIBS="$LIBS -L/usr/lib"
   CFLAGS="$CFLAGS"
   if [ "$uname" = "Darwin" ]; then
-    CFLAGS="$CFLAGS -DDARWIN"
+    CFLAGS="$CFLAGS -DDARWIN -I/usr/local/include/fastcommon"
   fi
 elif [ "$uname" = "SunOS" ]; then
   LIBS="$LIBS -L/usr/lib"
@@ -193,6 +193,8 @@ if [ "$1" = "install" ]; then
         cp -f conf/storage.conf $TARGET_CONF_PATH/storage.conf.sample
         cp -f conf/client.conf $TARGET_CONF_PATH/client.conf.sample
         cp -f conf/storage_ids.conf $TARGET_CONF_PATH/storage_ids.conf.sample
+        cp -f conf/http.conf $TARGET_CONF_PATH/http.conf.sample
+        cp -f conf/mime.types $TARGET_CONF_PATH/mime.types.sample
       fi
       mkdir -p $TARGET_INIT_PATH
       cp -f init.d/fdfs_trackerd $TARGET_INIT_PATH
