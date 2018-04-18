@@ -74,7 +74,11 @@ if [ "$uname" = "Linux" ]; then
   fi
   CFLAGS="$CFLAGS"
 elif [ "$uname" = "FreeBSD" ] || [ "$uname" = "Darwin" ]; then
-  LIBS="$LIBS -L/usr/lib"
+  if [ $OS_BITS -eq 64 ]; then
+    LIBS="$LIBS -L/usr/lib64"
+  else
+    LIBS="$LIBS -L/usr/lib"
+  fi
   CFLAGS="$CFLAGS"
   if [ "$uname" = "Darwin" ]; then
     CFLAGS="$CFLAGS -DDARWIN"
