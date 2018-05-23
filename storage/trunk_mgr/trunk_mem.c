@@ -1710,7 +1710,7 @@ static int trunk_wait_file_ready(const char *filename, const int64_t file_size,
 			return 0;
 		}
 
-		if (abs(g_current_time - file_mtime) > 10)
+		if (labs(g_current_time - file_mtime) > 10)
 		{
 			return ETIMEDOUT;
 		}

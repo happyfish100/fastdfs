@@ -52,7 +52,7 @@ all: $(ALL_OBJS) $(ALL_PRGS) $(ALL_LIBS)
 libfdfsclient.so:
 	$(COMPILE) -o $@ $< -shared $(FDFS_SHARED_OBJS) $(LIB_PATH)
 libfdfsclient.a:
-	ar cru $@ $< $(FDFS_STATIC_OBJS)
+	ar rcs $@ $< $(FDFS_STATIC_OBJS)
 .o:
 	$(COMPILE) -o $@ $<  $(STATIC_OBJS) $(LIB_PATH) $(INC_PATH)
 .c:
