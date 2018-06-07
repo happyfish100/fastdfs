@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
 	int fd;
 	int read_bytes;
 	int result;
-	int crc32;
+	int64_t crc32;
 	char buff[512 * 1024];
 
 	if (argc < 2)
@@ -97,7 +97,7 @@ int main(int argc, char *argv[])
 	if (result == 0)
 	{
 		crc32 = CRC32_FINAL(crc32);
-		printf("%u\n", crc32);
+		printf("%x\n", (int)crc32);
 	}
 
 	return result;

@@ -91,7 +91,7 @@ typedef struct
 	bool calc_file_hash;      //if calculate file content hash code
 	int open_flags;           //open file flags
 	int file_hash_codes[4];   //file hash code
-	int crc32;   //file content crc32 signature
+	int64_t crc32;            //file content crc32 signature
 	MD5_CTX md5_context;
 
 	union
