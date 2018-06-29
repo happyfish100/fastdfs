@@ -13,8 +13,8 @@
 #include "fastdfs/fdfs_global.h"
 #include "fastcommon/shared_func.h"
 #include "fastdfs/client_global.h"
-#include "fastdfs/fastdfs_client.h"
 #include "fastdfs/fdfs_http_shared.h"
+#include "fastdfs_client.h"
 
 typedef struct
 {
