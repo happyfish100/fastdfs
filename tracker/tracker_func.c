@@ -151,6 +151,8 @@ int tracker_load_from_conf_file(const char *filename, \
 	int64_t rotate_error_log_size;
     int64_t min_buff_size;
     int64_t max_buff_size;
+    char sz_min_buff_size[32];
+    char sz_max_buff_size[32];
 	char reserved_space_str[32];
 
 	memset(&g_groups, 0, sizeof(FDFSGroups));
@@ -703,6 +705,9 @@ int tracker_load_from_conf_file(const char *filename, \
             g_groups.store_server = FDFS_STORE_SERVER_FIRST_BY_IP;
         }
 
+        int_to_comma_str(g_min_buff_size, sz_min_buff_size);
+        int_to_comma_str(g_max_buff_size, sz_max_buff_size);
+
 		logInfo("FastDFS v%d.%02d, base_path=%s, " \
 			"run_by_group=%s, run_by_user=%s, " \
 			"connect_timeout=%ds, "    \
@@ -711,8 +716,8 @@ int tracker_load_from_conf_file(const char *filename, \
 			"max_connections=%d, "    \
 			"accept_threads=%d, "    \
 			"work_threads=%d, "    \
-            "min_buff_size=%d, " \
-            "max_buff_size=%d, " \
+            "min_buff_size=%s, " \
+            "max_buff_size=%s, " \
 			"store_lookup=%d, store_group=%s, " \
 			"store_server=%d, store_path=%d, " \
 			"reserved_storage_space=%s, " \
@@ -749,7 +754,7 @@ int tracker_load_from_conf_file(const char *filename, \
 			g_fdfs_connect_timeout, \
 			g_fdfs_network_timeout, g_server_port, bind_addr, \
 			g_max_connections, g_accept_threads, g_work_threads, \
-            g_min_buff_size, g_max_buff_size, \
+            sz_min_buff_size, sz_max_buff_size, \
 			g_groups.store_lookup, g_groups.store_group, \
 			g_groups.store_server, g_groups.store_path, \
 			fdfs_storage_reserved_space_to_string( \

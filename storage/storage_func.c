@@ -1777,7 +1777,7 @@ int storage_func_init(const char *filename, \
 			"work_threads=%d, "    \
 			"disk_rw_separated=%d, disk_reader_threads=%d, " \
 			"disk_writer_threads=%d, " \
-			"buff_size=%dKB, heart_beat_interval=%ds, " \
+			"buff_size=%d KB, heart_beat_interval=%ds, " \
 			"stat_report_interval=%ds, tracker_server_count=%d, " \
 			"sync_wait_msec=%dms, sync_interval=%dms, " \
 			"sync_start_time=%02d:%02d, sync_end_time=%02d:%02d, "\
