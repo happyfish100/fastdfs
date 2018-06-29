@@ -17,7 +17,7 @@
 #include <netinet/in.h>
 #include <fcntl.h>
 #include <errno.h>
-#include "logger.h"
+#include "fastcommon/logger.h"
 #include "fdfs_global.h"
 
 int g_fdfs_connect_timeout = DEFAULT_CONNECT_TIMEOUT;

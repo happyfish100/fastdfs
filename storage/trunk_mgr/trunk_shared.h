@@ -15,9 +15,9 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <pthread.h>
-#include "base64.h"
-#include "common_define.h"
-#include "ini_file_reader.h"
+#include "fastcommon/base64.h"
+#include "fastcommon/common_define.h"
+#include "fastcommon/ini_file_reader.h"
 #include "fdfs_global.h"
 #include "tracker_types.h"
 

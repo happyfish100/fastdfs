@@ -10,8 +10,7 @@ if test "$PHP_FASTDFS_CLIENT" != "no"; then
 	ROOT=/usr
   fi
 
-  PHP_ADD_INCLUDE($ROOT/include/fastcommon)
-  PHP_ADD_INCLUDE($ROOT/include/fastdfs)
+  PHP_ADD_INCLUDE($ROOT/local/include)
 
   PHP_ADD_LIBRARY_WITH_PATH(fastcommon, $ROOT/lib, FASTDFS_CLIENT_SHARED_LIBADD)
   PHP_ADD_LIBRARY_WITH_PATH(fdfsclient, $ROOT/lib, FASTDFS_CLIENT_SHARED_LIBADD)

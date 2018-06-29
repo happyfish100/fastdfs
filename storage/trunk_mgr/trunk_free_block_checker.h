@@ -15,7 +15,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <pthread.h>
-#include "common_define.h"
+#include "fastcommon/common_define.h"
 #include "fdfs_global.h"
 #include "tracker_types.h"
 #include "trunk_shared.h"

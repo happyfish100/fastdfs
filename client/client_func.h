@@ -10,7 +10,7 @@
 
 #include "tracker_types.h"
 #include "client_global.h"
-#include "ini_file_reader.h"
+#include "fastcommon/ini_file_reader.h"
 
 #ifndef _CLIENT_FUNC_H_
 #define _CLIENT_FUNC_H_

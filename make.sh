@@ -43,7 +43,7 @@ elif [ "$uname" = "FreeBSD" ] || [ "$uname" = "Darwin" ]; then
   LIBS="$LIBS -L/usr/lib"
   CFLAGS="$CFLAGS"
   if [ "$uname" = "Darwin" ]; then
-    CFLAGS="$CFLAGS -DDARWIN -I/usr/local/include/fastcommon"
+    CFLAGS="$CFLAGS -DDARWIN"
   fi
 elif [ "$uname" = "SunOS" ]; then
   LIBS="$LIBS -L/usr/lib"

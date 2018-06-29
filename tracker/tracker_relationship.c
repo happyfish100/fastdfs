@@ -19,11 +19,11 @@
 #include <fcntl.h>
 #include <pthread.h>
 #include "fdfs_define.h"
-#include "logger.h"
-#include "sockopt.h"
+#include "fastcommon/logger.h"
+#include "fastcommon/sockopt.h"
 #include "fdfs_global.h"
-#include "shared_func.h"
-#include "pthread_func.h"
+#include "fastcommon/shared_func.h"
+#include "fastcommon/pthread_func.h"
 #include "tracker_global.h"
 #include "tracker_proto.h"
 #include "tracker_mem.h"

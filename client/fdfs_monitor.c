@@ -13,8 +13,8 @@
 #include <errno.h>
 #include <signal.h>
 #include <sys/types.h>
-#include "sockopt.h"
-#include "logger.h"
+#include "fastcommon/sockopt.h"
+#include "fastcommon/logger.h"
 #include "client_global.h"
 #include "fdfs_global.h"
 #include "fdfs_client.h"

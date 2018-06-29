@@ -7,8 +7,8 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include "logger.h"
-#include "common_define.h"
+#include "fastcommon/logger.h"
+#include "fastcommon/common_define.h"
 #include "test_types.h"
 #include "common_func.h"
 #include "dfs_func.h"

@@ -11,7 +11,7 @@
 #ifndef _CLIENT_GLOBAL_H
 #define _CLIENT_GLOBAL_H
 
-#include "common_define.h"
+#include "fastcommon/common_define.h"
 #include "tracker_types.h"
 #include "fdfs_shared_func.h"
 

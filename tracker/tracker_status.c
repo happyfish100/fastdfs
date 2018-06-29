@@ -18,11 +18,11 @@
 #include <string.h>
 #include <errno.h>
 #include "fdfs_define.h"
-#include "logger.h"
+#include "fastcommon/logger.h"
 #include "fdfs_global.h"
-#include "shared_func.h"
-#include "sched_thread.h"
-#include "ini_file_reader.h"
+#include "fastcommon/shared_func.h"
+#include "fastcommon/sched_thread.h"
+#include "fastcommon/ini_file_reader.h"
 #include "tracker_types.h"
 #include "tracker_global.h"
 #include "tracker_status.h"

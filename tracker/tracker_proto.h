@@ -12,8 +12,8 @@
 #define _TRACKER_PROTO_H_
 
 #include "tracker_types.h"
-#include "connection_pool.h"
-#include "ini_file_reader.h"
+#include "fastcommon/connection_pool.h"
+#include "fastcommon/ini_file_reader.h"
 
 #define TRACKER_PROTO_CMD_STORAGE_JOIN              81
 #define FDFS_PROTO_CMD_QUIT			    82

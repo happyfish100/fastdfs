@@ -9,9 +9,9 @@
 #include <netdb.h>
 #include <unistd.h>
 #include <errno.h>
-#include "logger.h"
-#include "sockopt.h"
-#include "shared_func.h"
+#include "fastcommon/logger.h"
+#include "fastcommon/sockopt.h"
+#include "fastcommon/shared_func.h"
 #include "storage_global.h"
 
 volatile bool g_continue_flag = true;

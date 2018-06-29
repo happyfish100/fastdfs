@@ -7,7 +7,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include "common_define.h"
+#include "fastcommon/common_define.h"
 #include "test_types.h"
 #include "common_func.h"
 

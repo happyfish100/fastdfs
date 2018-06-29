@@ -14,7 +14,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include "fdfs_client.h"
-#include "logger.h"
+#include "fastcommon/logger.h"
 
 static void usage(char *argv[])
 {

@@ -16,10 +16,10 @@
 #include <errno.h>
 #include <time.h>
 #include "fdfs_define.h"
-#include "shared_func.h"
-#include "logger.h"
+#include "fastcommon/shared_func.h"
+#include "fastcommon/logger.h"
 #include "fdfs_global.h"
-#include "sockopt.h"
+#include "fastcommon/sockopt.h"
 #include "tracker_types.h"
 #include "tracker_proto.h"
 

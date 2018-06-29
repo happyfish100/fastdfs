@@ -21,18 +21,18 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <pthread.h>
-#include "shared_func.h"
-#include "sched_thread.h"
+#include "fastcommon/shared_func.h"
+#include "fastcommon/sched_thread.h"
 #include "fdfs_global.h"
-#include "logger.h"
-#include "sockopt.h"
-#include "fast_task_queue.h"
+#include "fastcommon/logger.h"
+#include "fastcommon/sockopt.h"
+#include "fastcommon/fast_task_queue.h"
 #include "tracker_types.h"
 #include "tracker_proto.h"
 #include "tracker_mem.h"
 #include "tracker_global.h"
 #include "tracker_service.h"
-#include "ioevent_loop.h"
+#include "fastcommon/ioevent_loop.h"
 #include "tracker_nio.h"
 
 static void client_sock_read(int sock, short event, void *arg);

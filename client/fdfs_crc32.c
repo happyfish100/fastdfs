@@ -14,7 +14,7 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include "hash.h"
+#include "fastcommon/hash.h"
 
 int main(int argc, char *argv[])
 {

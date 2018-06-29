@@ -6,9 +6,9 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include "fdfs_global.h"
+#include "fastdfs/fdfs_global.h"
 #include "dfs_func.h"
-#include "fdfs_client.h"
+#include "fastdfs/fdfs_client.h"
 
 int dfs_init(const int proccess_index, const char *conf_filename)
 {

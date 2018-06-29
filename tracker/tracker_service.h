@@ -15,8 +15,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include "fdfs_define.h"
-#include "ioevent.h"
-#include "fast_task_queue.h"
+#include "fastcommon/ioevent.h"
+#include "fastcommon/fast_task_queue.h"
 
 #ifdef __cplusplus
 extern "C" {

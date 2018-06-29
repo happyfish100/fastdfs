@@ -22,11 +22,11 @@
 #include <sys/statvfs.h>
 #include <sys/param.h>
 #include "fdfs_define.h"
-#include "logger.h"
+#include "fastcommon/logger.h"
 #include "fdfs_global.h"
-#include "sockopt.h"
-#include "avl_tree.h"
-#include "shared_func.h"
+#include "fastcommon/sockopt.h"
+#include "fastcommon/avl_tree.h"
+#include "fastcommon/shared_func.h"
 #include "tracker_types.h"
 #include "tracker_proto.h"
 #include "storage_global.h"

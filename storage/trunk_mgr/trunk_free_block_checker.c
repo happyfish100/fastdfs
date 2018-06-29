@@ -21,9 +21,9 @@
 #include <errno.h>
 #include <time.h>
 #include "fdfs_define.h"
-#include "logger.h"
-#include "shared_func.h"
-#include "avl_tree.h"
+#include "fastcommon/logger.h"
+#include "fastcommon/shared_func.h"
+#include "fastcommon/avl_tree.h"
 #include "tracker_types.h"
 #include "storage_global.h"
 #include "trunk_free_block_checker.h"

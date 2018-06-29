@@ -16,9 +16,9 @@
 #include <errno.h>
 #include <time.h>
 #include "fdht_define.h"
-#include "shared_func.h"
-#include "logger.h"
-#include "sockopt.h"
+#include "fastcommon/shared_func.h"
+#include "fastcommon/logger.h"
+#include "fastcommon/sockopt.h"
 #include "fdht_types.h"
 #include "fdht_proto.h"
 

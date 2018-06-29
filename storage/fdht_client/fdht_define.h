@@ -11,7 +11,7 @@
 #ifndef _FDHT_DEFINE_H_
 #define _FDHT_DEFINE_H_
 
-#include "common_define.h"
+#include "fastcommon/common_define.h"
 
 #define FDHT_SERVER_DEFAULT_PORT  24000
 #define FDHT_DEFAULT_PROXY_PORT   12200

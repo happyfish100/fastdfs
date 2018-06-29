@@ -16,8 +16,8 @@
 #include <string.h>
 #include <pthread.h>
 #include "tracker_types.h"
-#include "fast_task_queue.h"
-#include "fast_blocked_queue.h"
+#include "fastcommon/fast_task_queue.h"
+#include "fastcommon/fast_blocked_queue.h"
 
 struct storage_dio_context
 {

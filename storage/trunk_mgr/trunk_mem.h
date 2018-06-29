@@ -16,9 +16,9 @@
 #include <time.h>
 #include <unistd.h>
 #include <pthread.h>
-#include "common_define.h"
+#include "fastcommon/common_define.h"
 #include "fdfs_global.h"
-#include "fast_mblock.h"
+#include "fastcommon/fast_mblock.h"
 #include "trunk_shared.h"
 #include "fdfs_shared_func.h"
 

@@ -18,9 +18,9 @@
 #include <sys/stat.h>
 #include <netinet/in.h>
 #include <fcntl.h>
-#include "logger.h"
-#include "http_func.h"
-#include "shared_func.h"
+#include "fastcommon/logger.h"
+#include "fastcommon/http_func.h"
+#include "fastcommon/shared_func.h"
 #include "mime_file_parser.h"
 
 int load_mime_types_from_file(HashArray *pHash, const char *mime_filename)

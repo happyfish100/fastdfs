@@ -12,11 +12,11 @@
 #include <errno.h>
 #include <fcntl.h>
 #include "tracker_dump.h"
-#include "shared_func.h"
-#include "sched_thread.h"
-#include "logger.h"
-#include "hash.h"
-#include "connection_pool.h"
+#include "fastcommon/shared_func.h"
+#include "fastcommon/sched_thread.h"
+#include "fastcommon/logger.h"
+#include "fastcommon/hash.h"
+#include "fastcommon/connection_pool.h"
 #include "fdfs_global.h"
 #include "tracker_global.h"
 #include "tracker_mem.h"

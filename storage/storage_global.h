@@ -15,12 +15,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include "common_define.h"
+#include "fastcommon/common_define.h"
 #include "fdfs_define.h"
 #include "tracker_types.h"
 #include "client_global.h"
 #include "fdht_types.h"
-#include "local_ip_func.h"
+#include "fastcommon/local_ip_func.h"
 #include "trunk_shared.h"
 
 #ifdef WITH_HTTPD

@@ -22,18 +22,18 @@
 #include <grp.h>
 #include <pwd.h>
 #include "fdfs_define.h"
-#include "logger.h"
+#include "fastcommon/logger.h"
 #include "fdfs_global.h"
-#include "sockopt.h"
-#include "shared_func.h"
-#include "ini_file_reader.h"
-#include "connection_pool.h"
+#include "fastcommon/sockopt.h"
+#include "fastcommon/shared_func.h"
+#include "fastcommon/ini_file_reader.h"
+#include "fastcommon/connection_pool.h"
 #include "tracker_types.h"
 #include "tracker_proto.h"
 #include "tracker_global.h"
 #include "tracker_func.h"
 #include "tracker_mem.h"
-#include "local_ip_func.h"
+#include "fastcommon/local_ip_func.h"
 #include "fdfs_shared_func.h"
 
 #ifdef WITH_HTTPD

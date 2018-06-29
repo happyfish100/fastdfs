@@ -14,7 +14,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include "hash.h"
+#include "fastcommon/hash.h"
 
 #ifdef __cplusplus
 extern "C" {

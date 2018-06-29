@@ -17,7 +17,7 @@
 #include <arpa/inet.h>
 #include <time.h>
 #include "fdfs_define.h"
-#include "connection_pool.h"
+#include "fastcommon/connection_pool.h"
 
 #define FDFS_ONE_MB	(1024 * 1024)
 

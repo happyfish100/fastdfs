@@ -11,7 +11,7 @@
 #ifndef _TRUNK_CLIENT_H_
 #define _TRUNK_CLIENT_H_
 
-#include "common_define.h"
+#include "fastcommon/common_define.h"
 #include "tracker_types.h"
 #include "trunk_mem.h"
 

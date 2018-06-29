@@ -19,8 +19,8 @@
 #include <sys/statvfs.h>
 #include <sys/param.h>
 #include "fdfs_define.h"
-#include "logger.h"
-#include "shared_func.h"
+#include "fastcommon/logger.h"
+#include "fastcommon/shared_func.h"
 #include "fdfs_global.h"
 #include "tracker_types.h"
 #include "tracker_proto.h"

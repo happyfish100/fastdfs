@@ -13,11 +13,11 @@
 #include <string.h>
 #include <errno.h>
 #include <sys/types.h>
-#include "sockopt.h"
-#include "logger.h"
-#include "hash.h"
-#include "shared_func.h"
-#include "ini_file_reader.h"
+#include "fastcommon/sockopt.h"
+#include "fastcommon/logger.h"
+#include "fastcommon/hash.h"
+#include "fastcommon/shared_func.h"
+#include "fastcommon/ini_file_reader.h"
 #include "fdht_types.h"
 #include "fdht_proto.h"
 #include "fdht_global.h"

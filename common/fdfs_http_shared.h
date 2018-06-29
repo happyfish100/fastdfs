@@ -14,8 +14,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include "ini_file_reader.h"
-#include "hash.h"
+#include "fastcommon/ini_file_reader.h"
+#include "fastcommon/hash.h"
 
 typedef struct
 {

@@ -9,9 +9,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
-#include "logger.h"
-#include "sockopt.h"
-#include "shared_func.h"
+#include "fastcommon/logger.h"
+#include "fastcommon/sockopt.h"
+#include "fastcommon/shared_func.h"
 #include "tracker_proto.h"
 #include "fdfs_global.h"
 #include "fdfs_shared_func.h"

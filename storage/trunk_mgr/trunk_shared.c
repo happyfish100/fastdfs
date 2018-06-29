@@ -19,8 +19,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
-#include "logger.h"
-#include "shared_func.h"
+#include "fastcommon/logger.h"
+#include "fastcommon/shared_func.h"
 #include "trunk_shared.h"
 #include "tracker_proto.h"
 

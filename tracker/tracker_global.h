@@ -15,13 +15,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include "common_define.h"
+#include "fastcommon/common_define.h"
 #include "fdfs_define.h"
 #include "tracker_types.h"
 #include "tracker_status.h"
-#include "base64.h"
-#include "hash.h"
-#include "local_ip_func.h"
+#include "fastcommon/base64.h"
+#include "fastcommon/hash.h"
+#include "fastcommon/local_ip_func.h"
 
 #ifdef WITH_HTTPD
 #include "fdfs_http_shared.h"

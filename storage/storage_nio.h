@@ -17,11 +17,11 @@
 #include <sys/time.h>
 #include "tracker_types.h"
 #include "storage_func.h"
-#include "fast_task_queue.h"
+#include "fastcommon/fast_task_queue.h"
 #include "storage_global.h"
 #include "fdht_types.h"
 #include "trunk_mem.h"
-#include "md5.h"
+#include "fastcommon/md5.h"
 
 #define FDFS_STORAGE_STAGE_NIO_INIT   0
 #define FDFS_STORAGE_STAGE_NIO_RECV   1

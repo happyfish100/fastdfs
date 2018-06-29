@@ -20,10 +20,10 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <pthread.h>
-#include "shared_func.h"
-#include "pthread_func.h"
-#include "logger.h"
-#include "sockopt.h"
+#include "fastcommon/shared_func.h"
+#include "fastcommon/pthread_func.h"
+#include "fastcommon/logger.h"
+#include "fastcommon/sockopt.h"
 #include "storage_dio.h"
 #include "storage_nio.h"
 #include "storage_service.h"

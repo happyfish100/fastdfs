@@ -9,7 +9,7 @@
 #ifndef FDFS_CLIENT_H
 #define FDFS_CLIENT_H
 
-#include "shared_func.h"
+#include "fastcommon/shared_func.h"
 #include "tracker_types.h"
 #include "tracker_proto.h"
 #include "tracker_client.h"

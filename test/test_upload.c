@@ -8,8 +8,8 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
-#include "common_define.h"
-#include "logger.h"
+#include "fastcommon/common_define.h"
+#include "fastcommon/logger.h"
 #include "test_types.h"
 #include "common_func.h"
 #include "dfs_func.h"

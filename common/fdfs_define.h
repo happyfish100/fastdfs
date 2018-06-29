@@ -12,7 +12,7 @@
 #define _FDFS_DEFINE_H_
 
 #include <pthread.h>
-#include "common_define.h"
+#include "fastcommon/common_define.h"
 
 #define FDFS_TRACKER_SERVER_DEF_PORT		22000
 #define FDFS_STORAGE_SERVER_DEF_PORT		23000

@@ -18,10 +18,10 @@
 #include <errno.h>
 #include <time.h>
 #include "fdfs_define.h"
-#include "logger.h"
+#include "fastcommon/logger.h"
 #include "fdfs_global.h"
-#include "sockopt.h"
-#include "shared_func.h"
+#include "fastcommon/sockopt.h"
+#include "fastcommon/shared_func.h"
 #include "tracker_types.h"
 #include "tracker_proto.h"
 #include "client_func.h"
@@ -29,7 +29,7 @@
 #include "storage_client.h"
 #include "storage_client1.h"
 #include "client_global.h"
-#include "base64.h"
+#include "fastcommon/base64.h"
 
 static struct base64_context the_base64_context;
 static int the_base64_context_inited = 0;
