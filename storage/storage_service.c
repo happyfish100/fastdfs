@@ -5105,14 +5105,11 @@ static int storage_do_truncate_file(struct fast_task_info *pTask)
 	}
 	if (remain_bytes > stat_buf.st_size)
 	{
-		logError("file: "__FILE__", line: %d, " \
+		logWarning("file: "__FILE__", line: %d, " \
 			"client ip: %s, truncated file size: " \
-			"%"PRId64" is invalid, " \
-			"which > appender file size: %" \
+			"%"PRId64" > appender file size: %" \
 			PRId64, __LINE__, pTask->client_ip, \
 			remain_bytes, (int64_t)stat_buf.st_size);
-
-		return EINVAL;
 	}
 
 	pFileContext->extra_info.upload.start_time = g_current_time;
