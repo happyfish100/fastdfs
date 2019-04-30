@@ -7277,7 +7277,7 @@ static int load_config_files()
 	{
 		strcpy(g_fdfs_base_path, "/tmp");
 		fprintf(stderr, "file: "__FILE__", line: %d, " \
-			"fastdht_client.ini does not have item " \
+			"fastdfs_client.ini does not have item " \
 			"\"%s\", set to %s!", __LINE__, 
 			ITEM_NAME_BASE_PATH, g_fdfs_base_path);
 	}
