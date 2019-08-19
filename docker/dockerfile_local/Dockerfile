@@ -38,5 +38,5 @@ RUN yum install git gcc gcc-c ++ make automake autoconf libtool pcre pcre-devel 
 VOLUME /etc/fdfs
 
 
-EXPOSE 2122 23000 8888 80
+EXPOSE 22122 23000 8888 80
 ENTRYPOINT ["/home/fastdfs.sh"]
