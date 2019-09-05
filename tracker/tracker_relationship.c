@@ -52,11 +52,11 @@ static int fdfs_ping_leader(ConnectionInfo *pTrackerServer)
 			sizeof(header), g_fdfs_network_timeout);
 	if(result != 0)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"tracker server ip: %s, send data fail, " \
-			"errno: %d, error info: %s", \
-			__LINE__, pTrackerServer->ip_addr, \
-			result, STRERROR(result));
+		logError("file: "__FILE__", line: %d, "
+			"tracker server %s:%d, send data fail, "
+			"errno: %d, error info: %s",
+			__LINE__, pTrackerServer->ip_addr,
+			pTrackerServer->port, result, STRERROR(result));
 		return result;
 	}
 
@@ -65,8 +65,9 @@ static int fdfs_ping_leader(ConnectionInfo *pTrackerServer)
 			sizeof(in_buff), &in_bytes)) != 0)
 	{
         logError("file: "__FILE__", line: %d, "
-                "fdfs_recv_response fail, result: %d",
-                __LINE__, result);
+                "fdfs_recv_response from %s:%d fail, result: %d",
+                __LINE__, pTrackerServer->ip_addr,
+		pTrackerServer->port, result);
 		return result;
 	}
 
@@ -77,10 +78,10 @@ static int fdfs_ping_leader(ConnectionInfo *pTrackerServer)
 	else if (in_bytes % (FDFS_GROUP_NAME_MAX_LEN + \
 			FDFS_STORAGE_ID_MAX_SIZE) != 0)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"tracker server ip: %s, invalid body length: " \
-			"%"PRId64, __LINE__, \
-			pTrackerServer->ip_addr, in_bytes);
+		logError("file: "__FILE__", line: %d, "
+			"tracker server %s:%d, invalid body length: "
+			"%"PRId64, __LINE__, pTrackerServer->ip_addr,
+			pTrackerServer->port, in_bytes);
 		return EINVAL;
 	}
 
@@ -290,8 +291,9 @@ static int do_notify_leader_changed(ConnectionInfo *pTrackerServer, \
 	if (result != 0)
 	{
         logError("file: "__FILE__", line: %d, "
-                "fdfs_recv_response fail, result: %d",
-                __LINE__, result);
+                "fdfs_recv_response from tracker server %s:%d fail, "
+		"result: %d", __LINE__, pTrackerServer->ip_addr,
+		pTrackerServer->port, result);
 		break;
 	}
 
@@ -517,6 +519,7 @@ static void *relationship_thread_entrance(void* arg)
 					if (fail_count >= 3)
 					{
 						g_tracker_servers.leader_index = -1;
+						fail_count = 0;
 					}
 				}
 			}

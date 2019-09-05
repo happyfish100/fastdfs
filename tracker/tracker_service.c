@@ -968,7 +968,7 @@ static int tracker_deal_commit_next_leader(struct fast_task_info *pTask)
 	}
 
 	g_tracker_servers.leader_index = server_index;
-    g_next_leader_index = -1;
+	g_next_leader_index = -1;
 	if (leader.port == g_server_port && is_local_host_ip(leader.ip_addr))
 	{
 		g_if_leader_self = true;
