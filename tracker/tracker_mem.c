@@ -4087,7 +4087,7 @@ static int tracker_mem_check_add_tracker_servers(FDFSStorageJoinBody *pJoinBody)
 		}
 	}
 
-	add_count = pNewServer - new_servers;
+	add_count = (pNewServer - new_servers) - g_tracker_servers.server_count;
 	g_last_tracker_servers = g_tracker_servers.servers;
 	g_tracker_servers.servers = new_servers;
 	g_tracker_servers.server_count += add_count;

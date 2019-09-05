@@ -393,7 +393,7 @@ static int relationship_select_leader()
 	}
 
 	logInfo("file: "__FILE__", line: %d, " \
-		"selecting leader...", __LINE__);
+		"selecting tracker leader...", __LINE__);
 
 	if ((result=relationship_get_tracker_leader(&trackerStatus)) != 0)
 	{
@@ -428,7 +428,7 @@ static int relationship_select_leader()
 				g_tracker_servers.server_count)
 			{
                 logError("file: "__FILE__", line: %d, "
-                        "invalid leader_index: %d",
+                        "invalid tracker leader index: %d",
                         __LINE__, g_tracker_servers.leader_index);
 				g_tracker_servers.leader_index = -1;
 				return EINVAL;
@@ -441,8 +441,8 @@ static int relationship_select_leader()
 		}
 		else
 		{
-			logDebug("file: "__FILE__", line: %d, " \
-				"waiting for leader notify", __LINE__);
+			logInfo("file: "__FILE__", line: %d, " \
+				"waiting for tracker leader notify", __LINE__);
 			return ENOENT;
 		}
 	}
