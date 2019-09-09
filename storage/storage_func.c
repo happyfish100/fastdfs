@@ -1071,7 +1071,6 @@ int storage_func_init(const char *filename, \
 	int64_t rotate_access_log_size;
 	int64_t rotate_error_log_size;
 	ConnectionInfo *pServer;
-	ConnectionInfo *pEnd;
 
 	/*
 	while (nThreadCount > 0)
@@ -1176,27 +1175,6 @@ int storage_func_init(const char *filename, \
 
 		result = fdfs_load_tracker_group_ex(&g_tracker_group, \
 				filename, &iniContext);
-		if (result != 0)
-		{
-			break;
-		}
-
-		pEnd = g_tracker_group.servers + g_tracker_group.server_count;
-		for (pServer=g_tracker_group.servers; pServer<pEnd; pServer++)
-		{
-			//printf("server=%s:%d\n", pServer->ip_addr, pServer->port);
-			if (strcmp(pServer->ip_addr, "127.0.0.1") == 0)
-			{
-				logError("file: "__FILE__", line: %d, " \
-					"conf file \"%s\", " \
-					"tracker: \"%s:%d\" is invalid, " \
-					"tracker server ip can't be 127.0.0.1",\
-					__LINE__, filename, pServer->ip_addr, \
-					pServer->port);
-				result = EINVAL;
-				break;
-			}
-		}
 		if (result != 0)
 		{
 			break;
