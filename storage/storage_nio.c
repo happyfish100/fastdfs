@@ -512,7 +512,7 @@ static void client_sock_write(int sock, short event, void *arg)
 					return;
 				}
 
-				/*  reponse done, try to recv again */
+				/*  response done, try to recv again */
 				pClientInfo->total_length = 0;
 				pClientInfo->total_offset = 0;
 				pTask->offset = 0;
