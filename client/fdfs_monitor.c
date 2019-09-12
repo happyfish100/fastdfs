@@ -12,6 +12,7 @@
 #include <string.h>
 #include <errno.h>
 #include <signal.h>
+#include <netdb.h>
 #include <sys/types.h>
 #include "fastcommon/sockopt.h"
 #include "fastcommon/logger.h"
@@ -122,7 +123,7 @@ int main(int argc, char *argv[])
 			 == INADDR_NONE)
 		{
 			printf("resolve ip address of tracker server: %s " \
-				"fail!\n", tracker_server);
+				"fail!, error info: %s\n", tracker_server, hstrerror(h_errno));
 			return 2;
 		}
 

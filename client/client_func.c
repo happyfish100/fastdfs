@@ -13,6 +13,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -108,8 +109,8 @@ static int copy_tracker_servers(TrackerServerGroup *pTrackerGroup, \
 		{
 			logError("file: "__FILE__", line: %d, " \
 				"conf file \"%s\", " \
-				"host \"%s\" is invalid", \
-				__LINE__, filename, szHost);
+				"host \"%s\" is invalid, error info: %s", \
+				__LINE__, filename, szHost, hstrerror(h_errno));
 			return EINVAL;
 		}
 		destServer.port = atoi(pSeperator+1);
