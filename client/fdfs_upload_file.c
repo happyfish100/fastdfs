@@ -103,7 +103,7 @@ int main(int argc, char *argv[])
 			NULL, 0, group_name, file_id);
 	if (result == 0)
 	{
-		printf("%s\n", file_id);
+		printf("%s\t%s\n", local_filename, file_id);
 	}
 	else
 	{
