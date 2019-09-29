@@ -240,34 +240,22 @@ static void *tracker_report_thread_entrance(void *arg)
 		{
 			close(pTrackerServer->sock);
 		}
-		pTrackerServer->sock = socket(AF_INET, SOCK_STREAM, 0);
-		if(pTrackerServer->sock < 0)
-		{
-			logCrit("file: "__FILE__", line: %d, " \
-				"socket create failed, errno: %d, " \
-				"error info: %s. program exit!", \
-				__LINE__, errno, STRERROR(errno));
-			g_continue_flag = false;
-			break;
-		}
 
-		if (g_client_bind_addr && *g_bind_addr != '\0')
-		{
-			socketBind(pTrackerServer->sock, g_bind_addr, 0);
-		}
+        pTrackerServer->sock = socketCreateExAuto(pTrackerServer->ip_addr,
+                g_fdfs_connect_timeout, O_NONBLOCK,
+                g_client_bind_addr ? g_bind_addr : NULL, &result);
+        if (pTrackerServer->sock < 0)
+        {
+            logCrit("file: "__FILE__", line: %d, "
+                    "socket create fail, program exit!", __LINE__);
+            g_continue_flag = false;
+            break;
+        }
+        tcpsetserveropt(pTrackerServer->sock, g_fdfs_network_timeout);
 
-		tcpsetserveropt(pTrackerServer->sock, g_fdfs_network_timeout);
-
-		if (tcpsetnonblockopt(pTrackerServer->sock) != 0)
-		{
-			nContinuousFail++;
-			sleep(g_heart_beat_interval);
-			continue;
-		}
-
-		if ((result=connectserverbyip_nb(pTrackerServer->sock, \
-			pTrackerServer->ip_addr, \
-			pTrackerServer->port, g_fdfs_connect_timeout)) != 0)
+		if ((result=connectserverbyip_nb(pTrackerServer->sock,
+			pTrackerServer->ip_addr, pTrackerServer->port,
+            g_fdfs_connect_timeout)) != 0)
 		{
 			if (previousCode != result)
 			{

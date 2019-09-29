@@ -64,23 +64,13 @@ static void *http_check_entrance(void *arg)
 	{
 		if (g_http_check_type == FDFS_HTTP_CHECK_ALIVE_TYPE_TCP)
 		{
-			sock = socket(AF_INET, SOCK_STREAM, 0);
-			if(sock < 0)
-			{
-				result = errno != 0 ? errno : EPERM;
-				logError("file: "__FILE__", line: %d, " \
-					"socket create failed, errno: %d, " \
-					"error info: %s.", \
-					__LINE__, result, STRERROR(result));
-				sleep(1);
-				continue;
-			}
-
-			result = connectserverbyip_nb_auto(sock, \
-					(*ppServer)->ip_addr, \
-					(*ppGroup)->storage_http_port, \
-					g_fdfs_connect_timeout);
-			close(sock);
+            sock = socketClientAuto((*ppServer)->ip_addr,
+                    (*ppGroup)->storage_http_port,
+                    g_fdfs_connect_timeout, O_NONBLOCK, &result);
+            if (sock >= 0)
+            {
+                close(sock);
+            }
 
 			if (g_http_servers_dirty)
 			{

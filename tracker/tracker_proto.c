@@ -539,6 +539,11 @@ int fdfs_get_ini_context_from_tracker(TrackerServerGroup *pTrackerGroup, \
 		pServerStart = pTrackerGroup->servers;
 	}
 
+    if (!client_bind_addr)
+    {
+        bind_addr = NULL;
+    }
+
 	do
 	{
 	for (pGlobalServer=pServerStart; pGlobalServer<pServerEnd; \
@@ -547,52 +552,19 @@ int fdfs_get_ini_context_from_tracker(TrackerServerGroup *pTrackerGroup, \
 		memcpy(pTServer, pGlobalServer, sizeof(ConnectionInfo));
 		for (i=0; i < 3; i++)
 		{
-			pTServer->sock = socket(AF_INET, SOCK_STREAM, 0);
-			if(pTServer->sock < 0)
-			{
-				result = errno != 0 ? errno : EPERM;
-				logError("file: "__FILE__", line: %d, " \
-					"socket create failed, errno: %d, " \
-					"error info: %s.", \
-					__LINE__, result, STRERROR(result));
-				sleep(5);
+            pTServer->sock = socketClientExAuto(pTServer->ip_addr,
+                    pTServer->port, g_fdfs_connect_timeout,
+                    O_NONBLOCK, bind_addr, &result);
+            if (pTServer->sock >= 0)
+            {
 				break;
-			}
+            }
 
-			if (client_bind_addr && (bind_addr != NULL && \
-						*bind_addr != '\0'))
-			{
-				socketBind(pTServer->sock, bind_addr, 0);
-			}
-
-			if (tcpsetnonblockopt(pTServer->sock) != 0)
-			{
-				close(pTServer->sock);
-				pTServer->sock = -1;
-				sleep(1);
-				continue;
-			}
-
-			if ((result=connectserverbyip_nb(pTServer->sock, \
-				pTServer->ip_addr, pTServer->port, \
-				g_fdfs_connect_timeout)) == 0)
-			{
-				break;
-			}
-
-			close(pTServer->sock);
-			pTServer->sock = -1;
 			sleep(1);
 		}
 
 		if (pTServer->sock < 0)
 		{
-			logError("file: "__FILE__", line: %d, " \
-				"connect to tracker server %s:%d fail, " \
-				"errno: %d, error info: %s", \
-				__LINE__, pTServer->ip_addr, pTServer->port, \
-				result, STRERROR(result));
-
 			continue;
 		}
 
@@ -606,6 +578,9 @@ int fdfs_get_ini_context_from_tracker(TrackerServerGroup *pTrackerGroup, \
 			return result;
 		}
 
+        logError("file: "__FILE__", line: %d, "
+                "get parameters from tracker server %s:%d fail",
+                __LINE__, pTServer->ip_addr, pTServer->port);
 		fdfs_quit(pTServer);
 		close(pTServer->sock);
 		sleep(1);

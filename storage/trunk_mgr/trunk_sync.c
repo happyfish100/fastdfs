@@ -1444,36 +1444,19 @@ static void* trunk_sync_thread_entrance(void* arg)
 			pStorage->status != FDFS_STORAGE_STATUS_NONE)
 		{
 			strcpy(storage_server.ip_addr, pStorage->ip_addr);
-			storage_server.sock = \
-				socket(AF_INET, SOCK_STREAM, 0);
-			if(storage_server.sock < 0)
-			{
-				logCrit("file: "__FILE__", line: %d," \
-					" socket create fail, " \
-					"errno: %d, error info: %s. " \
-					"program exit!", __LINE__, \
-					errno, STRERROR(errno));
+            storage_server.sock = socketCreateExAuto(pStorage->ip_addr,
+                    g_fdfs_connect_timeout, O_NONBLOCK,
+                    g_client_bind_addr ? g_bind_addr : NULL, &result);
+            if (storage_server.sock < 0)
+            {
+				logCrit("file: "__FILE__", line: %d, "
+					"socket create fail, program exit!", __LINE__);
 				g_continue_flag = false;
 				break;
-			}
+            }
 
-			if (g_client_bind_addr && *g_bind_addr != '\0')
-			{
-				socketBind(storage_server.sock, g_bind_addr, 0);
-			}
-
-			if (tcpsetnonblockopt(storage_server.sock) != 0)
-			{
-				nContinuousFail++;
-				close(storage_server.sock);
-				storage_server.sock = -1;
-				sleep(1);
-
-				continue;
-			}
-
-			if ((conn_result=connectserverbyip_nb(storage_server.sock,\
-				pStorage->ip_addr, g_server_port, \
+			if ((conn_result=connectserverbyip_nb(storage_server.sock,
+				pStorage->ip_addr, g_server_port,
 				g_fdfs_connect_timeout)) == 0)
 			{
 				char szFailPrompt[64];
