@@ -30,7 +30,7 @@ extern "C" {
 #endif
 
 extern TrackerServerGroup g_tracker_servers;  //save all tracker servers from storage server
-extern ConnectionInfo *g_last_tracker_servers;  //for delay free
+extern TrackerServerInfo *g_last_tracker_servers;  //for delay free
 extern int g_next_leader_index;			   //next leader index
 extern int g_tracker_leader_chg_count;		   //for notify storage servers
 extern int g_trunk_server_chg_count;		   //for notify other trackers

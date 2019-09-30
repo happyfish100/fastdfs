@@ -122,6 +122,10 @@
 #define TRACKER_STORAGE_RESERVED_SPACE_FLAG_MB		0
 #define TRACKER_STORAGE_RESERVED_SPACE_FLAG_RATIO	1
 
+#define FDFS_MULTI_IP_INDEX_INNER   	0   //inner ip index
+#define FDFS_MULTI_IP_INDEX_OUTER   	1   //outer ip index
+#define FDFS_MULTI_IP_MAX_COUNT      	2
+
 typedef struct
 {
 	char status;
@@ -386,20 +390,27 @@ typedef struct
 
 typedef struct
 {
-	int storage_port;
-	int storage_http_port;
-	int store_path_count;
-	int subdir_count_per_path;
-	int upload_priority;
-	int join_time; //storage join timestamp (create timestamp)
-	int up_time;   //storage service started timestamp
-        char version[FDFS_VERSION_SIZE];   //storage version
-	char group_name[FDFS_GROUP_NAME_MAX_LEN + 1];
-        char domain_name[FDFS_DOMAIN_NAME_MAX_SIZE];
-        char init_flag;
-	signed char status;
-	int tracker_count;
-	ConnectionInfo tracker_servers[FDFS_MAX_TRACKERS];
+	int count;
+	int index;  //current index for fast connect
+	ConnectionInfo connections[FDFS_MULTI_IP_MAX_COUNT];
+} TrackerServerInfo;
+
+typedef struct
+{
+    int storage_port;
+    int storage_http_port;
+    int store_path_count;
+    int subdir_count_per_path;
+    int upload_priority;
+    int join_time; //storage join timestamp (create timestamp)
+    int up_time;   //storage service started timestamp
+    char version[FDFS_VERSION_SIZE];   //storage version
+    char group_name[FDFS_GROUP_NAME_MAX_LEN + 1];
+    char domain_name[FDFS_DOMAIN_NAME_MAX_SIZE];
+    char init_flag;
+    signed char status;
+    int tracker_count;
+    TrackerServerInfo tracker_servers[FDFS_MAX_TRACKERS];
 } FDFSStorageJoinBody;
 
 typedef struct
@@ -407,7 +418,7 @@ typedef struct
 	int server_count;
 	int server_index;  //server index for roundrobin
 	int leader_index;  //leader server index
-	ConnectionInfo *servers;
+	TrackerServerInfo *servers;
 } TrackerServerGroup;
 
 typedef struct
@@ -447,7 +458,7 @@ typedef struct {
 } FDFSStorePaths;
 
 typedef struct {
-	ConnectionInfo *pTrackerServer;
+	TrackerServerInfo *pTrackerServer;
 	int running_time;     //running seconds, more means higher weight
 	int restart_interval; //restart interval, less mean higher weight
 	bool if_leader;       //if leader

@@ -66,7 +66,7 @@ FDFSStorageIdInfo *fdfs_get_storage_id_by_ip_port(const char *pIpAddr,
 
 int fdfs_check_storage_id(const char *group_name, const char *id);
 
-int fdfs_get_storage_ids_from_tracker_server(ConnectionInfo *pTrackerServer);
+int fdfs_get_storage_ids_from_tracker_server(TrackerServerInfo *pTrackerServer);
 
 int fdfs_get_storage_ids_from_tracker_group(TrackerServerGroup *pTrackerGroup);
 
@@ -79,6 +79,23 @@ int fdfs_connection_pool_init(const char *config_filename, \
 void fdfs_connection_pool_destroy();
 
 void fdfs_set_log_rotate_size(LogContext *pContext, const int64_t log_rotate_size);
+
+bool fdfs_server_contain(TrackerServerInfo *pServerInfo,
+        const char *target_ip, const int target_port);
+
+static inline bool fdfs_server_contain1(TrackerServerInfo *pServerInfo,
+        const ConnectionInfo *target)
+{
+    return fdfs_server_contain(pServerInfo, target->ip_addr, target->port);
+}
+
+bool fdfs_server_contain_ex(TrackerServerInfo *pServer1,
+        TrackerServerInfo *pServer2);
+
+void fdfs_server_sock_reset(TrackerServerInfo *pServerInfo);
+
+int fdfs_parse_server_info(char *server_str, const int default_port,
+        TrackerServerInfo *pServer);
 
 #ifdef __cplusplus
 }

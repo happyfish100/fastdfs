@@ -382,13 +382,15 @@ static int tracker_check_and_sync(struct fast_task_info *pTask, \
 		leader_index = g_tracker_servers.leader_index;
 		if (leader_index >= 0)
 		{
-			ConnectionInfo *pTServer;
+			TrackerServerInfo *pTServer;
+			ConnectionInfo *conn;
 			pTServer = g_tracker_servers.servers + leader_index;
-			snprintf(pDestServer->id, FDFS_STORAGE_ID_MAX_SIZE, \
-				"%s", pTServer->ip_addr);
-			memcpy(pDestServer->ip_addr, pTServer->ip_addr, \
+            conn = pTServer->connections;
+			snprintf(pDestServer->id, FDFS_STORAGE_ID_MAX_SIZE,
+				"%s", conn->ip_addr);
+			memcpy(pDestServer->ip_addr, conn->ip_addr,
 				IP_ADDRESS_SIZE);
-			int2buff(pTServer->port, pDestServer->port);
+			int2buff(conn->port, pDestServer->port);
 		}
 		pDestServer++;
 
@@ -1321,10 +1323,9 @@ static int tracker_deal_storage_join(struct fast_task_info *pTask)
 {
 	TrackerStorageJoinBodyResp *pJoinBodyResp;
 	TrackerStorageJoinBody *pBody;
-	ConnectionInfo *pTrackerServer;
-	ConnectionInfo *pTrackerEnd;
+	TrackerServerInfo *pTrackerServer;
+	TrackerServerInfo *pTrackerEnd;
 	char *p;
-	char *pSeperator;
 	FDFSStorageJoinBody joinBody;
 	int result;
 	TrackerClientInfo *pClientInfo;
@@ -1438,26 +1439,18 @@ static int tracker_deal_storage_join(struct fast_task_info *pTask)
 	}
 
 	p = pTask->data+sizeof(TrackerHeader)+sizeof(TrackerStorageJoinBody);
-	pTrackerEnd = joinBody.tracker_servers + \
-		      joinBody.tracker_count;
-	for (pTrackerServer=joinBody.tracker_servers; \
+	pTrackerEnd = joinBody.tracker_servers + joinBody.tracker_count;
+	for (pTrackerServer=joinBody.tracker_servers;
 		pTrackerServer<pTrackerEnd; pTrackerServer++)
 	{
 		* (p + FDFS_PROTO_IP_PORT_SIZE - 1) = '\0';
-		if ((pSeperator=strchr(p, ':')) == NULL)
-		{
-			logError("file: "__FILE__", line: %d, " \
-				"client ip: %s, invalid tracker server ip " \
-				"and port: %s", __LINE__, pTask->client_ip, p);
-			pTask->length = sizeof(TrackerHeader);
-			return EINVAL;
-		}
 
-		*pSeperator = '\0';
-		snprintf(pTrackerServer->ip_addr, \
-			sizeof(pTrackerServer->ip_addr), "%s", p);
-		pTrackerServer->port = atoi(pSeperator + 1);
-		pTrackerServer->sock = -1;
+        if ((result=fdfs_parse_server_info(p, FDFS_TRACKER_SERVER_DEF_PORT,
+                pTrackerServer)) != 0)
+        {
+            pTask->length = sizeof(TrackerHeader);
+            return result;
+        }
 
 		p += FDFS_PROTO_IP_PORT_SIZE;
 	}

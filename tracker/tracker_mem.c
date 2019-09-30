@@ -107,7 +107,7 @@
 #define STORAGE_ITEM_LAST_HEART_BEAT_TIME      "last_heart_beat_time"
 
 TrackerServerGroup g_tracker_servers = {0, 0, -1, NULL};
-ConnectionInfo *g_last_tracker_servers = NULL;  //for delay free
+TrackerServerInfo *g_last_tracker_servers = NULL;  //for delay free
 int g_next_leader_index = -1;			   //next leader index
 int g_trunk_server_chg_count = 1;		   //for notify other trackers
 int g_tracker_leader_chg_count = 0;		   //for notify storage servers
@@ -3901,13 +3901,13 @@ static int tracker_mem_get_one_sys_file(ConnectionInfo *pTrackerServer, \
 	return result;
 }
 
-static int tracker_mem_get_sys_files(ConnectionInfo *pTrackerServer)
+static int tracker_mem_get_sys_files(TrackerServerInfo *pTrackerServer)
 {
 	ConnectionInfo *conn;
 	int result;
 	int index;
 
-	pTrackerServer->sock = -1;
+    fdfs_server_sock_reset(pTrackerServer);
 	if ((conn=tracker_connect_server(pTrackerServer, &result)) == NULL)
 	{
 		return result;
@@ -3963,15 +3963,15 @@ static int tracker_mem_cmp_tracker_running_status(const void *p1, const void *p2
 
 static int tracker_mem_first_add_tracker_servers(FDFSStorageJoinBody *pJoinBody)
 {
-	ConnectionInfo *pLocalTracker;
-	ConnectionInfo *pLocalEnd;
-	ConnectionInfo *servers;
+	TrackerServerInfo *pLocalTracker;
+	TrackerServerInfo *pLocalEnd;
+	TrackerServerInfo *servers;
 	int tracker_count;
 	int bytes;
 
 	tracker_count = pJoinBody->tracker_count;
-	bytes = sizeof(ConnectionInfo) * tracker_count;
-	servers = (ConnectionInfo *)malloc(bytes);
+	bytes = sizeof(TrackerServerInfo) * tracker_count;
+	servers = (TrackerServerInfo *)malloc(bytes);
 	if (servers == NULL)
 	{
 		logError("file: "__FILE__", line: %d, " \
@@ -3986,7 +3986,7 @@ static int tracker_mem_first_add_tracker_servers(FDFSStorageJoinBody *pJoinBody)
        	for (pLocalTracker=servers; pLocalTracker<pLocalEnd; \
 		pLocalTracker++)
 	{
-		pLocalTracker->sock = -1;
+        fdfs_server_sock_reset(pLocalTracker);
 	}
 
 	g_tracker_servers.servers = servers;
@@ -3996,27 +3996,25 @@ static int tracker_mem_first_add_tracker_servers(FDFSStorageJoinBody *pJoinBody)
 
 static int tracker_mem_check_add_tracker_servers(FDFSStorageJoinBody *pJoinBody)
 {
-	ConnectionInfo *pJoinTracker;
-	ConnectionInfo *pJoinEnd;
-	ConnectionInfo *pLocalTracker;
-	ConnectionInfo *pLocalEnd;
-	ConnectionInfo *pNewServer;
-	ConnectionInfo *new_servers;
+	TrackerServerInfo *pJoinTracker;
+	TrackerServerInfo *pJoinEnd;
+	TrackerServerInfo *pLocalTracker;
+	TrackerServerInfo *pLocalEnd;
+	TrackerServerInfo *pNewServer;
+	TrackerServerInfo *new_servers;
 	int add_count;
 	int bytes;
 
 	add_count = 0;
 	pLocalEnd = g_tracker_servers.servers + g_tracker_servers.server_count;
 	pJoinEnd = pJoinBody->tracker_servers + pJoinBody->tracker_count;
-        for (pJoinTracker=pJoinBody->tracker_servers; \
+        for (pJoinTracker=pJoinBody->tracker_servers;
                 pJoinTracker<pJoinEnd; pJoinTracker++)
 	{
-        	for (pLocalTracker=g_tracker_servers.servers; \
+        	for (pLocalTracker=g_tracker_servers.servers;
                		pLocalTracker<pLocalEnd; pLocalTracker++)
 		{
-			if (pJoinTracker->port == pLocalTracker->port && \
-				strcmp(pJoinTracker->ip_addr, \
-					pLocalTracker->ip_addr) == 0)
+            if (fdfs_server_contain_ex(pJoinTracker, pLocalTracker))
 			{
 				break;
 			}
@@ -4043,36 +4041,34 @@ static int tracker_mem_check_add_tracker_servers(FDFSStorageJoinBody *pJoinBody)
 
 	if (g_tracker_servers.server_count + add_count > FDFS_MAX_TRACKERS)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"too many tracker servers: %d", \
+		logError("file: "__FILE__", line: %d, "
+			"too many tracker servers: %d",
 			__LINE__, g_tracker_servers.server_count + add_count);
 		return ENOSPC;
 	}
 
-	bytes = sizeof(ConnectionInfo) * (g_tracker_servers.server_count \
+	bytes = sizeof(TrackerServerInfo) * (g_tracker_servers.server_count
 						 + add_count);
-	new_servers = (ConnectionInfo *)malloc(bytes);
+	new_servers = (TrackerServerInfo *)malloc(bytes);
 	if (new_servers == NULL)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"malloc %d bytes fail, " \
-			"errno: %d, error info: %s", \
+		logError("file: "__FILE__", line: %d, "
+			"malloc %d bytes fail, "
+			"errno: %d, error info: %s",
 			__LINE__, bytes, errno, STRERROR(errno));
 		return errno != 0 ? errno : ENOMEM;
 	}
 
-	memcpy(new_servers, g_tracker_servers.servers, sizeof(ConnectionInfo)* \
+	memcpy(new_servers, g_tracker_servers.servers, sizeof(TrackerServerInfo) *
 				g_tracker_servers.server_count);
 	pNewServer = new_servers + g_tracker_servers.server_count;
-	for (pJoinTracker=pJoinBody->tracker_servers; \
+	for (pJoinTracker=pJoinBody->tracker_servers;
 		pJoinTracker<pJoinEnd; pJoinTracker++)
 	{
-		for (pLocalTracker=new_servers; \
+		for (pLocalTracker=new_servers;
 			pLocalTracker<pNewServer; pLocalTracker++)
 		{
-			if (pJoinTracker->port == pLocalTracker->port && \
-				strcmp(pJoinTracker->ip_addr, \
-					pLocalTracker->ip_addr) == 0)
+            if (fdfs_server_contain_ex(pJoinTracker, pLocalTracker))
 			{
 				break;
 			}
@@ -4080,9 +4076,9 @@ static int tracker_mem_check_add_tracker_servers(FDFSStorageJoinBody *pJoinBody)
 
 		if (pLocalTracker == pNewServer)
 		{
-			memcpy(pNewServer, pJoinTracker, \
-				sizeof(ConnectionInfo));
-			pNewServer->sock = -1;
+			memcpy(pNewServer, pJoinTracker,
+				sizeof(TrackerServerInfo));
+            fdfs_server_sock_reset(pNewServer);
 			pNewServer++;
 		}
 	}
@@ -4092,8 +4088,8 @@ static int tracker_mem_check_add_tracker_servers(FDFSStorageJoinBody *pJoinBody)
 	g_tracker_servers.servers = new_servers;
 	g_tracker_servers.server_count += add_count;
 
-	logInfo("file: "__FILE__", line: %d, " \
-		"add %d tracker servers, total tracker servers: %d", \
+	logInfo("file: "__FILE__", line: %d, "
+		"add %d tracker servers, total tracker servers: %d",
 		__LINE__, add_count, g_tracker_servers.server_count);
 
 	return 0;
@@ -4102,8 +4098,8 @@ static int tracker_mem_check_add_tracker_servers(FDFSStorageJoinBody *pJoinBody)
 static int tracker_mem_get_tracker_server(FDFSStorageJoinBody *pJoinBody, \
 		TrackerRunningStatus *pTrackerStatus)
 {
-	ConnectionInfo *pTrackerServer;
-	ConnectionInfo *pTrackerEnd;
+	TrackerServerInfo *pTrackerServer;
+	TrackerServerInfo *pTrackerEnd;
 	TrackerRunningStatus *pStatus;
 	TrackerRunningStatus trackerStatus[FDFS_MAX_TRACKERS];
 	int count;
@@ -4115,11 +4111,11 @@ static int tracker_mem_get_tracker_server(FDFSStorageJoinBody *pJoinBody, \
 	pStatus = trackerStatus;
 	result = 0;
 	pTrackerEnd = pJoinBody->tracker_servers + pJoinBody->tracker_count;
-        for (pTrackerServer=pJoinBody->tracker_servers; \
-                pTrackerServer<pTrackerEnd; pTrackerServer++)
+    for (pTrackerServer=pJoinBody->tracker_servers;
+            pTrackerServer<pTrackerEnd; pTrackerServer++)
 	{
-		if (pTrackerServer->port == g_server_port && \
-			is_local_host_ip(pTrackerServer->ip_addr))
+		if (pTrackerServer->connections[0].port == g_server_port &&
+			is_local_host_ip(pTrackerServer->connections[0].ip_addr))
 		{
 			continue;
 		}
@@ -4150,13 +4146,13 @@ static int tracker_mem_get_tracker_server(FDFSStorageJoinBody *pJoinBody, \
 
 	for (i=0; i<count; i++)
 	{
-		logDebug("file: "__FILE__", line: %d, " \
-			"%s:%d leader: %d, running time: %d, " \
-			"restart interval: %d", __LINE__, \
-			trackerStatus[i].pTrackerServer->ip_addr, \
-			trackerStatus[i].pTrackerServer->port, \
-			trackerStatus[i].if_leader, \
-			trackerStatus[i].running_time, \
+		logDebug("file: "__FILE__", line: %d, "
+			"%s:%d leader: %d, running time: %d, "
+			"restart interval: %d", __LINE__,
+			trackerStatus[i].pTrackerServer->connections[0].ip_addr,
+			trackerStatus[i].pTrackerServer->connections[0].port,
+			trackerStatus[i].if_leader,
+			trackerStatus[i].running_time,
 			trackerStatus[i].restart_interval);
 	}
 
@@ -4171,7 +4167,7 @@ static int tracker_mem_get_sys_files_from_others(FDFSStorageJoinBody *pJoinBody,
 {
 	int result;
 	TrackerRunningStatus trackerStatus;
-	ConnectionInfo *pTrackerServer;
+	TrackerServerInfo *pTrackerServer;
 	FDFSGroups newGroups;
 	FDFSGroups tempGroups;
 
@@ -4188,18 +4184,18 @@ static int tracker_mem_get_sys_files_from_others(FDFSStorageJoinBody *pJoinBody,
 
 	if (pRunningStatus != NULL)
 	{
-		if (tracker_mem_cmp_tracker_running_status(pRunningStatus, \
+		if (tracker_mem_cmp_tracker_running_status(pRunningStatus,
 							&trackerStatus) >= 0)
 		{
-			logDebug("file: "__FILE__", line: %d, " \
-				"%s:%d running time: %d, restart interval: %d, "\
-				"my running time: %d, restart interval: %d, " \
-				"do not need sync system files", __LINE__, \
-				trackerStatus.pTrackerServer->ip_addr, \
-				trackerStatus.pTrackerServer->port, \
-				trackerStatus.running_time, \
-				trackerStatus.restart_interval, \
-				pRunningStatus->running_time, \
+			logDebug("file: "__FILE__", line: %d, "
+				"%s:%d running time: %d, restart interval: %d, "
+				"my running time: %d, restart interval: %d, "
+				"do not need sync system files", __LINE__,
+				trackerStatus.pTrackerServer->connections[0].ip_addr,
+				trackerStatus.pTrackerServer->connections[0].port,
+				trackerStatus.running_time,
+				trackerStatus.restart_interval,
+				pRunningStatus->running_time,
 				pRunningStatus->restart_interval);
 			
 			return 0;
@@ -4213,10 +4209,10 @@ static int tracker_mem_get_sys_files_from_others(FDFSStorageJoinBody *pJoinBody,
 		return result;
 	}
 
-	logInfo("file: "__FILE__", line: %d, " \
-		"sys files loaded from tracker server %s:%d", \
-		__LINE__, pTrackerServer->ip_addr, \
-		pTrackerServer->port);
+	logInfo("file: "__FILE__", line: %d, "
+		"sys files loaded from tracker server %s:%d",
+		__LINE__, pTrackerServer->connections[0].ip_addr,
+		pTrackerServer->connections[0].port);
 
 	memset(&newGroups, 0, sizeof(newGroups));
 	newGroups.store_lookup = g_groups.store_lookup;
@@ -4903,7 +4899,7 @@ static int tracker_mem_get_trunk_binlog_size(
 	strcpy(storage_server.ip_addr, storage_ip);
 	storage_server.port = port;
 	storage_server.sock = -1;
-	if ((conn=tracker_connect_server(&storage_server, &result)) == NULL)
+	if ((conn=tracker_make_connection(&storage_server, &result)) == NULL)
 	{
 		return result;
 	}

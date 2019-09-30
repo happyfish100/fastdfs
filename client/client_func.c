@@ -68,7 +68,7 @@ static void insert_into_sorted_servers(TrackerServerGroup *pTrackerGroup, \
 	memcpy(pDestServer, pInsertedServer, sizeof(ConnectionInfo));
 }
 
-static int copy_tracker_servers(TrackerServerGroup *pTrackerGroup, \
+static int copy_tracker_servers(TrackerServerGroup *pTrackerGroup,
 		const char *filename, char **ppTrackerServers)
 {
 	char **ppSrc;
@@ -86,7 +86,7 @@ static int copy_tracker_servers(TrackerServerGroup *pTrackerGroup, \
 	pTrackerGroup->server_count = 0;
 	for (ppSrc=ppTrackerServers; ppSrc<ppEnd; ppSrc++)
 	{
-		if ((pSeperator=strchr(*ppSrc, ':')) == NULL)
+		if ((pSeperator=strrchr(*ppSrc, ':')) == NULL)
 		{
 			logError("file: "__FILE__", line: %d, " \
 				"conf file \"%s\", " \
@@ -148,6 +148,7 @@ int fdfs_load_tracker_group_ex(TrackerServerGroup *pTrackerGroup, \
 		const char *conf_filename, IniContext *pIniContext)
 {
 	int result;
+    int bytes;
 	char *ppTrackerServers[FDFS_MAX_TRACKERS];
 
 	if ((pTrackerGroup->server_count=iniGetValues(NULL, "tracker_server", \
@@ -160,20 +161,17 @@ int fdfs_load_tracker_group_ex(TrackerServerGroup *pTrackerGroup, \
 		return ENOENT;
 	}
 
-	pTrackerGroup->servers = (ConnectionInfo *)malloc( \
-		sizeof(ConnectionInfo) * pTrackerGroup->server_count);
+    bytes = sizeof(MultiConnectionInfo) * pTrackerGroup->server_count);
+	pTrackerGroup->servers = (MultiConnectionInfo *)malloc(bytes);
 	if (pTrackerGroup->servers == NULL)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"malloc %d bytes fail", __LINE__, \
-			(int)sizeof(ConnectionInfo) * \
-			pTrackerGroup->server_count);
+		logError("file: "__FILE__", line: %d, "
+			"malloc %d bytes fail", __LINE__, bytes);
 		pTrackerGroup->server_count = 0;
 		return errno != 0 ? errno : ENOMEM;
 	}
 
-	memset(pTrackerGroup->servers, 0, \
-		sizeof(ConnectionInfo) * pTrackerGroup->server_count);
+	memset(pTrackerGroup->servers, 0, bytes);
 	if ((result=copy_tracker_servers(pTrackerGroup, conf_filename, \
 			ppTrackerServers)) != 0)
 	{

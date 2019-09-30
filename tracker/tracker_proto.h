@@ -208,8 +208,11 @@ typedef struct
 extern "C" {
 #endif
 
-#define tracker_connect_server(pTrackerServer, err_no) \
-	tracker_connect_server_ex(pTrackerServer, g_fdfs_connect_timeout, err_no)
+#define tracker_connect_server(pServerInfo, err_no) \
+	tracker_connect_server_ex(pServerInfo, g_fdfs_connect_timeout, err_no)
+
+#define tracker_make_connection(conn, err_no) \
+	tracker_make_connection_ex(conn, g_fdfs_connect_timeout, err_no)
 
 /**
 * connect to the tracker server
@@ -219,7 +222,7 @@ extern "C" {
 *	err_no: return the error no
 * return: ConnectionInfo pointer for success, NULL for fail
 **/
-ConnectionInfo *tracker_connect_server_ex(ConnectionInfo *pTrackerServer, \
+ConnectionInfo *tracker_connect_server_ex(TrackerServerInfo *pServerInfo,
 		const int connect_timeout, int *err_no);
 
 
@@ -227,9 +230,23 @@ ConnectionInfo *tracker_connect_server_ex(ConnectionInfo *pTrackerServer, \
 * connect to the tracker server directly without connection pool
 * params:
 *	pTrackerServer: tracker server
+* return: ConnectionInfo pointer for success, NULL for fail
+**/
+ConnectionInfo *tracker_connect_server_no_pool_ex(TrackerServerInfo *pServerInfo,
+        const char *bind_addr, int *err_no);
+
+/**
+* connect to the tracker server directly without connection pool
+* params:
+*	pTrackerServer: tracker server
 * return: 0 for success, none zero for fail
 **/
-int tracker_connect_server_no_pool(ConnectionInfo *pTrackerServer);
+static inline ConnectionInfo *tracker_connect_server_no_pool(
+        TrackerServerInfo *pServerInfo, int *err_no)
+{
+    const char *bind_addr = NULL;
+    return tracker_connect_server_no_pool_ex(pServerInfo, bind_addr, err_no);
+}
 
 #define tracker_disconnect_server(pTrackerServer) \
 	tracker_disconnect_server_ex(pTrackerServer, false)
@@ -241,8 +258,12 @@ int tracker_connect_server_no_pool(ConnectionInfo *pTrackerServer);
 *	bForceClose: if force close the connection when use connection pool
 * return:
 **/
-void tracker_disconnect_server_ex(ConnectionInfo *pTrackerServer, \
+void tracker_disconnect_server_ex(ConnectionInfo *conn, \
 	const bool bForceClose);
+
+
+ConnectionInfo *tracker_make_connection_ex(ConnectionInfo *conn,
+		const int connect_timeout, int *err_no);
 
 int fdfs_validate_group_name(const char *group_name);
 int fdfs_validate_filename(const char *filename);
@@ -278,7 +299,7 @@ int fdfs_get_ini_context_from_tracker(TrackerServerGroup *pTrackerGroup, \
                 IniContext *iniContext, bool * volatile continue_flag, \
                 const bool client_bind_addr, const char *bind_addr);
 
-int fdfs_get_tracker_status(ConnectionInfo *pTrackerServer, \
+int fdfs_get_tracker_status(TrackerServerInfo *pTrackerServer,
 		TrackerRunningStatus *pStatus);
 
 #ifdef __cplusplus

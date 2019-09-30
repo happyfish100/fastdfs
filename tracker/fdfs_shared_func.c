@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
+#include <netdb.h>
 #include "fastcommon/logger.h"
 #include "fastcommon/sockopt.h"
 #include "fastcommon/shared_func.h"
@@ -22,11 +23,97 @@ static FDFSStorageIdInfo **g_storage_ids_by_ip_port = NULL;  //sorted by storage
 
 int g_storage_id_count = 0;
 
+bool fdfs_server_contain(TrackerServerInfo *pServerInfo,
+        const char *target_ip, const int target_port)
+{
+	ConnectionInfo *conn;
+	ConnectionInfo *end;
+
+    if (pServerInfo->count == 1)
+    {
+		return FC_CONNECTION_SERVER_EQUAL(pServerInfo->connections[0],
+                target_ip, target_port);
+    }
+    else if (pServerInfo->count == 2)
+    {
+		return FC_CONNECTION_SERVER_EQUAL(pServerInfo->connections[0],
+                target_ip, target_port) ||
+            FC_CONNECTION_SERVER_EQUAL(pServerInfo->connections[1],
+                    target_ip, target_port);
+    }
+
+	end = pServerInfo->connections + pServerInfo->count;
+	for (conn=pServerInfo->connections; conn<end; conn++)
+    {
+		if (FC_CONNECTION_SERVER_EQUAL(*conn, target_ip, target_port))
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool fdfs_server_contain_ex(TrackerServerInfo *pServer1,
+        TrackerServerInfo *pServer2)
+{
+	ConnectionInfo *conn;
+	ConnectionInfo *end;
+
+    if (pServer1->count == 1)
+    {
+        return fdfs_server_contain1(pServer2, pServer1->connections + 0);
+    }
+    else if (pServer1->count == 2)
+    {
+        if (fdfs_server_contain1(pServer2, pServer1->connections + 0))
+        {
+            return true;
+        }
+        return fdfs_server_contain1(pServer2, pServer1->connections + 1);
+    }
+
+	end = pServer1->connections + pServer1->count;
+	for (conn=pServer1->connections; conn<end; conn++)
+    {
+		if (fdfs_server_contain1(pServer2, conn))
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void fdfs_server_sock_reset(TrackerServerInfo *pServerInfo)
+{
+	ConnectionInfo *conn;
+	ConnectionInfo *end;
+
+    if (pServerInfo->count == 1)
+    {
+		pServerInfo->connections[0].sock = -1;
+    }
+    else if (pServerInfo->count == 2)
+    {
+		pServerInfo->connections[0].sock = -1;
+		pServerInfo->connections[1].sock = -1;
+    }
+    else
+    {
+        end = pServerInfo->connections + pServerInfo->count;
+        for (conn=pServerInfo->connections; conn<end; conn++)
+        {
+            conn->sock = -1;
+        }
+    }
+}
+
 int fdfs_get_tracker_leader_index_ex(TrackerServerGroup *pServerGroup, \
 		const char *leaderIp, const int leaderPort)
 {
-	ConnectionInfo *pServer;
-	ConnectionInfo *pEnd;
+	TrackerServerInfo *pServer;
+	TrackerServerInfo *pEnd;
 
 	if (pServerGroup->server_count == 0)
 	{
@@ -36,8 +123,7 @@ int fdfs_get_tracker_leader_index_ex(TrackerServerGroup *pServerGroup, \
 	pEnd = pServerGroup->servers + pServerGroup->server_count;
 	for (pServer=pServerGroup->servers; pServer<pEnd; pServer++)
 	{
-		if (strcmp(pServer->ip_addr, leaderIp) == 0 && \
-			pServer->port == leaderPort)
+        if (fdfs_server_contain(pServer, leaderIp, leaderPort))
 		{
 			return pServer - pServerGroup->servers;
 		}
@@ -691,7 +777,7 @@ int fdfs_load_storage_ids(char *content, const char *pStorageIdsFilename)
 	return result;
 }
 
-int fdfs_get_storage_ids_from_tracker_server(ConnectionInfo *pTrackerServer)
+int fdfs_get_storage_ids_from_tracker_server(TrackerServerInfo *pTrackerServer)
 {
 #define MAX_REQUEST_LOOP   32
 	TrackerHeader *pHeader;
@@ -730,21 +816,19 @@ int fdfs_get_storage_ids_from_tracker_server(ConnectionInfo *pTrackerServer)
 	while (1)
 	{
 		int2buff(start_index, p);
-		if ((result=tcpsenddata_nb(conn->sock, out_buff, \
+		if ((result=tcpsenddata_nb(conn->sock, out_buff,
 			sizeof(out_buff), g_fdfs_network_timeout)) != 0)
 		{
-			logError("file: "__FILE__", line: %d, " \
-				"send data to tracker server %s:%d fail, " \
-				"errno: %d, error info: %s", __LINE__, \
-				pTrackerServer->ip_addr, \
-				pTrackerServer->port, \
+			logError("file: "__FILE__", line: %d, "
+				"send data to tracker server %s:%d fail, "
+				"errno: %d, error info: %s", __LINE__,
+				conn->ip_addr, conn->port,
 				result, STRERROR(result));
 		}
 		else
 		{
 			response = NULL;
-			result = fdfs_recv_response(conn, \
-				&response, 0, &in_bytes);
+			result = fdfs_recv_response(conn, &response, 0, &in_bytes);
             if (result != 0)
             {
                 logError("file: "__FILE__", line: %d, "
@@ -760,11 +844,10 @@ int fdfs_get_storage_ids_from_tracker_server(ConnectionInfo *pTrackerServer)
 
 		if (in_bytes < 2 * sizeof(int))
 		{
-			logError("file: "__FILE__", line: %d, " \
-				"tracker server %s:%d, recv data length: %d "\
-				"is invalid", __LINE__, 
-				pTrackerServer->ip_addr, \
-				pTrackerServer->port, (int)in_bytes);
+			logError("file: "__FILE__", line: %d, "
+				"tracker server %s:%d, recv data length: %d "
+				"is invalid", __LINE__,
+				conn->ip_addr, conn->port, (int)in_bytes);
 			result = EINVAL;
 			break;
 		}
@@ -773,22 +856,21 @@ int fdfs_get_storage_ids_from_tracker_server(ConnectionInfo *pTrackerServer)
 		current_count = buff2int(response + sizeof(int));
 		if (total_count <= start_index)
 		{
-			logError("file: "__FILE__", line: %d, " \
-				"tracker server %s:%d, total storage " \
-				"count: %d is invalid, which <= start " \
-				"index: %d", __LINE__, pTrackerServer->ip_addr,\
-				pTrackerServer->port, total_count, start_index);
+			logError("file: "__FILE__", line: %d, "
+				"tracker server %s:%d, total storage "
+				"count: %d is invalid, which <= start "
+				"index: %d", __LINE__, conn->ip_addr,
+				conn->port, total_count, start_index);
 			result = EINVAL;
 			break;
 		}
 
 		if (current_count <= 0)
 		{
-			logError("file: "__FILE__", line: %d, " \
-				"tracker server %s:%d, current storage " \
-				"count: %d is invalid, which <= 0", \
-				__LINE__, pTrackerServer->ip_addr,\
-				pTrackerServer->port, current_count);
+			logError("file: "__FILE__", line: %d, "
+				"tracker server %s:%d, current storage "
+				"count: %d is invalid, which <= 0", __LINE__,
+                conn->ip_addr, conn->port, current_count);
 			result = EINVAL;
 			break;
 		}
@@ -814,8 +896,8 @@ int fdfs_get_storage_ids_from_tracker_server(ConnectionInfo *pTrackerServer)
 			logError("file: "__FILE__", line: %d, " \
 				"response data from tracker " \
 				"server %s:%d is too large", \
-				__LINE__, pTrackerServer->ip_addr,\
-				pTrackerServer->port);
+				__LINE__, conn->ip_addr,\
+				conn->port);
 			result = ENOSPC;
 			break;
 		}
@@ -874,11 +956,11 @@ int fdfs_get_storage_ids_from_tracker_server(ConnectionInfo *pTrackerServer)
 
 int fdfs_get_storage_ids_from_tracker_group(TrackerServerGroup *pTrackerGroup)
 {
-	ConnectionInfo *pGServer;
-	ConnectionInfo *pTServer;
-	ConnectionInfo *pServerStart;
-	ConnectionInfo *pServerEnd;
-	ConnectionInfo trackerServer;
+	TrackerServerInfo *pGServer;
+	TrackerServerInfo *pTServer;
+	TrackerServerInfo *pServerStart;
+	TrackerServerInfo *pServerEnd;
+	TrackerServerInfo trackerServer;
 	int result;
 	int leader_index;
 	int i;
@@ -901,8 +983,8 @@ int fdfs_get_storage_ids_from_tracker_group(TrackerServerGroup *pTrackerGroup)
 	{
 		for (pGServer=pServerStart; pGServer<pServerEnd; pGServer++)
 		{
-			memcpy(pTServer, pGServer, sizeof(ConnectionInfo));
-			pTServer->sock = -1;
+			memcpy(pTServer, pGServer, sizeof(TrackerServerInfo));
+            fdfs_server_sock_reset(pTServer);
 			result = fdfs_get_storage_ids_from_tracker_server(pTServer);
 			if (result == 0)
 			{
@@ -1036,3 +1118,54 @@ void fdfs_set_log_rotate_size(LogContext *pContext, const int64_t log_rotate_siz
 	}
 }
 
+int fdfs_parse_server_info(char *server_str, const int default_port,
+        TrackerServerInfo *pServer)
+{
+	char *pColon;
+    char *hosts[FDFS_MULTI_IP_MAX_COUNT];
+    ConnectionInfo *conn;
+    int port;
+    int i;
+
+    memset(pServer, 0, sizeof(TrackerServerInfo));
+    if ((pColon=strrchr(server_str, ':')) == NULL)
+    {
+        logInfo("file: "__FILE__", line: %d, "
+                "no port part in %s, set port to %d",
+                __LINE__, server_str, default_port);
+        port = default_port;
+    }
+    else
+    {
+        port = atoi(pColon + 1);
+    }
+
+    *pColon = '\0';
+    conn = pServer->connections;
+    pServer->count =  splitEx(server_str, ',',
+            hosts, FDFS_MULTI_IP_MAX_COUNT);
+    if (pServer->count == 1)
+    {
+		if (getIpaddrByName(hosts[0], conn->ip_addr,
+			sizeof(conn->ip_addr)) == INADDR_NONE)
+		{
+			logError("file: "__FILE__", line: %d, "
+				"host \"%s\" is invalid, error info: %s",
+				__LINE__, hosts[0], hstrerror(h_errno));
+			return EINVAL;
+		}
+        conn->port = port;
+        conn->sock = -1;
+        return 0;
+    }
+
+    for (i=0; i<pServer->count; i++)
+    {
+        snprintf(conn->ip_addr, sizeof(conn->ip_addr), "%s", hosts[i]); 
+        conn->port = port;
+        conn->sock = -1;
+        conn++;
+    }
+
+    return 0;
+}
