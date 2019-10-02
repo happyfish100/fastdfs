@@ -103,9 +103,10 @@
 #define STORAGE_SET_METADATA_FLAG_MERGE		'M'
 #define STORAGE_SET_METADATA_FLAG_MERGE_STR	"M"
 
-#define FDFS_PROTO_PKG_LEN_SIZE		8
-#define FDFS_PROTO_CMD_SIZE		1
-#define FDFS_PROTO_IP_PORT_SIZE		(IP_ADDRESS_SIZE + 6)
+#define FDFS_PROTO_PKG_LEN_SIZE        8
+#define FDFS_PROTO_CMD_SIZE            1
+#define FDFS_PROTO_IP_PORT_SIZE        (IP_ADDRESS_SIZE + 6)
+#define FDFS_PROTO_MULTI_IP_PORT_SIZE  (2 * IP_ADDRESS_SIZE + 8)
 
 #define TRACKER_QUERY_STORAGE_FETCH_BODY_LEN	(FDFS_GROUP_NAME_MAX_LEN \
 			+ IP_ADDRESS_SIZE - 1 + FDFS_PROTO_PKG_LEN_SIZE)
@@ -230,22 +231,27 @@ ConnectionInfo *tracker_connect_server_ex(TrackerServerInfo *pServerInfo,
 * connect to the tracker server directly without connection pool
 * params:
 *	pTrackerServer: tracker server
+*   bind_ipaddr: the ip address to bind, NULL or empty for any
+*	err_no: return the error no
+*   log_connect_error: if log error info when connect fail
 * return: ConnectionInfo pointer for success, NULL for fail
 **/
 ConnectionInfo *tracker_connect_server_no_pool_ex(TrackerServerInfo *pServerInfo,
-        const char *bind_addr, int *err_no);
+        const char *bind_addr, int *err_no, const bool log_connect_error);
 
 /**
 * connect to the tracker server directly without connection pool
 * params:
 *	pTrackerServer: tracker server
-* return: 0 for success, none zero for fail
+*	err_no: return the error no
+* return: ConnectionInfo pointer for success, NULL for fail
 **/
 static inline ConnectionInfo *tracker_connect_server_no_pool(
         TrackerServerInfo *pServerInfo, int *err_no)
 {
     const char *bind_addr = NULL;
-    return tracker_connect_server_no_pool_ex(pServerInfo, bind_addr, err_no);
+    return tracker_connect_server_no_pool_ex(pServerInfo,
+            bind_addr, err_no, true);
 }
 
 #define tracker_disconnect_server(pTrackerServer) \

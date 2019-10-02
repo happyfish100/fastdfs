@@ -471,7 +471,7 @@ ConnectionInfo *tracker_connect_server_ex(TrackerServerInfo *pServerInfo,
 }
 
 ConnectionInfo *tracker_connect_server_no_pool_ex(TrackerServerInfo *pServerInfo,
-        const char *bind_addr, int *err_no)
+        const char *bind_addr, int *err_no, const bool log_connect_error)
 {
 	ConnectionInfo *conn;
 	ConnectionInfo *end;
@@ -484,7 +484,8 @@ ConnectionInfo *tracker_connect_server_no_pool_ex(TrackerServerInfo *pServerInfo
 	}
 
 	*err_no = conn_pool_connect_server_ex(pServerInfo->connections
-            + pServerInfo->index, g_fdfs_connect_timeout, bind_addr);
+            + pServerInfo->index, g_fdfs_connect_timeout,
+            bind_addr, log_connect_error);
     if (*err_no == 0)
     {
 		return pServerInfo->connections + pServerInfo->index;
@@ -502,7 +503,8 @@ ConnectionInfo *tracker_connect_server_no_pool_ex(TrackerServerInfo *pServerInfo
         if (current_index != pServerInfo->index)
         {
             if ((*err_no=conn_pool_connect_server_ex(conn,
-                            g_fdfs_connect_timeout, bind_addr)) == 0)
+                            g_fdfs_connect_timeout, bind_addr,
+                            log_connect_error)) == 0)
             {
                 pServerInfo->index = current_index;
                 return pServerInfo->connections + pServerInfo->index;
@@ -623,7 +625,7 @@ int fdfs_get_ini_context_from_tracker(TrackerServerGroup *pTrackerGroup, \
             for (i=0; i < 3; i++)
             {
                 conn = tracker_connect_server_no_pool_ex(pTServer,
-                        bind_addr, &result);
+                        bind_addr, &result, false);
                 if (conn != NULL)
                 {
                     break;
@@ -634,6 +636,10 @@ int fdfs_get_ini_context_from_tracker(TrackerServerGroup *pTrackerGroup, \
 
             if (conn == NULL)
             {
+                logError("file: "__FILE__", line: %d, "
+                        "connect to server %s:%d fail, errno: %d, "
+                        "error info: %s", __LINE__, conn->ip_addr,
+                        conn->port, result, STRERROR(result));
                 continue;
             }
 

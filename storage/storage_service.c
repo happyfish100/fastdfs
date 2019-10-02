@@ -2301,7 +2301,7 @@ static int storage_client_create_link_wrapper(struct fast_task_info *pTask, \
 
 		if (!bCreateDirectly)
 		{
-			if ((pStorageServer=tracker_connect_server( \
+			if ((pStorageServer=tracker_make_connection(
 				&storageServer, &result)) == NULL)
 			{
 				tracker_disconnect_server(pTracker);

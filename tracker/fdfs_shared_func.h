@@ -97,6 +97,16 @@ void fdfs_server_sock_reset(TrackerServerInfo *pServerInfo);
 int fdfs_parse_server_info(char *server_str, const int default_port,
         TrackerServerInfo *pServer);
 
+int fdfs_server_info_to_string_ex(TrackerServerInfo *pServer,
+        const int port, char *buff, const int buffSize);
+
+static inline int fdfs_server_info_to_string(TrackerServerInfo *pServer,
+        char *buff, const int buffSize)
+{
+    return fdfs_server_info_to_string_ex(pServer,
+            pServer->connections[0].port, buff, buffSize);
+}
+
 #ifdef __cplusplus
 }
 #endif

@@ -113,7 +113,7 @@ int trunk_client_trunk_alloc_space(const int file_size, \
 	}
 
 	memcpy(&trunk_server, &g_trunk_server, sizeof(ConnectionInfo));
-	if ((pTrunkServer=tracker_connect_server(&trunk_server, &result)) == NULL)
+	if ((pTrunkServer=tracker_make_connection(&trunk_server, &result)) == NULL)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"can't alloc trunk space because connect to trunk " \
@@ -216,7 +216,7 @@ int trunk_client_trunk_alloc_confirm(const FDFSTrunkFullInfo *pTrunkInfo, \
 	}
 
 	memcpy(&trunk_server, &g_trunk_server, sizeof(ConnectionInfo));
-	if ((pTrunkServer=tracker_connect_server(&trunk_server, &result)) == NULL)
+	if ((pTrunkServer=tracker_make_connection(&trunk_server, &result)) == NULL)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"trunk alloc confirm fail because connect to trunk " \
@@ -249,7 +249,7 @@ int trunk_client_trunk_free_space(const FDFSTrunkFullInfo *pTrunkInfo)
 	}
 
 	memcpy(&trunk_server, &g_trunk_server, sizeof(ConnectionInfo));
-	if ((pTrunkServer=tracker_connect_server(&trunk_server, &result)) == NULL)
+	if ((pTrunkServer=tracker_make_connection(&trunk_server, &result)) == NULL)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"free trunk space fail because connect to trunk " \

@@ -174,28 +174,27 @@ static int storage_do_get_group_name(ConnectionInfo *pTrackerServer)
 
 static int storage_get_group_name_from_tracker()
 {
-	ConnectionInfo *pTrackerServer;
-	ConnectionInfo *pServerEnd;
+	TrackerServerInfo *pTrackerServer;
+	TrackerServerInfo *pServerEnd;
 	ConnectionInfo *pTrackerConn;
-	ConnectionInfo tracker_server;
+	TrackerServerInfo tracker_server;
 	int result;
 
 	result = ENOENT;
 	pServerEnd = g_tracker_group.servers + g_tracker_group.server_count;
-	for (pTrackerServer=g_tracker_group.servers; \
+	for (pTrackerServer=g_tracker_group.servers;
 		pTrackerServer<pServerEnd; pTrackerServer++)
 	{
-		memcpy(&tracker_server, pTrackerServer, \
-			sizeof(ConnectionInfo));
-		tracker_server.sock = -1;
-        if ((pTrackerConn=tracker_connect_server(&tracker_server, \
+		memcpy(&tracker_server, pTrackerServer, sizeof(TrackerServerInfo));
+        fdfs_server_sock_reset(&tracker_server);
+        if ((pTrackerConn=tracker_connect_server(&tracker_server,
 			&result)) == NULL)
 		{
 			continue;
 		}
 
         result = storage_do_get_group_name(pTrackerConn);
-		tracker_disconnect_server_ex(pTrackerConn, \
+		tracker_disconnect_server_ex(pTrackerConn,
 			result != 0 && result != ENOENT);
 		if (result == 0)
 		{
@@ -1049,6 +1048,34 @@ void storage_set_access_log_header(struct log_context *pContext)
     log_header(pContext, STORAGE_ACCESS_HEADER_STR, STORAGE_ACCESS_HEADER_LEN);
 }
 
+static int storage_check_tracker_ipaddr(const char *filename)
+{
+    TrackerServerInfo *pServer;
+    TrackerServerInfo *pEnd;
+	ConnectionInfo *conn;
+	ConnectionInfo *conn_end;
+
+    pEnd = g_tracker_group.servers + g_tracker_group.server_count;
+    for (pServer=g_tracker_group.servers; pServer<pEnd; pServer++)
+    {
+        conn_end = pServer->connections + pServer->count;
+        for (conn=pServer->connections; conn<conn_end; conn++)
+        {
+            //logInfo("server=%s:%d\n", conn->ip_addr, conn->port);
+            if (strcmp(conn->ip_addr, "127.0.0.1") == 0)
+            {
+                logError("file: "__FILE__", line: %d, "
+                        "conf file \"%s\", tracker: \"%s:%d\" is invalid, "
+                        "tracker server ip can't be 127.0.0.1",
+                        __LINE__, filename, conn->ip_addr, conn->port);
+                return EINVAL;
+            }
+        }
+    }
+
+    return 0;
+}
+
 int storage_func_init(const char *filename, \
 		char *bind_addr, const int addr_size)
 {
@@ -1070,8 +1097,6 @@ int storage_func_init(const char *filename, \
 	int64_t buff_size;
 	int64_t rotate_access_log_size;
 	int64_t rotate_error_log_size;
-	ConnectionInfo *pServer;
-	ConnectionInfo *pEnd;
 
 	/*
 	while (nThreadCount > 0)
@@ -1181,23 +1206,7 @@ int storage_func_init(const char *filename, \
 			break;
 		}
 
-		pEnd = g_tracker_group.servers + g_tracker_group.server_count;
-		for (pServer=g_tracker_group.servers; pServer<pEnd; pServer++)
-		{
-			//printf("server=%s:%d\n", pServer->ip_addr, pServer->port);
-			if (strcmp(pServer->ip_addr, "127.0.0.1") == 0)
-			{
-				logError("file: "__FILE__", line: %d, " \
-					"conf file \"%s\", " \
-					"tracker: \"%s:%d\" is invalid, " \
-					"tracker server ip can't be 127.0.0.1",\
-					__LINE__, filename, pServer->ip_addr, \
-					pServer->port);
-				result = EINVAL;
-				break;
-			}
-		}
-		if (result != 0)
+		if ((result=storage_check_tracker_ipaddr(filename)) != 0)
 		{
 			break;
 		}

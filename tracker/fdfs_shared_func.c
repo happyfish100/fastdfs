@@ -1169,3 +1169,26 @@ int fdfs_parse_server_info(char *server_str, const int default_port,
 
     return 0;
 }
+
+int fdfs_server_info_to_string_ex(TrackerServerInfo *pServer,
+        const int port, char *buff, const int buffSize)
+{
+	ConnectionInfo *conn;
+	ConnectionInfo *end;
+    int len;
+
+    if (pServer->count == 1)
+    {
+        return snprintf(buff, buffSize, "%s:%d",
+                pServer->connections[0].ip_addr, port);
+    }
+
+    len = snprintf(buff, buffSize, "%s", pServer->connections[0].ip_addr);
+	end = pServer->connections + pServer->count;
+	for (conn=pServer->connections + 1; conn<end; conn++)
+    {
+        len += snprintf(buff + len, buffSize - len, ",%s", conn->ip_addr);
+    }
+    len += snprintf(buff + len, buffSize - len, ":%d", port);
+    return len;
+}

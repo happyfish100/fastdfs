@@ -1624,10 +1624,11 @@ int storage_report_storage_status(const char *storage_id, \
 		const char *ip_addr, const char status)
 {
 	FDFSStorageBrief briefServer;
-	ConnectionInfo trackerServer;
-	ConnectionInfo *pGlobalServer;
-	ConnectionInfo *pTServer;
-	ConnectionInfo *pTServerEnd;
+	TrackerServerInfo trackerServer;
+	TrackerServerInfo *pGlobalServer;
+	TrackerServerInfo *pTServer;
+	TrackerServerInfo *pTServerEnd;
+    ConnectionInfo *conn;
 	int result;
 	int report_count;
 	int success_count;
@@ -1665,6 +1666,7 @@ int storage_report_storage_status(const char *storage_id, \
 			__LINE__, ip_addr, status);
 	}
 
+    conn = NULL;
 	report_count = 0;
 	success_count = 0;
 
@@ -1674,13 +1676,13 @@ int storage_report_storage_status(const char *storage_id, \
 	for (pGlobalServer=g_tracker_group.servers; pGlobalServer<pTServerEnd; \
 			pGlobalServer++)
 	{
-		memcpy(pTServer, pGlobalServer, sizeof(ConnectionInfo));
+		memcpy(pTServer, pGlobalServer, sizeof(TrackerServerInfo));
+        fdfs_server_sock_reset(pTServer);
 		for (i=0; i < 3; i++)
 		{
-            pTServer->sock = socketClientExAuto(pTServer->ip_addr,
-                    pTServer->port, g_fdfs_connect_timeout, O_NONBLOCK,
-                    g_client_bind_addr ? g_bind_addr : NULL, &result);
-            if (pTServer->sock >= 0)
+            conn = tracker_connect_server_no_pool_ex(pTServer,
+                    g_client_bind_addr ? g_bind_addr : NULL, &result, false);
+            if (conn != NULL)
             {
 				break;
             }
@@ -1688,20 +1690,26 @@ int storage_report_storage_status(const char *storage_id, \
 			sleep(5);
 		}
 
-		if (pTServer->sock < 0)
-		{
-			continue;
-		}
+        if (conn == NULL)
+        {
+            logError("file: "__FILE__", line: %d, "
+                    "connect to tracker server %s:%d fail, "
+                    "errno: %d, error info: %s",
+                    __LINE__, pTServer->connections[0].ip_addr,
+                    pTServer->connections[0].port,
+                    result, STRERROR(result));
+            continue;
+        }
 
 		report_count++;
-		if ((result=tracker_report_storage_status(pTServer, \
+		if ((result=tracker_report_storage_status(conn,
 			&briefServer)) == 0)
 		{
 			success_count++;
 		}
 
-		fdfs_quit(pTServer);
-		close(pTServer->sock);
+		fdfs_quit(conn);
+		close(conn->sock);
 	}
 
 	logDebug("file: "__FILE__", line: %d, " \
@@ -1714,9 +1722,10 @@ int storage_report_storage_status(const char *storage_id, \
 
 static int storage_reader_sync_init_req(StorageBinLogReader *pReader)
 {
-	ConnectionInfo *pTrackerServers;
-	ConnectionInfo *pTServer;
-	ConnectionInfo *pTServerEnd;
+	TrackerServerInfo *pTrackerServers;
+	TrackerServerInfo *pTServer;
+	TrackerServerInfo *pTServerEnd;
+    ConnectionInfo *conn;
 	char tracker_client_ip[IP_ADDRESS_SIZE];
 	int result;
 
@@ -1733,27 +1742,27 @@ static int storage_reader_sync_init_req(StorageBinLogReader *pReader)
 		}
 	}
 
-	pTrackerServers = (ConnectionInfo *)malloc( \
-		sizeof(ConnectionInfo) * g_tracker_group.server_count);
+	pTrackerServers = (TrackerServerInfo *)malloc(
+		sizeof(TrackerServerInfo) * g_tracker_group.server_count);
 	if (pTrackerServers == NULL)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"malloc %d bytes fail", __LINE__, \
-			(int)sizeof(ConnectionInfo) * \
+		logError("file: "__FILE__", line: %d, "
+			"malloc %d bytes fail", __LINE__,
+			(int)sizeof(TrackerServerInfo) *
 			g_tracker_group.server_count);
 		return errno != 0 ? errno : ENOMEM;
 	}
 
-	memcpy(pTrackerServers, g_tracker_group.servers, \
-		sizeof(ConnectionInfo) * g_tracker_group.server_count);
+	memcpy(pTrackerServers, g_tracker_group.servers,
+		sizeof(TrackerServerInfo) * g_tracker_group.server_count);
 	pTServerEnd = pTrackerServers + g_tracker_group.server_count;
 	for (pTServer=pTrackerServers; pTServer<pTServerEnd; pTServer++)
 	{
-		pTServer->sock = -1;
+        fdfs_server_sock_reset(pTServer);
 	}
 
 	result = EINTR;
-	if (g_tracker_group.leader_index >= 0 && \
+	if (g_tracker_group.leader_index >= 0 &&
 		g_tracker_group.leader_index < g_tracker_group.server_count)
 	{
 		pTServer = pTrackerServers + g_tracker_group.leader_index;
@@ -1766,10 +1775,9 @@ static int storage_reader_sync_init_req(StorageBinLogReader *pReader)
 	{
 		while (g_continue_flag)
 		{
-            pTServer->sock = socketClientExAuto(pTServer->ip_addr,
-                    pTServer->port, g_fdfs_connect_timeout, O_NONBLOCK,
-                    g_client_bind_addr ? g_bind_addr : NULL, &result);
-            if (pTServer->sock >= 0)
+            conn = tracker_connect_server_no_pool_ex(pTServer,
+                    g_client_bind_addr ? g_bind_addr : NULL, &result, true);
+            if (conn != NULL)
             {
 				break;
             }
@@ -1788,20 +1796,19 @@ static int storage_reader_sync_init_req(StorageBinLogReader *pReader)
 			break;
 		}
 
-		getSockIpaddr(pTServer->sock, \
-				tracker_client_ip, IP_ADDRESS_SIZE);
+		getSockIpaddr(conn->sock, tracker_client_ip, IP_ADDRESS_SIZE);
 		insert_into_local_host_ip(tracker_client_ip);
 
-		if ((result=tracker_sync_src_req(pTServer, pReader)) != 0)
+		if ((result=tracker_sync_src_req(conn, pReader)) != 0)
 		{
-			fdfs_quit(pTServer);
-			close(pTServer->sock);
+			fdfs_quit(conn);
+			close(conn->sock);
 			sleep(g_heart_beat_interval);
 			continue;
 		}
 
-		fdfs_quit(pTServer);
-		close(pTServer->sock);
+		fdfs_quit(conn);
+		close(conn->sock);
 
 		break;
 	} while (1);

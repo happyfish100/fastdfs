@@ -33,29 +33,29 @@
 
 static int storage_convert_src_server_id()
 {
-	ConnectionInfo *pTrackerServer;
-	ConnectionInfo *pServerEnd;
+	TrackerServerInfo *pTrackerServer;
+	TrackerServerInfo *pServerEnd;
 	ConnectionInfo *pTrackerConn;
-	ConnectionInfo tracker_server;
+	TrackerServerInfo tracker_server;
 	int result;
 
 	result = ENOENT;
 	pServerEnd = g_tracker_group.servers + g_tracker_group.server_count;
-	for (pTrackerServer=g_tracker_group.servers; \
+	for (pTrackerServer=g_tracker_group.servers;
 		pTrackerServer<pServerEnd; pTrackerServer++)
 	{
-		memcpy(&tracker_server, pTrackerServer, \
-			sizeof(ConnectionInfo));
-		tracker_server.sock = -1;
-                if ((pTrackerConn=tracker_connect_server(&tracker_server, \
+		memcpy(&tracker_server, pTrackerServer,
+			sizeof(TrackerServerInfo));
+        fdfs_server_sock_reset(&tracker_server);
+        if ((pTrackerConn=tracker_connect_server(&tracker_server,
 			&result)) == NULL)
 		{
 			continue;
 		}
 
-		result = tracker_get_storage_id(pTrackerConn, \
+		result = tracker_get_storage_id(pTrackerConn,
 			g_group_name, g_sync_src_id, g_sync_src_id);
-		tracker_disconnect_server_ex(pTrackerConn, \
+		tracker_disconnect_server_ex(pTrackerConn,
 			result != 0 && result != ENOENT);
 		if (result == 0)
 		{

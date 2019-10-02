@@ -119,15 +119,17 @@ static int storage_report_ip_changed(ConnectionInfo *pTrackerServer)
 
 int storage_get_my_tracker_client_ip()
 {
-	ConnectionInfo *pGlobalServer;
-	ConnectionInfo *pTServer;
-	ConnectionInfo *pTServerEnd;
-	ConnectionInfo trackerServer;
+	TrackerServerInfo *pGlobalServer;
+	TrackerServerInfo *pTServer;
+	TrackerServerInfo *pTServerEnd;
+	TrackerServerInfo trackerServer;
+    ConnectionInfo *conn;
 	char tracker_client_ip[IP_ADDRESS_SIZE];
 	int success_count;
 	int result;
 	int i;
 
+    conn = NULL;
 	result = 0;
 	success_count = 0;
 	pTServer = &trackerServer;
@@ -138,13 +140,13 @@ int storage_get_my_tracker_client_ip()
 	for (pGlobalServer=g_tracker_group.servers; pGlobalServer<pTServerEnd; \
 			pGlobalServer++)
 	{
-		memcpy(pTServer, pGlobalServer, sizeof(ConnectionInfo));
+		memcpy(pTServer, pGlobalServer, sizeof(TrackerServerInfo));
+        fdfs_server_sock_reset(pTServer);
 		for (i=0; i < 3; i++)
 		{
-            pTServer->sock = socketClientExAuto(pTServer->ip_addr,
-                    pTServer->port, g_fdfs_connect_timeout, O_NONBLOCK,
-                    g_client_bind_addr ? g_bind_addr : NULL, &result);
-            if (pTServer->sock >= 0)
+            conn = tracker_connect_server_no_pool_ex(pTServer,
+                    g_client_bind_addr ? g_bind_addr : NULL, &result, false);
+            if (conn != NULL)
             {
 				break;
             }
@@ -152,37 +154,40 @@ int storage_get_my_tracker_client_ip()
 			sleep(5);
 		}
 
-		if (pTServer->sock < 0)
+		if (conn == NULL)
 		{
-			logError("file: "__FILE__", line: %d, " \
-				"connect to tracker server %s:%d fail, " \
-				"errno: %d, error info: %s", \
-				__LINE__, pTServer->ip_addr, pTServer->port, \
+			logError("file: "__FILE__", line: %d, "
+				"connect to tracker server %s:%d fail, "
+				"errno: %d, error info: %s",
+				__LINE__, pTServer->connections[0].ip_addr,
+                pTServer->connections[0].port,
 				result, STRERROR(result));
 
 			continue;
 		}
 
-		getSockIpaddr(pTServer->sock,tracker_client_ip,IP_ADDRESS_SIZE);
+        //TODO  support multi IPs  !!!
+
+		getSockIpaddr(conn->sock,tracker_client_ip,IP_ADDRESS_SIZE);
 		if (*g_tracker_client_ip == '\0')
 		{
 			strcpy(g_tracker_client_ip, tracker_client_ip);
 		}
 		else if (strcmp(tracker_client_ip, g_tracker_client_ip) != 0)
 		{
-			logError("file: "__FILE__", line: %d, " \
-				"as a client of tracker server %s:%d, " \
-				"my ip: %s != client ip: %s of other " \
-				"tracker client", __LINE__, \
-				pTServer->ip_addr, pTServer->port, \
+			logError("file: "__FILE__", line: %d, "
+				"as a client of tracker server %s:%d, "
+				"my ip: %s != client ip: %s of other "
+				"tracker client", __LINE__,
+				conn->ip_addr, conn->port,
 				tracker_client_ip, g_tracker_client_ip);
 
-			close(pTServer->sock);
+			close(conn->sock);
 			return EINVAL;
 		}
 
-		fdfs_quit(pTServer);
-		close(pTServer->sock);
+		fdfs_quit(conn);
+		close(conn->sock);
 		success_count++;
 	}
 	}
@@ -197,10 +202,11 @@ int storage_get_my_tracker_client_ip()
 
 static int storage_report_storage_ip_addr()
 {
-	ConnectionInfo *pGlobalServer;
-	ConnectionInfo *pTServer;
-	ConnectionInfo *pTServerEnd;
-	ConnectionInfo trackerServer;
+	TrackerServerInfo *pGlobalServer;
+	TrackerServerInfo *pTServer;
+	TrackerServerInfo *pTServerEnd;
+	TrackerServerInfo trackerServer;
+    ConnectionInfo *conn;
 	int success_count;
 	int result;
 	int i;
@@ -229,13 +235,13 @@ static int storage_report_storage_ip_addr()
 	for (pGlobalServer=g_tracker_group.servers; pGlobalServer<pTServerEnd; \
 			pGlobalServer++)
 	{
-		memcpy(pTServer, pGlobalServer, sizeof(ConnectionInfo));
+		memcpy(pTServer, pGlobalServer, sizeof(TrackerServerInfo));
+        fdfs_server_sock_reset(pTServer);
 		for (i=0; i < 3; i++)
 		{
-            pTServer->sock = socketClientExAuto(pTServer->ip_addr,
-                    pTServer->port, g_fdfs_connect_timeout, O_NONBLOCK,
-                    g_client_bind_addr ? g_bind_addr : NULL, &result);
-            if (pTServer->sock >= 0)
+            conn = tracker_connect_server_no_pool_ex(pTServer,
+                    g_client_bind_addr ? g_bind_addr : NULL, &result, false);
+            if (conn != NULL)
             {
 				break;
             }
@@ -243,18 +249,19 @@ static int storage_report_storage_ip_addr()
 			sleep(1);
 		}
 
-		if (pTServer->sock < 0)
+        if (conn == NULL)
 		{
-			logError("file: "__FILE__", line: %d, " \
-				"connect to tracker server %s:%d fail, " \
-				"errno: %d, error info: %s", \
-				__LINE__, pTServer->ip_addr, pTServer->port, \
+			logError("file: "__FILE__", line: %d, "
+				"connect to tracker server %s:%d fail, "
+				"errno: %d, error info: %s",
+				__LINE__, pTServer->connections[0].ip_addr,
+                pTServer->connections[0].port,
 				result, STRERROR(result));
 
 			continue;
 		}
 
-		if ((result=storage_report_ip_changed(pTServer)) == 0)
+		if ((result=storage_report_ip_changed(conn)) == 0)
 		{
 			success_count++;
 		}
@@ -263,8 +270,8 @@ static int storage_report_storage_ip_addr()
 			sleep(1);
 		}
 
-		fdfs_quit(pTServer);
-		close(pTServer->sock);
+		fdfs_quit(conn);
+		close(conn->sock);
 	}
 	}
 
@@ -278,10 +285,11 @@ static int storage_report_storage_ip_addr()
 
 int storage_changelog_req()
 {
-	ConnectionInfo *pGlobalServer;
-	ConnectionInfo *pTServer;
-	ConnectionInfo *pTServerEnd;
-	ConnectionInfo trackerServer;
+	TrackerServerInfo *pGlobalServer;
+	TrackerServerInfo *pTServer;
+	TrackerServerInfo *pTServerEnd;
+	TrackerServerInfo trackerServer;
+    ConnectionInfo *conn;
 	int success_count;
 	int result;
 	int i;
@@ -296,13 +304,13 @@ int storage_changelog_req()
 	for (pGlobalServer=g_tracker_group.servers; pGlobalServer<pTServerEnd; \
 			pGlobalServer++)
 	{
-		memcpy(pTServer, pGlobalServer, sizeof(ConnectionInfo));
+		memcpy(pTServer, pGlobalServer, sizeof(TrackerServerInfo));
+        fdfs_server_sock_reset(pTServer);
 		for (i=0; i < 3; i++)
 		{
-            pTServer->sock = socketClientExAuto(pTServer->ip_addr,
-                    pTServer->port, g_fdfs_connect_timeout, O_NONBLOCK,
-                    g_client_bind_addr ? g_bind_addr : NULL, &result);
-            if (pTServer->sock >= 0)
+            conn = tracker_connect_server_no_pool_ex(pTServer,
+                    g_client_bind_addr ? g_bind_addr : NULL, &result, false);
+            if (conn != NULL)
             {
 				break;
             }
@@ -310,18 +318,19 @@ int storage_changelog_req()
 			sleep(1);
 		}
 
-		if (pTServer->sock < 0)
+        if (conn == NULL)
 		{
-			logError("file: "__FILE__", line: %d, " \
-				"connect to tracker server %s:%d fail, " \
-				"errno: %d, error info: %s", \
-				__LINE__, pTServer->ip_addr, pTServer->port, \
+			logError("file: "__FILE__", line: %d, "
+				"connect to tracker server %s:%d fail, "
+				"errno: %d, error info: %s",
+				__LINE__, pTServer->connections[0].ip_addr,
+                pTServer->connections[0].port,
 				result, STRERROR(result));
 
 			continue;
 		}
 
-		result = storage_do_changelog_req(pTServer);
+		result = storage_do_changelog_req(conn);
 		if (result == 0 || result == ENOENT)
 		{
 			success_count++;
@@ -331,8 +340,8 @@ int storage_changelog_req()
 			sleep(1);
 		}
 
-		fdfs_quit(pTServer);
-		close(pTServer->sock);
+		fdfs_quit(conn);
+		close(conn->sock);
 	}
 	}
 

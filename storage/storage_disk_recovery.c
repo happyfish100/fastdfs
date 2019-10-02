@@ -531,7 +531,7 @@ static int storage_do_recovery(const char *pBasePath, StorageBinLogReader *pRead
 	char local_filename[MAX_PATH_SIZE];
 	char src_filename[MAX_PATH_SIZE];
 
-	pTrackerServer = g_tracker_group.servers;
+	pTrackerServer = g_tracker_group.servers->connections; //TODO: fix me !!!
 	count = 0;
 	total_count = 0;
 	success_count = 0;
@@ -549,7 +549,7 @@ static int storage_do_recovery(const char *pBasePath, StorageBinLogReader *pRead
     {
         break;
     }
-	if ((pStorageConn=tracker_connect_server(pSrcStorage, &result)) == NULL)
+	if ((pStorageConn=tracker_make_connection(pSrcStorage, &result)) == NULL)
 	{
 		sleep(5);
 		continue;
@@ -1114,7 +1114,7 @@ int storage_disk_recovery_start(const int store_path_index)
 		return EINTR;
 	}
 
-	if ((pStorageConn=tracker_connect_server(&srcStorage, &result)) == NULL)
+	if ((pStorageConn=tracker_make_connection(&srcStorage, &result)) == NULL)
 	{
 		return result;
 	}
