@@ -85,6 +85,35 @@ bool fdfs_server_contain_ex(TrackerServerInfo *pServer1,
     return false;
 }
 
+bool fdfs_server_equal(TrackerServerInfo *pServer1,
+        TrackerServerInfo *pServer2)
+{
+	ConnectionInfo *conn;
+	ConnectionInfo *end;
+
+    if (pServer1->count != pServer2->count)
+    {
+        return false;
+    }
+
+    if (pServer1->count == 1)
+    {
+        return (pServer1->connections->port == pServer2->connections->port &&
+            strcmp(pServer1->connections->ip_addr, pServer2->connections->ip_addr) == 0);
+    }
+
+	end = pServer1->connections + pServer1->count;
+	for (conn=pServer1->connections; conn<end; conn++)
+    {
+		if (!fdfs_server_contain1(pServer2, conn))
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 void fdfs_server_sock_reset(TrackerServerInfo *pServerInfo)
 {
 	ConnectionInfo *conn;
@@ -903,7 +932,7 @@ int fdfs_get_storage_ids_from_tracker_server(TrackerServerInfo *pTrackerServer)
 		}
 	}
 
-	tracker_disconnect_server_ex(conn, result != 0);
+	tracker_close_connection_ex(conn, result != 0);
 
 	if (result == 0)
 	{

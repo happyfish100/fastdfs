@@ -3915,7 +3915,7 @@ static int tracker_mem_get_sys_files(TrackerServerInfo *pTrackerServer)
 
 	if ((result=tracker_get_sys_files_start(conn)) != 0)
 	{
-		tracker_disconnect_server_ex(conn, true);
+		tracker_close_connection_ex(conn, true);
 		return result;
 	}
 
@@ -3929,7 +3929,7 @@ static int tracker_mem_get_sys_files(TrackerServerInfo *pTrackerServer)
 	}
 
 	result = tracker_get_sys_files_end(conn);
-	tracker_disconnect_server_ex(conn, result != 0);
+	tracker_close_connection_ex(conn, result != 0);
 
 	return result;
 }
@@ -4905,7 +4905,7 @@ static int tracker_mem_get_trunk_binlog_size(
 	}
 
 	result = _storage_get_trunk_binlog_size(conn, file_size);
-	tracker_disconnect_server_ex(conn, result != 0);
+	tracker_close_connection_ex(conn, result != 0);
 
 
 	logDebug("file: "__FILE__", line: %d, " \

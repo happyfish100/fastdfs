@@ -119,7 +119,7 @@ static int recovery_get_src_storage_server(ConnectionInfo *pSrcStorage)
 {
 	int result;
 	int storage_count;
-	ConnectionInfo trackerServer;
+	TrackerServerInfo trackerServer;
 	ConnectionInfo *pTrackerConn;
 	FDFSGroupStat groupStat;
 	FDFSStorageInfo storageStats[FDFS_MAX_SERVERS_EACH_GROUP];
@@ -187,7 +187,7 @@ static int recovery_get_src_storage_server(ConnectionInfo *pSrcStorage)
 				g_group_name, &groupStat);
 		if (result != 0)
 		{
-			tracker_disconnect_server_ex(pTrackerConn, true);
+			tracker_close_connection_ex(pTrackerConn, true);
 			sleep(1);
 			continue;
 		}
@@ -198,7 +198,7 @@ static int recovery_get_src_storage_server(ConnectionInfo *pSrcStorage)
 				"storage server count: %d in the group <= 0!",\
 				__LINE__, groupStat.count);
 
-			tracker_disconnect_server(pTrackerConn);
+			tracker_close_connection(pTrackerConn);
 			sleep(1);
 			continue;
 		}
@@ -209,7 +209,7 @@ static int recovery_get_src_storage_server(ConnectionInfo *pSrcStorage)
 				"storage server count in the group = 1, " \
 				"does not need recovery", __LINE__);
 
-			tracker_disconnect_server(pTrackerConn);
+			tracker_close_connection(pTrackerConn);
 			return ENOENT;
 		}
 
@@ -221,13 +221,13 @@ static int recovery_get_src_storage_server(ConnectionInfo *pSrcStorage)
 				"does not need recovery", __LINE__, \
 				g_fdfs_store_paths.count, groupStat.store_path_count);
 
-			tracker_disconnect_server(pTrackerConn);
+			tracker_close_connection(pTrackerConn);
 			return ENOENT;
 		}
 
 		if (groupStat.active_count <= 0)
 		{
-			tracker_disconnect_server(pTrackerConn);
+			tracker_close_connection(pTrackerConn);
 			sleep(5);
 			continue;
 		}
@@ -235,7 +235,7 @@ static int recovery_get_src_storage_server(ConnectionInfo *pSrcStorage)
 		result = tracker_list_servers(pTrackerConn, \
                 		g_group_name, NULL, storageStats, \
 				FDFS_MAX_SERVERS_EACH_GROUP, &storage_count);
-		tracker_disconnect_server_ex(pTrackerConn, result != 0);
+		tracker_close_connection_ex(pTrackerConn, result != 0);
 		if (result != 0)
 		{
 			sleep(5);
@@ -729,7 +729,7 @@ static int storage_do_recovery(const char *pBasePath, StorageBinLogReader *pRead
 		}
 	}
 
-	tracker_disconnect_server_ex(pStorageConn, result != 0);
+	tracker_close_connection_ex(pStorageConn, result != 0);
     recovery_write_to_mark_file(pBasePath, pReader);
     if (bContinueFlag)
     {
@@ -1120,7 +1120,7 @@ int storage_disk_recovery_start(const int store_path_index)
 	}
 
 	result = storage_do_fetch_binlog(pStorageConn, store_path_index);
-	tracker_disconnect_server_ex(pStorageConn, true);
+	tracker_close_connection_ex(pStorageConn, true);
 	if (result != 0)
 	{
 		return result;

@@ -44,7 +44,7 @@ typedef struct
 	do { \
 		if (pTrackerServer->sock < 0) \
 		{ \
-			if ((conn=tracker_connect_server( \
+			if ((conn=tracker_make_connection( \
 				pTrackerServer, &result)) != NULL) \
 			{ \
 				return result; \
@@ -82,7 +82,7 @@ ConnectionInfo *tracker_get_connection_ex(TrackerServerGroup *pTrackerGroup);
 * return: 0 success, !=0 fail
 **/
 ConnectionInfo *tracker_get_connection_r_ex(TrackerServerGroup *pTrackerGroup, \
-		ConnectionInfo *pTrackerServer, int *err_no);
+		TrackerServerInfo *pTrackerServer, int *err_no);
 
 #define tracker_get_all_connections() \
 	tracker_get_all_connections_ex((&g_tracker_group))

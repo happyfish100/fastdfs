@@ -147,7 +147,7 @@ int main(int argc, char *argv[])
 		group_name, storageServer.ip_addr, \
 		storageServer.port);
 
-	if ((pStorageServer=tracker_connect_server(&storageServer, \
+	if ((pStorageServer=tracker_make_connection(&storageServer, \
 		&result)) == NULL)
 	{
 		fdfs_client_destroy();
@@ -233,7 +233,7 @@ int main(int argc, char *argv[])
 		printf("upload file fail, " \
 			"error no: %d, error info: %s\n", \
 			result, STRERROR(result));
-		tracker_disconnect_server_ex(pStorageServer, true);
+		tracker_close_connection_ex(pStorageServer, true);
 		fdfs_client_destroy();
 		return result;
 	}
@@ -273,12 +273,12 @@ int main(int argc, char *argv[])
 	//sleep(90);
 	strcpy(appender_filename, remote_filename);
 	if (storage_truncate_file(pTrackerServer, pStorageServer, \
-			group_name, appender_filename, file_size / 2) != 0)
+			group_name, appender_filename, file_size * 2) != 0)
 	{
 		printf("truncate file fail, " \
 			"error no: %d, error info: %s\n", \
 			result, STRERROR(result));
-		tracker_disconnect_server_ex(pStorageServer, true);
+		tracker_close_connection_ex(pStorageServer, true);
 		fdfs_client_destroy();
 		return result;
 	}
@@ -344,7 +344,7 @@ int main(int argc, char *argv[])
 		printf("append file fail, " \
 			"error no: %d, error info: %s\n", \
 			result, STRERROR(result));
-		tracker_disconnect_server_ex(pStorageServer, true);
+		tracker_close_connection_ex(pStorageServer, true);
 		fdfs_client_destroy();
 		return result;
 	}
@@ -411,7 +411,7 @@ int main(int argc, char *argv[])
 		printf("modify file fail, " \
 			"error no: %d, error info: %s\n", \
 			result, STRERROR(result));
-		tracker_disconnect_server_ex(pStorageServer, true);
+		tracker_close_connection_ex(pStorageServer, true);
 		fdfs_client_destroy();
 		return result;
 	}
@@ -429,8 +429,8 @@ int main(int argc, char *argv[])
 			2 * file_size + file_size /2);
 	}
 
-	tracker_disconnect_server_ex(pStorageServer, true);
-	tracker_disconnect_server_ex(pTrackerServer, true);
+	tracker_close_connection_ex(pStorageServer, true);
+	tracker_close_connection_ex(pTrackerServer, true);
 
 	fdfs_client_destroy();
 

@@ -90,7 +90,7 @@ static int storage_get_connection(ConnectionInfo *pTrackerServer, \
 
 		if (new_tracker_connection)
 		{
-			tracker_disconnect_server_ex(pNewTracker, result != 0);
+			tracker_close_connection_ex(pNewTracker, result != 0);
 		}
 
 		if (result != 0)
@@ -98,7 +98,7 @@ static int storage_get_connection(ConnectionInfo *pTrackerServer, \
 			return result;
 		}
 
-		if ((*ppStorageServer=tracker_connect_server(pNewStorage, \
+		if ((*ppStorageServer=tracker_make_connection(pNewStorage,
 			&result)) == NULL)
 		{
 			return result;
@@ -114,7 +114,7 @@ static int storage_get_connection(ConnectionInfo *pTrackerServer, \
 		}
 		else
 		{
-			if ((*ppStorageServer=tracker_connect_server( \
+			if ((*ppStorageServer=tracker_make_connection(
 				*ppStorageServer, &result)) == NULL)
 			{
 				return result;
@@ -155,7 +155,7 @@ static int storage_get_upload_connection(ConnectionInfo *pTrackerServer, \
 
 		if (new_tracker_connection)
 		{
-			tracker_disconnect_server_ex(pNewTracker, result != 0);
+			tracker_close_connection_ex(pNewTracker, result != 0);
 		}
 
 		if (result != 0)
@@ -163,7 +163,7 @@ static int storage_get_upload_connection(ConnectionInfo *pTrackerServer, \
 			return result;
 		}
 
-		if ((*ppStorageServer=tracker_connect_server(pNewStorage, \
+		if ((*ppStorageServer=tracker_make_connection(pNewStorage,
 			&result)) == NULL)
 		{
 			return result;
@@ -179,7 +179,7 @@ static int storage_get_upload_connection(ConnectionInfo *pTrackerServer, \
 		}
 		else
 		{
-			if ((*ppStorageServer=tracker_connect_server( \
+			if ((*ppStorageServer=tracker_make_connection(
 				*ppStorageServer, &result)) == NULL)
 			{
 				return result;
@@ -289,7 +289,7 @@ int storage_get_metadata(ConnectionInfo *pTrackerServer, \
 
 	if (new_connection)
 	{
-		tracker_disconnect_server_ex(pStorageServer, result != 0);
+		tracker_close_connection_ex(pStorageServer, result != 0);
 	}
 
 	return result;
@@ -411,7 +411,7 @@ int storage_query_file_info_ex(ConnectionInfo *pTrackerServer, \
 
 	if (new_connection)
 	{
-		tracker_disconnect_server_ex(pStorageServer, result != 0);
+		tracker_close_connection_ex(pStorageServer, result != 0);
 	}
 
 	return result;
@@ -506,7 +506,7 @@ int storage_delete_file(ConnectionInfo *pTrackerServer, \
 
 	if (new_connection)
 	{
-		tracker_disconnect_server_ex(pStorageServer, result != 0);
+		tracker_close_connection_ex(pStorageServer, result != 0);
 	}
 
 	return result;
@@ -684,7 +684,7 @@ int storage_do_download_file_ex(ConnectionInfo *pTrackerServer, \
 
 	if (new_connection)
 	{
-		tracker_disconnect_server_ex(pStorageServer, result != 0);
+		tracker_close_connection_ex(pStorageServer, result != 0);
 	}
 
 	return result;
@@ -1035,7 +1035,7 @@ int storage_do_upload_file(ConnectionInfo *pTrackerServer, \
 
 	if (new_connection)
 	{
-		tracker_disconnect_server_ex(pStorageServer, result != 0);
+		tracker_close_connection_ex(pStorageServer, result != 0);
 	}
 
 	return result;
@@ -1265,7 +1265,7 @@ int storage_set_metadata(ConnectionInfo *pTrackerServer, \
 
 	if (new_connection)
 	{
-		tracker_disconnect_server_ex(pStorageServer, result != 0);
+		tracker_close_connection_ex(pStorageServer, result != 0);
 	}
 
 	return result;
@@ -1480,7 +1480,7 @@ int storage_client_create_link(ConnectionInfo *pTrackerServer, \
 
 	if (new_connection)
 	{
-		tracker_disconnect_server_ex(pStorageServer, result != 0);
+		tracker_close_connection_ex(pStorageServer, result != 0);
 	}
 
 	return result;
@@ -1801,7 +1801,7 @@ int storage_do_append_file(ConnectionInfo *pTrackerServer, \
 
 	if (new_connection)
 	{
-		tracker_disconnect_server_ex(pStorageServer, result != 0);
+		tracker_close_connection_ex(pStorageServer, result != 0);
 	}
 
 	return result;
@@ -1932,7 +1932,7 @@ int storage_do_modify_file(ConnectionInfo *pTrackerServer, \
 
 	if (new_connection)
 	{
-		tracker_disconnect_server_ex(pStorageServer, result != 0);
+		tracker_close_connection_ex(pStorageServer, result != 0);
 	}
 
 	return result;
@@ -2210,7 +2210,7 @@ int fdfs_get_file_info_ex(const char *group_name, const char *remote_filename, \
 		if (get_from_server)
 		{
 			ConnectionInfo *conn;
-			ConnectionInfo trackerServer;
+			TrackerServerInfo trackerServer;
 
 			conn = tracker_get_connection_r(&trackerServer, &result);
 			if (result != 0)
@@ -2220,7 +2220,7 @@ int fdfs_get_file_info_ex(const char *group_name, const char *remote_filename, \
 
 			result = storage_query_file_info(conn, \
 				NULL,  group_name, remote_filename, pFileInfo);
-			tracker_disconnect_server_ex(conn, result != 0 && \
+			tracker_close_connection_ex(conn, result != 0 && \
 							result != ENOENT);
 
 			return result;
@@ -2346,7 +2346,7 @@ int storage_truncate_file(ConnectionInfo *pTrackerServer, \
 
 	if (new_connection)
 	{
-		tracker_disconnect_server_ex(pStorageServer, result != 0);
+		tracker_close_connection_ex(pStorageServer, result != 0);
 	}
 
 	return result;

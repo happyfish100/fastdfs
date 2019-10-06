@@ -257,8 +257,8 @@ static int fdfs_dump_global_vars(char *buff, const int buffSize)
 static int fdfs_dump_tracker_servers(char *buff, const int buffSize)
 {
 	int total_len;
-	ConnectionInfo *pTrackerServer;
-	ConnectionInfo *pTrackerEnd;
+	TrackerServerInfo *pTrackerServer;
+	TrackerServerInfo *pTrackerEnd;
 
 	total_len = snprintf(buff, buffSize, \
 		"\ng_tracker_group.server_count=%d, " \
@@ -275,9 +275,10 @@ static int fdfs_dump_tracker_servers(char *buff, const int buffSize)
 		pTrackerServer<pTrackerEnd; pTrackerServer++)
 	{
 		total_len += snprintf(buff + total_len, buffSize - total_len,
-			"\t%d. tracker server=%s:%d\n", \
-			(int)(pTrackerServer - g_tracker_group.servers) + 1, \
-			pTrackerServer->ip_addr, pTrackerServer->port);
+			"\t%d. tracker server=%s:%d\n",
+			(int)(pTrackerServer - g_tracker_group.servers) + 1,
+			pTrackerServer->connections[0].ip_addr,
+            pTrackerServer->connections[0].port);
 	}
 
 	return total_len;

@@ -219,7 +219,7 @@ int fdfs_deal_no_body_cmd_ex(const char *ip_addr, const int port, const int cmd)
 	}
 
 	result = fdfs_deal_no_body_cmd(conn, cmd);
-	tracker_disconnect_server_ex(conn, result != 0);
+	tracker_close_connection_ex(conn, result != 0);
 	return result;
 }
 
@@ -421,7 +421,7 @@ char *fdfs_pack_metadata(const FDFSMetaData *meta_list, const int meta_count, \
 	return meta_buff;
 }
 
-void tracker_disconnect_server_ex(ConnectionInfo *conn, \
+void tracker_close_connection_ex(ConnectionInfo *conn, \
 	const bool bForceClose)
 {
 	if (g_use_connection_pool)
@@ -535,6 +535,24 @@ ConnectionInfo *tracker_make_connection_ex(ConnectionInfo *conn,
 			return conn;
 		}
 	}
+}
+
+void tracker_disconnect_server(TrackerServerInfo *pServerInfo)
+{
+	ConnectionInfo *conn;
+	ConnectionInfo *end;
+
+    if (pServerInfo->count == 1)
+    {
+		conn_pool_disconnect_server(pServerInfo->connections);
+        return;
+    }
+
+	end = pServerInfo->connections + pServerInfo->count;
+	for (conn=pServerInfo->connections; conn<end; conn++)
+    {
+		conn_pool_disconnect_server(conn);
+    }
 }
 
 static int fdfs_do_parameter_req(ConnectionInfo *pTrackerServer, \
@@ -728,7 +746,7 @@ int fdfs_get_tracker_status(TrackerServerInfo *pTrackerServer,
 
 	} while (0);
 
-	tracker_disconnect_server_ex(conn, result != 0);
+	tracker_close_connection_ex(conn, result != 0);
 
 	return result;
 }

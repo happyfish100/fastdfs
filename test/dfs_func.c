@@ -45,14 +45,14 @@ int upload_file(const char *file_buff, const int file_size, char *file_id, char 
 	if ((result=tracker_query_storage_store(pTrackerServer, &storageServer,
 			 group_name, &store_path_index)) != 0)
 	{
-		tracker_disconnect_server_ex(pTrackerServer, true);
+		tracker_close_connection_ex(pTrackerServer, true);
 		return result;
 	}
 
 	if ((pStorageServer=tracker_connect_server(&storageServer, &result)) \
 			 == NULL)
 	{
-		tracker_disconnect_server(pTrackerServer);
+		tracker_close_connection(pTrackerServer);
 		return result;
 	}
 
@@ -60,8 +60,8 @@ int upload_file(const char *file_buff, const int file_size, char *file_id, char 
 	result = storage_upload_by_filebuff1(pTrackerServer, pStorageServer, 
 		store_path_index, file_buff, file_size, NULL, NULL, 0, "", file_id);
 
-	tracker_disconnect_server(pTrackerServer);
-	tracker_disconnect_server(pStorageServer);
+	tracker_close_connection(pTrackerServer);
+	tracker_close_connection(pStorageServer);
 
 	return result;
 }
@@ -83,14 +83,14 @@ int download_file(const char *file_id, int *file_size, char *storage_ip)
 	if ((result=tracker_query_storage_fetch1(pTrackerServer, \
 			&storageServer, file_id)) != 0)
 	{
-		tracker_disconnect_server_ex(pTrackerServer, true);
+		tracker_close_connection_ex(pTrackerServer, true);
 		return result;
 	}
 
 	if ((pStorageServer=tracker_connect_server(&storageServer, &result)) \
 			 == NULL)
 	{
-		tracker_disconnect_server(pTrackerServer);
+		tracker_close_connection(pTrackerServer);
 		return result;
 	}
 
@@ -99,8 +99,8 @@ int download_file(const char *file_id, int *file_size, char *storage_ip)
 		file_id, 0, 0, downloadFileCallback, NULL, &file_bytes);
 	*file_size = file_bytes;
 
-	tracker_disconnect_server(pTrackerServer);
-	tracker_disconnect_server(pStorageServer);
+	tracker_close_connection(pTrackerServer);
+	tracker_close_connection(pStorageServer);
 
 	return result;
 }
@@ -121,22 +121,22 @@ int delete_file(const char *file_id, char *storage_ip)
 	if ((result=tracker_query_storage_update1(pTrackerServer, \
 		&storageServer, file_id)) != 0)
 	{
-		tracker_disconnect_server_ex(pTrackerServer, true);
+		tracker_close_connection_ex(pTrackerServer, true);
 		return result;
 	}
 
 	if ((pStorageServer=tracker_connect_server(&storageServer, &result)) \
 			 == NULL)
 	{
-		tracker_disconnect_server(pTrackerServer);
+		tracker_close_connection(pTrackerServer);
 		return result;
 	}
 
 	strcpy(storage_ip, storageServer.ip_addr);
 	result = storage_delete_file1(pTrackerServer, pStorageServer, file_id);
 
-	tracker_disconnect_server(pTrackerServer);
-	tracker_disconnect_server(pStorageServer);
+	tracker_close_connection(pTrackerServer);
+	tracker_close_connection(pStorageServer);
 
 	return result;
 }

@@ -194,7 +194,7 @@ static int storage_get_group_name_from_tracker()
 		}
 
         result = storage_do_get_group_name(pTrackerConn);
-		tracker_disconnect_server_ex(pTrackerConn,
+		tracker_close_connection_ex(pTrackerConn,
 			result != 0 && result != ENOENT);
 		if (result == 0)
 		{
@@ -234,7 +234,7 @@ static int tracker_get_my_server_id()
 
 		result = tracker_get_storage_id(pTrackerServer, \
 			g_group_name, g_tracker_client_ip, g_my_server_id_str);
-		tracker_disconnect_server_ex(pTrackerServer, result != 0);
+		tracker_close_connection_ex(pTrackerServer, result != 0);
 		if (result != 0)
 		{
 			return result;

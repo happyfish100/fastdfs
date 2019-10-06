@@ -125,7 +125,7 @@ int trunk_client_trunk_alloc_space(const int file_size, \
 	result = trunk_client_trunk_do_alloc_space(pTrunkServer, \
 			file_size, pTrunkInfo);
 
-	tracker_disconnect_server_ex(pTrunkServer, result != 0);
+	tracker_close_connection_ex(pTrunkServer, result != 0);
 	return result;
 }
 
@@ -228,7 +228,7 @@ int trunk_client_trunk_alloc_confirm(const FDFSTrunkFullInfo *pTrunkInfo, \
 	result = trunk_client_trunk_do_alloc_confirm(pTrunkServer, \
 			pTrunkInfo, status);
 
-	tracker_disconnect_server_ex(pTrunkServer, result != 0);
+	tracker_close_connection_ex(pTrunkServer, result != 0);
 	return result;
 }
 
@@ -259,7 +259,7 @@ int trunk_client_trunk_free_space(const FDFSTrunkFullInfo *pTrunkInfo)
 	}
 
 	result = trunk_client_trunk_do_free_space(pTrunkServer, pTrunkInfo);
-	tracker_disconnect_server_ex(pTrunkServer, result != 0);
+	tracker_close_connection_ex(pTrunkServer, result != 0);
 	return result;
 }
 

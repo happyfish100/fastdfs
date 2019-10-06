@@ -1036,7 +1036,7 @@ static int notify_reselect_tracker_leader(TrackerServerInfo *pTrackerServer)
 	}
 
     result = _notify_reselect_tleader(conn);
-	tracker_disconnect_server_ex(conn, result != 0);
+	tracker_close_connection_ex(conn, result != 0);
     return result;
 }
 

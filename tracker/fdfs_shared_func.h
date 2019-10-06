@@ -92,6 +92,9 @@ static inline bool fdfs_server_contain1(TrackerServerInfo *pServerInfo,
 bool fdfs_server_contain_ex(TrackerServerInfo *pServer1,
         TrackerServerInfo *pServer2);
 
+bool fdfs_server_equal(TrackerServerInfo *pServer1,
+        TrackerServerInfo *pServer2);
+
 void fdfs_server_sock_reset(TrackerServerInfo *pServerInfo);
 
 int fdfs_parse_server_info(char *server_str, const int default_port,

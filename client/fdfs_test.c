@@ -194,7 +194,7 @@ int main(int argc, char *argv[])
 			group_name, storageServer.ip_addr, \
 			storageServer.port);
 
-		if ((pStorageServer=tracker_connect_server(&storageServer, \
+		if ((pStorageServer=tracker_make_connection(&storageServer, \
 			&result)) == NULL)
 		{
 			fdfs_client_destroy();
@@ -269,7 +269,7 @@ int main(int argc, char *argv[])
 			printf("upload file fail, " \
 				"error no: %d, error info: %s\n", \
 				result, STRERROR(result));
-			tracker_disconnect_server_ex(pStorageServer, true);
+			tracker_close_connection_ex(pStorageServer, true);
 			fdfs_client_destroy();
 			return result;
 		}
@@ -361,7 +361,7 @@ int main(int argc, char *argv[])
 			printf("upload slave file fail, " \
 				"error no: %d, error info: %s\n", \
 				result, STRERROR(result));
-			tracker_disconnect_server_ex(pStorageServer, true);
+			tracker_close_connection_ex(pStorageServer, true);
 			fdfs_client_destroy();
 			return result;
 		}
@@ -467,7 +467,7 @@ int main(int argc, char *argv[])
 				printf("\n");
 			}
 
-			tracker_disconnect_server_ex(pTrackerServer, result != 0);
+			tracker_close_connection_ex(pTrackerServer, result != 0);
 			fdfs_client_destroy();
 			return result;
 		}
@@ -491,7 +491,7 @@ int main(int argc, char *argv[])
 		printf("storage=%s:%d\n", storageServer.ip_addr, \
 			storageServer.port);
 
-		if ((pStorageServer=tracker_connect_server(&storageServer, \
+		if ((pStorageServer=tracker_make_connection(&storageServer, \
 			&result)) == NULL)
 		{
 			fdfs_client_destroy();
@@ -681,8 +681,8 @@ int main(int argc, char *argv[])
 			pStorageServer->ip_addr, pStorageServer->port, result);
 	}
 
-	tracker_disconnect_server_ex(pStorageServer, true);
-	tracker_disconnect_server_ex(pTrackerServer, true);
+	tracker_close_connection_ex(pStorageServer, true);
+	tracker_close_connection_ex(pTrackerServer, true);
 
 	fdfs_client_destroy();
 

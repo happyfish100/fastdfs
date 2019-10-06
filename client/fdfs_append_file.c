@@ -58,7 +58,7 @@ int main(int argc, char *argv[])
 		return result;
 	}
 
-	tracker_disconnect_server_ex(pTrackerServer, true);
+	tracker_close_connection_ex(pTrackerServer, true);
 	fdfs_client_destroy();
 
 	return result;

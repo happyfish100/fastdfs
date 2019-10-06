@@ -250,7 +250,7 @@ int main(int argc, char *argv[])
 		usage(argv);
 	}
 
-	tracker_disconnect_server_ex(pTrackerServer, true);
+	tracker_close_connection_ex(pTrackerServer, true);
 	fdfs_client_destroy();
 	return 0;
 }

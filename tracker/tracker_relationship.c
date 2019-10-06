@@ -310,11 +310,11 @@ static int do_notify_leader_changed(TrackerServerInfo *pTrackerServer, \
 	if (conn->port == g_server_port &&
 		is_local_host_ip(conn->ip_addr))
 	{
-		tracker_disconnect_server_ex(conn, true);
+		tracker_close_connection_ex(conn, true);
 	}
 	else
 	{
-		tracker_disconnect_server_ex(conn, result != 0);
+		tracker_close_connection_ex(conn, result != 0);
 	}
 
 	return result;
@@ -470,7 +470,7 @@ static int relationship_ping_leader()
 	}
 
 	result = fdfs_ping_leader(conn);
-    tracker_disconnect_server_ex(conn, result != 0);
+    tracker_close_connection_ex(conn, result != 0);
 	return result;
 }
 

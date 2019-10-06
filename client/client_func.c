@@ -48,24 +48,24 @@ static int storage_cmp_by_ip_and_port(const void *p1, const void *p2)
 }
 
 static void insert_into_sorted_servers(TrackerServerGroup *pTrackerGroup, \
-		ConnectionInfo *pInsertedServer)
+		TrackerServerInfo *pInsertedServer)
 {
-	ConnectionInfo *pDestServer;
-	for (pDestServer=pTrackerGroup->servers+pTrackerGroup->server_count; \
+	TrackerServerInfo *pDestServer;
+	for (pDestServer=pTrackerGroup->servers+pTrackerGroup->server_count;
 		pDestServer>pTrackerGroup->servers; pDestServer--)
 	{
-		if (storage_cmp_by_ip_and_port(pInsertedServer, \
+		if (storage_cmp_by_ip_and_port(pInsertedServer,
 			pDestServer-1) > 0)
 		{
-			memcpy(pDestServer, pInsertedServer, \
-				sizeof(ConnectionInfo));
+			memcpy(pDestServer, pInsertedServer,
+				sizeof(TrackerServerInfo));
 			return;
 		}
 
-		memcpy(pDestServer, pDestServer-1, sizeof(ConnectionInfo));
+		memcpy(pDestServer, pDestServer-1, sizeof(TrackerServerInfo));
 	}
 
-	memcpy(pDestServer, pInsertedServer, sizeof(ConnectionInfo));
+	memcpy(pDestServer, pInsertedServer, sizeof(TrackerServerInfo));
 }
 
 static int copy_tracker_servers(TrackerServerGroup *pTrackerGroup,
@@ -73,55 +73,25 @@ static int copy_tracker_servers(TrackerServerGroup *pTrackerGroup,
 {
 	char **ppSrc;
 	char **ppEnd;
-	ConnectionInfo destServer;
-	char *pSeperator;
-	char szHost[128];
-	int nHostLen;
+	TrackerServerInfo destServer;
+    int result;
 
-	memset(&destServer, 0, sizeof(ConnectionInfo));
-	destServer.sock = -1;
+	memset(&destServer, 0, sizeof(TrackerServerInfo));
+    fdfs_server_sock_reset(&destServer);
 
 	ppEnd = ppTrackerServers + pTrackerGroup->server_count;
-
 	pTrackerGroup->server_count = 0;
 	for (ppSrc=ppTrackerServers; ppSrc<ppEnd; ppSrc++)
 	{
-		if ((pSeperator=strrchr(*ppSrc, ':')) == NULL)
-		{
-			logError("file: "__FILE__", line: %d, " \
-				"conf file \"%s\", " \
-				"tracker_server \"%s\" is invalid, " \
-				"correct format is host:port", \
-				__LINE__, filename, *ppSrc);
-			return EINVAL;
-		}
-
-		nHostLen = pSeperator - (*ppSrc);
-		if (nHostLen >= sizeof(szHost))
-		{
-			nHostLen = sizeof(szHost) - 1;
-		}
-		memcpy(szHost, *ppSrc, nHostLen);
-		szHost[nHostLen] = '\0';
-
-		if (getIpaddrByName(szHost, destServer.ip_addr, \
-			sizeof(destServer.ip_addr)) == INADDR_NONE)
-		{
-			logError("file: "__FILE__", line: %d, " \
-				"conf file \"%s\", " \
-				"host \"%s\" is invalid, error info: %s", \
-				__LINE__, filename, szHost, hstrerror(h_errno));
-			return EINVAL;
-		}
-		destServer.port = atoi(pSeperator+1);
-		if (destServer.port <= 0)
-		{
-			destServer.port = FDFS_TRACKER_SERVER_DEF_PORT;
-		}
+        if ((result=fdfs_parse_server_info(*ppSrc,
+                        FDFS_TRACKER_SERVER_DEF_PORT, &destServer)) != 0)
+        {
+            return result;
+        }
 
 		if (bsearch(&destServer, pTrackerGroup->servers, \
 			pTrackerGroup->server_count, \
-			sizeof(ConnectionInfo), \
+			sizeof(TrackerServerInfo), \
 			storage_cmp_by_ip_and_port) == NULL)
 		{
 			insert_into_sorted_servers(pTrackerGroup, &destServer);
@@ -131,7 +101,7 @@ static int copy_tracker_servers(TrackerServerGroup *pTrackerGroup,
 
 	/*
 	{
-	ConnectionInfo *pServer;
+	TrackerServerInfo *pServer;
 	for (pServer=pTrackerGroup->servers; pServer<pTrackerGroup->servers+ \
 		pTrackerGroup->server_count;	pServer++)
 	{
@@ -161,8 +131,8 @@ int fdfs_load_tracker_group_ex(TrackerServerGroup *pTrackerGroup, \
 		return ENOENT;
 	}
 
-    bytes = sizeof(MultiConnectionInfo) * pTrackerGroup->server_count);
-	pTrackerGroup->servers = (MultiConnectionInfo *)malloc(bytes);
+    bytes = sizeof(TrackerServerInfo) * pTrackerGroup->server_count;
+	pTrackerGroup->servers = (TrackerServerInfo *)malloc(bytes);
 	if (pTrackerGroup->servers == NULL)
 	{
 		logError("file: "__FILE__", line: %d, "
@@ -412,39 +382,40 @@ int fdfs_copy_tracker_group(TrackerServerGroup *pDestTrackerGroup, \
 		TrackerServerGroup *pSrcTrackerGroup)
 {
 	int bytes;
-	ConnectionInfo *pDestServer;
-	ConnectionInfo *pDestServerEnd;
+	TrackerServerInfo *pDestServer;
+	TrackerServerInfo *pDestServerEnd;
 
-	bytes = sizeof(ConnectionInfo) * pSrcTrackerGroup->server_count;
-	pDestTrackerGroup->servers = (ConnectionInfo *)malloc(bytes);
+	bytes = sizeof(TrackerServerInfo) * pSrcTrackerGroup->server_count;
+	pDestTrackerGroup->servers = (TrackerServerInfo *)malloc(bytes);
 	if (pDestTrackerGroup->servers == NULL)
 	{
-		logError("file: "__FILE__", line: %d, " \
+		logError("file: "__FILE__", line: %d, "
 			"malloc %d bytes fail", __LINE__, bytes);
 		return errno != 0 ? errno : ENOMEM;
 	}
 
 	pDestTrackerGroup->server_index = 0;
+	pDestTrackerGroup->leader_index = 0;
 	pDestTrackerGroup->server_count = pSrcTrackerGroup->server_count;
 	memcpy(pDestTrackerGroup->servers, pSrcTrackerGroup->servers, bytes);
 
-	pDestServerEnd = pDestTrackerGroup->servers + \
+	pDestServerEnd = pDestTrackerGroup->servers +
 			pDestTrackerGroup->server_count;
-	for (pDestServer=pDestTrackerGroup->servers; \
+	for (pDestServer=pDestTrackerGroup->servers;
 		pDestServer<pDestServerEnd; pDestServer++)
 	{
-		pDestServer->sock = -1;
+        fdfs_server_sock_reset(pDestServer);
 	}
 
 	return 0;
 }
 
-bool fdfs_tracker_group_equals(TrackerServerGroup *pGroup1, \
+bool fdfs_tracker_group_equals(TrackerServerGroup *pGroup1,
         TrackerServerGroup *pGroup2)
 {
-    ConnectionInfo *pServer1;
-    ConnectionInfo *pServer2;
-    ConnectionInfo *pEnd1;
+    TrackerServerInfo *pServer1;
+    TrackerServerInfo *pServer2;
+    TrackerServerInfo *pEnd1;
 
     if (pGroup1->server_count != pGroup2->server_count)
     {
@@ -456,8 +427,7 @@ bool fdfs_tracker_group_equals(TrackerServerGroup *pGroup1, \
     pServer2 = pGroup2->servers;
     while (pServer1 < pEnd1)
     {
-        if (!(strcmp(pServer1->ip_addr, pServer2->ip_addr) == 0 && 
-                    pServer1->port == pServer2->port))
+        if (!fdfs_server_equal(pServer1, pServer2))
         {
             return false;
         }

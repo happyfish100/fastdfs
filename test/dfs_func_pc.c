@@ -80,7 +80,7 @@ void dfs_destroy()
 	ConnectionInfo *pEnd;
 	ConnectionInfo *pServer;
 
-	tracker_disconnect_server(pTrackerServer);
+	tracker_close_connection(pTrackerServer);
 
 	pEnd = storage_servers + storage_server_count;
 	for (pServer=storage_servers; pServer<pEnd; pServer++)

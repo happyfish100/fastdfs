@@ -55,7 +55,7 @@ static int storage_convert_src_server_id()
 
 		result = tracker_get_storage_id(pTrackerConn,
 			g_group_name, g_sync_src_id, g_sync_src_id);
-		tracker_disconnect_server_ex(pTrackerConn,
+		tracker_close_connection_ex(pTrackerConn,
 			result != 0 && result != ENOENT);
 		if (result == 0)
 		{

@@ -254,8 +254,8 @@ static inline ConnectionInfo *tracker_connect_server_no_pool(
             bind_addr, err_no, true);
 }
 
-#define tracker_disconnect_server(pTrackerServer) \
-	tracker_disconnect_server_ex(pTrackerServer, false)
+#define tracker_close_connection(pTrackerServer) \
+	tracker_close_connection_ex(pTrackerServer, false)
 
 /**
 * close all connections to tracker servers
@@ -264,9 +264,11 @@ static inline ConnectionInfo *tracker_connect_server_no_pool(
 *	bForceClose: if force close the connection when use connection pool
 * return:
 **/
-void tracker_disconnect_server_ex(ConnectionInfo *conn, \
+void tracker_close_connection_ex(ConnectionInfo *conn, \
 	const bool bForceClose);
 
+
+void tracker_disconnect_server(TrackerServerInfo *pServerInfo);
 
 ConnectionInfo *tracker_make_connection_ex(ConnectionInfo *conn,
 		const int connect_timeout, int *err_no);
