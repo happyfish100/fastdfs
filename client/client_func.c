@@ -36,15 +36,51 @@ static int storage_cmp_by_ip_and_port(const void *p1, const void *p2)
 {
 	int res;
 
-	res = strcmp(((ConnectionInfo *)p1)->ip_addr, \
+	res = strcmp(((ConnectionInfo *)p1)->ip_addr,
 			((ConnectionInfo *)p2)->ip_addr);
 	if (res != 0)
 	{
 		return res;
 	}
 
-	return ((ConnectionInfo *)p1)->port - \
+	return ((ConnectionInfo *)p1)->port -
 			((ConnectionInfo *)p2)->port;
+}
+
+static int storage_cmp_server_info(const void *p1, const void *p2)
+{
+	TrackerServerInfo *server1;
+	TrackerServerInfo *server2;
+	ConnectionInfo *pc1;
+	ConnectionInfo *pc2;
+	ConnectionInfo *end1;
+	int res;
+
+    server1 = (TrackerServerInfo *)p1;
+    server2 = (TrackerServerInfo *)p2;
+
+    res = server1->count - server2->count;
+    if (res != 0)
+    {
+        return res;
+    }
+
+    if (server1->count == 1)
+    {
+        return storage_cmp_by_ip_and_port(server1->connections + 0,
+                server2->connections + 0);
+    }
+
+    end1 = server1->connections + server1->count;
+    for (pc1=server1->connections,pc2=server2->connections; pc1<end1; pc1++,pc2++)
+    {
+        if ((res=storage_cmp_by_ip_and_port(pc1, pc2)) != 0)
+        {
+            return res;
+        }
+    }
+
+    return 0;
 }
 
 static void insert_into_sorted_servers(TrackerServerGroup *pTrackerGroup, \
@@ -54,8 +90,7 @@ static void insert_into_sorted_servers(TrackerServerGroup *pTrackerGroup, \
 	for (pDestServer=pTrackerGroup->servers+pTrackerGroup->server_count;
 		pDestServer>pTrackerGroup->servers; pDestServer--)
 	{
-		if (storage_cmp_by_ip_and_port(pInsertedServer,
-			pDestServer-1) > 0)
+		if (storage_cmp_server_info(pInsertedServer, pDestServer-1) > 0)
 		{
 			memcpy(pDestServer, pInsertedServer,
 				sizeof(TrackerServerInfo));
@@ -89,10 +124,10 @@ static int copy_tracker_servers(TrackerServerGroup *pTrackerGroup,
             return result;
         }
 
-		if (bsearch(&destServer, pTrackerGroup->servers, \
-			pTrackerGroup->server_count, \
-			sizeof(TrackerServerInfo), \
-			storage_cmp_by_ip_and_port) == NULL)
+		if (bsearch(&destServer, pTrackerGroup->servers,
+			pTrackerGroup->server_count,
+			sizeof(TrackerServerInfo),
+			storage_cmp_server_info) == NULL)
 		{
 			insert_into_sorted_servers(pTrackerGroup, &destServer);
 			pTrackerGroup->server_count++;
@@ -114,19 +149,42 @@ static int copy_tracker_servers(TrackerServerGroup *pTrackerGroup,
 	return 0;
 }
 
-int fdfs_load_tracker_group_ex(TrackerServerGroup *pTrackerGroup, \
+static int fdfs_check_tracker_group(TrackerServerGroup *pTrackerGroup,
+		const char *conf_filename)
+{
+    int result;
+	TrackerServerInfo *pServer;
+	TrackerServerInfo *pEnd;
+    char error_info[256];
+
+	pEnd = pTrackerGroup->servers + pTrackerGroup->server_count;
+	for (pServer=pTrackerGroup->servers; pServer<pEnd; pServer++)
+	{
+        if ((result=fdfs_check_server_ips(pServer,
+                        error_info, sizeof(error_info))) != 0)
+        {
+            logError("file: "__FILE__", line: %d, "
+                    "conf file: %s, tracker_server is invalid, "
+                    "error info: %s", __LINE__, conf_filename, error_info);
+            return result;
+        }
+	}
+
+    return 0;
+}
+
+int fdfs_load_tracker_group_ex(TrackerServerGroup *pTrackerGroup,
 		const char *conf_filename, IniContext *pIniContext)
 {
 	int result;
     int bytes;
 	char *ppTrackerServers[FDFS_MAX_TRACKERS];
 
-	if ((pTrackerGroup->server_count=iniGetValues(NULL, "tracker_server", \
+	if ((pTrackerGroup->server_count=iniGetValues(NULL, "tracker_server",
 		pIniContext, ppTrackerServers, FDFS_MAX_TRACKERS)) <= 0)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"conf file \"%s\", " \
-			"get item \"tracker_server\" fail", \
+		logError("file: "__FILE__", line: %d, "
+			"conf file \"%s\", item \"tracker_server\" not exist",
 			__LINE__, conf_filename);
 		return ENOENT;
 	}
@@ -142,7 +200,7 @@ int fdfs_load_tracker_group_ex(TrackerServerGroup *pTrackerGroup, \
 	}
 
 	memset(pTrackerGroup->servers, 0, bytes);
-	if ((result=copy_tracker_servers(pTrackerGroup, conf_filename, \
+	if ((result=copy_tracker_servers(pTrackerGroup, conf_filename,
 			ppTrackerServers)) != 0)
 	{
 		pTrackerGroup->server_count = 0;
@@ -151,10 +209,10 @@ int fdfs_load_tracker_group_ex(TrackerServerGroup *pTrackerGroup, \
 		return result;
 	}
 
-	return 0;
+	return fdfs_check_tracker_group(pTrackerGroup, conf_filename);
 }
 
-int fdfs_load_tracker_group(TrackerServerGroup *pTrackerGroup, \
+int fdfs_load_tracker_group(TrackerServerGroup *pTrackerGroup,
 		const char *conf_filename)
 {
 	IniContext iniContext;
@@ -162,14 +220,14 @@ int fdfs_load_tracker_group(TrackerServerGroup *pTrackerGroup, \
 
 	if ((result=iniLoadFromFile(conf_filename, &iniContext)) != 0)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"load conf file \"%s\" fail, ret code: %d", \
+		logError("file: "__FILE__", line: %d, "
+			"load conf file \"%s\" fail, ret code: %d",
 			__LINE__, conf_filename, result);
 		return result;
 	}
 
-	result = fdfs_load_tracker_group_ex(pTrackerGroup, conf_filename, \
-			&iniContext);
+	result = fdfs_load_tracker_group_ex(pTrackerGroup,
+            conf_filename, &iniContext);
 	iniFreeContext(&iniContext);
 
 	return result;
@@ -177,28 +235,28 @@ int fdfs_load_tracker_group(TrackerServerGroup *pTrackerGroup, \
 
 static int fdfs_get_params_from_tracker(bool *use_storage_id)
 {
-        IniContext iniContext;
+    IniContext iniContext;
 	int result;
 	bool continue_flag;
 
 	continue_flag = false;
-	if ((result=fdfs_get_ini_context_from_tracker(&g_tracker_group, \
+	if ((result=fdfs_get_ini_context_from_tracker(&g_tracker_group,
 		&iniContext, &continue_flag, false, NULL)) != 0)
-        {
-                return result;
-        }
+    {
+        return result;
+    }
 
-	*use_storage_id = iniGetBoolValue(NULL, "use_storage_id", \
-				&iniContext, false);
-        iniFreeContext(&iniContext);
+	*use_storage_id = iniGetBoolValue(NULL, "use_storage_id",
+            &iniContext, false);
+    iniFreeContext(&iniContext);
 
 	if (*use_storage_id)
 	{
-		result = fdfs_get_storage_ids_from_tracker_group( \
+		result = fdfs_get_storage_ids_from_tracker_group(
 				&g_tracker_group);
 	}
 
-        return result;
+    return result;
 }
 
 static int fdfs_client_do_init_ex(TrackerServerGroup *pTrackerGroup, \

@@ -1365,7 +1365,7 @@ static int tracker_deal_storage_join(struct fast_task_info *pTask)
 
 	if (pTask->length - sizeof(TrackerHeader) != \
 		sizeof(TrackerStorageJoinBody) + joinBody.tracker_count *\
-		FDFS_PROTO_IP_PORT_SIZE)
+		FDFS_PROTO_MULTI_IP_PORT_SIZE)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"cmd: %d, client ip: %s, " \
@@ -1375,7 +1375,7 @@ static int tracker_deal_storage_join(struct fast_task_info *pTask)
 			pTask->client_ip, pTask->length - \
 			(int)sizeof(TrackerHeader),
 			(int)sizeof(TrackerStorageJoinBody) + \
-			joinBody.tracker_count * FDFS_PROTO_IP_PORT_SIZE);
+			joinBody.tracker_count * FDFS_PROTO_MULTI_IP_PORT_SIZE);
 		pTask->length = sizeof(TrackerHeader);
 		return EINVAL;
 	}
@@ -1443,16 +1443,16 @@ static int tracker_deal_storage_join(struct fast_task_info *pTask)
 	for (pTrackerServer=joinBody.tracker_servers;
 		pTrackerServer<pTrackerEnd; pTrackerServer++)
 	{
-		* (p + FDFS_PROTO_IP_PORT_SIZE - 1) = '\0';
+		* (p + FDFS_PROTO_MULTI_IP_PORT_SIZE - 1) = '\0';
 
-        if ((result=fdfs_parse_server_info(p, FDFS_TRACKER_SERVER_DEF_PORT,
-                pTrackerServer)) != 0)
+        if ((result=fdfs_parse_server_info_ex(p, FDFS_TRACKER_SERVER_DEF_PORT,
+                pTrackerServer, false)) != 0)
         {
             pTask->length = sizeof(TrackerHeader);
             return result;
         }
 
-		p += FDFS_PROTO_IP_PORT_SIZE;
+		p += FDFS_PROTO_MULTI_IP_PORT_SIZE;
 	}
 
 	joinBody.upload_priority = (int)buff2long(pBody->upload_priority);

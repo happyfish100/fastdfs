@@ -97,8 +97,16 @@ bool fdfs_server_equal(TrackerServerInfo *pServer1,
 
 void fdfs_server_sock_reset(TrackerServerInfo *pServerInfo);
 
-int fdfs_parse_server_info(char *server_str, const int default_port,
-        TrackerServerInfo *pServer);
+int fdfs_parse_server_info_ex(char *server_str, const int default_port,
+        TrackerServerInfo *pServer, const bool resolve);
+
+static inline int fdfs_parse_server_info(char *server_str, const int default_port,
+        TrackerServerInfo *pServer)
+{
+    const bool resolve = true;
+    return fdfs_parse_server_info_ex(server_str, default_port,
+            pServer, resolve);
+}
 
 int fdfs_server_info_to_string_ex(TrackerServerInfo *pServer,
         const int port, char *buff, const int buffSize);
@@ -109,6 +117,9 @@ static inline int fdfs_server_info_to_string(TrackerServerInfo *pServer,
     return fdfs_server_info_to_string_ex(pServer,
             pServer->connections[0].port, buff, buffSize);
 }
+
+int fdfs_check_server_ips(TrackerServerInfo *pServer,
+        char *error_info, const int error_size);
 
 #ifdef __cplusplus
 }

@@ -1147,8 +1147,8 @@ void fdfs_set_log_rotate_size(LogContext *pContext, const int64_t log_rotate_siz
 	}
 }
 
-int fdfs_parse_server_info(char *server_str, const int default_port,
-        TrackerServerInfo *pServer)
+int fdfs_parse_server_info_ex(char *server_str, const int default_port,
+        TrackerServerInfo *pServer, const bool resolve)
 {
 	char *pColon;
     char *hosts[FDFS_MULTI_IP_MAX_COUNT];
@@ -1173,24 +1173,23 @@ int fdfs_parse_server_info(char *server_str, const int default_port,
     conn = pServer->connections;
     pServer->count =  splitEx(server_str, ',',
             hosts, FDFS_MULTI_IP_MAX_COUNT);
-    if (pServer->count == 1)
-    {
-		if (getIpaddrByName(hosts[0], conn->ip_addr,
-			sizeof(conn->ip_addr)) == INADDR_NONE)
-		{
-			logError("file: "__FILE__", line: %d, "
-				"host \"%s\" is invalid, error info: %s",
-				__LINE__, hosts[0], hstrerror(h_errno));
-			return EINVAL;
-		}
-        conn->port = port;
-        conn->sock = -1;
-        return 0;
-    }
-
     for (i=0; i<pServer->count; i++)
     {
-        snprintf(conn->ip_addr, sizeof(conn->ip_addr), "%s", hosts[i]); 
+        if (resolve)
+        {
+            if (getIpaddrByName(hosts[i], conn->ip_addr,
+                        sizeof(conn->ip_addr)) == INADDR_NONE)
+            {
+                logError("file: "__FILE__", line: %d, "
+                        "host \"%s\" is invalid, error info: %s",
+                        __LINE__, hosts[i], hstrerror(h_errno));
+                return EINVAL;
+            }
+        }
+        else
+        {
+            snprintf(conn->ip_addr, sizeof(conn->ip_addr), "%s", hosts[i]);
+        }
         conn->port = port;
         conn->sock = -1;
         conn++;
@@ -1220,4 +1219,46 @@ int fdfs_server_info_to_string_ex(TrackerServerInfo *pServer,
     }
     len += snprintf(buff + len, buffSize - len, ":%d", port);
     return len;
+}
+
+int fdfs_check_server_ips(TrackerServerInfo *pServer,
+        char *error_info, const int error_size)
+{
+    int private0;
+    int private1;
+    if (pServer->count == 1)
+    {
+        *error_info = '\0';
+        return 0;
+    }
+
+    if (pServer->count <= 0)
+    {
+        logError("file: "__FILE__", line: %d, "
+                "empty server", __LINE__);
+        return EINVAL;
+    }
+
+    if (pServer->count > FDFS_MULTI_IP_MAX_COUNT)
+    {
+        snprintf(error_info, error_size,
+                "too many server ip addresses: %d, exceeds %d",
+                pServer->count, FDFS_MULTI_IP_MAX_COUNT);
+        return EINVAL;
+    }
+
+    private0 = is_private_ip(pServer->connections[0].ip_addr) ? 1 : 0;
+    private1 = is_private_ip(pServer->connections[1].ip_addr) ? 1 : 0;
+    if ((private0 ^ private1) == 0)
+    {
+        snprintf(error_info, error_size,
+                "invalid ip addresses %s and %s, "
+                "one MUST be an inner IP and another is a outer IP",
+                pServer->connections[0].ip_addr,
+                pServer->connections[1].ip_addr);
+        return EINVAL;
+    }
+
+    *error_info = '\0';
+    return 0;
 }
