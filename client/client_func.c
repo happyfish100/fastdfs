@@ -380,7 +380,7 @@ static int fdfs_client_do_init_ex(TrackerServerGroup *pTrackerGroup, \
 		g_fdfs_network_timeout, pTrackerGroup->server_count, \
 		g_anti_steal_token, g_anti_steal_secret_key.length, \
 		g_use_connection_pool, g_connection_pool_max_idle_time, \
-		use_storage_id, g_storage_id_count);
+		use_storage_id, g_storage_ids_by_id.count);
 #endif
 
 	return 0;

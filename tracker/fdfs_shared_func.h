@@ -15,14 +15,11 @@
 #include "fastcommon/ini_file_reader.h"
 #include "fastcommon/logger.h"
 #include "tracker_types.h"
+#include "fdfs_server_id_func.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-extern FDFSStorageIdInfo *g_storage_ids_by_ip;  //sorted by group name and storage IP
-extern FDFSStorageIdInfo **g_storage_ids_by_id;  //sorted by storage ID
-extern int g_storage_id_count;		  //storage id count
 
 int fdfs_get_tracker_leader_index_ex(TrackerServerGroup *pServerGroup, \
 		const char *leaderIp, const int leaderPort);
@@ -49,29 +46,6 @@ bool fdfs_check_reserved_space_trunk(FDFSGroupInfo *pGroup, \
 bool fdfs_check_reserved_space_path(const int64_t total_mb, \
 	const int64_t free_mb, const int avg_mb, \
 	FDFSStorageReservedSpace *pStorageReservedSpace);
-
-bool fdfs_is_server_id_valid(const char *id);
-
-int fdfs_get_server_id_type(const int id);
-
-int fdfs_load_storage_ids(char *content, const char *pStorageIdsFilename);
-
-FDFSStorageIdInfo *fdfs_get_storage_by_id(const char *id);
-
-FDFSStorageIdInfo *fdfs_get_storage_id_by_ip(const char *group_name, \
-		const char *pIpAddr);
-
-FDFSStorageIdInfo *fdfs_get_storage_id_by_ip_port(const char *pIpAddr,
-        const int port);
-
-int fdfs_check_storage_id(const char *group_name, const char *id);
-
-int fdfs_get_storage_ids_from_tracker_server(TrackerServerInfo *pTrackerServer);
-
-int fdfs_get_storage_ids_from_tracker_group(TrackerServerGroup *pTrackerGroup);
-
-int fdfs_load_storage_ids_from_file(const char *config_filename, \
-		IniContext *pItemContext);
 
 int fdfs_connection_pool_init(const char *config_filename, \
 		IniContext *pItemContext);
@@ -108,18 +82,45 @@ static inline int fdfs_parse_server_info(char *server_str, const int default_por
             pServer, resolve);
 }
 
-int fdfs_server_info_to_string_ex(TrackerServerInfo *pServer,
+int fdfs_server_info_to_string_ex(const TrackerServerInfo *pServer,
         const int port, char *buff, const int buffSize);
 
-static inline int fdfs_server_info_to_string(TrackerServerInfo *pServer,
+static inline int fdfs_server_info_to_string(const TrackerServerInfo *pServer,
         char *buff, const int buffSize)
 {
     return fdfs_server_info_to_string_ex(pServer,
             pServer->connections[0].port, buff, buffSize);
 }
 
-int fdfs_check_server_ips(TrackerServerInfo *pServer,
+int fdfs_multi_ips_to_string_ex(const FDFSMultiIP *ip_addrs,
+        const char seperator, char *buff, const int buffSize);
+
+static inline int fdfs_multi_ips_to_string(const FDFSMultiIP *ip_addrs,
+        char *buff, const int buffSize)
+{
+    const char seperator = ',';
+    return fdfs_multi_ips_to_string_ex(ip_addrs, seperator, buff, buffSize);
+}
+
+int fdfs_parse_multi_ips_ex(char *ip_str, FDFSMultiIP *ip_addrs,
+        char *error_info, const int error_size, const bool resolve);
+
+static inline int fdfs_parse_multi_ips(char *ip_str, FDFSMultiIP *ip_addrs,
+        char *error_info, const int error_size)
+{
+    const bool resolve = true;
+    return fdfs_parse_multi_ips_ex(ip_str, ip_addrs,
+            error_info, error_size, resolve);
+}
+
+int fdfs_check_server_ips(const TrackerServerInfo *pServer,
         char *error_info, const int error_size);
+
+int fdfs_check_and_format_ips(FDFSMultiIP *ip_addrs,
+        char *error_info, const int error_size);
+
+const char *fdfs_get_ipaddr_by_client_ip(const FDFSMultiIP *ip_addrs,
+        const char *client_ip);
 
 #ifdef __cplusplus
 }

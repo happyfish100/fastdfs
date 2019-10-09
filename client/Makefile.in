@@ -12,7 +12,7 @@ CONFIG_PATH = $(TARGET_CONF_PATH)
 
 FDFS_STATIC_OBJS = ../common/fdfs_global.o ../common/fdfs_http_shared.o \
                    ../common/mime_file_parser.o ../tracker/tracker_proto.o \
-                   ../tracker/fdfs_shared_func.o \
+                   ../tracker/fdfs_shared_func.o ../tracker/fdfs_server_id_func.o \
                    ../storage/trunk_mgr/trunk_shared.o \
                    tracker_client.o client_func.o \
                    client_global.o storage_client.o
@@ -21,7 +21,7 @@ STATIC_OBJS =  $(FDFS_STATIC_OBJS)
 
 FDFS_SHARED_OBJS = ../common/fdfs_global.lo ../common/fdfs_http_shared.lo \
                    ../common/mime_file_parser.lo ../tracker/tracker_proto.lo \
-                   ../tracker/fdfs_shared_func.lo \
+                   ../tracker/fdfs_shared_func.lo ../tracker/fdfs_server_id_func.lo \
                    ../storage/trunk_mgr/trunk_shared.lo \
                    tracker_client.lo client_func.lo \
                    client_global.lo storage_client.lo
@@ -29,7 +29,7 @@ FDFS_SHARED_OBJS = ../common/fdfs_global.lo ../common/fdfs_http_shared.lo \
 FDFS_HEADER_FILES = ../common/fdfs_define.h ../common/fdfs_global.h \
                     ../common/mime_file_parser.h ../common/fdfs_http_shared.h \
                     ../tracker/tracker_types.h ../tracker/tracker_proto.h \
-                    ../tracker/fdfs_shared_func.h \
+                    ../tracker/fdfs_shared_func.h ../tracker/fdfs_server_id_func.h \
                     ../storage/trunk_mgr/trunk_shared.h \
                     tracker_client.h storage_client.h storage_client1.h \
                     client_func.h client_global.h fdfs_client.h

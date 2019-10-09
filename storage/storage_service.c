@@ -3668,7 +3668,9 @@ static int storage_server_query_file_info(struct fast_task_info *pTask)
 			pStorageIdInfo = fdfs_get_storage_by_id(id);
 			if (pStorageIdInfo != NULL)
 			{
-				strcpy(p, pStorageIdInfo->ip_addr);
+                strcpy(p, fdfs_get_ipaddr_by_client_ip(
+                            &pStorageIdInfo->ip_addrs,
+                            pTask->client_ip));
 			}
 		}
 	}

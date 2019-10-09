@@ -8,7 +8,7 @@ CONFIG_PATH = $(TARGET_CONF_PATH)
 
 SHARED_OBJS = ../common/fdfs_global.o \
               tracker_proto.o tracker_mem.o tracker_service.o tracker_status.o \
-              tracker_global.o tracker_func.o \
+              tracker_global.o tracker_func.o fdfs_server_id_func.o \
               fdfs_shared_func.o tracker_nio.o tracker_relationship.o \
               $(TRACKER_EXTRA_OBJS)
 

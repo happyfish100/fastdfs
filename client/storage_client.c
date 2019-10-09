@@ -2171,7 +2171,7 @@ int fdfs_get_file_info_ex(const char *group_name, const char *remote_filename, \
 	if (fdfs_get_server_id_type(ip_addr.s_addr) == FDFS_ID_TYPE_SERVER_ID)
 	{
 		pFileInfo->source_id = ip_addr.s_addr;
-		if (g_storage_ids_by_id != NULL && g_storage_id_count > 0)
+		if (g_storage_ids_by_id.count > 0)
 		{
 			char id[16];
 			FDFSStorageIdInfo *pStorageId;
@@ -2180,8 +2180,8 @@ int fdfs_get_file_info_ex(const char *group_name, const char *remote_filename, \
 			pStorageId = fdfs_get_storage_by_id(id);
 			if (pStorageId != NULL)
 			{
-				strcpy(pFileInfo->source_ip_addr, \
-					pStorageId->ip_addr);
+				strcpy(pFileInfo->source_ip_addr,
+					pStorageId->ip_addrs.ips[0]);
 			}
 			else
 			{

@@ -124,9 +124,9 @@ static void tracker_mem_find_store_server(FDFSGroupInfo *pGroup);
 static int tracker_mem_find_trunk_server(FDFSGroupInfo *pGroup, 
 		const bool save);
 
-static int _tracker_mem_add_storage(FDFSGroupInfo *pGroup, \
-	FDFSStorageDetail **ppStorageServer, const char *id, \
-	const char *ip_addr, const bool bNeedSleep, \
+static int _tracker_mem_add_storage(FDFSGroupInfo *pGroup,
+	FDFSStorageDetail **ppStorageServer, const char *id,
+	const char *ip_addr, const bool bNeedSleep,
 	const bool bNeedLock, bool *bInserted);
 
 static int tracker_mem_add_storage(TrackerClientInfo *pClientInfo, \
@@ -1849,6 +1849,7 @@ int tracker_save_storages()
 	char trueFilename[MAX_PATH_SIZE];
 	char buff[4096];
 	char id_buff[128];
+    char ip_buff[256];
 	int fd;
 	int len;
 	FDFSGroupInfo **ppGroup;
@@ -1895,9 +1896,12 @@ int tracker_save_storages()
 
 			if (g_use_storage_id)
 			{
-				sprintf(id_buff, "\t%s=%s\n", \
+				sprintf(id_buff, "\t%s=%s\n",
 					STORAGE_ITEM_SERVER_ID, pStorage->id);
 			}
+
+            fdfs_multi_ips_to_string(&pStorage->ip_addrs,
+                    ip_buff, sizeof(ip_buff));
 
 			count++;
 			len = sprintf(buff, \
@@ -1956,11 +1960,11 @@ int tracker_save_storages()
 				"\t%s=%d\n" \
 				"\t%s=%d\n" \
 				"\t%s=%"PRId64"\n\n", \
-				pStorage->ip_addr, pStorage->storage_port, \
+				ip_buff, pStorage->storage_port, \
 				STORAGE_SECTION_NAME_PREFIX, count, id_buff, \
 				STORAGE_ITEM_GROUP_NAME, \
 				(*ppGroup)->group_name, \
-				STORAGE_ITEM_IP_ADDR, pStorage->ip_addr, \
+				STORAGE_ITEM_IP_ADDR, ip_buff, \
 				STORAGE_ITEM_STATUS, pStorage->status, \
 				STORAGE_ITEM_VERSION, pStorage->version, \
 				STORAGE_ITEM_JOIN_TIME, \
@@ -3491,7 +3495,7 @@ int tracker_mem_delete_storage(FDFSGroupInfo *pGroup, const char *id)
 
     logDebug("file: "__FILE__", line: %d, " \
             "delete storage server: %s:%d, group: %s", \
-            __LINE__, pStorageServer->ip_addr,
+            __LINE__, pStorageServer->ip_addrs.ips[0],
             pStorageServer->storage_port, pGroup->group_name);
 
 	tracker_mem_clear_storage_fields(pStorageServer);
@@ -3579,19 +3583,20 @@ int tracker_mem_storage_ip_changed(FDFSGroupInfo *pGroup, \
 	//exchange old and new storage server
 	snprintf(pOldStorageServer->id, sizeof(pOldStorageServer->id), \
 		"%s", new_storage_ip);
-	snprintf(pOldStorageServer->ip_addr, \
-		sizeof(pOldStorageServer->ip_addr), "%s", new_storage_ip);
+	snprintf(pOldStorageServer->ip_addrs.ips[0],
+		sizeof(pOldStorageServer->ip_addrs.ips[0]), "%s", new_storage_ip);
 
 	snprintf(pNewStorageServer->id, sizeof(pNewStorageServer->id), \
 		"%s", old_storage_ip);
-	snprintf(pNewStorageServer->ip_addr, \
-		sizeof(pNewStorageServer->ip_addr), "%s", old_storage_ip);
+    pNewStorageServer->ip_addrs.count = 1;
+	snprintf(pNewStorageServer->ip_addrs.ips[0],
+		sizeof(pNewStorageServer->ip_addrs.ips[0]), "%s", old_storage_ip);
 	pNewStorageServer->status = FDFS_STORAGE_STATUS_IP_CHANGED;
 
 	pGroup->chg_count++;
 
 	//need re-sort
-	qsort(pGroup->sorted_servers, pGroup->count, \
+	qsort(pGroup->sorted_servers, pGroup->count,
 		sizeof(FDFSStorageDetail *), tracker_mem_cmp_by_storage_id);
 
 	pthread_mutex_unlock(&mem_thread_lock);
@@ -3601,8 +3606,8 @@ int tracker_mem_storage_ip_changed(FDFSGroupInfo *pGroup, \
 	return tracker_save_sys_files();
 }
 
-static int tracker_mem_add_storage(TrackerClientInfo *pClientInfo, \
-		const char *id, const char *ip_addr, \
+static int tracker_mem_add_storage(TrackerClientInfo *pClientInfo,
+		const char *id, const char *ip_addr,
 		const bool bNeedSleep, const bool bNeedLock, bool *bInserted)
 {
 	int result;
@@ -3620,9 +3625,9 @@ static int tracker_mem_add_storage(TrackerClientInfo *pClientInfo, \
 	return result;
 }
 
-static int _tracker_mem_add_storage(FDFSGroupInfo *pGroup, \
-	FDFSStorageDetail **ppStorageServer, const char *id, \
-	const char *ip_addr, const bool bNeedSleep, \
+static int _tracker_mem_add_storage(FDFSGroupInfo *pGroup,
+	FDFSStorageDetail **ppStorageServer, const char *id,
+	const char *ip_addr, const bool bNeedSleep,
 	const bool bNeedLock, bool *bInserted)
 {
 	int result;

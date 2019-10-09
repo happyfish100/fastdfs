@@ -272,12 +272,18 @@ typedef struct
 	char sz_last_heart_beat_time[8];
 } FDFSStorageStatBuff;
 
+typedef struct StructFDFSMultiIP
+{
+    int count;
+	char ips[FDFS_MULTI_IP_MAX_COUNT][IP_ADDRESS_SIZE];
+} FDFSMultiIP;
+
 typedef struct StructFDFSStorageDetail
 {
 	char status;
 	char padding;  //just for padding
 	char id[FDFS_STORAGE_ID_MAX_SIZE];
-	char ip_addr[IP_ADDRESS_SIZE];
+    FDFSMultiIP ip_addrs;
 	char version[FDFS_VERSION_SIZE];
 	char domain_name[FDFS_DOMAIN_NAME_MAX_SIZE];
 
@@ -428,14 +434,6 @@ typedef struct
 	int length;    //the content length
 	int version;   //for binlog pre-read, compare with binlog_write_version
 } BinLogBuffer;
-
-typedef struct
-{
-	char id[FDFS_STORAGE_ID_MAX_SIZE];
-	char group_name[FDFS_GROUP_NAME_MAX_LEN + 8];  //for 8 bytes alignment
-	char ip_addr[IP_ADDRESS_SIZE];
-    int port;   //since v5.05
-} FDFSStorageIdInfo;
 
 typedef struct
 {
