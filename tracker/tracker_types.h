@@ -275,8 +275,12 @@ typedef struct
 typedef struct StructFDFSMultiIP
 {
     int count;
+    int index;
 	char ips[FDFS_MULTI_IP_MAX_COUNT][IP_ADDRESS_SIZE];
 } FDFSMultiIP;
+
+#define FDFS_CURRENT_IP_ADDR(pServer) \
+    (pServer)->ip_addrs.ips[(pServer)->ip_addrs.index]
 
 typedef struct StructFDFSStorageDetail
 {

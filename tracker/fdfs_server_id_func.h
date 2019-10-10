@@ -59,7 +59,7 @@ int fdfs_load_storage_ids(char *content, const char *pStorageIdsFilename);
 
 FDFSStorageIdInfo *fdfs_get_storage_by_id(const char *id);
 
-FDFSStorageIdInfo *fdfs_get_storage_id_by_ip(const char *group_name, \
+FDFSStorageIdInfo *fdfs_get_storage_id_by_ip(const char *group_name,
 		const char *pIpAddr);
 
 FDFSStorageIdInfo *fdfs_get_storage_id_by_ip_port(const char *pIpAddr,
@@ -71,7 +71,7 @@ int fdfs_get_storage_ids_from_tracker_server(TrackerServerInfo *pTrackerServer);
 
 int fdfs_get_storage_ids_from_tracker_group(TrackerServerGroup *pTrackerGroup);
 
-int fdfs_load_storage_ids_from_file(const char *config_filename, \
+int fdfs_load_storage_ids_from_file(const char *config_filename,
 		IniContext *pItemContext);
 
 #ifdef __cplusplus

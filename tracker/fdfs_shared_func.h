@@ -122,6 +122,8 @@ int fdfs_check_and_format_ips(FDFSMultiIP *ip_addrs,
 const char *fdfs_get_ipaddr_by_client_ip(const FDFSMultiIP *ip_addrs,
         const char *client_ip);
 
+void fdfs_set_multi_ip_index(FDFSMultiIP *multi_ip, const char *target_ip);
+
 #ifdef __cplusplus
 }
 #endif

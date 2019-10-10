@@ -72,8 +72,8 @@ static int fdfs_dump_group_stat(FDFSGroupInfo *pGroup, char *buff, const int buf
 		pGroup->store_path_count,
 		pGroup->subdir_count_per_path,
 		pGroup->current_trunk_file_id,
-		pGroup->pStoreServer != NULL ? pGroup->pStoreServer->ip_addr : "",
-		pGroup->pTrunkServer != NULL ? pGroup->pTrunkServer->ip_addr : "",
+		pGroup->pStoreServer != NULL ? FDFS_CURRENT_IP_ADDR(pGroup->pStoreServer) : "",
+		pGroup->pTrunkServer != NULL ? FDFS_CURRENT_IP_ADDR(pGroup->pTrunkServer) : "",
 		pGroup->last_trunk_server_id,
 		pGroup->chg_count,
 		pGroup->trunk_chg_count,
@@ -91,7 +91,7 @@ static int fdfs_dump_group_stat(FDFSGroupInfo *pGroup, char *buff, const int buf
 	for (ppServer=pGroup->all_servers; ppServer<ppServerEnd; ppServer++)
 	{
 		total_len += snprintf(buff + total_len, buffSize - total_len, 
-			"\t%s\n", (*ppServer)->ip_addr);
+			"\t%s\n", FDFS_CURRENT_IP_ADDR(*ppServer));
 	}
 
 	total_len += snprintf(buff + total_len, buffSize - total_len, 
@@ -100,7 +100,7 @@ static int fdfs_dump_group_stat(FDFSGroupInfo *pGroup, char *buff, const int buf
 	for (ppServer=pGroup->active_servers; ppServer<ppServerEnd; ppServer++)
 	{
 		total_len += snprintf(buff + total_len, buffSize - total_len, 
-			"\t%s\n", (*ppServer)->ip_addr);
+			"\t%s\n", FDFS_CURRENT_IP_ADDR(*ppServer));
 	}
 
 #ifdef WITH_HTTPD
@@ -141,8 +141,8 @@ static int fdfs_dump_group_stat(FDFSGroupInfo *pGroup, char *buff, const int buf
 
 		total_len += snprintf(buff + total_len, buffSize - total_len, 
 				"\t%s => %s: %s\n", 
-				pGroup->all_servers[i]->ip_addr, 
-				pGroup->all_servers[j]->ip_addr,
+				FDFS_CURRENT_IP_ADDR(pGroup->all_servers[i]), 
+				FDFS_CURRENT_IP_ADDR(pGroup->all_servers[j]),
 				formatDatetime(pGroup->last_sync_timestamps[i][j],
 					"%Y-%m-%d %H:%M:%S", 
 					szSyncedTimestamp, 
@@ -213,12 +213,12 @@ static int fdfs_dump_storage_stat(FDFSStorageDetail *pServer,
 		"last_sync_update=%s\n"
 		"last_synced_timestamp=%s\n"
 		"last_heart_beat_time=%s\n",
-		pServer->ip_addr, 
+		FDFS_CURRENT_IP_ADDR(pServer),
 		pServer->version, 
 		pServer->status, 
 		pServer->domain_name, 
 		pServer->psync_src_server != NULL ? 
-		pServer->psync_src_server->ip_addr : "", 
+		FDFS_CURRENT_IP_ADDR(pServer->psync_src_server) : "", 
 		formatDatetime(pServer->sync_until_timestamp, 
 			"%Y-%m-%d %H:%M:%S", 
 			szSyncUntilTimestamp, sizeof(szSyncUntilTimestamp)),

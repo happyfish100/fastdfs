@@ -525,6 +525,7 @@ int fdfs_parse_multi_ips_ex(char *ip_str, FDFSMultiIP *ip_addrs,
     char *hosts[FDFS_MULTI_IP_MAX_COUNT];
     int i;
 
+    ip_addrs->index = 0;
     ip_addrs->count = splitEx(ip_str, ',', hosts, FDFS_MULTI_IP_MAX_COUNT);
     for (i=0; i<ip_addrs->count; i++)
     {
@@ -640,4 +641,22 @@ int fdfs_check_and_format_ips(FDFSMultiIP *ip_addrs,
 
     *error_info = '\0';
     return 0;
+}
+
+void fdfs_set_multi_ip_index(FDFSMultiIP *multi_ip, const char *target_ip)
+{
+    int i;
+    if (multi_ip->count == 1)
+    {
+        return;
+    }
+
+    for (i=0; i<multi_ip->count; i++)
+    {
+        if (strcmp(multi_ip->ips[i], target_ip) == 0)
+        {
+            multi_ip->index = i;
+            break;
+        }
+    }
 }

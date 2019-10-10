@@ -188,6 +188,30 @@ static int fdfs_init_ip_array(FDFSStorageIdMapArray *mapArray,
     return 0;
 }
 
+static int fdfs_check_id_duplicated()
+{
+	FDFSStorageIdInfo *current;
+	FDFSStorageIdInfo *idEnd;
+    FDFSStorageIdInfo *previous;
+
+    current=g_storage_ids_by_id.ids + 0;
+    idEnd = g_storage_ids_by_id.ids + g_storage_ids_by_id.count;
+    for (current=g_storage_ids_by_id.ids + 1; current<idEnd; current++)
+    {
+        if (strcmp(current->id, previous->id) == 0)
+        {
+            logError("file: "__FILE__", line: %d, "
+                    "config file: storage_ids.conf, "
+                    "duplicate storage id: %s",
+                    __LINE__, current->id);
+            return EEXIST;
+        }
+        previous = current;
+    }
+
+    return 0;
+}
+
 static int fdfs_check_ip_port()
 {
     int i;
@@ -490,6 +514,10 @@ int fdfs_load_storage_ids(char *content, const char *pStorageIdsFilename)
 
 	qsort(g_storage_ids_by_id.ids, g_storage_ids_by_id.count,
 		sizeof(FDFSStorageIdInfo), fdfs_cmp_server_id);
+    if ((result=fdfs_check_id_duplicated()) != 0)
+    {
+        return result;
+    }
 
     if ((result=fdfs_init_ip_array(&g_storage_ids_by_ip,
                     fdfs_cmp_group_name_and_ip)) != 0)

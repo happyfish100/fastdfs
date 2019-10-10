@@ -777,7 +777,7 @@ int tracker_load_from_conf_file(const char *filename, \
 			g_trunk_init_reload_from_binlog, \
 			g_trunk_compress_binlog_min_interval, \
 			g_use_storage_id, g_id_type_in_filename == \
-			FDFS_ID_TYPE_SERVER_ID ? "id" : "ip", g_storage_id_count, \
+			FDFS_ID_TYPE_SERVER_ID ? "id" : "ip", g_storage_ids_by_id.count, \
 			g_rotate_error_log, g_error_log_rotate_time.hour, \
 			g_error_log_rotate_time.minute, \
 			g_log_context.rotate_size, g_log_file_keep_days,
