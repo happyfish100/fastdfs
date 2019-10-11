@@ -116,8 +116,8 @@ extern char g_sync_src_id[FDFS_STORAGE_ID_MAX_SIZE]; //the source storage server
 
 extern char g_group_name[FDFS_GROUP_NAME_MAX_LEN + 1];
 extern char g_my_server_id_str[FDFS_STORAGE_ID_MAX_SIZE]; //my server id string
-extern char g_tracker_client_ip[IP_ADDRESS_SIZE]; //storage ip as tracker client
-extern char g_last_storage_ip[IP_ADDRESS_SIZE];	//the last storage ip address
+extern FDFSMultiIP g_tracker_client_ip; //storage ip as tracker client
+extern FDFSMultiIP g_last_storage_ip;	//the last storage ip address
 
 extern LogContext g_access_log_context;
 
@@ -172,6 +172,9 @@ extern struct storage_nio_thread_data *g_nio_thread_data;  //network io thread d
 extern struct storage_dio_thread_data *g_dio_thread_data;  //disk io thread data
 
 int storage_cmp_by_server_id(const void *p1, const void *p2);
+
+int storage_insert_ip_addr_to_multi_ips(FDFSMultiIP *multi_ip,
+        const char *ip_addr, const int ips_limit);
 
 #ifdef __cplusplus
 }

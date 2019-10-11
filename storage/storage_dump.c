@@ -30,8 +30,15 @@ static int fdfs_dump_global_vars(char *buff, const int buffSize)
 	char szSyncUntilTimestamp[32];
 	char szUptime[32];
 	char reserved_space_str[32];
+    char tracker_client_ip_str[256];
+    char last_storage_ip_str[256];
 	int total_len;
 	int i;
+
+    fdfs_multi_ips_to_string(&g_tracker_client_ip,
+            tracker_client_ip_str, sizeof(tracker_client_ip_str));
+    fdfs_multi_ips_to_string(&g_last_storage_ip,
+            last_storage_ip_str, sizeof(last_storage_ip_str));
 
 	total_len = snprintf(buff, buffSize,
 		"g_fdfs_connect_timeout=%ds\n"
@@ -177,8 +184,8 @@ static int fdfs_dump_global_vars(char *buff, const int buffSize)
 		, formatDatetime(g_sync_until_timestamp, "%Y-%m-%d %H:%M:%S", 
 			szSyncUntilTimestamp, sizeof(szSyncUntilTimestamp))
                 , g_my_server_id_str
-		, g_tracker_client_ip
-		, g_last_storage_ip
+		, tracker_client_ip_str
+		, last_storage_ip_str 
 		, g_check_file_duplicate
 		, g_key_namespace
 		, g_namespace_len

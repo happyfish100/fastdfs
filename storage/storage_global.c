@@ -71,8 +71,8 @@ char g_sync_src_id[FDFS_STORAGE_ID_MAX_SIZE] = {0};
 
 char g_group_name[FDFS_GROUP_NAME_MAX_LEN + 1] = {0};
 char g_my_server_id_str[FDFS_STORAGE_ID_MAX_SIZE] = {0}; //my server id string
-char g_tracker_client_ip[IP_ADDRESS_SIZE] = {0}; //storage ip as tracker client
-char g_last_storage_ip[IP_ADDRESS_SIZE] = {0};	 //the last storage ip address
+FDFSMultiIP g_tracker_client_ip = {0, 0}; //storage ip as tracker client
+FDFSMultiIP g_last_storage_ip = {0, 0};	  //the last storage ip address
 
 LogContext g_access_log_context = {LOG_INFO, STDERR_FILENO, NULL};
 
@@ -129,3 +129,32 @@ int storage_cmp_by_server_id(const void *p1, const void *p2)
 		(*((FDFSStorageServer **)p2))->server.id);
 }
 
+
+int storage_insert_ip_addr_to_multi_ips(FDFSMultiIP *multi_ip,
+        const char *ip_addr, const int ips_limit)
+{
+    int i;
+    if (multi_ip->count == 0)
+    {
+        multi_ip->count = 1;
+        strcpy(multi_ip->ips[0], ip_addr);
+        return 0;
+    }
+
+    for (i = 0; i < multi_ip->count; i++)
+    {
+        if (strcmp(multi_ip->ips[i], ip_addr) == 0)
+        {
+            return EEXIST;
+        }
+    }
+
+    if (i >= ips_limit)
+    {
+        return ENOSPC;
+    }
+
+    strcpy(multi_ip->ips[i], ip_addr);
+    multi_ip->count++;
+    return 0;
+}

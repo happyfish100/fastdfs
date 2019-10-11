@@ -199,7 +199,8 @@ static void *tracker_report_thread_entrance(void *arg)
 	TrackerServerInfo *pTrackerServer;
 	char my_server_id[FDFS_STORAGE_ID_MAX_SIZE];
 	char tracker_client_ip[IP_ADDRESS_SIZE];
-	char szFailPrompt[36];
+    char ip_str[256];
+	char szFailPrompt[256];
 	bool sync_old_done;
 	int stat_chg_sync_count;
 	int sync_time_chg_count;
@@ -212,6 +213,7 @@ static void *tracker_report_thread_entrance(void *arg)
 	int previousCode;
 	int nContinuousFail;
 	int tracker_index;
+    int ips_limit;
 	int64_t last_trunk_total_free_space;
 	bool bServerPortChanged;
 
@@ -238,6 +240,7 @@ static void *tracker_report_thread_entrance(void *arg)
 	previousCode = 0;
 	nContinuousFail = 0;
     conn = NULL;
+    ips_limit = g_use_storage_id ? FDFS_MULTI_IP_MAX_COUNT : 1;
 	while (g_continue_flag)
 	{
         if (conn != NULL)
@@ -293,25 +296,41 @@ static void *tracker_report_thread_entrance(void *arg)
 		previousCode = 0;
 		nContinuousFail = 0;
 
-		if (*g_tracker_client_ip == '\0')
-		{
-			strcpy(g_tracker_client_ip, tracker_client_ip);
-		}
-		else if (strcmp(tracker_client_ip, g_tracker_client_ip) != 0)
-		{
-			logError("file: "__FILE__", line: %d, "
-				"as a client of tracker server %s:%d, "
-				"my ip: %s != client ip: %s of other "
-				"tracker client", __LINE__,
-				conn->ip_addr, conn->port,
-				tracker_client_ip, g_tracker_client_ip);
+        result = storage_insert_ip_addr_to_multi_ips(&g_tracker_client_ip,
+                    tracker_client_ip, ips_limit);
+        if (!(result == 0 || result == EEXIST))
+        {
+            fdfs_multi_ips_to_string(&g_tracker_client_ip,
+                    ip_str, sizeof(ip_str));
+            logCrit("file: "__FILE__", line: %d, "
+                    "as a client of tracker server %s:%d, "
+                    "my ip: %s not consistent with client ips: %s "
+                    "of other tracker client. program exit!", __LINE__,
+                    conn->ip_addr, conn->port,
+                    tracker_client_ip, ip_str);
 
-			close(conn->sock);
-			conn->sock = -1;
-			break;
-		}
+            g_continue_flag = false;
+            break;
+        }
 
-		insert_into_local_host_ip(tracker_client_ip);
+        if (result == 0)
+        {
+            if (fdfs_check_and_format_ips(&g_tracker_client_ip,
+                        szFailPrompt, sizeof(szFailPrompt)) != 0)
+            {
+                logCrit("file: "__FILE__", line: %d, "
+                        "as a client of tracker server %s:%d, "
+                        "my ip: %s not valid, error info: %s. "
+                        "program exit!", __LINE__,
+                        conn->ip_addr, conn->port,
+                        tracker_client_ip, szFailPrompt);
+
+                g_continue_flag = false;
+                break;
+            }
+
+            insert_into_local_host_ip(tracker_client_ip);
+        }
 
 		/*
 		//printf("file: "__FILE__", line: %d, " \
@@ -421,7 +440,7 @@ static void *tracker_report_thread_entrance(void *arg)
 				int my_status;
 				if (tracker_get_storage_max_status( \
 					&g_tracker_group, g_group_name, \
-					g_tracker_client_ip, my_server_id, \
+					tracker_client_ip, my_server_id, \
 					&my_status) == 0)
 				{
 					tracker_sync_dest_query(conn);
@@ -544,6 +563,10 @@ static void *tracker_report_thread_entrance(void *arg)
 			pTrackerServer->connections[0].port, nContinuousFail,
 			result, STRERROR(result));
 	}
+    else if (conn != NULL)
+    {
+        conn_pool_disconnect_server(conn);
+    }
 
 	thracker_report_thread_exit(pTrackerServer);
 

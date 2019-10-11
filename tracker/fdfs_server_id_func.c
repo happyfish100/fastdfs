@@ -194,7 +194,7 @@ static int fdfs_check_id_duplicated()
 	FDFSStorageIdInfo *idEnd;
     FDFSStorageIdInfo *previous;
 
-    current=g_storage_ids_by_id.ids + 0;
+    previous = g_storage_ids_by_id.ids + 0;
     idEnd = g_storage_ids_by_id.ids + g_storage_ids_by_id.count;
     for (current=g_storage_ids_by_id.ids + 1; current<idEnd; current++)
     {
@@ -602,8 +602,8 @@ int fdfs_get_storage_ids_from_tracker_server(TrackerServerInfo *pTrackerServer)
 		{
 			logError("file: "__FILE__", line: %d, "
 				"tracker server %s:%d, recv data length: %d "
-				"is invalid", __LINE__,
-				conn->ip_addr, conn->port, (int)in_bytes);
+				"is invalid", __LINE__, conn->ip_addr,
+                conn->port, (int)in_bytes);
 			result = EINVAL;
 			break;
 		}
@@ -649,11 +649,10 @@ int fdfs_get_storage_ids_from_tracker_server(TrackerServerInfo *pTrackerServer)
 
 		if (list_count == MAX_REQUEST_LOOP)
 		{
-			logError("file: "__FILE__", line: %d, " \
-				"response data from tracker " \
-				"server %s:%d is too large", \
-				__LINE__, conn->ip_addr,\
-				conn->port);
+			logError("file: "__FILE__", line: %d, "
+				"response data from tracker "
+				"server %s:%d is too large",
+				__LINE__, conn->ip_addr, conn->port);
 			result = ENOSPC;
 			break;
 		}
@@ -694,7 +693,7 @@ int fdfs_get_storage_ids_from_tracker_server(TrackerServerInfo *pTrackerServer)
 			}
 			*p = '\0';
 
-			//logInfo("list_count: %d, storage ids:\n%s", list_count, content);
+			logInfo("list_count: %d, storage ids:\n%s", list_count, content);
 
 			result = fdfs_load_storage_ids(content, \
 					"storage-ids-from-tracker");

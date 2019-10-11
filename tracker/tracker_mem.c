@@ -1807,7 +1807,6 @@ int tracker_save_storages()
 	char trueFilename[MAX_PATH_SIZE];
 	char buff[4096];
 	char id_buff[128];
-    char ip_buff[256];
 	int fd;
 	int len;
 	FDFSGroupInfo **ppGroup;
@@ -1857,9 +1856,6 @@ int tracker_save_storages()
 				sprintf(id_buff, "\t%s=%s\n",
 					STORAGE_ITEM_SERVER_ID, pStorage->id);
 			}
-
-            fdfs_multi_ips_to_string(&pStorage->ip_addrs,
-                    ip_buff, sizeof(ip_buff));
 
 			count++;
 			len = sprintf(buff, \
@@ -1918,11 +1914,12 @@ int tracker_save_storages()
 				"\t%s=%d\n" \
 				"\t%s=%d\n" \
 				"\t%s=%"PRId64"\n\n", \
-				ip_buff, pStorage->storage_port, \
+                FDFS_CURRENT_IP_ADDR(pStorage), \
+				pStorage->storage_port, \
 				STORAGE_SECTION_NAME_PREFIX, count, id_buff, \
 				STORAGE_ITEM_GROUP_NAME, \
 				(*ppGroup)->group_name, \
-				STORAGE_ITEM_IP_ADDR, ip_buff, \
+				STORAGE_ITEM_IP_ADDR, FDFS_CURRENT_IP_ADDR(pStorage), \
 				STORAGE_ITEM_STATUS, pStorage->status, \
 				STORAGE_ITEM_VERSION, pStorage->version, \
 				STORAGE_ITEM_JOIN_TIME, \
@@ -3587,8 +3584,6 @@ static int tracker_mem_add_storage_from_file(FDFSGroups *pGroups,
         const char *data_path, TrackerClientInfo *pClientInfo,
 		const char *group_name, const char *storage_id, char *ip_addr)
 {
-    FDFSMultiIP multi_ip;
-    char error_info[256];
     int result;
     bool bInserted;
 
@@ -3640,19 +3635,8 @@ static int tracker_mem_add_storage_from_file(FDFSGroups *pGroups,
         return errno != 0 ? errno : ENOENT;
     }
 
-    if ((result=fdfs_parse_multi_ips_ex(ip_addr,  &multi_ip,
-        error_info, sizeof(error_info), false)) != 0)
-    {
-        logError("file: "__FILE__", line: %d, "
-                "in the file \"%s/%s\", invalid ip address, "
-                "group: %s, error info: %s", __LINE__, data_path,
-                STORAGE_SERVERS_LIST_FILENAME_NEW,
-                group_name, error_info);
-        return result;
-    }
-
     if ((result=tracker_mem_add_storage(pClientInfo, storage_id,
-                    multi_ip.ips[0], false, false, &bInserted)) != 0)
+                    ip_addr, false, false, &bInserted)) != 0)
     {
         return result;
     }
@@ -4772,7 +4756,6 @@ int tracker_mem_sync_storages(FDFSGroupInfo *pGroup, \
 	FDFSStorageDetail target_storage;
 	FDFSStorageDetail *pTargetStorage;
 	FDFSStorageDetail **ppFound;
-    char ip_str[256];
 
 	if ((result=pthread_mutex_lock(&mem_thread_lock)) != 0)
 	{
@@ -4820,12 +4803,11 @@ int tracker_mem_sync_storages(FDFSGroupInfo *pGroup, \
 					continue;
 				}
 
-                fdfs_multi_ips_to_string(&(*ppFound)->ip_addrs,
-                        ip_str, sizeof(ip_str));
                 logWarning("file: "__FILE__", line: %d, "
                         "storage server: %s:%d, dest status: %d, "
                         "my status: %d, should change my status!",
-                        __LINE__, ip_str, (*ppFound)->storage_port,
+                        __LINE__, FDFS_CURRENT_IP_ADDR(*ppFound),
+                        (*ppFound)->storage_port,
                         pServer->status, (*ppFound)->status);
 
 				if (pServer->status == \
@@ -5001,7 +4983,6 @@ static int tracker_write_to_trunk_change_log(FDFSGroupInfo *pGroup, \
 	struct tm tm;
 	time_t current_time;
 	FDFSStorageDetail *pLastTrunk;
-    char ip_str[256];
 
 	tracker_mem_file_lock();
 
@@ -5038,10 +5019,8 @@ static int tracker_write_to_trunk_change_log(FDFSGroupInfo *pGroup, \
 		}
 		else
 		{
-            fdfs_multi_ips_to_string(&pLastTrunk->ip_addrs,
-                    ip_str, sizeof(ip_str));
 			len += sprintf(buff + len, " %s/%s  => ",
-				pLastTrunk->id, ip_str);
+				pLastTrunk->id, FDFS_CURRENT_IP_ADDR(pLastTrunk));
 		}
 
 		if (pGroup->pTrunkServer == NULL)
@@ -5050,10 +5029,9 @@ static int tracker_write_to_trunk_change_log(FDFSGroupInfo *pGroup, \
 		}
 		else
 		{
-            fdfs_multi_ips_to_string(&pGroup->pTrunkServer->ip_addrs,
-                    ip_str, sizeof(ip_str));
 			len += sprintf(buff + len, " %s/%s\n",
-				pGroup->pTrunkServer->id, ip_str);
+				pGroup->pTrunkServer->id,
+                FDFS_CURRENT_IP_ADDR(pGroup->pTrunkServer));
 		}
 	}
 	else
@@ -5066,9 +5044,8 @@ static int tracker_write_to_trunk_change_log(FDFSGroupInfo *pGroup, \
 		}
 		else
 		{
-            fdfs_multi_ips_to_string(&pLastTrunk->ip_addrs,
-                    ip_str, sizeof(ip_str));
-			len += sprintf(buff + len, " %s  => ", ip_str);
+			len += sprintf(buff + len, " %s  => ",
+                    FDFS_CURRENT_IP_ADDR(pLastTrunk));
 		}
 
 		if (pGroup->pTrunkServer == NULL)
@@ -5077,9 +5054,8 @@ static int tracker_write_to_trunk_change_log(FDFSGroupInfo *pGroup, \
 		}
 		else
 		{
-            fdfs_multi_ips_to_string(&pGroup->pTrunkServer->ip_addrs,
-                    ip_str, sizeof(ip_str));
-			len += sprintf(buff + len, " %s\n", ip_str);
+			len += sprintf(buff + len, " %s\n",
+                    FDFS_CURRENT_IP_ADDR(pGroup->pTrunkServer));
 		}
 	}
 
@@ -5130,7 +5106,6 @@ static int tracker_mem_do_set_trunk_server(FDFSGroupInfo *pGroup,
 	FDFSStorageDetail *pTrunkServer, const bool save)
 {
 	int result;
-    char ip_str[256];
 
 	if (*(pGroup->last_trunk_server_id) != '\0' && 
 	    strcmp(pTrunkServer->id, pGroup->last_trunk_server_id) != 0)
@@ -5151,12 +5126,11 @@ static int tracker_mem_do_set_trunk_server(FDFSGroupInfo *pGroup,
 	pGroup->trunk_chg_count++;
 	g_trunk_server_chg_count++;
 
-    fdfs_multi_ips_to_string(&pGroup->pTrunkServer->ip_addrs,
-            ip_str, sizeof(ip_str));
 	logInfo("file: "__FILE__", line: %d, "
 		"group: %s, trunk server set to %s(%s:%d)", __LINE__,
 		pGroup->group_name, pGroup->pTrunkServer->id,
-		ip_str, pGroup->storage_port);
+		FDFS_CURRENT_IP_ADDR(pGroup->pTrunkServer),
+        pGroup->storage_port);
 	if (save)
 	{
 		return tracker_save_groups();

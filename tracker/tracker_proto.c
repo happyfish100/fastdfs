@@ -44,9 +44,9 @@ int fdfs_recv_header(ConnectionInfo *pTrackerServer, int64_t *in_bytes)
 
 	if (resp.status != 0)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"server: %s:%d, response status %d != 0", \
-			__LINE__, pTrackerServer->ip_addr, \
+		logError("file: "__FILE__", line: %d, "
+			"server: %s:%d, response status %d != 0",
+			__LINE__, pTrackerServer->ip_addr,
 			pTrackerServer->port, resp.status);
 
 		*in_bytes = 0;

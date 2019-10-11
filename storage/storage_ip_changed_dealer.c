@@ -76,9 +76,9 @@ static int storage_report_ip_changed(ConnectionInfo *pTrackerServer)
 	pHeader->cmd = TRACKER_PROTO_CMD_STORAGE_REPORT_IP_CHANGED;
 	strcpy(out_buff + sizeof(TrackerHeader), g_group_name);
 	strcpy(out_buff + sizeof(TrackerHeader) + FDFS_GROUP_NAME_MAX_LEN, \
-		g_last_storage_ip);
+		g_last_storage_ip.ips[0]);
 	strcpy(out_buff + sizeof(TrackerHeader) + FDFS_GROUP_NAME_MAX_LEN + \
-		IP_ADDRESS_SIZE, g_tracker_client_ip);
+		IP_ADDRESS_SIZE, g_tracker_client_ip.ips[0]);
 
 	if((result=tcpsenddata_nb(pTrackerServer->sock, out_buff, \
 		sizeof(out_buff), g_fdfs_network_timeout)) != 0)
@@ -166,25 +166,26 @@ int storage_get_my_tracker_client_ip()
 			continue;
 		}
 
-        //TODO  support multi IPs  !!!
+		getSockIpaddr(conn->sock, tracker_client_ip, IP_ADDRESS_SIZE);
 
-		getSockIpaddr(conn->sock,tracker_client_ip,IP_ADDRESS_SIZE);
-		if (*g_tracker_client_ip == '\0')
-		{
-			strcpy(g_tracker_client_ip, tracker_client_ip);
-		}
-		else if (strcmp(tracker_client_ip, g_tracker_client_ip) != 0)
-		{
-			logError("file: "__FILE__", line: %d, "
-				"as a client of tracker server %s:%d, "
-				"my ip: %s != client ip: %s of other "
-				"tracker client", __LINE__,
-				conn->ip_addr, conn->port,
-				tracker_client_ip, g_tracker_client_ip);
+        result = storage_insert_ip_addr_to_multi_ips(&g_tracker_client_ip,
+                    tracker_client_ip, 1);
+        if (!(result == 0 || result == EEXIST))
+        {
+            char ip_str[256];
+
+            fdfs_multi_ips_to_string(&g_tracker_client_ip,
+                    ip_str, sizeof(ip_str));
+            logError("file: "__FILE__", line: %d, "
+                    "as a client of tracker server %s:%d, "
+                    "my ip: %s not consistent with client ips: %s "
+                    "of other tracker client.", __LINE__,
+                    conn->ip_addr, conn->port,
+                    tracker_client_ip, ip_str);
 
 			close(conn->sock);
 			return EINVAL;
-		}
+        }
 
 		fdfs_quit(conn);
 		close(conn->sock);
@@ -216,15 +217,17 @@ static int storage_report_storage_ip_addr()
 	pTServer = &trackerServer;
 	pTServerEnd = g_tracker_group.servers + g_tracker_group.server_count;
 
-	logDebug("file: "__FILE__", line: %d, " \
-		"last my ip is %s, current my ip is %s", \
-		__LINE__, g_last_storage_ip, g_tracker_client_ip);
+	logDebug("file: "__FILE__", line: %d, "
+		"last my ip is %s, current my ip is %s",
+		__LINE__, g_last_storage_ip.ips[0],
+        g_tracker_client_ip.ips[0]);
 
-	if (*g_last_storage_ip == '\0')
+	if (g_last_storage_ip.count == 0)
 	{
 		return storage_write_to_sync_ini_file();
 	}
-	else if (strcmp(g_tracker_client_ip, g_last_storage_ip) == 0)
+	else if (strcmp(g_tracker_client_ip.ips[0],
+                g_last_storage_ip.ips[0]) == 0)
 	{
 		return 0;
 	}
@@ -367,7 +370,7 @@ int storage_check_ip_changed()
 		return result;
 	}
 
-	if (*g_last_storage_ip == '\0') //first run
+	if (g_last_storage_ip.count == 0) //first run
 	{
 		return 0;
 	}

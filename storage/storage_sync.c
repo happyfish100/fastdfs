@@ -34,8 +34,9 @@
 #include "storage_ip_changed_dealer.h"
 #include "tracker_client_thread.h"
 #include "storage_client.h"
-#include "storage_sync.h"
 #include "trunk_mem.h"
+#include "storage_sync_func.h"
+#include "storage_sync.h"
 
 #define SYNC_BINLOG_FILE_MAX_SIZE	1024 * 1024 * 1024
 #define SYNC_BINLOG_FILE_PREFIX		"binlog"
@@ -2550,11 +2551,8 @@ static void* storage_sync_thread_entrance(void* arg)
 	char local_ip_addr[IP_ADDRESS_SIZE];
 	int read_result;
 	int sync_result;
-	int conn_result;
 	int result;
 	int record_len;
-	int previousCode;
-	int nContinuousFail;
 	time_t current_time;
 	time_t start_time;
 	time_t end_time;
@@ -2617,83 +2615,7 @@ static void* storage_sync_thread_entrance(void* arg)
 			}
 		}
 
-		previousCode = 0;
-		nContinuousFail = 0;
-		conn_result = 0;
-		while (g_continue_flag && \
-			pStorage->status != FDFS_STORAGE_STATUS_DELETED && \
-			pStorage->status != FDFS_STORAGE_STATUS_IP_CHANGED && \
-			pStorage->status != FDFS_STORAGE_STATUS_NONE)
-		{
-			strcpy(storage_server.ip_addr, pStorage->ip_addr);
-
-            storage_server.sock = socketCreateExAuto(pStorage->ip_addr,
-                    g_fdfs_connect_timeout, O_NONBLOCK,
-                    g_client_bind_addr ? g_bind_addr : NULL, &result);
-            if (storage_server.sock < 0)
-            {
-				logCrit("file: "__FILE__", line: %d, "
-					"socket create fail, program exit!", __LINE__);
-				g_continue_flag = false;
-				break;
-            }
-
-			if ((conn_result=connectserverbyip_nb(storage_server.sock,
-				pStorage->ip_addr, g_server_port,
-				g_fdfs_connect_timeout)) == 0)
-			{
-				char szFailPrompt[64];
-				if (nContinuousFail == 0)
-				{
-					*szFailPrompt = '\0';
-				}
-				else
-				{
-					sprintf(szFailPrompt, \
-						", continuous fail count: %d", \
-						nContinuousFail);
-				}
-				logInfo("file: "__FILE__", line: %d, " \
-					"successfully connect to " \
-					"storage server %s:%d%s", __LINE__, \
-					pStorage->ip_addr, \
-					g_server_port, szFailPrompt);
-				nContinuousFail = 0;
-				break;
-			}
-
-			if (previousCode != conn_result)
-			{
-				logError("file: "__FILE__", line: %d, " \
-					"connect to storage server %s:%d fail" \
-					", errno: %d, error info: %s", \
-					__LINE__, \
-					pStorage->ip_addr, g_server_port, \
-					conn_result, STRERROR(conn_result));
-				previousCode = conn_result;
-			}
-
-			nContinuousFail++;
-			close(storage_server.sock);
-			storage_server.sock = -1;
-
-			if (!g_continue_flag)
-			{
-				break;
-			}
-
-			sleep(1);
-		}
-
-		if (nContinuousFail > 0)
-		{
-			logError("file: "__FILE__", line: %d, " \
-				"connect to storage server %s:%d fail, " \
-				"try count: %d, errno: %d, error info: %s", \
-				__LINE__, pStorage->ip_addr, \
-				g_server_port, nContinuousFail, \
-				conn_result, STRERROR(conn_result));
-		}
+        storage_sync_connect_storage_server(pStorage, &storage_server);
 
 		if ((!g_continue_flag) ||
 			pStorage->status == FDFS_STORAGE_STATUS_DELETED || \
