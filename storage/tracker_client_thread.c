@@ -199,7 +199,6 @@ static void *tracker_report_thread_entrance(void *arg)
 	TrackerServerInfo *pTrackerServer;
 	char my_server_id[FDFS_STORAGE_ID_MAX_SIZE];
 	char tracker_client_ip[IP_ADDRESS_SIZE];
-    char ip_str[256];
 	char szFailPrompt[256];
 	bool sync_old_done;
 	int stat_chg_sync_count;
@@ -296,41 +295,7 @@ static void *tracker_report_thread_entrance(void *arg)
 		previousCode = 0;
 		nContinuousFail = 0;
 
-        result = storage_insert_ip_addr_to_multi_ips(&g_tracker_client_ip,
-                    tracker_client_ip, ips_limit);
-        if (!(result == 0 || result == EEXIST))
-        {
-            fdfs_multi_ips_to_string(&g_tracker_client_ip,
-                    ip_str, sizeof(ip_str));
-            logCrit("file: "__FILE__", line: %d, "
-                    "as a client of tracker server %s:%d, "
-                    "my ip: %s not consistent with client ips: %s "
-                    "of other tracker client. program exit!", __LINE__,
-                    conn->ip_addr, conn->port,
-                    tracker_client_ip, ip_str);
-
-            g_continue_flag = false;
-            break;
-        }
-
-        if (result == 0)
-        {
-            if (fdfs_check_and_format_ips(&g_tracker_client_ip,
-                        szFailPrompt, sizeof(szFailPrompt)) != 0)
-            {
-                logCrit("file: "__FILE__", line: %d, "
-                        "as a client of tracker server %s:%d, "
-                        "my ip: %s not valid, error info: %s. "
-                        "program exit!", __LINE__,
-                        conn->ip_addr, conn->port,
-                        tracker_client_ip, szFailPrompt);
-
-                g_continue_flag = false;
-                break;
-            }
-
-            insert_into_local_host_ip(tracker_client_ip);
-        }
+        insert_into_local_host_ip(tracker_client_ip);
 
 		/*
 		//printf("file: "__FILE__", line: %d, " \

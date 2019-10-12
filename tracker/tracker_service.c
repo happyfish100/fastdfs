@@ -1133,6 +1133,65 @@ static int tracker_deal_get_storage_id(struct fast_task_info *pTask)
 	return 0;
 }
 
+static int tracker_deal_get_my_ip(struct fast_task_info *pTask)
+{
+	char group_name[FDFS_GROUP_NAME_MAX_LEN + 1];
+	int nPkgLen;
+    int body_len;
+
+	nPkgLen = pTask->length - sizeof(TrackerHeader);
+	if (nPkgLen != FDFS_GROUP_NAME_MAX_LEN)
+	{
+		logError("file: "__FILE__", line: %d, "
+			"cmd=%d, client ip addr: %s, "
+			"package size %d is not correct, "
+            "expect length: %d", __LINE__,
+			TRACKER_PROTO_CMD_STORAGE_GET_MY_IP,
+			pTask->client_ip, nPkgLen, FDFS_GROUP_NAME_MAX_LEN);
+		pTask->length = sizeof(TrackerHeader);
+		return EINVAL;
+	}
+
+	memcpy(group_name, pTask->data + sizeof(TrackerHeader),
+			FDFS_GROUP_NAME_MAX_LEN);
+	*(group_name + FDFS_GROUP_NAME_MAX_LEN) = '\0';
+	if (g_use_storage_id)
+	{
+        FDFSStorageIdInfo *pFDFSStorageIdInfo;
+		pFDFSStorageIdInfo = fdfs_get_storage_id_by_ip(group_name,
+						pTask->client_ip);
+		if (pFDFSStorageIdInfo == NULL)
+		{
+			logWarning("file: "__FILE__", line: %d, "
+				"cmd=%d, client ip addr: %s, "
+				"group_name: %s, storage ip not exist "
+                "in storage_ids.conf", __LINE__,
+                TRACKER_PROTO_CMD_STORAGE_GET_MY_IP,
+				pTask->client_ip, group_name);
+
+            body_len = strlen(pTask->client_ip);
+            memcpy(pTask->data + sizeof(TrackerHeader),
+                    pTask->client_ip, body_len);
+		}
+        else
+        {
+            body_len = fdfs_multi_ips_to_string(
+                    &pFDFSStorageIdInfo->ip_addrs,
+                    pTask->data + sizeof(TrackerHeader),
+                    pTask->size - sizeof(TrackerHeader));
+        }
+	}
+	else
+	{
+        body_len = strlen(pTask->client_ip);
+        memcpy(pTask->data + sizeof(TrackerHeader),
+                pTask->client_ip, body_len);
+	}
+
+	pTask->length = sizeof(TrackerHeader) + body_len;
+    return 0;
+}
+
 static int tracker_deal_get_storage_group_name(struct fast_task_info *pTask)
 {
 	char ip_addr[IP_ADDRESS_SIZE];
@@ -3798,6 +3857,9 @@ int tracker_deal_task(struct fast_task_info *pTask)
 			break;
 		case TRACKER_PROTO_CMD_STORAGE_GET_SERVER_ID:
 			result = tracker_deal_get_storage_id(pTask);
+			break;
+		case TRACKER_PROTO_CMD_STORAGE_GET_MY_IP:
+			result = tracker_deal_get_my_ip(pTask);
 			break;
 		case TRACKER_PROTO_CMD_STORAGE_GET_GROUP_NAME:
 			result = tracker_deal_get_storage_group_name(pTask);
