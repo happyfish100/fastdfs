@@ -2550,7 +2550,7 @@ static int tracker_deal_service_query_fetch_update( \
 	p  = pTask->data + sizeof(TrackerHeader);
 	memcpy(p, pGroup->group_name, FDFS_GROUP_NAME_MAX_LEN);
 	p += FDFS_GROUP_NAME_MAX_LEN;
-	strcpy(p, fdfs_get_ipaddr_by_client_ip(
+	strcpy(p, fdfs_get_ipaddr_by_peer_ip(
                 &ppStoreServers[0]->ip_addrs, pTask->client_ip));
 	p += IP_ADDRESS_SIZE - 1;
 	long2buff(pGroup->storage_port, p);
@@ -2562,7 +2562,7 @@ static int tracker_deal_service_query_fetch_update( \
 		for (ppServer=ppStoreServers+1; ppServer<ppServerEnd; \
 				ppServer++)
 		{
-			strcpy(p, fdfs_get_ipaddr_by_client_ip(
+			strcpy(p, fdfs_get_ipaddr_by_peer_ip(
                         &(*ppServer)->ip_addrs, pTask->client_ip));
 			p += IP_ADDRESS_SIZE - 1;
 		}
@@ -2939,7 +2939,7 @@ static int tracker_deal_service_query_storage( \
 		for (ppServer=pStoreGroup->active_servers; ppServer<ppEnd; \
 			ppServer++)
 		{
-			strcpy(p, fdfs_get_ipaddr_by_client_ip(
+			strcpy(p, fdfs_get_ipaddr_by_peer_ip(
                         &(*ppServer)->ip_addrs, pTask->client_ip));
 			p += IP_ADDRESS_SIZE - 1;
 
@@ -2949,7 +2949,7 @@ static int tracker_deal_service_query_storage( \
 	}
 	else
 	{
-		strcpy(p, fdfs_get_ipaddr_by_client_ip(
+		strcpy(p, fdfs_get_ipaddr_by_peer_ip(
                     &pStorageServer->ip_addrs, pTask->client_ip));
 		p += IP_ADDRESS_SIZE - 1;
 

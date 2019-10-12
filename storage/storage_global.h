@@ -57,6 +57,13 @@ typedef struct
 	int free_mb;  //free spaces
 } FDFSStorePathInfo;
 
+typedef struct
+{
+    signed char my_status;
+    signed char src_storage_status;
+    bool get_my_ip_done;
+} StorageStatusPerTracker;
+
 extern volatile bool g_continue_flag;
 
 extern FDFSStorePathInfo *g_path_space_list;
@@ -139,6 +146,8 @@ extern int g_namespace_len;
 
 extern int g_allow_ip_count;  /* -1 means match any ip address */
 extern in_addr_t *g_allow_ip_addrs;  /* sorted array, asc order */
+
+extern StorageStatusPerTracker *g_my_report_status;  //returned by tracker server
 
 extern gid_t g_run_by_gid;
 extern uid_t g_run_by_uid;

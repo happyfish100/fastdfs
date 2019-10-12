@@ -34,6 +34,9 @@ bool storage_server_is_myself(const FDFSStorageBrief *pStorageBrief);
 
 bool storage_id_is_myself(const char *storage_id);
 
+int storage_set_tracker_client_ips(ConnectionInfo *conn,
+        const int tracker_index);
+
 #define STORAGE_CHOWN(path, current_uid, current_gid) \
 	if (!(g_run_by_gid == current_gid && g_run_by_uid == current_uid)) \
 	{ \

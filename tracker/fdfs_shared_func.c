@@ -576,7 +576,7 @@ int fdfs_multi_ips_to_string_ex(const FDFSMultiIP *ip_addrs,
     return len;
 }
 
-const char *fdfs_get_ipaddr_by_client_ip(const FDFSMultiIP *ip_addrs,
+const char *fdfs_get_ipaddr_by_peer_ip(const FDFSMultiIP *ip_addrs,
         const char *client_ip)
 {
     int index;

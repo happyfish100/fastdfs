@@ -1084,6 +1084,38 @@ static int storage_check_tracker_ipaddr(const char *filename)
     return 0;
 }
 
+static int init_my_status_per_tracker()
+{
+    int bytes;
+	TrackerServerInfo *pTrackerServer;
+	TrackerServerInfo *pServerEnd;
+    StorageStatusPerTracker *pReportStatus;
+
+    bytes = sizeof(StorageStatusPerTracker) * g_tracker_group.server_count;
+	g_my_report_status = (StorageStatusPerTracker *)malloc(bytes);
+	if (g_my_report_status == NULL)
+	{
+		logError("file: "__FILE__", line: %d, "
+			"malloc %d bytes fail, "
+			"errno: %d, error info: %s", __LINE__,
+            bytes, errno, STRERROR(errno));
+		return errno != 0 ? errno : ENOMEM;
+	}
+	memset(g_my_report_status, 0, bytes);
+
+    pReportStatus = g_my_report_status;
+	pServerEnd = g_tracker_group.servers + g_tracker_group.server_count;
+	for (pTrackerServer=g_tracker_group.servers; pTrackerServer<pServerEnd;
+		pTrackerServer++)
+	{
+        pReportStatus->my_status = -1;
+        pReportStatus->src_storage_status = -1;
+        pReportStatus++;
+    }
+
+    return 0;
+}
+
 int storage_func_init(const char *filename, \
 		char *bind_addr, const int addr_size)
 {
@@ -1890,6 +1922,11 @@ int storage_func_init(const char *filename, \
 		return result;
 	}
 
+    if ((result=init_my_status_per_tracker()) != 0)
+	{
+		return result;
+	}
+
 	if ((result=storage_get_my_tracker_client_ip()) != 0)
 	{
 		return result;
@@ -2009,6 +2046,115 @@ bool storage_id_is_myself(const char *storage_id)
 		return is_local_host_ip(storage_id);
 	}
 }
+
+static int storage_get_my_ip_from_tracker(ConnectionInfo *conn,
+        char *ip_addrs, const int buff_size)
+{
+	char out_buff[sizeof(TrackerHeader) + FDFS_GROUP_NAME_MAX_LEN];
+	TrackerHeader *pHeader;
+	int result;
+    int64_t in_bytes;
+
+	memset(out_buff, 0, sizeof(out_buff));
+	pHeader = (TrackerHeader *)out_buff;
+
+	long2buff(FDFS_GROUP_NAME_MAX_LEN, pHeader->pkg_len);
+	pHeader->cmd = TRACKER_PROTO_CMD_STORAGE_GET_MY_IP;
+	strcpy(out_buff + sizeof(TrackerHeader), g_group_name);
+	if((result=tcpsenddata_nb(conn->sock, out_buff,
+		sizeof(out_buff), g_fdfs_network_timeout)) != 0)
+	{
+		logError("file: "__FILE__", line: %d, "
+			"tracker server %s:%d, send data fail, "
+			"errno: %d, error info: %s.",
+			__LINE__, conn->ip_addr, conn->port,
+			result, STRERROR(result));
+		return result;
+	}
+
+    if ((result=fdfs_recv_response(conn, &ip_addrs,
+                    buff_size - 1, &in_bytes)) != 0)
+    {
+		logError("file: "__FILE__", line: %d, "
+			"tracker server %s:%d, recv response fail, "
+			"errno: %d, error info: %s.",
+			__LINE__, conn->ip_addr, conn->port,
+			result, STRERROR(result));
+		return result;
+    }
+
+    *(ip_addrs + in_bytes) = '\0';
+    return 0;
+}
+
+int storage_set_tracker_client_ips(ConnectionInfo *conn,
+        const int tracker_index)
+{
+    char my_ip_addrs[256];
+    char error_info[256];
+    FDFSMultiIP multi_ip;
+	int result;
+	int i;
+
+    if (g_my_report_status[tracker_index].get_my_ip_done)
+    {
+        return 0;
+    }
+
+    if ((result=storage_get_my_ip_from_tracker(conn, my_ip_addrs,
+                    sizeof(my_ip_addrs))) != 0)
+    {
+        return result;
+    }
+
+    if ((result=fdfs_parse_multi_ips_ex(my_ip_addrs, &multi_ip,
+                    error_info, sizeof(error_info), false)) != 0)
+    {
+        return result;
+    }
+
+    for (i = 0; i < multi_ip.count; i++)
+    {
+        result = storage_insert_ip_addr_to_multi_ips(&g_tracker_client_ip,
+                multi_ip.ips[i], multi_ip.count);
+        if (result == 0)
+        {
+            if ((result=fdfs_check_and_format_ips(&g_tracker_client_ip,
+                        error_info, sizeof(error_info))) != 0)
+            {
+                logCrit("file: "__FILE__", line: %d, "
+                        "as a client of tracker server %s:%d, "
+                        "my ip: %s not valid, error info: %s. "
+                        "program exit!", __LINE__,
+                        conn->ip_addr, conn->port,
+                        multi_ip.ips[i], error_info);
+
+                return result;
+            }
+
+            insert_into_local_host_ip(multi_ip.ips[i]);
+        }
+        else if (result != EEXIST)
+        {
+            char ip_str[256];
+
+            fdfs_multi_ips_to_string(&g_tracker_client_ip,
+                    ip_str, sizeof(ip_str));
+            logError("file: "__FILE__", line: %d, "
+                    "as a client of tracker server %s:%d, "
+                    "my ip: %s not consistent with client ips: %s "
+                    "of other tracker client. program exit!", __LINE__,
+                    conn->ip_addr, conn->port,
+                    multi_ip.ips[i], ip_str);
+
+            return result;
+        }
+    }
+
+    g_my_report_status[tracker_index].get_my_ip_done = true;
+    return 0;
+}
+
 
 /*
 int write_serialized(int fd, const char *buff, size_t count, const bool bSync)

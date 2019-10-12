@@ -43,8 +43,6 @@ static pthread_mutex_t reporter_thread_lock;
 
 /* save report thread ids */
 static pthread_t *report_tids = NULL;
-static int *src_storage_status = NULL; //returned by tracker server
-static signed char *my_report_status = NULL;  //returned by tracker server
 static bool need_rejoin_tracker = false;
 
 static int tracker_heart_beat(ConnectionInfo *pTrackerServer, \
@@ -212,7 +210,6 @@ static void *tracker_report_thread_entrance(void *arg)
 	int previousCode;
 	int nContinuousFail;
 	int tracker_index;
-    int ips_limit;
 	int64_t last_trunk_total_free_space;
 	bool bServerPortChanged;
 
@@ -239,7 +236,6 @@ static void *tracker_report_thread_entrance(void *arg)
 	previousCode = 0;
 	nContinuousFail = 0;
     conn = NULL;
-    ips_limit = g_use_storage_id ? FDFS_MULTI_IP_MAX_COUNT : 1;
 	while (g_continue_flag)
 	{
         if (conn != NULL)
@@ -274,6 +270,12 @@ static void *tracker_report_thread_entrance(void *arg)
 			}
 		}
 
+        if ((result=storage_set_tracker_client_ips(conn, tracker_index)) != 0)
+        {
+            g_continue_flag = false;
+            break;
+        }
+
         tcpsetserveropt(conn->sock, g_fdfs_network_timeout);
 		getSockIpaddr(conn->sock, tracker_client_ip, IP_ADDRESS_SIZE);
 
@@ -290,7 +292,8 @@ static void *tracker_report_thread_entrance(void *arg)
 			"successfully connect to tracker server %s:%d%s, "
 			"as a tracker client, my ip is %s",
 			__LINE__, conn->ip_addr, conn->port,
-            szFailPrompt, tracker_client_ip);
+            szFailPrompt, fdfs_get_ipaddr_by_peer_ip(
+                &g_tracker_client_ip, conn->ip_addr));
 
 		previousCode = 0;
 		nContinuousFail = 0;
@@ -387,14 +390,14 @@ static void *tracker_report_thread_entrance(void *arg)
 			sync_old_done = true;
 		}
 
-		src_storage_status[tracker_index] = \
+		g_my_report_status[tracker_index].src_storage_status =
 					tracker_sync_notify(conn, tracker_index);
-		if (src_storage_status[tracker_index] != 0)
+		if (g_my_report_status[tracker_index].src_storage_status != 0)
 		{
 			int k;
 			for (k=0; k<g_tracker_group.server_count; k++)
 			{
-				if (src_storage_status[k] != ENOENT)
+				if (g_my_report_status[k].src_storage_status != ENOENT)
 				{
 					break;
 				}
@@ -1931,14 +1934,14 @@ int tracker_report_join(ConnectionInfo *pTrackerServer, \
 		{
 			for (i=0; i<g_tracker_group.server_count; i++)
 			{
-				if (my_report_status[i] == -1)
+				if (g_my_report_status[i].my_status == -1)
 				{
                     logInfo("file: "__FILE__", line: %d, "
-                            "tracker server: #%d. %s:%d, my_report_status: %d",
+                            "tracker server: #%d. %s:%d, g_my_report_status: %d",
                             __LINE__, i,
                             g_tracker_group.servers[i].connections[0].ip_addr,
                             g_tracker_group.servers[i].connections[0].port,
-                            my_report_status[i]);
+                            g_my_report_status[i].my_status);
 					break;
 				}
 			}
@@ -1986,7 +1989,7 @@ int tracker_report_join(ConnectionInfo *pTrackerServer, \
         pInBuff = (char *)&respBody;
 	result = fdfs_recv_response(pTrackerServer, \
 			&pInBuff, sizeof(respBody), &in_bytes);
-	my_report_status[tracker_index] = result;
+	g_my_report_status[tracker_index].my_status = result;
 	if (result != 0)
 	{
 		logError("file: "__FILE__", line: %d, "
@@ -2004,7 +2007,7 @@ int tracker_report_join(ConnectionInfo *pTrackerServer, \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, \
 			(int)sizeof(respBody), in_bytes);
-		my_report_status[tracker_index] = EINVAL;
+		g_my_report_status[tracker_index].my_status = EINVAL;
 		return EINVAL;
 	}
 
@@ -2463,6 +2466,7 @@ int tracker_report_thread_start()
 	TrackerServerInfo *pServerEnd;
 	pthread_attr_t pattr;
 	pthread_t tid;
+    int bytes;
 	int result;
 
 	if ((result=init_pthread_attr(&pattr, g_thread_stack_size)) != 0)
@@ -2470,49 +2474,21 @@ int tracker_report_thread_start()
 		return result;
 	}
 
-	report_tids = (pthread_t *)malloc(sizeof(pthread_t) * \
-					g_tracker_group.server_count);
+    bytes = sizeof(pthread_t) * g_tracker_group.server_count;
+	report_tids = (pthread_t *)malloc(bytes);
 	if (report_tids == NULL)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"malloc %d bytes fail, " \
-			"errno: %d, error info: %s", \
-			__LINE__, (int)sizeof(pthread_t) * \
-			g_tracker_group.server_count, \
-			errno, STRERROR(errno));
+		logError("file: "__FILE__", line: %d, "
+			"malloc %d bytes fail, "
+			"errno: %d, error info: %s",
+			__LINE__, bytes, errno, STRERROR(errno));
 		return errno != 0 ? errno : ENOMEM;
 	}
-	memset(report_tids, 0, sizeof(pthread_t)*g_tracker_group.server_count);
-
-	src_storage_status = (int *)malloc(sizeof(int) * \
-					g_tracker_group.server_count);
-	if (src_storage_status == NULL)
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"malloc %d bytes fail, " \
-			"errno: %d, error info: %s", __LINE__, \
-			(int)sizeof(int) * g_tracker_group.server_count, \
-			errno, STRERROR(errno));
-		return errno != 0 ? errno : ENOMEM;
-	}
-	memset(src_storage_status,-1,sizeof(int)*g_tracker_group.server_count);
-
-	my_report_status = (signed char *)malloc(sizeof(signed char) * \
-					g_tracker_group.server_count);
-	if (my_report_status == NULL)
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"malloc %d bytes fail, " \
-			"errno: %d, error info: %s", __LINE__, \
-			(int)sizeof(signed char) * g_tracker_group.server_count, \
-			errno, STRERROR(errno));
-		return errno != 0 ? errno : ENOMEM;
-	}
-	memset(my_report_status, -1, sizeof(char)*g_tracker_group.server_count);
+	memset(report_tids, 0, bytes);
 	
 	g_tracker_reporter_count = 0;
 	pServerEnd = g_tracker_group.servers + g_tracker_group.server_count;
-	for (pTrackerServer=g_tracker_group.servers; pTrackerServer<pServerEnd; \
+	for (pTrackerServer=g_tracker_group.servers; pTrackerServer<pServerEnd;
 		pTrackerServer++)
 	{
 		if((result=pthread_create(&tid, &pattr, \

@@ -90,6 +90,7 @@ char g_key_namespace[FDHT_MAX_NAMESPACE_LEN+1] = {0};
 int g_namespace_len = 0;
 int g_allow_ip_count = 0;
 in_addr_t *g_allow_ip_addrs = NULL;
+StorageStatusPerTracker *g_my_report_status = NULL;  //returned by tracker server
 
 TimeInfo g_access_log_rotate_time = {0, 0}; //rotate access log time base
 TimeInfo g_error_log_rotate_time  = {0, 0}; //rotate error log time base

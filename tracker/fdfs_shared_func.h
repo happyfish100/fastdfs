@@ -119,7 +119,7 @@ int fdfs_check_server_ips(const TrackerServerInfo *pServer,
 int fdfs_check_and_format_ips(FDFSMultiIP *ip_addrs,
         char *error_info, const int error_size);
 
-const char *fdfs_get_ipaddr_by_client_ip(const FDFSMultiIP *ip_addrs,
+const char *fdfs_get_ipaddr_by_peer_ip(const FDFSMultiIP *ip_addrs,
         const char *client_ip);
 
 void fdfs_set_multi_ip_index(FDFSMultiIP *multi_ip, const char *target_ip);
