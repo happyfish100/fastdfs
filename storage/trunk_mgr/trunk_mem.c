@@ -54,7 +54,7 @@ int g_current_trunk_file_id = 0;
 TimeInfo g_trunk_create_file_time_base = {0, 0};
 int g_trunk_create_file_interval = 86400;
 int g_trunk_compress_binlog_min_interval = 0;
-ConnectionInfo g_trunk_server = {-1, 0};
+TrackerServerInfo g_trunk_server = {0, 0};
 bool g_if_use_trunk_file = false;
 bool g_if_trunker_self = false;
 bool g_trunk_create_file_advance = false;
@@ -176,9 +176,7 @@ int storage_trunk_init()
 	logDebug("file: "__FILE__", line: %d, " \
 		"storage trunk init ...", __LINE__);
 
-	g_trunk_server.sock = -1;
-	g_trunk_server.port = g_server_port;
-
+    memset(&g_trunk_server, 0, sizeof(g_trunk_server));
 	if ((result=init_pthread_lock(&trunk_file_lock)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \

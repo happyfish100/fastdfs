@@ -213,7 +213,8 @@ static int fdfs_dump_global_vars(char *buff, const int buffSize)
 		, g_store_path_index
 		, g_current_trunk_file_id
 		, g_trunk_sync_thread_count
-		, g_trunk_server.ip_addr, g_trunk_server.port
+		, g_trunk_server.connections[0].ip_addr
+        , g_trunk_server.connections[0].port
 		, g_trunk_total_free_space
 		, g_use_connection_pool
 		, g_connection_pool_max_idle_time

@@ -93,11 +93,42 @@ static int trunk_client_trunk_do_alloc_space(ConnectionInfo *pTrunkServer, \
 	return 0;
 }
 
+static int trunk_client_connect_trunk_server(TrackerServerInfo *trunk_server,
+        ConnectionInfo **conn, const char *prompt)
+{
+	int result;
+
+	if (g_trunk_server.count == 0)
+	{
+		logError("file: "__FILE__", line: %d, "
+			"no trunk server", __LINE__);
+		return EAGAIN;
+	}
+
+	memcpy(trunk_server, &g_trunk_server, sizeof(TrackerServerInfo));
+	if ((*conn=tracker_connect_server(trunk_server, &result)) == NULL)
+	{
+		logError("file: "__FILE__", line: %d, "
+			"%s because connect to trunk "
+			"server %s:%d fail, errno: %d", __LINE__,
+			prompt, trunk_server->connections[0].ip_addr,
+            trunk_server->connections[0].port, result);
+		return result;
+	}
+
+    if (g_trunk_server.index != trunk_server->index)
+    {
+        g_trunk_server.index = trunk_server->index;
+    }
+
+    return 0;
+}
+
 int trunk_client_trunk_alloc_space(const int file_size, \
 		FDFSTrunkFullInfo *pTrunkInfo)
 {
 	int result;
-	ConnectionInfo trunk_server;
+	TrackerServerInfo trunk_server;
 	ConnectionInfo *pTrunkServer;
 
 	if (g_if_trunker_self)
@@ -105,22 +136,11 @@ int trunk_client_trunk_alloc_space(const int file_size, \
 		return trunk_alloc_space(file_size, pTrunkInfo);
 	}
 
-	if (*(g_trunk_server.ip_addr) == '\0')
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"no trunk server", __LINE__);
-		return EAGAIN;
-	}
-
-	memcpy(&trunk_server, &g_trunk_server, sizeof(ConnectionInfo));
-	if ((pTrunkServer=tracker_make_connection(&trunk_server, &result)) == NULL)
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"can't alloc trunk space because connect to trunk " \
-			"server %s:%d fail, errno: %d", __LINE__, \
-			trunk_server.ip_addr, trunk_server.port, result);
-		return result;
-	}
+    if ((result=trunk_client_connect_trunk_server(&trunk_server,
+                    &pTrunkServer, "can't alloc trunk space")) != 0)
+    {
+        return result;
+    }
 
 	result = trunk_client_trunk_do_alloc_space(pTrunkServer, \
 			file_size, pTrunkInfo);
@@ -202,7 +222,7 @@ int trunk_client_trunk_alloc_confirm(const FDFSTrunkFullInfo *pTrunkInfo, \
 		const int status)
 {
 	int result;
-	ConnectionInfo trunk_server;
+	TrackerServerInfo trunk_server;
 	ConnectionInfo *pTrunkServer;
 
 	if (g_if_trunker_self)
@@ -210,20 +230,11 @@ int trunk_client_trunk_alloc_confirm(const FDFSTrunkFullInfo *pTrunkInfo, \
 		return trunk_alloc_confirm(pTrunkInfo, status);
 	}
 
-	if (*(g_trunk_server.ip_addr) == '\0')
-	{
-		return EAGAIN;
-	}
-
-	memcpy(&trunk_server, &g_trunk_server, sizeof(ConnectionInfo));
-	if ((pTrunkServer=tracker_make_connection(&trunk_server, &result)) == NULL)
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"trunk alloc confirm fail because connect to trunk " \
-			"server %s:%d fail, errno: %d", __LINE__, \
-			trunk_server.ip_addr, trunk_server.port, result);
-		return result;
-	}
+    if ((result=trunk_client_connect_trunk_server(&trunk_server,
+                    &pTrunkServer, "trunk alloc confirm fail")) != 0)
+    {
+        return result;
+    }
 
 	result = trunk_client_trunk_do_alloc_confirm(pTrunkServer, \
 			pTrunkInfo, status);
@@ -235,7 +246,7 @@ int trunk_client_trunk_alloc_confirm(const FDFSTrunkFullInfo *pTrunkInfo, \
 int trunk_client_trunk_free_space(const FDFSTrunkFullInfo *pTrunkInfo)
 {
 	int result;
-	ConnectionInfo trunk_server;
+	TrackerServerInfo trunk_server;
 	ConnectionInfo *pTrunkServer;
 
 	if (g_if_trunker_self)
@@ -243,20 +254,11 @@ int trunk_client_trunk_free_space(const FDFSTrunkFullInfo *pTrunkInfo)
 		return trunk_free_space(pTrunkInfo, true);
 	}
 
-	if (*(g_trunk_server.ip_addr) == '\0')
-	{
-		return EAGAIN;
-	}
-
-	memcpy(&trunk_server, &g_trunk_server, sizeof(ConnectionInfo));
-	if ((pTrunkServer=tracker_make_connection(&trunk_server, &result)) == NULL)
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"free trunk space fail because connect to trunk " \
-			"server %s:%d fail, errno: %d", __LINE__, \
-			trunk_server.ip_addr, trunk_server.port, result);
-		return result;
-	}
+    if ((result=trunk_client_connect_trunk_server(&trunk_server,
+                    &pTrunkServer, "free trunk space fail")) != 0)
+    {
+        return result;
+    }
 
 	result = trunk_client_trunk_do_free_space(pTrunkServer, pTrunkInfo);
 	tracker_close_connection_ex(pTrunkServer, result != 0);

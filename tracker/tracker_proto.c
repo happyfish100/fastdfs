@@ -544,14 +544,14 @@ void tracker_disconnect_server(TrackerServerInfo *pServerInfo)
 
     if (pServerInfo->count == 1)
     {
-		conn_pool_disconnect_server(pServerInfo->connections);
+        tracker_close_connection_ex(pServerInfo->connections + 0, true);
         return;
     }
 
 	end = pServerInfo->connections + pServerInfo->count;
 	for (conn=pServerInfo->connections; conn<end; conn++)
     {
-		conn_pool_disconnect_server(conn);
+        tracker_close_connection_ex(conn, true);
     }
 }
 

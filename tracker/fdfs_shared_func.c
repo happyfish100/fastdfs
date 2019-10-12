@@ -660,3 +660,25 @@ void fdfs_set_multi_ip_index(FDFSMultiIP *multi_ip, const char *target_ip)
         }
     }
 }
+
+void fdfs_set_server_info(TrackerServerInfo *pServer,
+        const char *ip_addr, const int port)
+{
+    pServer->count = 1;
+    pServer->index = 0;
+    conn_pool_set_server_info(pServer->connections + 0, ip_addr, port);
+}
+
+void fdfs_set_server_info_ex(TrackerServerInfo *pServer,
+        const FDFSMultiIP *ip_addrs, const int port)
+{
+    int i;
+
+    pServer->count = ip_addrs->count;
+    pServer->index = 0;
+    for (i=0; i<ip_addrs->count; i++)
+    {
+        conn_pool_set_server_info(pServer->connections + i,
+                ip_addrs->ips[i], port);
+    }
+}

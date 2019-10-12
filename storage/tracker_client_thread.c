@@ -1124,6 +1124,35 @@ static void get_tracker_leader()
     }
 }
 
+static void set_trunk_server(const char *ip_addr, const int port)
+{
+    if (g_use_storage_id)
+    {
+        FDFSStorageIdInfo *idInfo;
+        idInfo = fdfs_get_storage_id_by_ip(
+                g_group_name, ip_addr);
+        if (idInfo == NULL)
+        {
+            logWarning("file: "__FILE__", line: %d, "
+                    "storage server ip: %s not exist "
+                    "in storage_ids.conf from tracker server",
+                    __LINE__, ip_addr);
+
+            fdfs_set_server_info(&g_trunk_server,
+                    ip_addr, port);
+        }
+        else
+        {
+            fdfs_set_server_info_ex(&g_trunk_server,
+                    &idInfo->ip_addrs, port);
+        }
+    }
+    else
+    {
+        fdfs_set_server_info(&g_trunk_server, ip_addr, port);
+    }
+}
+
 static int tracker_check_response(ConnectionInfo *pTrackerServer, \
 	bool *bServerPortChanged)
 {
@@ -1302,26 +1331,26 @@ static int tracker_check_response(ConnectionInfo *pTrackerServer, \
 		}
 		else
 		{
-		memcpy(g_trunk_server.ip_addr, pBriefServers->ip_addr, \
-			IP_ADDRESS_SIZE - 1);
-		*(g_trunk_server.ip_addr + (IP_ADDRESS_SIZE - 1)) = '\0';
-		g_trunk_server.port = buff2int(pBriefServers->port);
-		if (is_local_host_ip(g_trunk_server.ip_addr) && \
-			g_trunk_server.port == g_server_port)
+        int port;
+
+        pBriefServers->ip_addr[IP_ADDRESS_SIZE - 1] = '\0';
+        port = buff2int(pBriefServers->port);
+        set_trunk_server(pBriefServers->ip_addr, port);
+		if (is_local_host_ip(pBriefServers->ip_addr) &&
+			port == g_server_port)
 		{
 			if (g_if_trunker_self)
 			{
-			logWarning("file: "__FILE__", line: %d, " \
-				"I am already the trunk server %s:%d, " \
-				"may be the tracker server restart", \
-				__LINE__, g_trunk_server.ip_addr, \
-				g_trunk_server.port);
+			logWarning("file: "__FILE__", line: %d, "
+				"I am already the trunk server %s:%d, "
+				"may be the tracker server restart",
+				__LINE__, pBriefServers->ip_addr, port);
 			}
 			else
 			{
-			logInfo("file: "__FILE__", line: %d, " \
-				"I am the the trunk server %s:%d", __LINE__, \
-				g_trunk_server.ip_addr, g_trunk_server.port);
+			logInfo("file: "__FILE__", line: %d, "
+				"I am the the trunk server %s:%d", __LINE__,
+				pBriefServers->ip_addr, port);
 
 			tracker_fetch_trunk_fid(pTrackerServer);
 			g_if_trunker_self = true;
@@ -1331,7 +1360,7 @@ static int tracker_check_response(ConnectionInfo *pTrackerServer, \
 				return result;
 			}
 
-			if (g_trunk_create_file_advance && \
+			if (g_trunk_create_file_advance &&
 				g_trunk_create_file_interval > 0)
 			{
 			ScheduleArray scheduleArray;
@@ -1353,9 +1382,10 @@ static int tracker_check_response(ConnectionInfo *pTrackerServer, \
 		}
 		else
 		{
-			logInfo("file: "__FILE__", line: %d, " \
-				"the trunk server is %s:%d", __LINE__, \
-				g_trunk_server.ip_addr, g_trunk_server.port);
+			logInfo("file: "__FILE__", line: %d, "
+				"the trunk server is %s:%d", __LINE__,
+				g_trunk_server.connections[0].ip_addr,
+                g_trunk_server.connections[0].port);
 
 			if (g_if_trunker_self)
 			{
@@ -1364,8 +1394,8 @@ static int tracker_check_response(ConnectionInfo *pTrackerServer, \
 				logWarning("file: "__FILE__", line: %d, " \
 					"I am the old trunk server, " \
 					"the new trunk server is %s:%d", \
-					__LINE__, g_trunk_server.ip_addr, \
-					g_trunk_server.port);
+					__LINE__, g_trunk_server.connections[0].ip_addr, \
+					g_trunk_server.connections[0].port);
 
 				tracker_report_trunk_fid(pTrackerServer);
 				g_if_trunker_self = false;

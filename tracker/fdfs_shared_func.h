@@ -124,6 +124,12 @@ const char *fdfs_get_ipaddr_by_client_ip(const FDFSMultiIP *ip_addrs,
 
 void fdfs_set_multi_ip_index(FDFSMultiIP *multi_ip, const char *target_ip);
 
+void fdfs_set_server_info(TrackerServerInfo *pServer,
+        const char *ip_addr, const int port);
+
+void fdfs_set_server_info_ex(TrackerServerInfo *pServer,
+        const FDFSMultiIP *ip_addrs, const int port);
+
 #ifdef __cplusplus
 }
 #endif

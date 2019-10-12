@@ -38,21 +38,30 @@ void storage_sync_connect_storage_server_ex(FDFSStorageBrief *pStorage,
     int result;
     int i;
     FDFSMultiIP ip_addrs;
+    FDFSMultiIP *multi_ip;
 
+    multi_ip = NULL;
     if (g_use_storage_id)
     {
         FDFSStorageIdInfo *idInfo;
         idInfo = fdfs_get_storage_by_id(pStorage->id);
         if (idInfo == NULL)
         {
-            logError("file: "__FILE__", line: %d, "
+            logWarning("file: "__FILE__", line: %d, "
                     "storage server id: %s not exist "
-                    "in storage_ids.conf, storage ip: %s",
-                    __LINE__, pStorage->id, pStorage->ip_addr);
-            sleep(5);
-            return;
+                    "in storage_ids.conf from tracker server, "
+                    "storage ip: %s", __LINE__, pStorage->id,
+                    pStorage->ip_addr);
         }
-        ip_addrs = idInfo->ip_addrs;
+        else
+        {
+            multi_ip = &idInfo->ip_addrs;
+        }
+    }
+
+    if (multi_ip != NULL)
+    {
+        ip_addrs = *multi_ip;
     }
     else
     {
@@ -61,6 +70,7 @@ void storage_sync_connect_storage_server_ex(FDFSStorageBrief *pStorage,
         strcpy(ip_addrs.ips[0], pStorage->ip_addr);
     }
 
+    conn->sock = -1;
     nContinuousFail = 0;
     memset(previousCodes, 0, sizeof(previousCodes));
     memset(conn_results, 0, sizeof(conn_results));
@@ -121,7 +131,7 @@ void storage_sync_connect_storage_server_ex(FDFSStorageBrief *pStorage,
             conn->sock = -1;
         }
 
-        if (!g_continue_flag)
+        if (conn->sock >= 0 || !g_continue_flag)
         {
             break;
         }
