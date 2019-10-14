@@ -49,7 +49,7 @@ int upload_file(const char *file_buff, const int file_size, char *file_id, char 
 		return result;
 	}
 
-	if ((pStorageServer=tracker_connect_server(&storageServer, &result)) \
+	if ((pStorageServer=tracker_make_connection(&storageServer, &result)) \
 			 == NULL)
 	{
 		tracker_close_connection(pTrackerServer);
@@ -87,7 +87,7 @@ int download_file(const char *file_id, int *file_size, char *storage_ip)
 		return result;
 	}
 
-	if ((pStorageServer=tracker_connect_server(&storageServer, &result)) \
+	if ((pStorageServer=tracker_make_connection(&storageServer, &result)) \
 			 == NULL)
 	{
 		tracker_close_connection(pTrackerServer);
@@ -125,7 +125,7 @@ int delete_file(const char *file_id, char *storage_ip)
 		return result;
 	}
 
-	if ((pStorageServer=tracker_connect_server(&storageServer, &result)) \
+	if ((pStorageServer=tracker_make_connection(&storageServer, &result)) \
 			 == NULL)
 	{
 		tracker_close_connection(pTrackerServer);

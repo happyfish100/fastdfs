@@ -9,6 +9,7 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include "fastcommon/common_define.h"
+#include "fastcommon/shared_func.h"
 #include "fastcommon/logger.h"
 #include "test_types.h"
 #include "common_func.h"
@@ -121,10 +122,7 @@ int main(int argc, char **argv)
 	}
 
 #ifndef WIN32
-	if (daemon(1, 1) != 0)
-	{
-		return errno != 0 ? errno : EFAULT;
-	}
+	daemon_init(false);
 #endif
 
 	memset(&storages, 0, sizeof(storages));
