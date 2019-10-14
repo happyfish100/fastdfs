@@ -1519,9 +1519,9 @@ static void php_fdfs_tracker_delete_storage_impl( \
 
 	if (group_name_len == 0 || storage_ip_len == 0)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"group name length: %d or storage ip length: %d = 0!",\
-			__LINE__, group_name_len, storage_ip_len);
+		logError("file: "__FILE__", line: %d, "
+			"group name length: %d or storage ip length: %d = 0!",
+			__LINE__, (int)group_name_len, (int)storage_ip_len);
 		pContext->err_no = EINVAL;
 		RETURN_BOOL(false);
 	}
@@ -7483,7 +7483,7 @@ PHP_MINIT_FUNCTION(fastdfs_client)
 {
 	zend_class_entry ce;
 
-	log_init();
+	log_try_init();
 	if (load_config_files() != 0)
 	{
 		return FAILURE;
