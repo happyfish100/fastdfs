@@ -139,11 +139,18 @@ int main(int argc, char *argv[])
 	daemon_init(false);
 	umask(0);
 
+	if ((result=write_to_pid_file(pidFilename)) != 0)
+	{
+		log_destroy();
+		return result;
+	}
+
 	memset(g_bind_addr, 0, sizeof(g_bind_addr));
 	if ((result=storage_func_init(conf_filename, \
 			g_bind_addr, sizeof(g_bind_addr))) != 0)
 	{
 		logCrit("exit abnormally!\n");
+        delete_pid_file(pidFilename);
 		log_destroy();
 		return result;
 	}
@@ -152,6 +159,7 @@ int main(int argc, char *argv[])
 	if (sock < 0)
 	{
 		logCrit("exit abnormally!\n");
+        delete_pid_file(pidFilename);
 		log_destroy();
 		return result;
 	}
@@ -159,12 +167,7 @@ int main(int argc, char *argv[])
 	if ((result=tcpsetserveropt(sock, g_fdfs_network_timeout)) != 0)
 	{
 		logCrit("exit abnormally!\n");
-		log_destroy();
-		return result;
-	}
-
-	if ((result=write_to_pid_file(pidFilename)) != 0)
-	{
+        delete_pid_file(pidFilename);
 		log_destroy();
 		return result;
 	}
@@ -453,10 +456,10 @@ int main(int argc, char *argv[])
 		storage_trunk_destroy();
 	}
 
+	delete_pid_file(pidFilename);
 	logInfo("exit normally.\n");
 	log_destroy();
 	
-	delete_pid_file(pidFilename);
 	return 0;
 }
 

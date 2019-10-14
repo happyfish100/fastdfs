@@ -417,10 +417,10 @@ int fdfs_parse_server_info_ex(char *server_str, const int default_port,
     }
     else
     {
+        *pColon = '\0';
         port = atoi(pColon + 1);
     }
 
-    *pColon = '\0';
     conn = pServer->connections;
     pServer->count =  splitEx(server_str, ',',
             hosts, FDFS_MULTI_IP_MAX_COUNT);
