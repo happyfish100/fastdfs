@@ -4027,6 +4027,43 @@ static int tracker_mem_cmp_tracker_running_status(const void *p1, const void *p2
 	return pStatus2->restart_interval - pStatus1->restart_interval;
 }
 
+static int find_my_ip_in_tracker_list()
+{
+    const char *current_ip;
+    const char *previous_ip;
+    TrackerServerInfo *pServer;
+    char buff[256];
+
+    previous_ip = NULL;
+    while ((current_ip=get_next_local_ip(previous_ip)) != NULL)
+    {
+        pServer = fdfs_tracker_group_get_server(&g_tracker_servers,
+                current_ip, g_server_port);
+        if (pServer != NULL)
+        {
+            if (pServer->count > 1)
+            {
+                ConnectionInfo *conn;
+                ConnectionInfo *end;
+
+                end = pServer->connections + pServer->count;
+                for (conn=pServer->connections; conn<end; conn++)
+                {
+                    insert_into_local_host_ip(conn->ip_addr);
+                }
+            }
+            return 0;
+        }
+
+        previous_ip = current_ip;
+    }
+
+    logError("file: "__FILE__", line: %d, "
+            "my ip NOT in tracker server list. %s",
+            __LINE__, local_host_ip_addrs_to_string(buff, sizeof(buff)));
+    return ENOENT;
+}
+
 static int tracker_mem_first_add_tracker_servers(FDFSStorageJoinBody *pJoinBody)
 {
 	TrackerServerInfo *pLocalTracker;
@@ -4057,7 +4094,7 @@ static int tracker_mem_first_add_tracker_servers(FDFSStorageJoinBody *pJoinBody)
 
 	g_tracker_servers.servers = servers;
 	g_tracker_servers.server_count = tracker_count;
-	return 0;
+	return find_my_ip_in_tracker_list();
 }
 
 static int tracker_mem_check_add_tracker_servers(FDFSStorageJoinBody *pJoinBody)
@@ -4158,7 +4195,7 @@ static int tracker_mem_check_add_tracker_servers(FDFSStorageJoinBody *pJoinBody)
 		"add %d tracker servers, total tracker servers: %d",
 		__LINE__, add_count, g_tracker_servers.server_count);
 
-	return 0;
+	return find_my_ip_in_tracker_list();
 }
 
 static int tracker_mem_get_tracker_server(FDFSStorageJoinBody *pJoinBody, \

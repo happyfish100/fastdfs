@@ -1529,7 +1529,7 @@ static int tracker_deal_storage_join(struct fast_task_info *pTask)
 	joinBody.init_flag = pBody->init_flag;
 	joinBody.status = pBody->status;
 
-	getSockIpaddr(pTask->event.fd, \
+	getSockIpaddr(pTask->event.fd,
 		tracker_ip, IP_ADDRESS_SIZE);
 	insert_into_local_host_ip(tracker_ip);
 

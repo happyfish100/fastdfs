@@ -69,6 +69,17 @@ bool fdfs_server_contain_ex(TrackerServerInfo *pServer1,
 bool fdfs_server_equal(TrackerServerInfo *pServer1,
         TrackerServerInfo *pServer2);
 
+/**
+* tracker group get server
+* params:
+*       pGroup: the tracker group
+*       target_ip: the ip address to find
+*       target_port: the port to find
+* return: TrackerServerInfo pointer contain target ip and port
+**/
+TrackerServerInfo *fdfs_tracker_group_get_server(TrackerServerGroup *pGroup,
+        const char *target_ip, const int target_port);
+
 void fdfs_server_sock_reset(TrackerServerInfo *pServerInfo);
 
 int fdfs_parse_server_info_ex(char *server_str, const int default_port,

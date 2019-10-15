@@ -108,6 +108,24 @@ bool fdfs_server_equal(TrackerServerInfo *pServer1,
     return true;
 }
 
+TrackerServerInfo *fdfs_tracker_group_get_server(TrackerServerGroup *pGroup,
+        const char *target_ip, const int target_port)
+{
+    TrackerServerInfo *pServer;
+    TrackerServerInfo *pEnd;
+
+    pEnd = pGroup->servers + pGroup->server_count;
+    for (pServer=pGroup->servers; pServer<pEnd; pServer++)
+    {
+        if (fdfs_server_contain(pServer, target_ip, target_port))
+        {
+            return pServer;
+        }
+    }
+
+    return NULL;
+}
+
 void fdfs_server_sock_reset(TrackerServerInfo *pServerInfo)
 {
 	ConnectionInfo *conn;
