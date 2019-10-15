@@ -3591,13 +3591,21 @@ static int tracker_mem_add_storage_from_file(FDFSGroups *pGroups,
     {
         if (storage_id == NULL || *storage_id == '\0')
         {
-            logError("file: "__FILE__", line: %d, "
-                    "in the file \"%s/%s\", "
-                    "group: %s, item \"%s\" is not found or empty",
-                    __LINE__, data_path,
-                    STORAGE_SERVERS_LIST_FILENAME_NEW,
-                    group_name, STORAGE_ITEM_SERVER_ID);
-            return ENOENT;
+            FDFSStorageIdInfo *idInfo;
+            idInfo = fdfs_get_storage_id_by_ip(group_name, ip_addr);
+            if (idInfo == NULL)
+            {
+                logError("file: "__FILE__", line: %d, "
+                        "in the file \"%s/%s\", "
+                        "group: %s, item \"%s\" is not found or empty, "
+                        "and storage ip %s not configed in storage_ids.conf",
+                        __LINE__, data_path,
+                        STORAGE_SERVERS_LIST_FILENAME_NEW,
+                        group_name, STORAGE_ITEM_SERVER_ID, ip_addr);
+                return ENOENT;
+            }
+
+            storage_id = idInfo->id;
         }
     }
 
