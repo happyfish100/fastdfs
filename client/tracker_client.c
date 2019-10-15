@@ -38,7 +38,7 @@ int tracker_get_all_connections_ex(TrackerServerGroup *pTrackerGroup)
 	pEnd = pTrackerGroup->servers + pTrackerGroup->server_count;
 	for (pServer=pTrackerGroup->servers; pServer<pEnd; pServer++)
 	{
-		if ((conn=tracker_connect_server(pServer, &result)) != NULL)
+		if ((conn=tracker_connect_server_no_pool(pServer, &result)) != NULL)
 		{
 			fdfs_active_test(conn);
 			success_count++;
@@ -56,7 +56,7 @@ void tracker_close_all_connections_ex(TrackerServerGroup *pTrackerGroup)
 	pEnd = pTrackerGroup->servers + pTrackerGroup->server_count;
 	for (pServer=pTrackerGroup->servers; pServer<pEnd; pServer++)
 	{
-		tracker_disconnect_server(pServer);
+		tracker_disconnect_server_no_pool(pServer);
 	}
 }
 

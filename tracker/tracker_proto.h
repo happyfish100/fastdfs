@@ -271,6 +271,8 @@ void tracker_close_connection_ex(ConnectionInfo *conn, \
 
 void tracker_disconnect_server(TrackerServerInfo *pServerInfo);
 
+void tracker_disconnect_server_no_pool(TrackerServerInfo *pServerInfo);
+
 ConnectionInfo *tracker_make_connection_ex(ConnectionInfo *conn,
 		const int connect_timeout, int *err_no);
 

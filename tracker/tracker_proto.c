@@ -555,6 +555,24 @@ void tracker_disconnect_server(TrackerServerInfo *pServerInfo)
     }
 }
 
+void tracker_disconnect_server_no_pool(TrackerServerInfo *pServerInfo)
+{
+	ConnectionInfo *conn;
+	ConnectionInfo *end;
+
+    if (pServerInfo->count == 1)
+    {
+        conn_pool_disconnect_server(pServerInfo->connections + 0);
+        return;
+    }
+
+	end = pServerInfo->connections + pServerInfo->count;
+	for (conn=pServerInfo->connections; conn<end; conn++)
+    {
+        conn_pool_disconnect_server(conn);
+    }
+}
+
 static int fdfs_do_parameter_req(ConnectionInfo *pTrackerServer, \
 	char *buff, const int buff_size)
 {
