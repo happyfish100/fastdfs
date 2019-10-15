@@ -77,8 +77,8 @@ static int fdfs_cmp_group_name_and_ip(const void *p1, const void *p2)
 
 static int fdfs_cmp_server_id(const void *p1, const void *p2)
 {
-	return strcmp((*((FDFSStorageIdInfo **)p1))->id,
-		(*((FDFSStorageIdInfo **)p2))->id);
+	return strcmp(((FDFSStorageIdInfo *)p1)->id,
+		((FDFSStorageIdInfo *)p2)->id);
 }
 
 static int fdfs_cmp_ip_and_port(const void *p1, const void *p2)
