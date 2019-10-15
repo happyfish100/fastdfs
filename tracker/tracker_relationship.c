@@ -437,7 +437,8 @@ static int relationship_select_leader()
 		else
 		{
 			logInfo("file: "__FILE__", line: %d, "
-				"waiting for tracker leader notify", __LINE__);
+				"waiting for the candidate tracker leader %s:%d notify ...",
+                __LINE__, conn->ip_addr, conn->port);
 			return ENOENT;
 		}
 	}
