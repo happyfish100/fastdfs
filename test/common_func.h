@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-int getFileContent(const char *filename, char **buff, int64_t *file_size);
+int my_daemon_init();
 
 #ifdef __cplusplus
 }

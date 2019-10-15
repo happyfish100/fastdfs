@@ -119,9 +119,10 @@ int main(int argc, char **argv)
 		return result;
 	}
 
-#ifndef WIN32
-	daemon_init(false);
-#endif
+    if ((result=my_daemon_init()) != 0)
+	{
+		return result;
+	}
 
 	/*
 	printf("file_count = %d\n", file_count);
