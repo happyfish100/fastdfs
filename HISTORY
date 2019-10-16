@@ -1,7 +1,18 @@
 
-Version 5.13  2019-09-29
- * use socketCreateExAuto and socketClientExAuto exported by libfastcommon,
-   you must upgrade libfastcommon to V1.41 or later
+Version 6.00  2019-10-16
+ * tracker and storage server support dual IPs
+   1. you can config dual trackr IPs in storage.conf and client.conf,
+      the configuration item name is "tracker_server"
+   2. you can config dual storage IPs in storage_ids.conf
+  more detail please see the config files.
+
+  NOTE: you MUST upgrade libfastcommon to V1.41 or later
+        the tracker and storage server must upgrade together
+
+ * storage server get IP from tracker server
+ * storage server report current tracker IP to the tracker server when join
+ * tracker server check tracker list when storage server join
+ * use socketCreateExAuto and socketClientExAuto exported by libfastcommon
 
 Version 5.12  2018-06-07
  * code refine for rare case

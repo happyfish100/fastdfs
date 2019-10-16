@@ -172,7 +172,6 @@ int storage_get_my_tracker_client_ip()
             close(conn->sock);
             return result;
         }
-        //pGlobalServer->
 
 		getSockIpaddr(conn->sock, tracker_client_ip, IP_ADDRESS_SIZE);
         insert_into_local_host_ip(tracker_client_ip);
