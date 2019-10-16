@@ -1529,9 +1529,20 @@ static int tracker_deal_storage_join(struct fast_task_info *pTask)
 	joinBody.init_flag = pBody->init_flag;
 	joinBody.status = pBody->status;
 
+    pBody->current_tracker_ip[IP_ADDRESS_SIZE - 1] = '\0';
+
 	getSockIpaddr(pTask->event.fd,
 		tracker_ip, IP_ADDRESS_SIZE);
 	insert_into_local_host_ip(tracker_ip);
+
+    if (strcmp(tracker_ip, pBody->current_tracker_ip) != 0)
+    {
+		logInfo("file: "__FILE__", line: %d, "
+                "storage ip: %s, tracker ip by socket: %s, "
+                "tracker ip by report: %s", __LINE__, pTask->client_ip,
+                tracker_ip, pBody->current_tracker_ip);
+        insert_into_local_host_ip(pBody->current_tracker_ip);
+    }
 
     result = tracker_mem_add_group_and_storage(pClientInfo,
             pTask->client_ip, &joinBody, true);

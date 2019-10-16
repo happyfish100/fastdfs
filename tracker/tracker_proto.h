@@ -138,6 +138,7 @@ typedef struct
 	char domain_name[FDFS_DOMAIN_NAME_MAX_SIZE];
 	char init_flag;
 	signed char status;
+	char current_tracker_ip[IP_ADDRESS_SIZE];     //current tracker ip address
 	char tracker_count[FDFS_PROTO_PKG_LEN_SIZE];  //all tracker server count
 } TrackerStorageJoinBody;
 

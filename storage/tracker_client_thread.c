@@ -1916,6 +1916,7 @@ int tracker_report_join(ConnectionInfo *pTrackerServer, \
 	long2buff(g_storage_join_time, pReqBody->join_time);
 	long2buff(g_up_time, pReqBody->up_time);
 	pReqBody->init_flag = sync_old_done ? 0 : 1;
+	strcpy(pReqBody->current_tracker_ip, pTrackerServer->ip_addr);
 
 	memset(&targetServer, 0, sizeof(targetServer));
 	pTargetServer = &targetServer;
