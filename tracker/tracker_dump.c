@@ -288,6 +288,7 @@ static int fdfs_dump_global_vars(char *buff, const int buffSize)
 {
 	int total_len;
 	char reserved_space_str[32];
+    char *p;
 	
 	total_len = snprintf(buff, buffSize,
 		"g_fdfs_connect_timeout=%ds\n"
@@ -403,6 +404,19 @@ static int fdfs_dump_global_vars(char *buff, const int buffSize)
 	#endif
 	);
 
+    if (total_len < buffSize - 1)
+    {
+        *(buff + total_len++) = '\n';
+    }
+    p = buff + total_len;
+    local_host_ip_addrs_to_string(p, buffSize - total_len);
+    total_len += strlen(p);
+    if (total_len < buffSize - 1)
+    {
+        *(buff + total_len++) = '\n';
+    }
+    *(buff + total_len) = '\0';
+
 	return total_len;
 }
 
@@ -411,7 +425,7 @@ static int fdfs_dump_tracker_servers(char *buff, const int buffSize)
 	int total_len;
 	TrackerServerInfo *pTrackerServer;
 	TrackerServerInfo *pTrackerEnd;
-    ConnectionInfo *conn;
+    char ip_str[256];
 
 	total_len = snprintf(buff, buffSize, \
 		"g_tracker_servers.server_count=%d, " \
@@ -427,11 +441,12 @@ static int fdfs_dump_tracker_servers(char *buff, const int buffSize)
 	for (pTrackerServer=g_tracker_servers.servers; \
 		pTrackerServer<pTrackerEnd; pTrackerServer++)
 	{
-        conn = pTrackerServer->connections;
+        fdfs_server_info_to_string(pTrackerServer, ip_str, sizeof(ip_str));
+
 		total_len += snprintf(buff + total_len, buffSize - total_len,
 			"\t%d. tracker server=%s:%d\n", \
 			(int)(pTrackerServer - g_tracker_servers.servers) + 1, \
-			conn->ip_addr, conn->port);
+			ip_str, pTrackerServer->connections[0].port);
 	}
 
 	return total_len;

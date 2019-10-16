@@ -693,7 +693,7 @@ int fdfs_get_storage_ids_from_tracker_server(TrackerServerInfo *pTrackerServer)
 			}
 			*p = '\0';
 
-			logInfo("list_count: %d, storage ids:\n%s", list_count, content);
+			//logInfo("list_count: %d, storage ids:\n%s", list_count, content);
 
 			result = fdfs_load_storage_ids(content, \
 					"storage-ids-from-tracker");

@@ -32,6 +32,7 @@ static int fdfs_dump_global_vars(char *buff, const int buffSize)
 	char reserved_space_str[32];
     char tracker_client_ip_str[256];
     char last_storage_ip_str[256];
+    char *p;
 	int total_len;
 	int i;
 
@@ -250,14 +251,18 @@ static int fdfs_dump_global_vars(char *buff, const int buffSize)
 				g_path_space_list[i].free_mb);
 	}
 
-	total_len += snprintf(buff + total_len, buffSize - total_len,
-			"\ng_local_host_ip_count=%d\n", g_local_host_ip_count);
-	for (i=0; i<g_local_host_ip_count; i++)
-	{
-		total_len += snprintf(buff + total_len, buffSize - total_len,
-				"\tg_local_host_ip_addrs[%d]=%s\n", i, 
-				g_local_host_ip_addrs + i * IP_ADDRESS_SIZE);
-	}
+    if (total_len < buffSize - 1)
+    {
+        *(buff + total_len++) = '\n';
+    }
+    p = buff + total_len;
+    local_host_ip_addrs_to_string(p, buffSize - total_len);
+    total_len += strlen(p);
+    if (total_len < buffSize - 1)
+    {
+        *(buff + total_len++) = '\n';
+    }
+    *(buff + total_len) = '\0';
 
 	return total_len;
 }
