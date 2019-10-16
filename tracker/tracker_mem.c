@@ -4097,6 +4097,32 @@ static int tracker_mem_first_add_tracker_servers(FDFSStorageJoinBody *pJoinBody)
 	return find_my_ip_in_tracker_list();
 }
 
+static int tracker_mem_copy_uniq_tracker_servers(
+        TrackerServerInfo *pSrcServer,
+        TrackerServerInfo *pDestServer)
+{
+	ConnectionInfo *conn;
+	ConnectionInfo *end;
+
+	end = pSrcServer->connections + pSrcServer->count;
+	for (conn=pSrcServer->connections; conn<end; conn++)
+    {
+		if (!fdfs_server_contain1(pDestServer, conn))
+        {
+            if (pDestServer->count == FDFS_MULTI_IP_MAX_COUNT)
+            {
+                logError("file: "__FILE__", line: %d, "
+                        "tracker IPs reach max count: %d",
+                        __LINE__, FDFS_MULTI_IP_MAX_COUNT);
+                return ENOSPC;
+            }
+
+            pDestServer->connections[pDestServer->count++] = *conn;
+        }
+    }
+    return 0;
+}
+
 static int tracker_mem_check_add_tracker_servers(FDFSStorageJoinBody *pJoinBody)
 {
 	TrackerServerInfo *pJoinTracker;
@@ -4117,8 +4143,17 @@ static int tracker_mem_check_add_tracker_servers(FDFSStorageJoinBody *pJoinBody)
         	for (pLocalTracker=g_tracker_servers.servers;
                		pLocalTracker<pLocalEnd; pLocalTracker++)
 		{
+            if (fdfs_server_equal(pJoinTracker, pLocalTracker))
+            {
+				break;
+            }
             if (fdfs_server_contain_ex(pJoinTracker, pLocalTracker))
 			{
+                if (pJoinTracker->count > pLocalTracker->count)
+                {
+                    tracker_mem_copy_uniq_tracker_servers(pJoinTracker,
+                            pLocalTracker);
+                }
 				break;
 			}
 		}

@@ -192,7 +192,7 @@ static int relationship_get_tracker_leader(TrackerRunningStatus *pTrackerStatus)
 	pStatus = trackerStatus;
 	result = 0;
 	pTrackerEnd = g_tracker_servers.servers + g_tracker_servers.server_count;
-	for (pTrackerServer=g_tracker_servers.servers; \
+	for (pTrackerServer=g_tracker_servers.servers;
 		pTrackerServer<pTrackerEnd; pTrackerServer++)
 	{
 		pStatus->pTrackerServer = pTrackerServer;
