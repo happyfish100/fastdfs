@@ -4131,6 +4131,9 @@ static int tracker_mem_check_add_tracker_servers(FDFSStorageJoinBody *pJoinBody)
 	TrackerServerInfo *pLocalEnd;
 	TrackerServerInfo *pNewServer;
 	TrackerServerInfo *new_servers;
+    char ip_str_join[256];
+    char ip_str_before[256];
+    char ip_str_after[256];
 	int add_count;
 	int bytes;
 
@@ -4149,10 +4152,28 @@ static int tracker_mem_check_add_tracker_servers(FDFSStorageJoinBody *pJoinBody)
             }
             if (fdfs_server_contain_ex(pJoinTracker, pLocalTracker))
 			{
+                fdfs_server_info_to_string(pJoinTracker,
+                        ip_str_join, sizeof(ip_str_join));
+                fdfs_server_info_to_string(pLocalTracker,
+                        ip_str_before, sizeof(ip_str_before));
+
+                logWarning("file: "__FILE__", line: %d, "
+                        "tracker server ips not consistent, "
+                        "join: %s, local: %s", __LINE__,
+                        ip_str_join, ip_str_before);
+
                 if (pJoinTracker->count > pLocalTracker->count)
                 {
-                    tracker_mem_copy_uniq_tracker_servers(pJoinTracker,
-                            pLocalTracker);
+                    if (tracker_mem_copy_uniq_tracker_servers(pJoinTracker,
+                            pLocalTracker) == 0)
+                    {
+                        fdfs_server_info_to_string(pLocalTracker,
+                                ip_str_after, sizeof(ip_str_after));
+                        logInfo("file: "__FILE__", line: %d, "
+                                "merge tracker server ips, before: %s, "
+                                "after: %s", __LINE__,
+                                ip_str_before, ip_str_after);
+                    }
                 }
 				break;
 			}
