@@ -1774,6 +1774,7 @@ static int storage_reader_sync_init_req(StorageBinLogReader *pReader)
 	}
 	do
 	{
+        conn = NULL;
 		while (g_continue_flag)
 		{
             conn = tracker_connect_server_no_pool_ex(pTServer,

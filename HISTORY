@@ -1,7 +1,7 @@
 
 Version 6.00  2019-10-16
  * tracker and storage server support dual IPs
-   1. you can config dual trackr IPs in storage.conf and client.conf,
+   1. you can config dual tracker IPs in storage.conf and client.conf,
       the configuration item name is "tracker_server"
    2. you can config dual storage IPs in storage_ids.conf
   more detail please see the config files.
