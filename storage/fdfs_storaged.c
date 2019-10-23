@@ -57,6 +57,8 @@ static void sigHupHandler(int sig);
 static void sigUsrHandler(int sig);
 static void sigAlarmHandler(int sig);
 
+static int setupSchedules(pthread_t *schedule_tid);
+
 #if defined(DEBUG_FLAG)
 
 /*
@@ -67,8 +69,6 @@ static void sigSegvHandler(int signum, siginfo_t *info, void *ptr);
 
 static void sigDumpHandler(int sig);
 #endif
-
-#define SCHEDULE_ENTRIES_MAX_COUNT 9
 
 static void usage(const char *program)
 {
@@ -84,8 +84,6 @@ int main(int argc, char *argv[])
 	int wait_count;
 	pthread_t schedule_tid;
 	struct sigaction act;
-	ScheduleEntry scheduleEntries[SCHEDULE_ENTRIES_MAX_COUNT];
-	ScheduleArray scheduleArray;
 	char pidFilename[MAX_PATH_SIZE];
 	bool stop;
 
@@ -307,85 +305,12 @@ int main(int argc, char *argv[])
 		return result;
 	}
 
-	scheduleArray.entries = scheduleEntries;
-	scheduleArray.count = 0;
-	memset(scheduleEntries, 0, sizeof(scheduleEntries));
-
-	INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
-		scheduleArray.count + 1, TIME_NONE, TIME_NONE, TIME_NONE,
-		g_sync_log_buff_interval, log_sync_func, &g_log_context);
-	scheduleArray.count++;
-
-	INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
-		scheduleArray.count + 1, TIME_NONE, TIME_NONE, TIME_NONE,
-		g_sync_binlog_buff_interval, fdfs_binlog_sync_func, NULL);
-	scheduleArray.count++;
-
-	INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
-		scheduleArray.count + 1, TIME_NONE, TIME_NONE, TIME_NONE,
-		g_sync_stat_file_interval, fdfs_stat_file_sync_func, NULL);
-	scheduleArray.count++;
-
-	if (g_if_use_trunk_file)
-	{
-		INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
-			scheduleArray.count + 1, TIME_NONE, TIME_NONE, TIME_NONE,
-			1, trunk_binlog_sync_func, NULL);
-		scheduleArray.count++;
-	}
-
-	if (g_use_access_log)
-	{
-		INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
-			scheduleArray.count + 1, TIME_NONE, TIME_NONE, TIME_NONE,
-			g_sync_log_buff_interval, log_sync_func, &g_access_log_context);
-		scheduleArray.count++;
-
-		if (g_rotate_access_log)
-		{
-			INIT_SCHEDULE_ENTRY_EX(scheduleEntries[scheduleArray.count],
-				scheduleArray.count + 1, g_access_log_rotate_time,
-				24 * 3600, log_notify_rotate, &g_access_log_context);
-			scheduleArray.count++;
-
-			if (g_log_file_keep_days > 0)
-			{
-				log_set_keep_days(&g_access_log_context,
-					g_log_file_keep_days);
-
-				INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
-					scheduleArray.count + 1, 1, 0, 0, 24 * 3600,
-					log_delete_old_files, &g_access_log_context);
-				scheduleArray.count++;
-			}
-		}
-	}
-
-	if (g_rotate_error_log)
-	{
-		INIT_SCHEDULE_ENTRY_EX(scheduleEntries[scheduleArray.count],
-			scheduleArray.count + 1, g_error_log_rotate_time,
-			24 * 3600, log_notify_rotate, &g_log_context);
-		scheduleArray.count++;
-
-		if (g_log_file_keep_days > 0)
-		{
-			log_set_keep_days(&g_log_context, g_log_file_keep_days);
-
-			INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
-				scheduleArray.count + 1, 1, 0, 0, 24 * 3600,
-				log_delete_old_files, &g_log_context);
-			scheduleArray.count++;
-		}
-	}
-
-	if ((result=sched_start(&scheduleArray, &schedule_tid, \
-		g_thread_stack_size, (bool * volatile)&g_continue_flag)) != 0)
-	{
+    if ((result=setupSchedules(&schedule_tid)) != 0)
+    {
 		logCrit("exit abnormally!\n");
 		log_destroy();
 		return result;
-	}
+    }
 
 	if ((result=set_run_by(g_run_by_group, g_run_by_user)) != 0)
 	{
@@ -555,4 +480,101 @@ static void sigDumpHandler(int sig)
 	bDumpFlag = false;
 }
 #endif
+
+static int setupSchedules(pthread_t *schedule_tid)
+{
+#define SCHEDULE_ENTRIES_MAX_COUNT 10
+
+	ScheduleEntry scheduleEntries[SCHEDULE_ENTRIES_MAX_COUNT];
+	ScheduleArray scheduleArray;
+    int result;
+
+	scheduleArray.entries = scheduleEntries;
+	scheduleArray.count = 0;
+	memset(scheduleEntries, 0, sizeof(scheduleEntries));
+
+	INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
+		scheduleArray.count + 1, TIME_NONE, TIME_NONE, TIME_NONE,
+		g_sync_log_buff_interval, log_sync_func, &g_log_context);
+	scheduleArray.count++;
+
+	INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
+		scheduleArray.count + 1, TIME_NONE, TIME_NONE, TIME_NONE,
+		g_sync_binlog_buff_interval, fdfs_binlog_sync_func, NULL);
+	scheduleArray.count++;
+
+	INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
+		scheduleArray.count + 1, TIME_NONE, TIME_NONE, TIME_NONE,
+		g_sync_stat_file_interval, fdfs_stat_file_sync_func, NULL);
+	scheduleArray.count++;
+
+	if (g_if_use_trunk_file)
+	{
+		INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
+			scheduleArray.count + 1, TIME_NONE, TIME_NONE, TIME_NONE,
+			1, trunk_binlog_sync_func, NULL);
+		scheduleArray.count++;
+	}
+
+	if (g_use_access_log)
+	{
+		INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
+			scheduleArray.count + 1, TIME_NONE, TIME_NONE, TIME_NONE,
+			g_sync_log_buff_interval, log_sync_func, &g_access_log_context);
+		scheduleArray.count++;
+
+		if (g_rotate_access_log)
+		{
+			INIT_SCHEDULE_ENTRY_EX(scheduleEntries[scheduleArray.count],
+				scheduleArray.count + 1, g_access_log_rotate_time,
+				24 * 3600, log_notify_rotate, &g_access_log_context);
+			scheduleArray.count++;
+
+			if (g_log_file_keep_days > 0)
+			{
+				log_set_keep_days(&g_access_log_context,
+					g_log_file_keep_days);
+
+				INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
+					scheduleArray.count + 1, 1, 0, 0, 24 * 3600,
+					log_delete_old_files, &g_access_log_context);
+				scheduleArray.count++;
+			}
+		}
+	}
+
+	if (g_rotate_error_log)
+	{
+		INIT_SCHEDULE_ENTRY_EX(scheduleEntries[scheduleArray.count],
+			scheduleArray.count + 1, g_error_log_rotate_time,
+			24 * 3600, log_notify_rotate, &g_log_context);
+		scheduleArray.count++;
+
+		if (g_log_file_keep_days > 0)
+		{
+			log_set_keep_days(&g_log_context, g_log_file_keep_days);
+
+			INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
+				scheduleArray.count + 1, 1, 0, 0, 24 * 3600,
+				log_delete_old_files, &g_log_context);
+			scheduleArray.count++;
+		}
+	}
+
+	if (g_compress_binlog)
+	{
+		INIT_SCHEDULE_ENTRY_EX(scheduleEntries[scheduleArray.count],
+			scheduleArray.count + 1, g_compress_binlog_time,
+			60, fdfs_binlog_compress_func, NULL);
+		scheduleArray.count++;
+    }
+
+	if ((result=sched_start(&scheduleArray, schedule_tid,
+		g_thread_stack_size, (bool * volatile)&g_continue_flag)) != 0)
+	{
+		return result;
+	}
+
+    return 0;
+}
 

@@ -4254,6 +4254,7 @@ static void fetch_one_path_binlog_finish_clean_up(struct fast_task_info *pTask)
 
 	pClientInfo->extra_arg = NULL;
 
+    storage_reader_remove_from_list(pReader);
 	storage_reader_destroy(pReader);
 	get_mark_filename_by_reader(pReader, full_filename);
 	if (fileExists(full_filename))
@@ -4292,6 +4293,7 @@ static int storage_server_do_fetch_one_path_binlog( \
         free(pReader);
 		return result;
 	}
+    storage_reader_add_to_list(pReader);
 
 	pClientInfo->deal_func = storage_server_fetch_one_path_binlog_dealer;
 	pClientInfo->clean_func = fetch_one_path_binlog_finish_clean_up;

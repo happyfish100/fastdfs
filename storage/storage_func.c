@@ -1785,6 +1785,14 @@ int storage_func_init(const char *filename, \
 		g_file_sync_skip_invalid_record = iniGetBoolValue(NULL, \
 			"file_sync_skip_invalid_record", &iniContext, false);
 
+		g_compress_binlog = iniGetBoolValue(NULL,
+			"compress_binlog", &iniContext, false);
+		if ((result=get_time_item_from_conf(&iniContext,
+			"compress_binlog_time", &g_compress_binlog_time, 1, 30)) != 0)
+		{
+			break;
+		}
+
 		if ((result=fdfs_connection_pool_init(filename, &iniContext)) != 0)
 		{
 			break;
@@ -1853,7 +1861,9 @@ int storage_func_init(const char *filename, \
 			"log_file_keep_days=%d, " \
 			"file_sync_skip_invalid_record=%d, " \
 			"use_connection_pool=%d, " \
-			"g_connection_pool_max_idle_time=%ds", \
+			"g_connection_pool_max_idle_time=%ds, " \
+			"compress_binlog=%d, " \
+			"compress_binlog_time=%02d:%02d", \
 			g_fdfs_version.major, g_fdfs_version.minor, \
 			g_fdfs_base_path, g_fdfs_store_paths.count, \
 			g_subdir_count_per_path, \
@@ -1888,7 +1898,9 @@ int storage_func_init(const char *filename, \
 			g_access_log_context.rotate_size, \
 			g_log_context.rotate_size, g_log_file_keep_days, \
 			g_file_sync_skip_invalid_record, \
-			g_use_connection_pool, g_connection_pool_max_idle_time);
+			g_use_connection_pool, g_connection_pool_max_idle_time, \
+            g_compress_binlog, g_compress_binlog_time.hour,   \
+            g_compress_binlog_time.minute);
 
 #ifdef WITH_HTTPD
 		if (!g_http_params.disabled)

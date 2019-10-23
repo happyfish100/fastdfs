@@ -416,11 +416,11 @@ static int relationship_select_leader()
 	{
 		if (trackerStatus.if_leader)
 		{
-			g_tracker_servers.leader_index = \
-				trackerStatus.pTrackerServer - \
+			g_tracker_servers.leader_index =
+				trackerStatus.pTrackerServer -
 				g_tracker_servers.servers;
-			if (g_tracker_servers.leader_index < 0 || \
-				g_tracker_servers.leader_index >= \
+			if (g_tracker_servers.leader_index < 0 ||
+				g_tracker_servers.leader_index >=
 				g_tracker_servers.server_count)
 			{
                 logError("file: "__FILE__", line: %d, "
@@ -429,12 +429,15 @@ static int relationship_select_leader()
 				g_tracker_servers.leader_index = -1;
 				return EINVAL;
 			}
+		}
 
+        if (g_tracker_servers.leader_index >= 0)
+        {
 			logInfo("file: "__FILE__", line: %d, "
 				"the tracker leader %s:%d", __LINE__,
 				conn->ip_addr, conn->port);
-		}
-		else
+        }
+        else
 		{
 			logInfo("file: "__FILE__", line: %d, "
 				"waiting for the candidate tracker leader %s:%d notify ...",

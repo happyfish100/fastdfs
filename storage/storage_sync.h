@@ -11,6 +11,7 @@
 #ifndef _STORAGE_SYNC_H_
 #define _STORAGE_SYNC_H_
 
+#include "fastcommon/fc_list.h"
 #include "storage_func.h"
 
 #define STORAGE_OP_TYPE_SOURCE_CREATE_FILE	'C'  //upload file
@@ -37,6 +38,7 @@ extern "C" {
 
 typedef struct
 {
+    struct fc_list_head link;
 	char storage_id[FDFS_STORAGE_ID_MAX_SIZE];
 	bool need_sync_old;
 	bool sync_old_done;
@@ -99,8 +101,14 @@ int storage_open_readable_binlog(StorageBinLogReader *pReader, \
 int storage_reader_init(FDFSStorageBrief *pStorage, StorageBinLogReader *pReader);
 void storage_reader_destroy(StorageBinLogReader *pReader);
 
-int storage_report_storage_status(const char *storage_id, \
+int storage_report_storage_status(const char *storage_id,
 		const char *ip_addr, const char status);
+
+int fdfs_binlog_compress_func(void *args);
+
+void storage_reader_add_to_list(StorageBinLogReader *pReader);
+
+void storage_reader_remove_from_list(StorageBinLogReader *pReader);
 
 #ifdef __cplusplus
 }

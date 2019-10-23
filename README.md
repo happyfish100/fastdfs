@@ -4,7 +4,7 @@ FastDFS may be copied only under the terms of the GNU General
 Public License V3, which may be found in the FastDFS source kit.
 Please visit the FastDFS Home Page for more detail.
 English language: http://english.csource.org/
-Chinese language: http://www.csource.org/
+Chinese language: http://www.fastken.com/
 
 
 FastDFS is an open source high performance distributed file system. It's major 

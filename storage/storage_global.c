@@ -107,6 +107,9 @@ bool g_storage_ip_changed_auto_adjust = false;
 bool g_thread_kill_done = false;
 bool g_file_sync_skip_invalid_record = false;
 
+bool g_compress_binlog = false;
+TimeInfo g_compress_binlog_time = {0, 0};
+
 int g_thread_stack_size = 512 * 1024;
 int g_upload_priority = DEFAULT_UPLOAD_PRIORITY;
 time_t g_up_time = 0;

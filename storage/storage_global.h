@@ -162,6 +162,9 @@ extern bool g_thread_kill_done;
 
 extern bool g_file_sync_skip_invalid_record;
 
+extern bool g_compress_binlog;
+extern TimeInfo g_compress_binlog_time;  //compress binlog time base
+
 extern int g_thread_stack_size;
 extern int g_upload_priority;
 extern time_t g_up_time;
