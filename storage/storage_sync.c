@@ -1606,6 +1606,23 @@ static inline char *get_binlog_readable_filename(const void *pArg,
             full_filename);
 }
 
+static void get_binlog_flag_file(const char *filepath,
+        char *flag_filename, const int size)
+{
+    const char *filename;
+
+    filename = strrchr(filepath, '/');
+    if (filename == NULL)
+    {
+        snprintf(flag_filename, size, ".%s.flag", filepath);
+    }
+    else
+    {
+        snprintf(flag_filename, size, "%.*s.%s.flag",
+                (int)(filename - filepath + 1), filepath, filename + 1);
+    }
+}
+
 static int uncompress_binlog_file(StorageBinLogReader *pReader,
         const char *filename)
 {
@@ -1623,8 +1640,7 @@ static int uncompress_binlog_file(StorageBinLogReader *pReader,
         return errno != 0 ? errno : ENOENT;
     }
 
-    snprintf(flag_filename, sizeof(flag_filename),
-            "%s.flag", filename);
+    get_binlog_flag_file(filename, flag_filename, sizeof(flag_filename));
     if (stat(flag_filename, &flag_stat) == 0)
     {
         if (g_current_time - flag_stat.st_mtime > 3600)
@@ -1704,8 +1720,7 @@ static int compress_binlog_file(const char *filename)
         return errno != 0 ? errno : ENOENT;
     }
 
-    snprintf(flag_filename, sizeof(flag_filename),
-            "%s.flag", filename);
+    get_binlog_flag_file(filename, flag_filename, sizeof(flag_filename));
     if (stat(flag_filename, &flag_stat) == 0)
     {
         if (g_current_time - flag_stat.st_mtime > 3600)
@@ -3242,18 +3257,10 @@ static int calc_compress_until_binlog_index()
     int min_index;
 
 	pthread_mutex_lock(&sync_thread_lock);
-    logInfo("g_storage_sync_thread_count: %d, reader count: %d", g_storage_sync_thread_count, fc_list_count(&reader_head));
 
     min_index = g_binlog_index;
     fc_list_for_each_entry(pReader, &reader_head, link)
     {
-        if (pReader->binlog_fd >= 0)
-        {
-            logInfo("storage_id: %s, binlog_fd: %d, binlog_index: %d, binlog_offset: %"PRId64,
-                    pReader->storage_id, pReader->binlog_fd,
-                    pReader->binlog_index, pReader->binlog_offset);
-        }
-
         if (pReader->binlog_fd >= 0 && pReader->binlog_index >= 0 &&
                 pReader->binlog_index < min_index)
         {

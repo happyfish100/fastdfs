@@ -565,7 +565,7 @@ static int setupSchedules(pthread_t *schedule_tid)
 	{
 		INIT_SCHEDULE_ENTRY_EX(scheduleEntries[scheduleArray.count],
 			scheduleArray.count + 1, g_compress_binlog_time,
-			60, fdfs_binlog_compress_func, NULL);
+			24 * 3600, fdfs_binlog_compress_func, NULL);
 		scheduleArray.count++;
     }
 
