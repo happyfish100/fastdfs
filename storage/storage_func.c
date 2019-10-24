@@ -883,8 +883,8 @@ static int storage_check_and_make_data_dirs()
 static int storage_make_data_dirs(const char *pBasePath, bool *pathCreated)
 {
 	char data_path[MAX_PATH_SIZE];
-	char dir_name[9];
-	char sub_name[9];
+	char dir_name[16];
+	char sub_name[16];
 	char min_sub_path[16];
 	char max_sub_path[16];
 	int i, k;
@@ -919,10 +919,11 @@ static int storage_make_data_dirs(const char *pBasePath, bool *pathCreated)
 		return errno != 0 ? errno : ENOENT;
 	}
 
-	sprintf(min_sub_path, FDFS_STORAGE_DATA_DIR_FORMAT"/"FDFS_STORAGE_DATA_DIR_FORMAT,
-			0, 0);
-	sprintf(max_sub_path, FDFS_STORAGE_DATA_DIR_FORMAT"/"FDFS_STORAGE_DATA_DIR_FORMAT,
-			g_subdir_count_per_path-1, g_subdir_count_per_path-1);
+	sprintf(min_sub_path, FDFS_STORAGE_DATA_DIR_FORMAT"/"
+            FDFS_STORAGE_DATA_DIR_FORMAT, 0, 0);
+	sprintf(max_sub_path, FDFS_STORAGE_DATA_DIR_FORMAT"/"
+            FDFS_STORAGE_DATA_DIR_FORMAT, g_subdir_count_per_path - 1,
+            g_subdir_count_per_path - 1);
 	if (fileExists(min_sub_path) && fileExists(max_sub_path))
 	{
 		return 0;

@@ -263,8 +263,7 @@ static int recovery_get_src_storage_server(ConnectionInfo *pSrcStorage)
 
 			if (pStorageStat->status == FDFS_STORAGE_STATUS_ACTIVE)
 			{
-				strcpy(pSrcStorage->ip_addr, \
-					pStorageStat->ip_addr);
+				strcpy(pSrcStorage->ip_addr, pStorageStat->ip_addr);
 				pSrcStorage->port = pStorageStat->storage_port;
 				break;
 			}
@@ -283,8 +282,8 @@ static int recovery_get_src_storage_server(ConnectionInfo *pSrcStorage)
 		return EINTR;
 	}
 
-	logDebug("file: "__FILE__", line: %d, " \
-		"disk recovery: get source storage server %s:%d", \
+	logDebug("file: "__FILE__", line: %d, "
+		"disk recovery: get source storage server %s:%d",
 		__LINE__, pSrcStorage->ip_addr, pSrcStorage->port);
 	return 0;
 }
