@@ -267,23 +267,34 @@ static void client_sock_read(int sock, short event, void *arg)
 
 	if (event & IOEVENT_TIMEOUT)
 	{
-		if (pClientInfo->total_offset == 0 && pTask->req_count > 0)
+		if (pClientInfo->total_offset == 0)
 		{
-			pTask->event.timer.expires = g_current_time +
-				g_fdfs_network_timeout;
-			fast_timer_add(&pTask->thread_data->timer,
-				&pTask->event.timer);
+            if (pTask->req_count > 0)
+            {
+                pTask->event.timer.expires = g_current_time +
+                    g_fdfs_network_timeout;
+                fast_timer_add(&pTask->thread_data->timer,
+                        &pTask->event.timer);
+            }
+            else
+            {
+                logWarning("file: "__FILE__", line: %d, "
+                        "client ip: %s, recv timeout. "
+                        "after the connection is established, "
+                        "you must send a request before %ds timeout",
+                        __LINE__, pTask->client_ip, g_fdfs_network_timeout);
+                task_finish_clean_up(pTask);
+            }
 		}
 		else
-		{
-			logError("file: "__FILE__", line: %d, " \
-				"client ip: %s, recv timeout, " \
-				"recv offset: %d, expect length: %d", \
-				__LINE__, pTask->client_ip, \
-				pTask->offset, pTask->length);
-
-			task_finish_clean_up(pTask);
-		}
+        {
+            logError("file: "__FILE__", line: %d, "
+                    "client ip: %s, recv timeout, "
+                    "recv offset: %d, expect length: %d, "
+                    "req_count: %"PRId64, __LINE__, pTask->client_ip,
+                    pTask->offset, pTask->length, pTask->req_count);
+            task_finish_clean_up(pTask);
+        }
 
 		return;
 	}
