@@ -212,7 +212,8 @@ static void client_sock_read(int sock, short event, void *arg)
                 logWarning("file: "__FILE__", line: %d, "
                         "client ip: %s, recv timeout. "
                         "after the connection is established, "
-                        "you must send a request before %ds timeout",
+                        "you must send a request before %ds timeout, "
+                        "maybe connections leak in you application.",
                         __LINE__, pTask->client_ip, g_fdfs_network_timeout);
                 task_finish_clean_up(pTask);
             }
