@@ -37,6 +37,8 @@ bool storage_id_is_myself(const char *storage_id);
 int storage_set_tracker_client_ips(ConnectionInfo *conn,
         const int tracker_index);
 
+int storage_check_and_make_data_path();
+
 #define STORAGE_CHOWN(path, current_uid, current_gid) \
 	if (!(g_run_by_gid == current_gid && g_run_by_uid == current_uid)) \
 	{ \

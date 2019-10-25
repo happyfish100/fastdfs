@@ -684,6 +684,29 @@ int storage_write_to_sync_ini_file()
 	return 0;
 }
 
+int storage_check_and_make_data_path()
+{
+    char data_path[MAX_PATH_SIZE];
+    snprintf(data_path, sizeof(data_path), "%s/data",
+            g_fdfs_base_path);
+    if (!fileExists(data_path))
+    {
+        if (mkdir(data_path, 0755) != 0)
+        {
+            logError("file: "__FILE__", line: %d, "
+                    "mkdir \"%s\" fail, "
+                    "errno: %d, error info: %s",
+                    __LINE__, data_path,
+                    errno, STRERROR(errno));
+            return errno != 0 ? errno : EPERM;
+        }
+
+        STORAGE_CHOWN(data_path, geteuid(), getegid())
+    }
+
+    return 0;
+}
+
 static int storage_check_and_make_data_dirs()
 {
 	int result;
@@ -820,21 +843,10 @@ static int storage_check_and_make_data_dirs()
 	}
 	else
 	{
-		if (!fileExists(data_path))
-		{
-			if (mkdir(data_path, 0755) != 0)
-			{
-				logError("file: "__FILE__", line: %d, " \
-					"mkdir \"%s\" fail, " \
-					"errno: %d, error info: %s", \
-					__LINE__, data_path, \
-					errno, STRERROR(errno));
-				return errno != 0 ? errno : EPERM;
-			}
-
-			STORAGE_CHOWN(data_path, geteuid(), getegid())
-		}
-
+        if ((result=storage_check_and_make_data_path()) != 0)
+        {
+			return result;
+        }
 		g_last_server_port = g_server_port;
 		g_last_http_port = g_http_port;
 		g_storage_join_time = g_current_time;

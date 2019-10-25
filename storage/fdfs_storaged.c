@@ -107,6 +107,11 @@ int main(int argc, char *argv[])
 		return result;
 	}
 
+    if ((result=storage_check_and_make_data_path()) != 0)
+    {
+		log_destroy();
+        return result;
+    }
 	snprintf(pidFilename, sizeof(pidFilename),
 		"%s/data/fdfs_storaged.pid", g_fdfs_base_path);
 	if ((result=process_action(pidFilename, argv[2], &stop)) != 0)
