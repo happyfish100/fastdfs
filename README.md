@@ -43,4 +43,4 @@ the file name.
 Client test code use client library please refer to the directory: client/test.
 
 For more FastDFS related articles, please subscribe the Wechat/Weixin public account
-(Chinese Language): happyfish100
+(Chinese Language): fastdfs
