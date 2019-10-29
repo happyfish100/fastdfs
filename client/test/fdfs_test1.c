@@ -191,7 +191,7 @@ int main(int argc, char *argv[])
 			group_name, storageServer.ip_addr, \
 			storageServer.port);
 
-		if ((pStorageServer=tracker_connect_server(&storageServer, \
+		if ((pStorageServer=tracker_make_connection(&storageServer, \
 			&result)) == NULL)
 		{
 			fdfs_client_destroy();
@@ -458,7 +458,7 @@ int main(int argc, char *argv[])
 		printf("storage=%s:%d\n", storageServer.ip_addr, \
 			storageServer.port);
 
-		if ((pStorageServer=tracker_connect_server(&storageServer, \
+		if ((pStorageServer=tracker_make_connection(&storageServer, \
 			&result)) == NULL)
 		{
 			fdfs_client_destroy();
