@@ -352,8 +352,12 @@ static int list_storages(FDFSGroupStat *pGroupStat)
 			int second;
 			char szDelayTime[64];
 			
-			delay_seconds = (int)(max_last_source_update - \
+			delay_seconds = (int)(max_last_source_update -
 				pStorageStat->last_synced_timestamp);
+            if (delay_seconds < 0)
+            {
+                delay_seconds = 0;
+            }
 			day = delay_seconds / (24 * 3600);
 			remain_seconds = delay_seconds % (24 * 3600);
 			hour = remain_seconds / 3600;
