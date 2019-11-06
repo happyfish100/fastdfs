@@ -144,12 +144,12 @@ void storage_dio_terminate()
 
 int storage_dio_queue_push(struct fast_task_info *pTask)
 {
-        StorageClientInfo *pClientInfo;
+    StorageClientInfo *pClientInfo;
 	StorageFileContext *pFileContext;
 	struct storage_dio_context *pContext;
 	int result;
 
-        pClientInfo = (StorageClientInfo *)pTask->arg;
+    pClientInfo = (StorageClientInfo *)pTask->arg;
 	pFileContext = &(pClientInfo->file_context);
 	pContext = g_dio_contexts + pFileContext->dio_thread_index;
 
@@ -245,7 +245,7 @@ int dio_discard_file(struct fast_task_info *pTask)
 	else
 	{
 		pFileContext->buff_offset = 0;
-		storage_nio_notify(pTask);  //notify nio to deal
+        pFileContext->continue_callback(pTask);
 	}
 
 	return 0;
@@ -353,6 +353,12 @@ int dio_read_file(struct fast_task_info *pTask)
 		break;
 	}
 
+	if (pFileContext->calc_crc32)
+	{
+		pFileContext->crc32 = CRC32_ex(pTask->data + pTask->length,
+                read_bytes, pFileContext->crc32);
+	}
+
 	pTask->length += read_bytes;
 	pFileContext->offset += read_bytes;
 
@@ -363,7 +369,7 @@ int dio_read_file(struct fast_task_info *pTask)
 
 	if (pFileContext->offset < pFileContext->end)
 	{
-		storage_nio_notify(pTask);  //notify nio to deal
+        pFileContext->continue_callback(pTask);
 	}
 	else
 	{
@@ -371,6 +377,11 @@ int dio_read_file(struct fast_task_info *pTask)
 		close(pFileContext->fd);
 		pFileContext->fd = -1;
 
+		if (pFileContext->calc_crc32)
+		{
+			pFileContext->crc32 = CRC32_FINAL( \
+						pFileContext->crc32);
+		}
 		pFileContext->done_callback(pTask, result);
 	}
 
@@ -475,7 +486,7 @@ int dio_write_file(struct fast_task_info *pTask)
 	if (pFileContext->offset < pFileContext->end)
 	{
 		pFileContext->buff_offset = 0;
-		storage_nio_notify(pTask);  //notify nio to deal
+        pFileContext->continue_callback(pTask);
 	}
 	else
 	{

@@ -46,6 +46,8 @@ typedef void (*DeleteFileLogCallback)(struct fast_task_info *pTask, \
 typedef void (*FileDealDoneCallback)(struct fast_task_info *pTask, \
 		const int err_no);
 
+typedef int (*FileDealContinueCallback)(struct fast_task_info *pTask);
+
 typedef int (*FileBeforeOpenCallback)(struct fast_task_info *pTask);
 typedef int (*FileBeforeCloseCallback)(struct fast_task_info *pTask);
 
@@ -109,6 +111,7 @@ typedef struct
 	int64_t start;  //the start offset of file
 	int64_t end;    //the end offset of file
 	int64_t offset; //the current offset of file
+    FileDealContinueCallback continue_callback;
 	FileDealDoneCallback done_callback;
 	DeleteFileLogCallback log_callback;
 

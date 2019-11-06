@@ -1,4 +1,7 @@
 
+Version 6.02  2019-11-06
+ * get_file_info calculate CRC32 for appender file type
+
 Version 6.01  2019-10-25
  * compress and uncompress binlog file by gzip when need,
    config items in storage.conf: compress_binlog and compress_binlog_time
