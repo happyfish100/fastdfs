@@ -1,6 +1,8 @@
 
-Version 6.02  2019-11-06
+Version 6.02  2019-11-07
  * get_file_info calculate CRC32 for appender file type
+ * disk recovery download file to local temp file then rename it
+   when the local file exists
 
 Version 6.01  2019-10-25
  * compress and uncompress binlog file by gzip when need,
