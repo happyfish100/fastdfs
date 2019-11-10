@@ -78,7 +78,7 @@
 #define STORAGE_PROTO_CMD_UPLOAD_SLAVE_FILE	21
 #define STORAGE_PROTO_CMD_QUERY_FILE_INFO	22
 #define STORAGE_PROTO_CMD_UPLOAD_APPENDER_FILE	23   //create appender file
-#define STORAGE_PROTO_CMD_APPEND_FILE		24   //append file
+#define STORAGE_PROTO_CMD_APPEND_FILE		24       //append file
 #define STORAGE_PROTO_CMD_SYNC_APPEND_FILE	25
 #define STORAGE_PROTO_CMD_FETCH_ONE_PATH_BINLOG	26   //fetch binlog of one store path
 #define STORAGE_PROTO_CMD_RESP			TRACKER_PROTO_CMD_RESP
@@ -92,10 +92,12 @@
 #define STORAGE_PROTO_CMD_TRUNK_DELETE_BINLOG_MARKS  32  //since V3.07, tracker to storage
 #define STORAGE_PROTO_CMD_TRUNK_TRUNCATE_BINLOG_FILE 33  //since V3.07, trunk storage to storage
 
-#define STORAGE_PROTO_CMD_MODIFY_FILE		     34  //since V3.08
-#define STORAGE_PROTO_CMD_SYNC_MODIFY_FILE	     35  //since V3.08
-#define STORAGE_PROTO_CMD_TRUNCATE_FILE		     36  //since V3.08
-#define STORAGE_PROTO_CMD_SYNC_TRUNCATE_FILE	     37  //since V3.08
+#define STORAGE_PROTO_CMD_MODIFY_FILE		           34  //since V3.08
+#define STORAGE_PROTO_CMD_SYNC_MODIFY_FILE	           35  //since V3.08
+#define STORAGE_PROTO_CMD_TRUNCATE_FILE		           36  //since V3.08
+#define STORAGE_PROTO_CMD_SYNC_TRUNCATE_FILE	       37  //since V3.08
+#define STORAGE_PROTO_CMD_REGENERATE_APPENDER_FILENAME 38  //since V6.02, rename appender file to normal file
+#define STORAGE_PROTO_CMD_SYNC_RENAME_FILE		       40  //since V6.02
 
 //for overwrite all old metadata
 #define STORAGE_SET_METADATA_FLAG_OVERWRITE	'O'

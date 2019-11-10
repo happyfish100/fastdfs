@@ -117,6 +117,10 @@
 #define FDFS_TRUNK_FILE_TRUE_SIZE(file_size) \
 	(file_size & 0xFFFFFFFF)
 
+#define FDFS_FILE_TYPE_NORMAL	1  //normal file
+#define FDFS_FILE_TYPE_APPENDER 2  //appender file
+#define FDFS_FILE_TYPE_SLAVE    4  //slave file
+
 #define FDFS_STORAGE_ID_MAX_SIZE	16
 
 #define TRACKER_STORAGE_RESERVED_SPACE_FLAG_MB		0

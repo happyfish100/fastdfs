@@ -35,20 +35,20 @@ static struct base64_context the_base64_context;
 static int the_base64_context_inited = 0;
 
 #define FDFS_SPLIT_GROUP_NAME_AND_FILENAME(file_id) \
-	char new_file_id[FDFS_GROUP_NAME_MAX_LEN + 128]; \
+	char in_file_id[FDFS_GROUP_NAME_MAX_LEN + 128]; \
 	char *group_name; \
 	char *filename; \
 	char *pSeperator; \
 	\
-	snprintf(new_file_id, sizeof(new_file_id), "%s", file_id); \
-	pSeperator = strchr(new_file_id, FDFS_FILE_ID_SEPERATOR); \
+	snprintf(in_file_id, sizeof(in_file_id), "%s", file_id); \
+	pSeperator = strchr(in_file_id, FDFS_FILE_ID_SEPERATOR); \
 	if (pSeperator == NULL) \
 	{ \
 		return EINVAL; \
 	} \
 	\
 	*pSeperator = '\0'; \
-	group_name = new_file_id; \
+	group_name = in_file_id; \
 	filename =  pSeperator + 1; \
 
 #define storage_get_read_connection(pTrackerServer, \
@@ -2203,8 +2203,21 @@ int fdfs_get_file_info_ex(const char *group_name, const char *remote_filename, \
 	pFileInfo->create_timestamp = buff2int(buff + sizeof(int));
 	pFileInfo->file_size = buff2long(buff + sizeof(int) * 2);
 
-	if (IS_SLAVE_FILE(filename_len, pFileInfo->file_size) || \
-	    IS_APPENDER_FILE(pFileInfo->file_size) || \
+    if (IS_APPENDER_FILE(pFileInfo->file_size))
+    {
+        pFileInfo->file_type = FDFS_FILE_TYPE_APPENDER;
+    }
+    else if (IS_SLAVE_FILE(filename_len, pFileInfo->file_size))
+    {
+        pFileInfo->file_type = FDFS_FILE_TYPE_SLAVE;
+    }
+    else
+    {
+        pFileInfo->file_type = FDFS_FILE_TYPE_NORMAL;
+    }
+
+	if (pFileInfo->file_type == FDFS_FILE_TYPE_SLAVE ||
+	    pFileInfo->file_type == FDFS_FILE_TYPE_APPENDER ||
 	    (*(pFileInfo->source_ip_addr) == '\0' && get_from_server))
 	{ //slave file or appender file
 		if (get_from_server)
@@ -2218,21 +2231,24 @@ int fdfs_get_file_info_ex(const char *group_name, const char *remote_filename, \
 				return result;
 			}
 
-			result = storage_query_file_info(conn, \
+			result = storage_query_file_info(conn,
 				NULL,  group_name, remote_filename, pFileInfo);
-			tracker_close_connection_ex(conn, result != 0 && \
+			tracker_close_connection_ex(conn, result != 0 &&
 							result != ENOENT);
 
+			pFileInfo->get_from_server = true;
 			return result;
 		}
 		else
 		{
+			pFileInfo->get_from_server = false;
 			pFileInfo->file_size = -1;
 			return 0;
 		}
 	}
 	else  //master file (normal file)
 	{
+        pFileInfo->get_from_server = false;
 		if ((pFileInfo->file_size >> 63) != 0)
 		{
 			pFileInfo->file_size &= 0xFFFFFFFF;  //low 32 bits is file size
@@ -2352,3 +2368,118 @@ int storage_truncate_file(ConnectionInfo *pTrackerServer, \
 	return result;
 }
 
+int storage_regenerate_appender_filename(ConnectionInfo *pTrackerServer,
+		ConnectionInfo *pStorageServer, const char *group_name,
+        const char *appender_filename, char *new_group_name,
+        char *new_remote_filename)
+{
+	TrackerHeader *pHeader;
+	int result;
+	char out_buff[512];
+	char in_buff[256];
+	char *p;
+	char *pInBuff;
+	int64_t in_bytes;
+	ConnectionInfo storageServer;
+	bool new_connection;
+	int appender_filename_len;
+
+	appender_filename_len = strlen(appender_filename);
+	if ((result=storage_get_update_connection(pTrackerServer,
+			&pStorageServer, group_name, appender_filename,
+			&storageServer, &new_connection)) != 0)
+	{
+		return result;
+	}
+
+	do
+	{
+	pHeader = (TrackerHeader *)out_buff;
+	p = out_buff + sizeof(TrackerHeader);
+
+	snprintf(p, sizeof(out_buff) - sizeof(TrackerHeader),
+            "%s", group_name);
+    p += FDFS_GROUP_NAME_MAX_LEN;
+	memcpy(p, appender_filename, appender_filename_len);
+	p += appender_filename_len;
+
+	long2buff((p - out_buff) - sizeof(TrackerHeader),
+		pHeader->pkg_len);
+	pHeader->cmd = STORAGE_PROTO_CMD_REGENERATE_APPENDER_FILENAME;
+	pHeader->status = 0;
+
+	if ((result=tcpsenddata_nb(pStorageServer->sock, out_buff,
+		p - out_buff, g_fdfs_network_timeout)) != 0)
+	{
+		logError("file: "__FILE__", line: %d, "
+			"send data to storage server %s:%d fail, "
+			"errno: %d, error info: %s", __LINE__,
+			pStorageServer->ip_addr, pStorageServer->port,
+			result, STRERROR(result));
+		break;
+	}
+
+	pInBuff = in_buff;
+	if ((result=fdfs_recv_response(pStorageServer,
+		&pInBuff, sizeof(in_buff), &in_bytes)) != 0)
+	{
+		logError("file: "__FILE__", line: %d, "
+                "fdfs_recv_response fail, result: %d",
+                __LINE__, result);
+		break;
+	}
+
+	if (in_bytes <= FDFS_GROUP_NAME_MAX_LEN)
+	{
+		logError("file: "__FILE__", line: %d, "
+			"storage server %s:%d response data "
+			"length: %"PRId64" is invalid, "
+			"should > %d", __LINE__,
+			pStorageServer->ip_addr, pStorageServer->port,
+			in_bytes, FDFS_GROUP_NAME_MAX_LEN);
+		result = EINVAL;
+		break;
+	}
+
+	in_buff[in_bytes] = '\0';
+	memcpy(new_group_name, in_buff, FDFS_GROUP_NAME_MAX_LEN);
+	new_group_name[FDFS_GROUP_NAME_MAX_LEN] = '\0';
+
+	memcpy(new_remote_filename, in_buff + FDFS_GROUP_NAME_MAX_LEN,
+		in_bytes - FDFS_GROUP_NAME_MAX_LEN + 1);
+
+	} while (0);
+
+	if (new_connection)
+	{
+		tracker_close_connection_ex(pStorageServer, result != 0);
+	}
+
+	return result;
+}
+
+int storage_regenerate_appender_filename1(ConnectionInfo *pTrackerServer,
+		ConnectionInfo *pStorageServer, const char *appender_file_id,
+        char *new_file_id)
+{
+    int result;
+	char new_group_name[FDFS_GROUP_NAME_MAX_LEN + 1];
+	char new_remote_filename[128];
+
+	FDFS_SPLIT_GROUP_NAME_AND_FILENAME(appender_file_id)
+
+    result = storage_regenerate_appender_filename(pTrackerServer,
+		pStorageServer, group_name, filename,
+        new_group_name, new_remote_filename);
+	if (result == 0)
+	{
+		sprintf(new_file_id, "%s%c%s", new_group_name,
+			FDFS_FILE_ID_SEPERATOR, new_remote_filename);
+	}
+	else
+	{
+		new_file_id[0] = '\0';
+	}
+
+	return result;
+}

@@ -19,6 +19,7 @@
 int main(int argc, char *argv[])
 {
 	char *conf_filename;
+    const char *file_type_str;
 	char file_id[128];
 	int result;
 	FDFSFileInfo file_info;
@@ -44,7 +45,7 @@ int main(int argc, char *argv[])
 	result = fdfs_get_file_info_ex1(file_id, true, &file_info);
 	if (result != 0)
 	{
-		printf("query file info fail, " \
+		fprintf(stderr, "query file info fail, " \
 			"error no: %d, error info: %s\n", \
 			result, STRERROR(result));
 	}
@@ -52,6 +53,25 @@ int main(int argc, char *argv[])
 	{
 		char szDatetime[32];
 
+        switch (file_info.file_type)
+        {
+            case FDFS_FILE_TYPE_NORMAL:
+                file_type_str = "normal";
+                break;
+            case FDFS_FILE_TYPE_SLAVE:
+                file_type_str = "slave";
+                break;
+            case FDFS_FILE_TYPE_APPENDER:
+                file_type_str = "appender";
+                break;
+            default:
+                file_type_str = "unkown";
+                break;
+        }
+
+		printf("GET FROM SERVER: %s\n\n",
+                file_info.get_from_server ? "true" : "false");
+		printf("file type: %s\n", file_type_str);
 		printf("source storage id: %d\n", file_info.source_id);
 		printf("source ip address: %s\n", file_info.source_ip_addr);
 		printf("file create timestamp: %s\n", formatDatetime(

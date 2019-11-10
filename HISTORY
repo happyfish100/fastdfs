@@ -1,8 +1,10 @@
 
-Version 6.02  2019-11-07
+Version 6.02  2019-11-10
  * get_file_info calculate CRC32 for appender file type
  * disk recovery download file to local temp file then rename it
    when the local file exists
+ * support regenerate filename for appender file
+   NOTE: the regenerated file will be a normal file!
 
 Version 6.01  2019-10-25
  * compress and uncompress binlog file by gzip when need,
