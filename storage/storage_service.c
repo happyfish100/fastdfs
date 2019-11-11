@@ -4920,8 +4920,7 @@ static void calc_crc32_done_callback_for_regenerate(
 }
 
 /**
-FDFS_GROUP_NAME_MAX_LEN: group name
-body length - FDFS_GROUP_NAME_MAX_LEN: appender filename
+body length: appender filename
 **/
 static int storage_server_regenerate_appender_filename(struct fast_task_info *pTask)
 {
@@ -4929,7 +4928,6 @@ static int storage_server_regenerate_appender_filename(struct fast_task_info *pT
 	StorageFileContext *pFileContext;
     FDFSTrunkFullInfo *pTrunkInfo;
 	char *p;
-	char group_name[FDFS_GROUP_NAME_MAX_LEN + 1];
 	char appender_filename[128];
 	char true_filename[128];
 	struct stat stat_buf;
@@ -4942,9 +4940,8 @@ static int storage_server_regenerate_appender_filename(struct fast_task_info *pT
 	pFileContext =  &(pClientInfo->file_context);
 
 	nInPackLen = pClientInfo->total_length - sizeof(TrackerHeader);
-    appender_filename_len = nInPackLen - FDFS_GROUP_NAME_MAX_LEN;
-	if ((nInPackLen < FDFS_GROUP_NAME_MAX_LEN +
-            FDFS_LOGIC_FILE_PATH_LEN + FDFS_FILENAME_BASE64_LENGTH +
+    appender_filename_len = nInPackLen;
+	if ((nInPackLen < FDFS_LOGIC_FILE_PATH_LEN + FDFS_FILENAME_BASE64_LENGTH +
             FDFS_FILE_EXT_NAME_MAX_LEN + 1)
 		|| (appender_filename_len >= sizeof(appender_filename)))
 	{
@@ -4955,19 +4952,6 @@ static int storage_server_regenerate_appender_filename(struct fast_task_info *pT
 	}
 
 	p = pTask->data + sizeof(TrackerHeader);
-	memcpy(group_name, p, FDFS_GROUP_NAME_MAX_LEN);
-	*(group_name + FDFS_GROUP_NAME_MAX_LEN) = '\0';
-	if (strcmp(group_name, g_group_name) != 0)
-	{
-		logError("file: "__FILE__", line: %d, "
-			"client ip:%s, group_name: %s "
-			"not correct, should be: %s",
-			__LINE__, pTask->client_ip,
-			group_name, g_group_name);
-		return EINVAL;
-	}
-
-    p += FDFS_GROUP_NAME_MAX_LEN;
 	memcpy(appender_filename, p, appender_filename_len);
 	*(appender_filename + appender_filename_len) = '\0';
 

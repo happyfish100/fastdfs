@@ -2397,9 +2397,6 @@ int storage_regenerate_appender_filename(ConnectionInfo *pTrackerServer,
 	pHeader = (TrackerHeader *)out_buff;
 	p = out_buff + sizeof(TrackerHeader);
 
-	snprintf(p, sizeof(out_buff) - sizeof(TrackerHeader),
-            "%s", group_name);
-    p += FDFS_GROUP_NAME_MAX_LEN;
 	memcpy(p, appender_filename, appender_filename_len);
 	p += appender_filename_len;
 
