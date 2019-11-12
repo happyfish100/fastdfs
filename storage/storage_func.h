@@ -39,6 +39,10 @@ int storage_set_tracker_client_ips(ConnectionInfo *conn,
 
 int storage_check_and_make_data_path();
 
+int storage_logic_to_local_full_filename(const char *logic_filename,
+        const int logic_filename_len, int *store_path_index,
+        char *full_filename, const int filename_size);
+
 #define STORAGE_CHOWN(path, current_uid, current_gid) \
 	if (!(g_run_by_gid == current_gid && g_run_by_uid == current_uid)) \
 	{ \

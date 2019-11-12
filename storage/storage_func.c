@@ -2180,6 +2180,29 @@ int storage_set_tracker_client_ips(ConnectionInfo *conn,
     return 0;
 }
 
+int storage_logic_to_local_full_filename(const char *logic_filename,
+        const int logic_filename_len, int *store_path_index,
+        char *full_filename, const int filename_size)
+{
+    int result;
+    int filename_len;
+	char true_filename[128];
+
+    filename_len = logic_filename_len;
+	if ((result=storage_split_filename_ex(logic_filename,
+		&filename_len, true_filename, store_path_index)) != 0)
+	{
+		return result;
+	}
+	if ((result=fdfs_check_data_filename(true_filename, filename_len)) != 0)
+	{
+		return result;
+	}
+
+	snprintf(full_filename, filename_size, "%s/data/%s",
+            g_fdfs_store_paths.paths[*store_path_index], true_filename);
+    return 0;
+}
 
 /*
 int write_serialized(int fd, const char *buff, size_t count, const bool bSync)

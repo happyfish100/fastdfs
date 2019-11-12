@@ -105,8 +105,8 @@ static int storage_sync_copy_file(ConnectionInfo *pStorageServer, \
 	int result;
 	bool need_sync_file;
 
-	if ((result=trunk_file_stat(pRecord->store_path_index, \
-		pRecord->true_filename, pRecord->true_filename_len, \
+	if ((result=trunk_file_stat(pRecord->store_path_index,
+		pRecord->true_filename, pRecord->true_filename_len,
 		&stat_buf, &trunkInfo, &trunkHeader)) != 0)
 	{
 		if (result == ENOENT)
@@ -138,7 +138,7 @@ static int storage_sync_copy_file(ConnectionInfo *pStorageServer, \
 	{
 		FDFSFileInfo file_info;
 		result = storage_query_file_info_ex(NULL, \
-				pStorageServer,  g_group_name, \
+				pStorageServer, g_group_name, \
 				pRecord->filename, &file_info, true);
 		if (result == 0)
 		{
@@ -312,11 +312,11 @@ static int storage_sync_modify_file(ConnectionInfo *pStorageServer, \
 	StorageBinLogReader *pReader, StorageBinLogRecord *pRecord, \
 	const char cmd)
 {
-#define FIELD_COUNT  3
+#define SYNC_MODIFY_FIELD_COUNT  3
 	TrackerHeader *pHeader;
 	char *p;
 	char *pBuff;
-	char *fields[FIELD_COUNT];
+	char *fields[SYNC_MODIFY_FIELD_COUNT];
 	char full_filename[MAX_PATH_SIZE];
 	char out_buff[sizeof(TrackerHeader)+FDFS_GROUP_NAME_MAX_LEN+256];
 	char in_buff[1];
@@ -328,8 +328,8 @@ static int storage_sync_modify_file(ConnectionInfo *pStorageServer, \
 	int result;
 	int count;
 
-	if ((count=splitEx(pRecord->filename, ' ', fields, FIELD_COUNT)) \
-			!= FIELD_COUNT)
+	if ((count=splitEx(pRecord->filename, ' ', fields, SYNC_MODIFY_FIELD_COUNT))
+			!= SYNC_MODIFY_FIELD_COUNT)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"the format of binlog not correct, filename: %s", \
@@ -483,11 +483,11 @@ filename bytes : filename
 static int storage_sync_truncate_file(ConnectionInfo *pStorageServer, \
 	StorageBinLogReader *pReader, StorageBinLogRecord *pRecord)
 {
-#define FIELD_COUNT  3
+#define SYNC_TRUNCATE_FIELD_COUNT  3
 	TrackerHeader *pHeader;
 	char *p;
 	char *pBuff;
-	char *fields[FIELD_COUNT];
+	char *fields[SYNC_TRUNCATE_FIELD_COUNT];
 	char full_filename[MAX_PATH_SIZE];
 	char out_buff[sizeof(TrackerHeader)+FDFS_GROUP_NAME_MAX_LEN+256];
 	char in_buff[1];
@@ -498,8 +498,8 @@ static int storage_sync_truncate_file(ConnectionInfo *pStorageServer, \
 	int result;
 	int count;
 
-	if ((count=splitEx(pRecord->filename, ' ', fields, FIELD_COUNT)) \
-			!= FIELD_COUNT)
+	if ((count=splitEx(pRecord->filename, ' ', fields,
+                    SYNC_TRUNCATE_FIELD_COUNT)) != SYNC_TRUNCATE_FIELD_COUNT)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"the format of binlog not correct, filename: %s", \
@@ -968,6 +968,123 @@ static int storage_sync_link_file(ConnectionInfo *pStorageServer, \
 	return result;
 }
 
+/**
+8 bytes: dest filename length
+8 bytes: source filename length
+4 bytes: source op timestamp
+FDFS_GROUP_NAME_MAX_LEN bytes: group_name
+dest filename length: dest filename
+source filename length: source filename
+**/
+static int storage_sync_rename_file(ConnectionInfo *pStorageServer,
+		StorageBinLogReader *pReader, StorageBinLogRecord *pRecord)
+{
+	TrackerHeader *pHeader;
+	int result;
+	char out_buff[sizeof(TrackerHeader) + 2 * FDFS_PROTO_PKG_LEN_SIZE +
+			4 + FDFS_GROUP_NAME_MAX_LEN + 256];
+	char in_buff[1];
+	int out_body_len;
+	int64_t in_bytes;
+	char *pBuff;
+	char full_filename[MAX_PATH_SIZE];
+	struct stat stat_buf;
+
+    if (pRecord->op_type == STORAGE_OP_TYPE_REPLICA_RENAME_FILE)
+    {
+        return storage_sync_copy_file(pStorageServer,
+                pReader, pRecord,
+                STORAGE_PROTO_CMD_SYNC_CREATE_FILE);
+    }
+
+	snprintf(full_filename, sizeof(full_filename), "%s/data/%s",
+            g_fdfs_store_paths.paths[pRecord->store_path_index],
+            pRecord->true_filename);
+	if (lstat(full_filename, &stat_buf) != 0)
+	{
+		if (errno == ENOENT)
+		{
+			logWarning("file: "__FILE__", line: %d, "
+				"sync file rename, file: %s not exists, "
+				"maybe deleted later?", __LINE__, full_filename);
+
+			return 0;
+		}
+		else
+		{
+			result = errno != 0 ? errno : EPERM;
+			logError("file: "__FILE__", line: %d, "
+				"call stat fail, file: %s, "
+				"error no: %d, error info: %s",
+				__LINE__, full_filename,
+				result, STRERROR(result));
+			return result;
+		}
+	}
+
+	pHeader = (TrackerHeader *)out_buff;
+	memset(out_buff, 0, sizeof(out_buff));
+	long2buff(pRecord->filename_len, out_buff + sizeof(TrackerHeader));
+	long2buff(pRecord->src_filename_len, out_buff + sizeof(TrackerHeader) +
+			FDFS_PROTO_PKG_LEN_SIZE);
+	int2buff(pRecord->timestamp, out_buff + sizeof(TrackerHeader) +
+			2 * FDFS_PROTO_PKG_LEN_SIZE);
+	sprintf(out_buff + sizeof(TrackerHeader) + 2 * FDFS_PROTO_PKG_LEN_SIZE
+		 + 4, "%s", g_group_name);
+	memcpy(out_buff + sizeof(TrackerHeader) + 2 * FDFS_PROTO_PKG_LEN_SIZE
+		+ 4 + FDFS_GROUP_NAME_MAX_LEN,
+		pRecord->filename, pRecord->filename_len);
+	memcpy(out_buff + sizeof(TrackerHeader) + 2 * FDFS_PROTO_PKG_LEN_SIZE
+		+ 4 + FDFS_GROUP_NAME_MAX_LEN + pRecord->filename_len,
+		pRecord->src_filename, pRecord->src_filename_len);
+
+	out_body_len = 2 * FDFS_PROTO_PKG_LEN_SIZE + 4 +
+		FDFS_GROUP_NAME_MAX_LEN + pRecord->filename_len +
+		pRecord->src_filename_len;
+	long2buff(out_body_len, pHeader->pkg_len);
+	pHeader->cmd = STORAGE_PROTO_CMD_SYNC_RENAME_FILE;
+
+	if ((result=tcpsenddata_nb(pStorageServer->sock, out_buff,
+		sizeof(TrackerHeader) + out_body_len,
+		g_fdfs_network_timeout)) != 0)
+	{
+		logError("FILE: "__FILE__", line: %d, "
+			"send data to storage server %s:%d fail, "
+			"errno: %d, error info: %s",
+			__LINE__, pStorageServer->ip_addr,
+			pStorageServer->port, result, STRERROR(result));
+		return result;
+	}
+
+	pBuff = in_buff;
+	result = fdfs_recv_response(pStorageServer, &pBuff, 0, &in_bytes);
+    if (result != 0)
+    {
+        if (result == ENOENT)
+        {
+            return storage_sync_copy_file(pStorageServer,
+                    pReader, pRecord,
+                    STORAGE_PROTO_CMD_SYNC_CREATE_FILE);
+        }
+        else if (result == EEXIST)
+        {
+			logDebug("file: "__FILE__", line: %d, "
+				"storage server ip: %s:%d, data file: %s "
+				"already exists", __LINE__, pStorageServer->ip_addr,
+				pStorageServer->port, pRecord->filename);
+            return 0;
+        }
+        else
+        {
+            logError("file: "__FILE__", line: %d, "
+                    "fdfs_recv_response fail, result: %d",
+                    __LINE__, result);
+        }
+    }
+	
+	return result;
+}
+
 #define STARAGE_CHECK_IF_NEED_SYNC_OLD(pReader, pRecord) \
 	if ((!pReader->need_sync_old) || pReader->sync_old_done || \
 		(pRecord->timestamp > pReader->until_timestamp)) \
@@ -1022,6 +1139,10 @@ static int storage_sync_data(StorageBinLogReader *pReader, \
 			result = storage_sync_truncate_file(pStorageServer, \
 					pReader, pRecord);
 			break;
+		case STORAGE_OP_TYPE_SOURCE_RENAME_FILE:
+			result = storage_sync_rename_file(pStorageServer,
+					pReader, pRecord);
+			break;
 		case STORAGE_OP_TYPE_SOURCE_CREATE_LINK:
 			result = storage_sync_link_file(pStorageServer, \
 					pRecord);
@@ -1047,6 +1168,11 @@ static int storage_sync_data(StorageBinLogReader *pReader, \
 			STARAGE_CHECK_IF_NEED_SYNC_OLD(pReader, pRecord)
 			result = storage_sync_link_file(pStorageServer, \
 					pRecord);
+			break;
+        case STORAGE_OP_TYPE_REPLICA_RENAME_FILE:
+			STARAGE_CHECK_IF_NEED_SYNC_OLD(pReader, pRecord)
+			result = storage_sync_rename_file(pStorageServer,
+					pReader, pRecord);
 			break;
 		case STORAGE_OP_TYPE_REPLICA_APPEND_FILE:
 			return 0;
@@ -2560,8 +2686,10 @@ int storage_binlog_read(StorageBinLogReader *pReader, \
 
 	memcpy(pRecord->filename, cols[2], pRecord->filename_len);
 	*(pRecord->filename + pRecord->filename_len) = '\0';
-	if (pRecord->op_type == STORAGE_OP_TYPE_SOURCE_CREATE_LINK || \
-	    pRecord->op_type == STORAGE_OP_TYPE_REPLICA_CREATE_LINK)
+	if (pRecord->op_type == STORAGE_OP_TYPE_SOURCE_CREATE_LINK  ||
+	    pRecord->op_type == STORAGE_OP_TYPE_REPLICA_CREATE_LINK ||
+        pRecord->op_type == STORAGE_OP_TYPE_SOURCE_RENAME_FILE  ||
+	    pRecord->op_type == STORAGE_OP_TYPE_REPLICA_RENAME_FILE)
 	{
 		char *p;
 
@@ -2573,14 +2701,14 @@ int storage_binlog_read(StorageBinLogReader *pReader, \
 		}
 		else
 		{
-			pRecord->src_filename_len = pRecord->filename_len - \
+			pRecord->src_filename_len = pRecord->filename_len -
 						(p - pRecord->filename) - 1;
 			pRecord->filename_len = p - pRecord->filename;
 			*p = '\0';
 
-			memcpy(pRecord->src_filename, p + 1, \
+			memcpy(pRecord->src_filename, p + 1,
 				pRecord->src_filename_len);
-			*(pRecord->src_filename + \
+			*(pRecord->src_filename +
 				pRecord->src_filename_len) = '\0';
 		}
 	}
@@ -2591,8 +2719,8 @@ int storage_binlog_read(StorageBinLogReader *pReader, \
 	}
 
 	pRecord->true_filename_len = pRecord->filename_len;
-	if ((result=storage_split_filename_ex(pRecord->filename, \
-			&pRecord->true_filename_len, pRecord->true_filename, \
+	if ((result=storage_split_filename_ex(pRecord->filename,
+			&pRecord->true_filename_len, pRecord->true_filename,
 			&pRecord->store_path_index)) != 0)
 	{
 		return result;
