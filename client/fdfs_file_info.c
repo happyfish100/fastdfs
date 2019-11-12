@@ -79,7 +79,7 @@ int main(int argc, char *argv[])
 			szDatetime, sizeof(szDatetime)));
 		printf("file size: %"PRId64"\n", \
 			file_info.file_size);
-		printf("file crc32: %u (0x%08X)\n", \
+		printf("file crc32: %d (0x%08X)\n", \
 			file_info.crc32, file_info.crc32);
 	}
 
