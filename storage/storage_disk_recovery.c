@@ -135,14 +135,14 @@ static int recovery_get_src_storage_server(ConnectionInfo *pSrcStorage)
 	while (g_continue_flag)
 	{
 		result = tracker_get_storage_max_status(&g_tracker_group,
-                g_group_name, g_tracker_client_ip.ips[0],
+                g_group_name, g_tracker_client_ip.ips[0].address,
                 g_my_server_id_str, &saved_storage_status);
 		if (result == ENOENT)
 		{
 			logWarning("file: "__FILE__", line: %d, " \
 				"current storage: %s does not exist " \
 				"in tracker server", __LINE__, \
-				g_tracker_client_ip.ips[0]);
+				g_tracker_client_ip.ips[0].address);
 			return ENOENT;
 		}
 
@@ -153,7 +153,7 @@ static int recovery_get_src_storage_server(ConnectionInfo *pSrcStorage)
 				logInfo("file: "__FILE__", line: %d, " \
 					"current storage: %s 's status is %d" \
 					", does not need recovery", __LINE__, \
-					g_tracker_client_ip.ips[0], \
+					g_tracker_client_ip.ips[0].address, \
 					saved_storage_status);
 				return ENOENT;
 			}
@@ -164,7 +164,8 @@ static int recovery_get_src_storage_server(ConnectionInfo *pSrcStorage)
 				logWarning("file: "__FILE__", line: %d, " \
 					"current storage: %s 's status is %d" \
 					", does not need recovery", __LINE__, \
-					g_tracker_client_ip.ips[0], saved_storage_status);
+					g_tracker_client_ip.ips[0].address,
+                    saved_storage_status);
 				return ENOENT;
 			}
 
@@ -861,7 +862,8 @@ int storage_disk_recovery_restore(const char *pBasePath)
 	while (g_continue_flag)
 	{
 		if (storage_report_storage_status(g_my_server_id_str, \
-			g_tracker_client_ip.ips[0], saved_storage_status) == 0)
+			g_tracker_client_ip.ips[0].address,
+            saved_storage_status) == 0)
 		{
 			break;
 		}
@@ -1147,7 +1149,8 @@ int storage_disk_recovery_start(const int store_path_index)
 	while (g_continue_flag)
 	{
 		if (storage_report_storage_status(g_my_server_id_str, \
-			g_tracker_client_ip.ips[0], FDFS_STORAGE_STATUS_RECOVERY) == 0)
+			g_tracker_client_ip.ips[0].address,
+            FDFS_STORAGE_STATUS_RECOVERY) == 0)
 		{
 			break;
 		}

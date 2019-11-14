@@ -2181,7 +2181,7 @@ int fdfs_get_file_info_ex(const char *group_name, const char *remote_filename, \
 			if (pStorageId != NULL)
 			{
 				strcpy(pFileInfo->source_ip_addr,
-					pStorageId->ip_addrs.ips[0]);
+					pStorageId->ip_addrs.ips[0].address);
 			}
 			else
 			{

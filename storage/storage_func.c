@@ -210,7 +210,7 @@ static int tracker_get_my_server_id()
 	struct in_addr ip_addr;
     char ip_str[256];
 
-	if (inet_pton(AF_INET, g_tracker_client_ip.ips[0], &ip_addr) == 1)
+	if (inet_pton(AF_INET, g_tracker_client_ip.ips[0].address, &ip_addr) == 1)
 	{
 		g_server_id_in_filename = ip_addr.s_addr;
 	}
@@ -218,7 +218,7 @@ static int tracker_get_my_server_id()
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"call inet_pton for ip: %s fail", \
-		__LINE__, g_tracker_client_ip.ips[0]);
+		__LINE__, g_tracker_client_ip.ips[0].address);
 		g_server_id_in_filename = INADDR_NONE;
 	}
 
@@ -234,7 +234,7 @@ static int tracker_get_my_server_id()
 		}
 
 		result = tracker_get_storage_id(pTrackerServer,
-			g_group_name, g_tracker_client_ip.ips[0],
+			g_group_name, g_tracker_client_ip.ips[0].address,
             g_my_server_id_str);
 		tracker_close_connection_ex(pTrackerServer, result != 0);
 		if (result != 0)
@@ -250,7 +250,7 @@ static int tracker_get_my_server_id()
 	else
 	{
 		snprintf(g_my_server_id_str, sizeof(g_my_server_id_str), "%s",
-			g_tracker_client_ip.ips[0]);
+			g_tracker_client_ip.ips[0].address);
 	}
 
     fdfs_multi_ips_to_string(&g_tracker_client_ip,
@@ -2141,7 +2141,7 @@ int storage_set_tracker_client_ips(ConnectionInfo *conn,
     for (i = 0; i < multi_ip.count; i++)
     {
         result = storage_insert_ip_addr_to_multi_ips(&g_tracker_client_ip,
-                multi_ip.ips[i], multi_ip.count);
+                multi_ip.ips[i].address, multi_ip.count);
         if (result == 0)
         {
             if ((result=fdfs_check_and_format_ips(&g_tracker_client_ip,
@@ -2152,12 +2152,12 @@ int storage_set_tracker_client_ips(ConnectionInfo *conn,
                         "my ip: %s not valid, error info: %s. "
                         "program exit!", __LINE__,
                         conn->ip_addr, conn->port,
-                        multi_ip.ips[i], error_info);
+                        multi_ip.ips[i].address, error_info);
 
                 return result;
             }
 
-            insert_into_local_host_ip(multi_ip.ips[i]);
+            insert_into_local_host_ip(multi_ip.ips[i].address);
         }
         else if (result != EEXIST)
         {
@@ -2170,7 +2170,7 @@ int storage_set_tracker_client_ips(ConnectionInfo *conn,
                     "my ip: %s not consistent with client ips: %s "
                     "of other tracker client. program exit!", __LINE__,
                     conn->ip_addr, conn->port,
-                    multi_ip.ips[i], ip_str);
+                    multi_ip.ips[i].address, ip_str);
 
             return result;
         }

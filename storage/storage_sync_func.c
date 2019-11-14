@@ -67,7 +67,8 @@ void storage_sync_connect_storage_server_ex(FDFSStorageBrief *pStorage,
     {
         ip_addrs.count = 1;
         ip_addrs.index = 0;
-        strcpy(ip_addrs.ips[0], pStorage->ip_addr);
+        ip_addrs.ips[0].type = fdfs_get_ip_type(pStorage->ip_addr);
+        strcpy(ip_addrs.ips[0].address, pStorage->ip_addr);
     }
 
     conn->sock = -1;
@@ -81,7 +82,7 @@ void storage_sync_connect_storage_server_ex(FDFSStorageBrief *pStorage,
     {
         for (i=0; i<ip_addrs.count; i++)
         {
-            strcpy(conn->ip_addr, ip_addrs.ips[i]);
+            strcpy(conn->ip_addr, ip_addrs.ips[i].address);
             conn->sock = socketCreateExAuto(conn->ip_addr,
                     g_fdfs_connect_timeout, O_NONBLOCK,
                     g_client_bind_addr ? g_bind_addr : NULL, &result);
@@ -148,7 +149,7 @@ void storage_sync_connect_storage_server_ex(FDFSStorageBrief *pStorage,
             logError("file: "__FILE__", line: %d, "
                     "connect to storage server %s:%d fail, "
                     "try count: %d, errno: %d, error info: %s",
-                    __LINE__, ip_addrs.ips[i], g_server_port, avg_fails,
+                    __LINE__, ip_addrs.ips[i].address, g_server_port, avg_fails,
                     conn_results[i], STRERROR(conn_results[i]));
         }
     }

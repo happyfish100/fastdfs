@@ -17,6 +17,12 @@
 #include "tracker_types.h"
 #include "fdfs_server_id_func.h"
 
+#define FDFS_IP_TYPE_UNKNOWN      0
+#define FDFS_IP_TYPE_PRIVATE_10   1
+#define FDFS_IP_TYPE_PRIVATE_172  2
+#define FDFS_IP_TYPE_PRIVATE_192  3
+#define FDFS_IP_TYPE_OUTER        4
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -123,6 +129,8 @@ static inline int fdfs_parse_multi_ips(char *ip_str, FDFSMultiIP *ip_addrs,
     return fdfs_parse_multi_ips_ex(ip_str, ip_addrs,
             error_info, error_size, resolve);
 }
+
+int fdfs_get_ip_type(const char* ip);
 
 int fdfs_check_server_ips(const TrackerServerInfo *pServer,
         char *error_info, const int error_size);

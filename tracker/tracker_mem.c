@@ -3448,9 +3448,9 @@ int tracker_mem_delete_storage(FDFSGroupInfo *pGroup, const char *id)
 		}
 	}
 
-    logDebug("file: "__FILE__", line: %d, " \
-            "delete storage server: %s:%d, group: %s", \
-            __LINE__, pStorageServer->ip_addrs.ips[0],
+    logDebug("file: "__FILE__", line: %d, "
+            "delete storage server: %s:%d, group: %s",
+            __LINE__, pStorageServer->ip_addrs.ips[0].address,
             pStorageServer->storage_port, pGroup->group_name);
 
 	tracker_mem_clear_storage_fields(pStorageServer);
@@ -3536,16 +3536,18 @@ int tracker_mem_storage_ip_changed(FDFSGroupInfo *pGroup, \
 	pthread_mutex_lock(&mem_thread_lock);
 
 	//exchange old and new storage server
-	snprintf(pOldStorageServer->id, sizeof(pOldStorageServer->id), \
+	snprintf(pOldStorageServer->id, sizeof(pOldStorageServer->id),
 		"%s", new_storage_ip);
-	snprintf(pOldStorageServer->ip_addrs.ips[0],
-		sizeof(pOldStorageServer->ip_addrs.ips[0]), "%s", new_storage_ip);
+	snprintf(pOldStorageServer->ip_addrs.ips[0].address,
+		sizeof(pOldStorageServer->ip_addrs.ips[0].address),
+        "%s", new_storage_ip);
 
-	snprintf(pNewStorageServer->id, sizeof(pNewStorageServer->id), \
+	snprintf(pNewStorageServer->id, sizeof(pNewStorageServer->id),
 		"%s", old_storage_ip);
     pNewStorageServer->ip_addrs.count = 1;
-	snprintf(pNewStorageServer->ip_addrs.ips[0],
-		sizeof(pNewStorageServer->ip_addrs.ips[0]), "%s", old_storage_ip);
+	snprintf(pNewStorageServer->ip_addrs.ips[0].address,
+		sizeof(pNewStorageServer->ip_addrs.ips[0].address),
+        "%s", old_storage_ip);
 	pNewStorageServer->status = FDFS_STORAGE_STATUS_IP_CHANGED;
 
 	pGroup->chg_count++;
@@ -3684,7 +3686,7 @@ static int _tracker_mem_add_storage(FDFSGroupInfo *pGroup,
     {
         multi_ip.count = 1;
         multi_ip.index = 0;
-        strcpy(multi_ip.ips[0], ip_addr);
+        strcpy(multi_ip.ips[0].address, ip_addr);
     }
 
 	if (id != NULL)

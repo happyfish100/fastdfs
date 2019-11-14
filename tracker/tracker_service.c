@@ -1054,7 +1054,7 @@ static int tracker_deal_server_get_storage_status(struct fast_task_info *pTask)
 	pDest = (FDFSStorageBrief *)(pTask->data + sizeof(TrackerHeader));
 	memset(pDest, 0, sizeof(FDFSStorageBrief));
 	strcpy(pDest->id, pStorage->id);
-	strcpy(pDest->ip_addr, pStorage->ip_addrs.ips[0]);
+	strcpy(pDest->ip_addr, pStorage->ip_addrs.ips[0].address);
 	pDest->status = pStorage->status;
 	int2buff(pGroup->storage_port, pDest->port);
 

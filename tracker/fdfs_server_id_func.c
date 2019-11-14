@@ -177,7 +177,7 @@ static int fdfs_init_ip_array(FDFSStorageIdMapArray *mapArray,
         {
             idMap->idInfo = idInfo;
             idMap->group_name = idInfo->group_name;
-            idMap->ip_addr = idInfo->ip_addrs.ips[i];
+            idMap->ip_addr = idInfo->ip_addrs.ips[i].address;
             idMap->port = idInfo->port;
             idMap++;
         }

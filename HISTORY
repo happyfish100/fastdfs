@@ -1,4 +1,7 @@
 
+Version 6.03  2019-11-14
+ * dual IPs support two different types of inner (intranet) IPs
+
 Version 6.02  2019-11-12
  * get_file_info calculate CRC32 for appender file type
  * disk recovery download file to local temp file then rename it

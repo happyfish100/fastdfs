@@ -76,9 +76,9 @@ static int storage_report_ip_changed(ConnectionInfo *pTrackerServer)
 	pHeader->cmd = TRACKER_PROTO_CMD_STORAGE_REPORT_IP_CHANGED;
 	strcpy(out_buff + sizeof(TrackerHeader), g_group_name);
 	strcpy(out_buff + sizeof(TrackerHeader) + FDFS_GROUP_NAME_MAX_LEN, \
-		g_last_storage_ip.ips[0]);
+		g_last_storage_ip.ips[0].address);
 	strcpy(out_buff + sizeof(TrackerHeader) + FDFS_GROUP_NAME_MAX_LEN + \
-		IP_ADDRESS_SIZE, g_tracker_client_ip.ips[0]);
+		IP_ADDRESS_SIZE, g_tracker_client_ip.ips[0].address);
 
 	if((result=tcpsenddata_nb(pTrackerServer->sock, out_buff, \
 		sizeof(out_buff), g_fdfs_network_timeout)) != 0)
@@ -208,15 +208,15 @@ static int storage_report_storage_ip_addr()
 
 	logDebug("file: "__FILE__", line: %d, "
 		"last my ip is %s, current my ip is %s",
-		__LINE__, g_last_storage_ip.ips[0],
-        g_tracker_client_ip.ips[0]);
+		__LINE__, g_last_storage_ip.ips[0].address,
+        g_tracker_client_ip.ips[0].address);
 
 	if (g_last_storage_ip.count == 0)
 	{
 		return storage_write_to_sync_ini_file();
 	}
-	else if (strcmp(g_tracker_client_ip.ips[0],
-                g_last_storage_ip.ips[0]) == 0)
+	else if (strcmp(g_tracker_client_ip.ips[0].address,
+                g_last_storage_ip.ips[0].address) == 0)
 	{
 		return 0;
 	}

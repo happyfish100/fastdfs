@@ -141,13 +141,14 @@ int storage_insert_ip_addr_to_multi_ips(FDFSMultiIP *multi_ip,
     if (multi_ip->count == 0)
     {
         multi_ip->count = 1;
-        strcpy(multi_ip->ips[0], ip_addr);
+        multi_ip->ips[0].type = fdfs_get_ip_type(ip_addr);
+        strcpy(multi_ip->ips[0].address, ip_addr);
         return 0;
     }
 
     for (i = 0; i < multi_ip->count; i++)
     {
-        if (strcmp(multi_ip->ips[i], ip_addr) == 0)
+        if (strcmp(multi_ip->ips[i].address, ip_addr) == 0)
         {
             return EEXIST;
         }
@@ -158,7 +159,8 @@ int storage_insert_ip_addr_to_multi_ips(FDFSMultiIP *multi_ip,
         return ENOSPC;
     }
 
-    strcpy(multi_ip->ips[i], ip_addr);
+    multi_ip->ips[i].type = fdfs_get_ip_type(ip_addr);
+    strcpy(multi_ip->ips[i].address, ip_addr);
     multi_ip->count++;
     return 0;
 }

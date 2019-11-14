@@ -276,15 +276,21 @@ typedef struct
 	char sz_last_heart_beat_time[8];
 } FDFSStorageStatBuff;
 
+typedef struct StructFDFSIPInfo
+{
+    int type;   //ip type
+	char address[IP_ADDRESS_SIZE];
+} FDFSIPInfo;
+
 typedef struct StructFDFSMultiIP
 {
     int count;
     int index;
-	char ips[FDFS_MULTI_IP_MAX_COUNT][IP_ADDRESS_SIZE];
+	FDFSIPInfo ips[FDFS_MULTI_IP_MAX_COUNT];
 } FDFSMultiIP;
 
 #define FDFS_CURRENT_IP_ADDR(pServer) \
-    (pServer)->ip_addrs.ips[(pServer)->ip_addrs.index]
+    (pServer)->ip_addrs.ips[(pServer)->ip_addrs.index].address
 
 typedef struct StructFDFSStorageDetail
 {
