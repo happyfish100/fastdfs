@@ -651,8 +651,8 @@ const char *fdfs_get_ipaddr_by_peer_ip(const FDFSMultiIP *ip_addrs,
     }
 
     ip_type = fdfs_get_ip_type(client_ip);
-    index = ip_addrs->ips[FDFS_MULTI_IP_INDEX_INNER].type == ip_type ?
-        FDFS_MULTI_IP_INDEX_INNER : FDFS_MULTI_IP_INDEX_OUTER;
+    index = ip_addrs->ips[FDFS_MULTI_IP_INDEX_OUTER].type == ip_type ?
+        FDFS_MULTI_IP_INDEX_OUTER : FDFS_MULTI_IP_INDEX_INNER;
     return ip_addrs->ips[index].address;
 }
 
