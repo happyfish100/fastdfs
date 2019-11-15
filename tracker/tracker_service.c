@@ -1605,17 +1605,18 @@ static int tracker_deal_storage_join(struct fast_task_info *pTask)
 		return result;
 	}
 
-	pJoinBodyResp = (TrackerStorageJoinBodyResp *)(pTask->data + \
+	pJoinBodyResp = (TrackerStorageJoinBodyResp *)(pTask->data +
 				sizeof(TrackerHeader));
 	memset(pJoinBodyResp, 0, sizeof(TrackerStorageJoinBodyResp));
 
+    pJoinBodyResp->my_status = pClientInfo->pStorage->status;
 	if (pClientInfo->pStorage->psync_src_server != NULL)
 	{
-		strcpy(pJoinBodyResp->src_id, \
+		strcpy(pJoinBodyResp->src_id,
 			pClientInfo->pStorage->psync_src_server->id);
 	}
 
-	pTask->length = sizeof(TrackerHeader) + \
+	pTask->length = sizeof(TrackerHeader) +
 			sizeof(TrackerStorageJoinBodyResp);
 	return 0;
 }

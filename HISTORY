@@ -5,6 +5,8 @@ Version 6.03  2019-11-15
    to that of tracker leader when the storage server found 
    it's status inconsistence
 
+  NOTE: the tracker and storage server must upgrade together
+
 Version 6.02  2019-11-12
  * get_file_info calculate CRC32 for appender file type
  * disk recovery download file to local temp file then rename it
