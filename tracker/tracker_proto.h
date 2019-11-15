@@ -35,6 +35,7 @@
 #define TRACKER_PROTO_CMD_STORAGE_GET_STATUS	    71  //get storage status from tracker
 #define TRACKER_PROTO_CMD_STORAGE_GET_SERVER_ID	    70  //get storage server id from tracker
 #define TRACKER_PROTO_CMD_STORAGE_GET_MY_IP	        60  //get storage server ip from tracker
+#define TRACKER_PROTO_CMD_STORAGE_CHANGE_STATUS     59  //current storage can change it's status
 #define TRACKER_PROTO_CMD_STORAGE_FETCH_STORAGE_IDS 69  //get all storage ids from tracker
 #define TRACKER_PROTO_CMD_STORAGE_GET_GROUP_NAME   109  //get storage group name from tracker
 
@@ -146,6 +147,7 @@ typedef struct
 
 typedef struct
 {
+    unsigned char my_status;   //storage server status
 	char src_id[FDFS_STORAGE_ID_MAX_SIZE];  //src storage id
 } TrackerStorageJoinBodyResp;
 

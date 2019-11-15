@@ -1121,6 +1121,7 @@ static int init_my_result_per_tracker()
 	for (pTrackerServer=g_tracker_group.servers; pTrackerServer<pServerEnd;
 		pTrackerServer++)
 	{
+        pReportStatus->my_status = -1;
         pReportStatus->my_result = -1;
         pReportStatus->src_storage_result = -1;
         pReportStatus++;

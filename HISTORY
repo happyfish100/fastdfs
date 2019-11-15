@@ -1,6 +1,9 @@
 
-Version 6.03  2019-11-14
+Version 6.03  2019-11-15
  * dual IPs support two different types of inner (intranet) IPs
+ * storage server request tracker server to change it's status
+   to that of tracker leader when the storage server found 
+   it's status inconsistence
 
 Version 6.02  2019-11-12
  * get_file_info calculate CRC32 for appender file type

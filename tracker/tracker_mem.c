@@ -4883,14 +4883,14 @@ int tracker_mem_sync_storages(FDFSGroupInfo *pGroup, \
 				continue;
 			}
 
-			memcpy(target_storage.id, pServer->id, \
+			memcpy(target_storage.id, pServer->id,
 				FDFS_STORAGE_ID_MAX_SIZE);
 			pTargetStorage = &target_storage;
-			if ((ppFound=(FDFSStorageDetail **)bsearch( \
-				&pTargetStorage, \
-				pGroup->sorted_servers, \
-				pGroup->count, \
-				sizeof(FDFSStorageDetail *), \
+			if ((ppFound=(FDFSStorageDetail **)bsearch(
+				&pTargetStorage,
+				pGroup->sorted_servers,
+				pGroup->count,
+				sizeof(FDFSStorageDetail *),
 				tracker_mem_cmp_by_storage_id)) != NULL)
 			{
 				if ((*ppFound)->status == pServer->status \
@@ -4948,7 +4948,7 @@ int tracker_mem_sync_storages(FDFSGroupInfo *pGroup, \
 					&pStorageServer, pServer->id,
 					pServer->ip_addr, true, false,
 					&bInserted);
-				if (result != 0)
+				if (result == 0 && bInserted)
 				{
 					pStorageServer->status = pServer->status;
 				}

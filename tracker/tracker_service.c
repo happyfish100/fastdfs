@@ -1382,6 +1382,59 @@ static int tracker_deal_storage_report_status(struct fast_task_info *pTask)
 	return tracker_mem_sync_storages(pGroup, briefServers, 1);
 }
 
+static int tracker_deal_storage_change_status(struct fast_task_info *pTask)
+{
+	TrackerClientInfo *pClientInfo;
+    int old_status;
+    int new_status;
+
+	if (pTask->length - sizeof(TrackerHeader) != 1)
+	{
+		logError("file: "__FILE__", line: %d, "
+			"cmd=%d, client ip addr: %s, "
+			"body size "PKG_LEN_PRINTF_FORMAT" "
+			"is not correct", __LINE__,
+			TRACKER_PROTO_CMD_STORAGE_CHANGE_STATUS,
+			pTask->client_ip, pTask->length -
+			(int)sizeof(TrackerHeader));
+		pTask->length = sizeof(TrackerHeader);
+		return EINVAL;
+	}
+
+	pClientInfo = (TrackerClientInfo *)pTask->arg;
+    old_status = pClientInfo->pStorage->status;
+	pTask->length = sizeof(TrackerHeader);
+
+    new_status = *(pTask->data + sizeof(TrackerHeader));
+    if ((old_status == new_status) ||
+            (FDFS_IS_AVAILABLE_STATUS(old_status) &&
+             FDFS_IS_AVAILABLE_STATUS(new_status)))
+    {
+        logInfo("file: "__FILE__", line: %d, "
+                "client ip: %s, do NOT change storage status, "
+                "old status: %d (%s), new status: %d (%s)",
+                __LINE__, pTask->client_ip,
+                old_status, get_storage_status_caption(old_status),
+                new_status, get_storage_status_caption(new_status));
+        return 0;
+    }
+    if (new_status == FDFS_STORAGE_STATUS_ONLINE  ||
+            new_status == FDFS_STORAGE_STATUS_ACTIVE)
+    {
+        new_status = FDFS_STORAGE_STATUS_OFFLINE;
+    }
+
+    pClientInfo->pStorage->status = new_status;
+	tracker_save_storages();
+
+    logInfo("file: "__FILE__", line: %d, "
+            "client ip: %s, set storage status from %d (%s) "
+            "to %d (%s)", __LINE__, pTask->client_ip,
+            old_status, get_storage_status_caption(old_status),
+            new_status, get_storage_status_caption(new_status));
+	return 0;
+}
+
 static int tracker_deal_storage_join(struct fast_task_info *pTask)
 {
 	TrackerStorageJoinBodyResp *pJoinBodyResp;
@@ -3862,6 +3915,10 @@ int tracker_deal_task(struct fast_task_info *pTask)
 			break;
 		case TRACKER_PROTO_CMD_STORAGE_REPORT_STATUS:
 			result = tracker_deal_storage_report_status(pTask);
+			break;
+		case TRACKER_PROTO_CMD_STORAGE_CHANGE_STATUS:
+			TRACKER_CHECK_LOGINED(pTask)
+			result = tracker_deal_storage_change_status(pTask);
 			break;
 		case TRACKER_PROTO_CMD_STORAGE_GET_STATUS:
 			result = tracker_deal_server_get_storage_status(pTask);

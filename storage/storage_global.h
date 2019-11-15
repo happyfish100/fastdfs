@@ -59,9 +59,11 @@ typedef struct
 
 typedef struct
 {
-    signed char my_result;
-    signed char src_storage_result;
+    signed char my_status;   //my status from tracker server
+    signed char my_result;   //my report result
+    signed char src_storage_result; //src storage report result
     bool get_my_ip_done;
+    bool report_my_status;
 } StorageStatusPerTracker;
 
 extern volatile bool g_continue_flag;

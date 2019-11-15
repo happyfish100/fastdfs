@@ -1429,8 +1429,8 @@ int tracker_set_trunk_server(TrackerServerGroup *pTrackerGroup, \
 	return result;
 }
 
-int tracker_get_storage_status(ConnectionInfo *pTrackerServer, \
-		const char *group_name, const char *ip_addr, \
+int tracker_get_storage_status(ConnectionInfo *pTrackerServer,
+		const char *group_name, const char *ip_addr,
 		FDFSStorageBrief *pDestBuff)
 {
 	TrackerHeader *pHeader;

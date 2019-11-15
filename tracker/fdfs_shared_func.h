@@ -23,6 +23,11 @@
 #define FDFS_IP_TYPE_PRIVATE_192  3
 #define FDFS_IP_TYPE_OUTER        4
 
+#define FDFS_IS_AVAILABLE_STATUS(status) \
+    (status == FDFS_STORAGE_STATUS_OFFLINE || \
+     status == FDFS_STORAGE_STATUS_ONLINE  || \
+     status == FDFS_STORAGE_STATUS_ACTIVE)
+
 #ifdef __cplusplus
 extern "C" {
 #endif
