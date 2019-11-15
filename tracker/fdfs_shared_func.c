@@ -151,7 +151,7 @@ void fdfs_server_sock_reset(TrackerServerInfo *pServerInfo)
     }
 }
 
-int fdfs_get_tracker_leader_index_ex(TrackerServerGroup *pServerGroup, \
+int fdfs_get_tracker_leader_index_ex(TrackerServerGroup *pServerGroup,
 		const char *leaderIp, const int leaderPort)
 {
 	TrackerServerInfo *pServer;
@@ -174,7 +174,7 @@ int fdfs_get_tracker_leader_index_ex(TrackerServerGroup *pServerGroup, \
 	return -1;
 }
 
-int fdfs_parse_storage_reserved_space(IniContext *pIniContext, \
+int fdfs_parse_storage_reserved_space(IniContext *pIniContext,
 		FDFSStorageReservedSpace *pStorageReservedSpace)
 {
 	int result;

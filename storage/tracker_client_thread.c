@@ -1922,9 +1922,10 @@ int tracker_report_join(ConnectionInfo *pTrackerServer, \
 	pTargetServer = &targetServer;
 
 	strcpy(targetServer.server.id, g_my_server_id_str);
-	ppFound = (FDFSStorageServer **)bsearch(&pTargetServer, \
-			g_sorted_storages, g_storage_count, \
-			sizeof(FDFSStorageServer *), storage_cmp_by_server_id);
+	ppFound = (FDFSStorageServer **)bsearch(&pTargetServer,
+			g_sorted_storages, g_storage_count,
+			sizeof(FDFSStorageServer *),
+            storage_cmp_by_server_id);
 	if (ppFound != NULL)
 	{
 		pReqBody->status = (*ppFound)->server.status;
