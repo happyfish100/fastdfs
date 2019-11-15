@@ -59,8 +59,8 @@ typedef struct
 
 typedef struct
 {
-    signed char my_status;
-    signed char src_storage_status;
+    signed char my_result;
+    signed char src_storage_result;
     bool get_my_ip_done;
 } StorageStatusPerTracker;
 

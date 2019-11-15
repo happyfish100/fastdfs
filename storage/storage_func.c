@@ -1097,7 +1097,7 @@ static int storage_check_tracker_ipaddr(const char *filename)
     return 0;
 }
 
-static int init_my_status_per_tracker()
+static int init_my_result_per_tracker()
 {
     int bytes;
 	TrackerServerInfo *pTrackerServer;
@@ -1121,8 +1121,8 @@ static int init_my_status_per_tracker()
 	for (pTrackerServer=g_tracker_group.servers; pTrackerServer<pServerEnd;
 		pTrackerServer++)
 	{
-        pReportStatus->my_status = -1;
-        pReportStatus->src_storage_status = -1;
+        pReportStatus->my_result = -1;
+        pReportStatus->src_storage_result = -1;
         pReportStatus++;
     }
 
@@ -1947,7 +1947,7 @@ int storage_func_init(const char *filename, \
 		return result;
 	}
 
-    if ((result=init_my_status_per_tracker()) != 0)
+    if ((result=init_my_result_per_tracker()) != 0)
 	{
 		return result;
 	}
