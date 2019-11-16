@@ -707,7 +707,7 @@ int fdfs_check_and_format_ips(FDFSMultiIP *ip_addrs,
 void fdfs_set_multi_ip_index(FDFSMultiIP *multi_ip, const char *target_ip)
 {
     int i;
-    if (multi_ip->count == 1)
+    if (multi_ip->count <= 1)
     {
         return;
     }
@@ -717,6 +717,26 @@ void fdfs_set_multi_ip_index(FDFSMultiIP *multi_ip, const char *target_ip)
         if (strcmp(multi_ip->ips[i].address, target_ip) == 0)
         {
             multi_ip->index = i;
+            break;
+        }
+    }
+}
+
+void fdfs_set_server_info_index(TrackerServerInfo *pServer,
+        const char *target_ip, const int target_port)
+{
+    int i;
+    if (pServer->count <= 1)
+    {
+        return;
+    }
+
+    for (i=0; i<pServer->count; i++)
+    {
+        if (FC_CONNECTION_SERVER_EQUAL(pServer->connections[i],
+                    target_ip, target_port))
+        {
+            pServer->index = i;
             break;
         }
     }

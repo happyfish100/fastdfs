@@ -133,6 +133,7 @@ int main(int argc, char *argv[])
 		{
 			if (fdfs_server_contain1(g_tracker_group.servers + i, &conn))
 			{
+                fdfs_set_server_info_index1(g_tracker_group.servers + i, &conn);
 				g_tracker_group.server_index = i;
 				break;
 			}

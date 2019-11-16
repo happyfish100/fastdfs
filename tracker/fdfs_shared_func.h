@@ -148,6 +148,16 @@ const char *fdfs_get_ipaddr_by_peer_ip(const FDFSMultiIP *ip_addrs,
 
 void fdfs_set_multi_ip_index(FDFSMultiIP *multi_ip, const char *target_ip);
 
+void fdfs_set_server_info_index(TrackerServerInfo *pServer,
+        const char *target_ip, const int target_port);
+
+static inline void fdfs_set_server_info_index1(TrackerServerInfo *pServer,
+        const ConnectionInfo *target)
+{
+    return fdfs_set_server_info_index(pServer,
+            target->ip_addr, target->port);
+}
+
 void fdfs_set_server_info(TrackerServerInfo *pServer,
         const char *ip_addr, const int port);
 
