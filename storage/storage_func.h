@@ -37,7 +37,7 @@ bool storage_id_is_myself(const char *storage_id);
 int storage_set_tracker_client_ips(ConnectionInfo *conn,
         const int tracker_index);
 
-int storage_check_and_make_data_path();
+int storage_check_and_make_global_data_path();
 
 int storage_logic_to_local_full_filename(const char *logic_filename,
         const int logic_filename_len, int *store_path_index,

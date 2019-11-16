@@ -107,7 +107,7 @@ int main(int argc, char *argv[])
 		return result;
 	}
 
-    if ((result=storage_check_and_make_data_path()) != 0)
+    if ((result=storage_check_and_make_global_data_path()) != 0)
     {
 		log_destroy();
         return result;

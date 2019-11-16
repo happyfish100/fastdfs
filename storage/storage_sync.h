@@ -42,12 +42,12 @@ typedef struct
 {
     struct fc_list_head link;
 	char storage_id[FDFS_STORAGE_ID_MAX_SIZE];
+	char mark_filename[MAX_PATH_SIZE];
 	bool need_sync_old;
 	bool sync_old_done;
 	bool last_file_exist;   //if the last file exist on the dest server
 	BinLogBuffer binlog_buff;
 	time_t until_timestamp;
-	int mark_fd;
 	int binlog_index;
 	int binlog_fd;
 	int64_t binlog_offset;
@@ -92,7 +92,7 @@ int storage_sync_thread_start(const FDFSStorageBrief *pStorage);
 int kill_storage_sync_threads();
 int fdfs_binlog_sync_func(void *args);
 
-char *get_mark_filename_by_reader(const void *pArg, char *full_filename);
+char *get_mark_filename_by_reader(StorageBinLogReader *pReader);
 int storage_unlink_mark_file(const char *storage_id);
 int storage_rename_mark_file(const char *old_ip_addr, const int old_port, \
 		const char *new_ip_addr, const int new_port);

@@ -5,6 +5,8 @@ Version 6.03  2019-11-16
    to that of tracker leader when the storage server found 
    it's status inconsistence
  * bugfix: fdfs_monitor fix get index of the specified tracker server
+ * storage server write to data_init_flag and mark file safely
+   (write to temp file then rename)
 
   NOTE: the tracker and storage server must upgrade together
 

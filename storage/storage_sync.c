@@ -1944,53 +1944,45 @@ int storage_open_readable_binlog(StorageBinLogReader *pReader, \
 	return 0;
 }
 
-static char *get_mark_filename_by_id_and_port(const char *storage_id, \
+static char *get_mark_filename_by_id_and_port(const char *storage_id,
 		const int port, char *full_filename, const int filename_size)
 {
 	if (g_use_storage_id)
 	{
-		snprintf(full_filename, filename_size, \
-			"%s/data/"SYNC_DIR_NAME"/%s%s", g_fdfs_base_path, \
+		snprintf(full_filename, filename_size,
+			"%s/data/"SYNC_DIR_NAME"/%s%s", g_fdfs_base_path,
 			storage_id, SYNC_MARK_FILE_EXT);
 	}
 	else
 	{
-		snprintf(full_filename, filename_size, \
-			"%s/data/"SYNC_DIR_NAME"/%s_%d%s", g_fdfs_base_path, \
+		snprintf(full_filename, filename_size,
+			"%s/data/"SYNC_DIR_NAME"/%s_%d%s", g_fdfs_base_path,
 			storage_id, port, SYNC_MARK_FILE_EXT);
 	}
 	return full_filename;
 }
 
-static char *get_mark_filename_by_ip_and_port(const char *ip_addr, \
+static char *get_mark_filename_by_ip_and_port(const char *ip_addr,
 		const int port, char *full_filename, const int filename_size)
 {
-	snprintf(full_filename, filename_size, \
-		"%s/data/"SYNC_DIR_NAME"/%s_%d%s", g_fdfs_base_path, \
+	snprintf(full_filename, filename_size,
+		"%s/data/"SYNC_DIR_NAME"/%s_%d%s", g_fdfs_base_path,
 		ip_addr, port, SYNC_MARK_FILE_EXT);
 	return full_filename;
 }
 
-char *get_mark_filename_by_reader(const void *pArg, char *full_filename)
+char *get_mark_filename_by_reader(StorageBinLogReader *pReader)
 {
-	const StorageBinLogReader *pReader;
-	static char buff[MAX_PATH_SIZE];
-
-	pReader = (const StorageBinLogReader *)pArg;
-	if (full_filename == NULL)
-	{
-		full_filename = buff;
-	}
-
-	return get_mark_filename_by_id_and_port(pReader->storage_id, \
-			g_server_port, full_filename, MAX_PATH_SIZE);
+	return get_mark_filename_by_id_and_port(pReader->storage_id,
+			g_server_port, pReader->mark_filename,
+            sizeof(pReader->mark_filename));
 }
 
-static char *get_mark_filename_by_id(const char *storage_id, \
+static char *get_mark_filename_by_id(const char *storage_id,
 		char *full_filename, const int filename_size)
 {
-	return get_mark_filename_by_id_and_port(storage_id, g_server_port, \
-				full_filename, filename_size);
+	return get_mark_filename_by_id_and_port(storage_id,
+            g_server_port, full_filename, filename_size);
 }
 
 int storage_report_storage_status(const char *storage_id, \
@@ -2199,7 +2191,6 @@ static int storage_reader_sync_init_req(StorageBinLogReader *pReader)
 
 int storage_reader_init(FDFSStorageBrief *pStorage, StorageBinLogReader *pReader)
 {
-	char full_filename[MAX_PATH_SIZE];
 	IniContext iniContext;
 	int result;
 	bool bFileExist;
@@ -2213,7 +2204,6 @@ int storage_reader_init(FDFSStorageBrief *pStorage, StorageBinLogReader *pReader
     pReader->scan_row_count = 0;
     pReader->sync_row_count = 0;
     pReader->last_file_exist = 0;
-	pReader->mark_fd = -1;
 	pReader->binlog_fd = -1;
 
 	pReader->binlog_buff.buffer = (char *)malloc( \
@@ -2237,7 +2227,7 @@ int storage_reader_init(FDFSStorageBrief *pStorage, StorageBinLogReader *pReader
 	{
 		strcpy(pReader->storage_id, pStorage->id);
 	}
-	get_mark_filename_by_reader(pReader, full_filename);
+	get_mark_filename_by_reader(pReader);
 
 	if (pStorage == NULL)
 	{
@@ -2249,22 +2239,23 @@ int storage_reader_init(FDFSStorageBrief *pStorage, StorageBinLogReader *pReader
 	}
 	else
 	{
-		bFileExist = fileExists(full_filename);
+		bFileExist = fileExists(pReader->mark_filename);
 		if (!bFileExist && (g_use_storage_id && pStorage != NULL))
 		{
 			char old_mark_filename[MAX_PATH_SIZE];
-			get_mark_filename_by_ip_and_port(pStorage->ip_addr, \
-				g_server_port, old_mark_filename, \
+			get_mark_filename_by_ip_and_port(pStorage->ip_addr,
+				g_server_port, old_mark_filename,
 				sizeof(old_mark_filename));
 			if (fileExists(old_mark_filename))
 			{
-				if (rename(old_mark_filename, full_filename)!=0)
+				if (rename(old_mark_filename,
+                            pReader->mark_filename) !=0 )
 				{
-					logError("file: "__FILE__", line: %d, "\
-						"rename file %s to %s fail" \
-						", errno: %d, error info: %s", \
-						__LINE__, old_mark_filename, \
-						full_filename, errno, \
+					logError("file: "__FILE__", line: %d, "
+						"rename file %s to %s fail"
+						", errno: %d, error info: %s",
+						__LINE__, old_mark_filename,
+						pReader->mark_filename, errno,
 						STRERROR(errno));
 					return errno != 0 ? errno : EACCES;
 				}
@@ -2284,29 +2275,30 @@ int storage_reader_init(FDFSStorageBrief *pStorage, StorageBinLogReader *pReader
 	if (bFileExist)
 	{
 		memset(&iniContext, 0, sizeof(IniContext));
-		if ((result=iniLoadFromFile(full_filename, &iniContext)) \
-			 != 0)
+		if ((result=iniLoadFromFile(pReader->mark_filename,
+                        &iniContext)) != 0)
 		{
-			logError("file: "__FILE__", line: %d, " \
-				"load from mark file \"%s\" fail, " \
-				"error code: %d", \
-				__LINE__, full_filename, result);
+			logError("file: "__FILE__", line: %d, "
+				"load from mark file \"%s\" fail, "
+				"error code: %d", __LINE__,
+                pReader->mark_filename, result);
 			return result;
 		}
 
 		if (iniContext.global.count < 7)
 		{
 			iniFreeContext(&iniContext);
-			logError("file: "__FILE__", line: %d, " \
-				"in mark file \"%s\", item count: %d < 7", \
-				__LINE__, full_filename, iniContext.global.count);
+			logError("file: "__FILE__", line: %d, "
+				"in mark file \"%s\", item count: %d < 7",
+				__LINE__, pReader->mark_filename,
+                iniContext.global.count);
 			return ENOENT;
 		}
 
-		bNeedSyncOld = iniGetBoolValue(NULL,  \
-				MARK_ITEM_NEED_SYNC_OLD, \
+		bNeedSyncOld = iniGetBoolValue(NULL,
+				MARK_ITEM_NEED_SYNC_OLD,
 				&iniContext, false);
-		if (pStorage != NULL && pStorage->status == \
+		if (pStorage != NULL && pStorage->status ==
 			FDFS_STORAGE_STATUS_SYNCING)
 		{
 			if ((result=storage_reader_sync_init_req(pReader)) != 0)
@@ -2356,17 +2348,17 @@ int storage_reader_init(FDFSStorageBrief *pStorage, StorageBinLogReader *pReader
 				logError("file: "__FILE__", line: %d, " \
 					"in mark file \"%s\", " \
 					"binlog_index: %d < 0", \
-					__LINE__, full_filename, \
+					__LINE__, pReader->mark_filename, \
 					pReader->binlog_index);
 				return EINVAL;
 			}
 			if (pReader->binlog_offset < 0)
 			{
 				iniFreeContext(&iniContext);
-				logError("file: "__FILE__", line: %d, " \
-					"in mark file \"%s\", binlog_offset: "\
-					"%"PRId64" < 0", \
-					__LINE__, full_filename, \
+				logError("file: "__FILE__", line: %d, "
+					"in mark file \"%s\", binlog_offset: "
+					"%"PRId64" < 0", __LINE__,
+                    pReader->mark_filename,
 					pReader->binlog_offset);
 				return EINVAL;
 			}
@@ -2377,18 +2369,6 @@ int storage_reader_init(FDFSStorageBrief *pStorage, StorageBinLogReader *pReader
 
 	pReader->last_scan_rows = pReader->scan_row_count;
 	pReader->last_sync_rows = pReader->sync_row_count;
-
-	pReader->mark_fd = open(full_filename, O_WRONLY | O_CREAT, 0644);
-	if (pReader->mark_fd < 0)
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"open mark file \"%s\" fail, " \
-			"error no: %d, error info: %s", \
-			__LINE__, full_filename, \
-			errno, STRERROR(errno));
-		return errno != 0 ? errno : ENOENT;
-	}
-	STORAGE_FCHOWN(pReader->mark_fd, full_filename, geteuid(), getegid())
 
 	if ((result=storage_open_readable_binlog(pReader, \
 			get_binlog_readable_filename, pReader)) != 0)
@@ -2423,12 +2403,6 @@ int storage_reader_init(FDFSStorageBrief *pStorage, StorageBinLogReader *pReader
 
 void storage_reader_destroy(StorageBinLogReader *pReader)
 {
-	if (pReader->mark_fd >= 0)
-	{
-		close(pReader->mark_fd);
-		pReader->mark_fd = -1;
-	}
-
 	if (pReader->binlog_fd >= 0)
 	{
 		close(pReader->binlog_fd);
@@ -2450,25 +2424,25 @@ static int storage_write_to_mark_file(StorageBinLogReader *pReader)
 	int len;
 	int result;
 
-	len = sprintf(buff, \
-		"%s=%d\n"  \
-		"%s=%"PRId64"\n"  \
-		"%s=%d\n"  \
-		"%s=%d\n"  \
-		"%s=%d\n"  \
-		"%s=%"PRId64"\n"  \
-		"%s=%"PRId64"\n", \
-		MARK_ITEM_BINLOG_FILE_INDEX, pReader->binlog_index, \
-		MARK_ITEM_BINLOG_FILE_OFFSET, pReader->binlog_offset, \
-		MARK_ITEM_NEED_SYNC_OLD, pReader->need_sync_old, \
-		MARK_ITEM_SYNC_OLD_DONE, pReader->sync_old_done, \
-		MARK_ITEM_UNTIL_TIMESTAMP, (int)pReader->until_timestamp, \
-		MARK_ITEM_SCAN_ROW_COUNT, pReader->scan_row_count, \
+	len = sprintf(buff,
+		"%s=%d\n"
+		"%s=%"PRId64"\n"
+		"%s=%d\n"
+		"%s=%d\n"
+		"%s=%d\n"
+		"%s=%"PRId64"\n"
+		"%s=%"PRId64"\n",
+		MARK_ITEM_BINLOG_FILE_INDEX, pReader->binlog_index,
+		MARK_ITEM_BINLOG_FILE_OFFSET, pReader->binlog_offset,
+		MARK_ITEM_NEED_SYNC_OLD, pReader->need_sync_old,
+		MARK_ITEM_SYNC_OLD_DONE, pReader->sync_old_done,
+		MARK_ITEM_UNTIL_TIMESTAMP, (int)pReader->until_timestamp,
+		MARK_ITEM_SCAN_ROW_COUNT, pReader->scan_row_count,
 		MARK_ITEM_SYNC_ROW_COUNT, pReader->sync_row_count);
 
-	if ((result=storage_write_to_fd(pReader->mark_fd, \
-		get_mark_filename_by_reader, pReader, buff, len)) == 0)
+	if ((result=safeWriteToFile(pReader->mark_filename, buff, len)) == 0)
 	{
+        STORAGE_CHOWN(pReader->mark_filename, geteuid(), getegid())
 		pReader->last_scan_rows = pReader->scan_row_count;
 		pReader->last_sync_rows = pReader->sync_row_count;
 	}
@@ -2959,7 +2933,6 @@ static void* storage_sync_thread_entrance(void* arg)
     }
 
 	memset(pReader, 0, sizeof(StorageBinLogReader));
-	pReader->mark_fd = -1;
 	pReader->binlog_fd = -1;
 
     storage_reader_add_to_list(pReader);

@@ -628,63 +628,47 @@ int storage_write_to_stat_file()
 int storage_write_to_sync_ini_file()
 {
 	char full_filename[MAX_PATH_SIZE];
-	char buff[512];
+	char buff[4 * 1024];
     char ip_str[256];
-	int fd;
 	int len;
+    int result;
 
-	snprintf(full_filename, sizeof(full_filename), \
+	snprintf(full_filename, sizeof(full_filename),
 		"%s/data/%s", g_fdfs_base_path, DATA_DIR_INITED_FILENAME);
-	if ((fd=open(full_filename, O_WRONLY | O_CREAT | O_TRUNC, 0644)) < 0)
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"open file \"%s\" fail, " \
-			"errno: %d, error info: %s", \
-			__LINE__, full_filename, \
-			errno, STRERROR(errno));
-		return errno != 0 ? errno : ENOENT;
-	}
 
     fdfs_multi_ips_to_string(&g_tracker_client_ip,
             ip_str, sizeof(ip_str));
-	len = sprintf(buff, "%s=%d\n" \
-		"%s=%d\n"  \
-		"%s=%s\n"  \
-		"%s=%d\n"  \
-		"%s=%s\n"  \
-		"%s=%d\n"  \
-		"%s=%d\n"  \
-		"%s=%d\n"  \
-		"%s=%d\n", \
-		INIT_ITEM_STORAGE_JOIN_TIME, g_storage_join_time, \
-		INIT_ITEM_SYNC_OLD_DONE, g_sync_old_done, \
-		INIT_ITEM_SYNC_SRC_SERVER, g_sync_src_id, \
-		INIT_ITEM_SYNC_UNTIL_TIMESTAMP, g_sync_until_timestamp, \
-		INIT_ITEM_LAST_IP_ADDRESS, ip_str, \
-		INIT_ITEM_LAST_SERVER_PORT, g_last_server_port, \
+	len = sprintf(buff, "%s=%d\n"
+		"%s=%d\n"
+		"%s=%s\n"
+		"%s=%d\n"
+		"%s=%s\n"
+		"%s=%d\n"
+		"%s=%d\n"
+		"%s=%d\n"
+		"%s=%d\n",
+		INIT_ITEM_STORAGE_JOIN_TIME, g_storage_join_time,
+		INIT_ITEM_SYNC_OLD_DONE, g_sync_old_done,
+		INIT_ITEM_SYNC_SRC_SERVER, g_sync_src_id,
+		INIT_ITEM_SYNC_UNTIL_TIMESTAMP, g_sync_until_timestamp,
+		INIT_ITEM_LAST_IP_ADDRESS, ip_str,
+		INIT_ITEM_LAST_SERVER_PORT, g_last_server_port,
 		INIT_ITEM_LAST_HTTP_PORT, g_last_http_port,
-		INIT_ITEM_CURRENT_TRUNK_FILE_ID, g_current_trunk_file_id, \
+		INIT_ITEM_CURRENT_TRUNK_FILE_ID, g_current_trunk_file_id,
 		INIT_ITEM_TRUNK_LAST_COMPRESS_TIME, (int)g_trunk_last_compress_time
 	    );
-	if (fc_safe_write(fd, buff, len) != len)
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"write to file \"%s\" fail, " \
-			"errno: %d, error info: %s", \
-			__LINE__, full_filename, \
-			errno, STRERROR(errno));
-		close(fd);
-		return errno != 0 ? errno : EIO;
-	}
 
-	close(fd);
+    if ((result=safeWriteToFile(full_filename, buff, len)) != 0)
+    {
+        return result;
+    }
 
 	STORAGE_CHOWN(full_filename, geteuid(), getegid())
 
 	return 0;
 }
 
-int storage_check_and_make_data_path()
+int storage_check_and_make_global_data_path()
 {
     char data_path[MAX_PATH_SIZE];
     snprintf(data_path, sizeof(data_path), "%s/data",
@@ -843,7 +827,7 @@ static int storage_check_and_make_data_dirs()
 	}
 	else
 	{
-        if ((result=storage_check_and_make_data_path()) != 0)
+        if ((result=storage_check_and_make_global_data_path()) != 0)
         {
 			return result;
         }

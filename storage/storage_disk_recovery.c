@@ -51,7 +51,7 @@ typedef struct {
 
 static int saved_storage_status = FDFS_STORAGE_STATUS_NONE;
 
-static char *recovery_get_binlog_filename(const void *pArg, \
+static char *recovery_get_binlog_filename(const void *pArg,
                         char *full_filename);
 
 static int storage_do_fetch_binlog(ConnectionInfo *pSrcStorage, \
@@ -289,35 +289,32 @@ static int recovery_get_src_storage_server(ConnectionInfo *pSrcStorage)
 	return 0;
 }
 
-static char *recovery_get_full_filename(const void *pArg, \
+static char *recovery_get_full_filename(const char *pBasePath,
 		const char *filename, char *full_filename)
 {
-	const char *pBasePath;
 	static char buff[MAX_PATH_SIZE];
 
-	pBasePath = (const char *)pArg;
 	if (full_filename == NULL)
 	{
 		full_filename = buff;
 	}
 
-	snprintf(full_filename, MAX_PATH_SIZE, \
+	snprintf(full_filename, MAX_PATH_SIZE,
 		"%s/data/%s", pBasePath, filename);
-
 	return full_filename;
 }
 
-static char *recovery_get_binlog_filename(const void *pArg, \
-                        char *full_filename)
+static char *recovery_get_binlog_filename(const void *pArg,
+        char *full_filename)
 {
-	return recovery_get_full_filename(pArg, \
+	return recovery_get_full_filename((const char *)pArg,
 			RECOVERY_BINLOG_FILENAME, full_filename);
 }
 
-static char *recovery_get_mark_filename(const void *pArg, \
-                        char *full_filename)
+static char *recovery_get_mark_filename(const char *pBasePath,
+        char *full_filename)
 {
-	return recovery_get_full_filename(pArg, \
+	return recovery_get_full_filename(pBasePath,
 			RECOVERY_MARK_FILENAME, full_filename);
 }
 
@@ -362,16 +359,15 @@ static int recovery_write_to_mark_file(const char *pBasePath, \
 	char buff[128];
 	int len;
 
-	len = sprintf(buff, \
-		"%s=%d\n" \
-		"%s=%"PRId64"\n"  \
-		"%s=1\n",  \
-		MARK_ITEM_SAVED_STORAGE_STATUS, saved_storage_status, \
-		MARK_ITEM_BINLOG_OFFSET, pReader->binlog_offset, \
+	len = sprintf(buff,
+		"%s=%d\n"
+		"%s=%"PRId64"\n"
+		"%s=1\n",
+		MARK_ITEM_SAVED_STORAGE_STATUS, saved_storage_status,
+		MARK_ITEM_BINLOG_OFFSET, pReader->binlog_offset,
 		MARK_ITEM_FETCH_BINLOG_DONE);
 
-	return storage_write_to_fd(pReader->mark_fd, \
-		recovery_get_mark_filename, pBasePath, buff, len);
+	return safeWriteToFile(pReader->mark_filename, buff, len);
 }
 
 static int recovery_init_binlog_file(const char *pBasePath)
@@ -406,12 +402,10 @@ static int recovery_init_mark_file(const char *pBasePath, \
 static int recovery_reader_init(const char *pBasePath, \
                         StorageBinLogReader *pReader)
 {
-	char full_mark_filename[MAX_PATH_SIZE];
 	IniContext iniContext;
 	int result;
 
 	memset(pReader, 0, sizeof(StorageBinLogReader));
-	pReader->mark_fd = -1;
 	pReader->binlog_fd = -1;
 	pReader->binlog_index = g_binlog_index + 1;
 
@@ -428,14 +422,15 @@ static int recovery_reader_init(const char *pBasePath, \
 	}
 	pReader->binlog_buff.current = pReader->binlog_buff.buffer;
 
-	recovery_get_mark_filename(pBasePath, full_mark_filename);
+	recovery_get_mark_filename(pBasePath, pReader->mark_filename);
 	memset(&iniContext, 0, sizeof(IniContext));
-	if ((result=iniLoadFromFile(full_mark_filename, &iniContext)) != 0)
+	if ((result=iniLoadFromFile(pReader->mark_filename,
+                    &iniContext)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"load from mark file \"%s\" fail, " \
 			"error code: %d", __LINE__, \
-			full_mark_filename, result);
+			pReader->mark_filename, result);
 		return result;
 	}
 
@@ -447,7 +442,7 @@ static int recovery_reader_init(const char *pBasePath, \
 		logInfo("file: "__FILE__", line: %d, " \
 			"mark file \"%s\", %s=0, " \
 			"need to fetch binlog again", __LINE__, \
-			full_mark_filename, MARK_ITEM_FETCH_BINLOG_DONE);
+			pReader->mark_filename, MARK_ITEM_FETCH_BINLOG_DONE);
 		return EAGAIN;
 	}
 
@@ -459,7 +454,7 @@ static int recovery_reader_init(const char *pBasePath, \
 
 		logError("file: "__FILE__", line: %d, " \
 			"in mark file \"%s\", %s: %d < 0", __LINE__, \
-			full_mark_filename, MARK_ITEM_SAVED_STORAGE_STATUS, \
+			pReader->mark_filename, MARK_ITEM_SAVED_STORAGE_STATUS, \
 			saved_storage_status);
 		return EINVAL;
 	}
@@ -473,23 +468,12 @@ static int recovery_reader_init(const char *pBasePath, \
 		logError("file: "__FILE__", line: %d, " \
 			"in mark file \"%s\", %s: "\
 			"%"PRId64" < 0", __LINE__, \
-			full_mark_filename, MARK_ITEM_BINLOG_OFFSET, \
+			pReader->mark_filename, MARK_ITEM_BINLOG_OFFSET, \
 			pReader->binlog_offset);
 		return EINVAL;
 	}
 
 	iniFreeContext(&iniContext);
-
-	pReader->mark_fd = open(full_mark_filename, O_WRONLY | O_CREAT, 0644);
-	if (pReader->mark_fd < 0)
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"open mark file \"%s\" fail, " \
-			"error no: %d, error info: %s", \
-			__LINE__, full_mark_filename, \
-			errno, STRERROR(errno));
-		return errno != 0 ? errno : ENOENT;
-	}
 
 	if ((result=storage_open_readable_binlog(pReader, \
 			recovery_get_binlog_filename, pBasePath)) != 0)
