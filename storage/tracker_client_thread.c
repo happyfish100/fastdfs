@@ -764,7 +764,7 @@ static void tracker_check_my_status(const int tracker_index)
     g_my_report_status[tracker_index].report_my_status = true;
 
     logInfo("file: "__FILE__", line: %d, "
-            "my status: %d (%s) from tracker #%d  != my status: %d (%s)"
+            "my status: %d (%s) from tracker #%d  != my status: %d (%s) "
             "from leader tracker #%d, set report_my_status to true",
             __LINE__, my_status, get_storage_status_caption(
                 my_status), tracker_index, leader_status,

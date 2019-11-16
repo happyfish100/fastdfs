@@ -131,8 +131,7 @@ int main(int argc, char *argv[])
 
 		for (i=0; i<g_tracker_group.server_count; i++)
 		{
-			if (fdfs_server_contain1(g_tracker_group.servers + i,
-					&conn) == 0)
+			if (fdfs_server_contain1(g_tracker_group.servers + i, &conn))
 			{
 				g_tracker_group.server_index = i;
 				break;

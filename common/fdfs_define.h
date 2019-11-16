@@ -14,7 +14,7 @@
 #include <pthread.h>
 #include "fastcommon/common_define.h"
 
-#define FDFS_TRACKER_SERVER_DEF_PORT		22000
+#define FDFS_TRACKER_SERVER_DEF_PORT		22122
 #define FDFS_STORAGE_SERVER_DEF_PORT		23000
 #define FDFS_DEF_STORAGE_RESERVED_MB		1024
 #define TRACKER_ERROR_LOG_FILENAME      "trackerd"
