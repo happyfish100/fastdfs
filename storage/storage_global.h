@@ -21,7 +21,6 @@
 #include "client_global.h"
 #include "fdht_types.h"
 #include "fastcommon/local_ip_func.h"
-#include "trunk_shared.h"
 
 #ifdef WITH_HTTPD
 #include "fdfs_http_shared.h"
@@ -53,12 +52,6 @@ typedef struct
 
 typedef struct
 {
-	int total_mb; //total spaces
-	int free_mb;  //free spaces
-} FDFSStorePathInfo;
-
-typedef struct
-{
     signed char my_status;   //my status from tracker server
     signed char my_result;   //my report result
     signed char src_storage_result; //src storage report result
@@ -67,8 +60,6 @@ typedef struct
 } StorageStatusPerTracker;
 
 extern volatile bool g_continue_flag;
-
-extern FDFSStorePathInfo *g_path_space_list;
 
 /* subdirs under store path, g_subdir_count * g_subdir_count 2 level subdirs */
 extern int g_subdir_count_per_path;

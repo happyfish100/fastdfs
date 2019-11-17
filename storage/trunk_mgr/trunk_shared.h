@@ -48,6 +48,20 @@
 #define TRUNK_GET_FILENAME(file_id, filename) \
 	sprintf(filename, "%06d", file_id)
 
+typedef struct
+{
+	int total_mb;  //total spaces
+	int free_mb;   //free spaces
+    int path_len;  //the length of store path
+	char *path;    //file store path
+    char *mark;    //path mark to avoid confusion
+} FDFSStorePathInfo;
+
+typedef struct {
+	int count;   //store path count
+	FDFSStorePathInfo *paths; //file store paths
+} FDFSStorePaths;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -84,9 +98,9 @@ typedef struct tagFDFSTrunkFullInfo {
 	FDFSTrunkFileInfo file;
 } FDFSTrunkFullInfo;
 
-char **storage_load_paths_from_conf_file_ex(IniContext *pItemContext, \
-	const char *szSectionName, const bool bUseBasePath, \
-	int *path_count, int *err_no);
+FDFSStorePathInfo *storage_load_paths_from_conf_file_ex(
+        IniContext *pItemContext, const char *szSectionName,
+        const bool bUseBasePath, int *path_count, int *err_no);
 int storage_load_paths_from_conf_file(IniContext *pItemContext);
 void trunk_shared_init();
 

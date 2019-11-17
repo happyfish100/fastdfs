@@ -185,7 +185,7 @@ static int storage_sync_copy_file(ConnectionInfo *pStorageServer, \
 	{
 		file_offset = 0;
 		sprintf(full_filename, "%s/data/%s", \
-			g_fdfs_store_paths.paths[pRecord->store_path_index], \
+			g_fdfs_store_paths.paths[pRecord->store_path_index].path, \
 			pRecord->true_filename);
 	}
 
@@ -350,7 +350,7 @@ static int storage_sync_modify_file(ConnectionInfo *pStorageServer, \
 	}
 
 	snprintf(full_filename, sizeof(full_filename), \
-		"%s/data/%s", g_fdfs_store_paths.paths[pRecord->store_path_index], \
+		"%s/data/%s", g_fdfs_store_paths.paths[pRecord->store_path_index].path, \
 		pRecord->true_filename);
 	if (lstat(full_filename, &stat_buf) != 0)
 	{
@@ -520,7 +520,7 @@ static int storage_sync_truncate_file(ConnectionInfo *pStorageServer, \
 	}
 
 	snprintf(full_filename, sizeof(full_filename), \
-		"%s/data/%s", g_fdfs_store_paths.paths[pRecord->store_path_index], \
+		"%s/data/%s", g_fdfs_store_paths.paths[pRecord->store_path_index].path, \
 		pRecord->true_filename);
 	if (lstat(full_filename, &stat_buf) != 0)
 	{
@@ -841,7 +841,7 @@ static int storage_sync_link_file(ConnectionInfo *pStorageServer, \
 	int src_filename_len;
 
 	snprintf(full_filename, sizeof(full_filename), \
-		"%s/data/%s", g_fdfs_store_paths.paths[pRecord->store_path_index], \
+		"%s/data/%s", g_fdfs_store_paths.paths[pRecord->store_path_index].path, \
 		pRecord->true_filename);
 	src_filename_len = readlink(full_filename, src_full_filename, \
 				sizeof(src_full_filename) - 1);
@@ -884,7 +884,7 @@ static int storage_sync_link_file(ConnectionInfo *pStorageServer, \
 			src_path_index++)
 		{
 			if (strcmp(src_full_filename, \
-				g_fdfs_store_paths.paths[src_path_index]) == 0)
+				g_fdfs_store_paths.paths[src_path_index].path) == 0)
 			{
 				break;
 			}
@@ -998,7 +998,7 @@ static int storage_sync_rename_file(ConnectionInfo *pStorageServer,
     }
 
 	snprintf(full_filename, sizeof(full_filename), "%s/data/%s",
-            g_fdfs_store_paths.paths[pRecord->store_path_index],
+            g_fdfs_store_paths.paths[pRecord->store_path_index].path,
             pRecord->true_filename);
 	if (lstat(full_filename, &stat_buf) != 0)
 	{

@@ -246,9 +246,9 @@ static int fdfs_dump_global_vars(char *buff, const int buffSize)
 		total_len += snprintf(buff + total_len, buffSize - total_len,
 				"\tg_fdfs_store_paths.paths[%d]=%s, " \
 				"total=%d MB, free=%d MB\n", i, \
-				g_fdfs_store_paths.paths[i], \
-				g_path_space_list[i].total_mb, \
-				g_path_space_list[i].free_mb);
+				g_fdfs_store_paths.paths[i].path, \
+				g_fdfs_store_paths.paths[i].total_mb, \
+				g_fdfs_store_paths.paths[i].free_mb);
 	}
 
     if (total_len < buffSize - 1)

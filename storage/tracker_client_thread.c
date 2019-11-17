@@ -2203,7 +2203,7 @@ static int tracker_report_df_stat(ConnectionInfo *pTrackerServer,
 
 	for (i=0; i<g_fdfs_store_paths.count; i++)
 	{
-		if (statvfs(g_fdfs_store_paths.paths[i], &sbuf) != 0)
+		if (statvfs(g_fdfs_store_paths.paths[i].path, &sbuf) != 0)
 		{
 			logError("file: "__FILE__", line: %d, " \
 				"call statfs fail, errno: %d, error info: %s.",\
@@ -2216,12 +2216,12 @@ static int tracker_report_df_stat(ConnectionInfo *pTrackerServer,
 			return errno != 0 ? errno : EACCES;
 		}
 
-		g_path_space_list[i].total_mb = ((int64_t)(sbuf.f_blocks) * \
+		g_fdfs_store_paths.paths[i].total_mb = ((int64_t)(sbuf.f_blocks) * \
 					sbuf.f_frsize) / FDFS_ONE_MB;
-		g_path_space_list[i].free_mb = ((int64_t)(sbuf.f_bavail) * \
+		g_fdfs_store_paths.paths[i].free_mb = ((int64_t)(sbuf.f_bavail) * \
 					sbuf.f_frsize) / FDFS_ONE_MB;
-		long2buff(g_path_space_list[i].total_mb, pStatBuff->sz_total_mb);
-		long2buff(g_path_space_list[i].free_mb, pStatBuff->sz_free_mb);
+		long2buff(g_fdfs_store_paths.paths[i].total_mb, pStatBuff->sz_total_mb);
+		long2buff(g_fdfs_store_paths.paths[i].free_mb, pStatBuff->sz_free_mb);
 
 		pStatBuff++;
 	}
@@ -2235,12 +2235,12 @@ static int tracker_report_df_stat(ConnectionInfo *pTrackerServer,
 		store_path_index = -1;
 		for (i=0; i<g_fdfs_store_paths.count; i++)
 		{
-			if (g_path_space_list[i].free_mb > \
+			if (g_fdfs_store_paths.paths[i].free_mb > \
 				g_avg_storage_reserved_mb \
-				&& g_path_space_list[i].free_mb > max_free_mb)
+				&& g_fdfs_store_paths.paths[i].free_mb > max_free_mb)
 			{
 				store_path_index = i;
-				max_free_mb = g_path_space_list[i].free_mb;
+				max_free_mb = g_fdfs_store_paths.paths[i].free_mb;
 			}
 		}
 		if (g_store_path_index != store_path_index)

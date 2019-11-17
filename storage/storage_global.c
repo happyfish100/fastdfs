@@ -15,7 +15,6 @@
 #include "storage_global.h"
 
 volatile bool g_continue_flag = true;
-FDFSStorePathInfo *g_path_space_list = NULL;
 int g_subdir_count_per_path = DEFAULT_DATA_DIR_COUNT_PER_PATH;
 
 int g_server_port = FDFS_STORAGE_SERVER_DEF_PORT;

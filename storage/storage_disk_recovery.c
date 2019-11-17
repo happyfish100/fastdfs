@@ -30,6 +30,7 @@
 #include "tracker_types.h"
 #include "tracker_proto.h"
 #include "storage_global.h"
+#include "trunk_mgr/trunk_shared.h"
 #include "storage_func.h"
 #include "storage_sync.h"
 #include "tracker_client.h"
@@ -65,7 +66,7 @@ static int storage_do_fetch_binlog(ConnectionInfo *pSrcStorage, \
 	int64_t file_bytes;
 	int result;
 
-	pBasePath = g_fdfs_store_paths.paths[store_path_index];
+	pBasePath = g_fdfs_store_paths.paths[store_path_index].path;
 	recovery_get_binlog_filename(pBasePath, full_binlog_filename);
 
 	memset(out_buff, 0, sizeof(out_buff));
@@ -534,7 +535,7 @@ static int recovery_download_file_to_local(StorageBinLogRecord *pRecord,
     {
         bTrunkFile = false;
         sprintf(local_filename, "%s/data/%s",
-                g_fdfs_store_paths.paths[pRecord->store_path_index],
+                g_fdfs_store_paths.paths[pRecord->store_path_index].path,
                 pRecord->true_filename);
     }
 
@@ -684,7 +685,7 @@ static int storage_do_recovery(const char *pBasePath, StorageBinLogReader *pRead
 				break;
 			}
 			sprintf(local_filename, "%s/data/%s", \
-				g_fdfs_store_paths.paths[store_path_index], \
+				g_fdfs_store_paths.paths[store_path_index].path, \
 				record.true_filename);
 
 			if ((result=storage_split_filename_ex( \
@@ -695,7 +696,7 @@ static int storage_do_recovery(const char *pBasePath, StorageBinLogReader *pRead
 				break;
 			}
 			sprintf(src_filename, "%s/data/%s", \
-				g_fdfs_store_paths.paths[store_path_index], \
+				g_fdfs_store_paths.paths[store_path_index].path, \
 				record.true_filename);
 			if (symlink(src_filename, local_filename) == 0)
 			{
@@ -916,7 +917,7 @@ static int storage_do_split_trunk_binlog(const int store_path_index,
 	int record_length;
 	int result;
 	
-	pBasePath = g_fdfs_store_paths.paths[store_path_index];
+	pBasePath = g_fdfs_store_paths.paths[store_path_index].path;
 	recovery_get_full_filename(pBasePath, \
 		RECOVERY_BINLOG_FILENAME".tmp", tmpFullFilename);
 	fp = fopen(tmpFullFilename, "w");
@@ -1087,7 +1088,7 @@ static int storage_disk_recovery_split_trunk_binlog(const int store_path_index)
 	StorageBinLogReader reader;
 	int result;
 
-	pBasePath = g_fdfs_store_paths.paths[store_path_index];
+	pBasePath = g_fdfs_store_paths.paths[store_path_index].path;
 	if ((result=recovery_reader_init(pBasePath, &reader)) != 0)
 	{
 		storage_reader_destroy(&reader);
@@ -1107,7 +1108,7 @@ int storage_disk_recovery_start(const int store_path_index)
 	int result;
 	char *pBasePath;
 
-	pBasePath = g_fdfs_store_paths.paths[store_path_index];
+	pBasePath = g_fdfs_store_paths.paths[store_path_index].path;
 	if ((result=recovery_init_mark_file(pBasePath, false)) != 0)
 	{
 		return result;

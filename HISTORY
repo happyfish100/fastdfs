@@ -1,5 +1,5 @@
 
-Version 6.03  2019-11-16
+Version 6.03  2019-11-17
  * dual IPs support two different types of inner (intranet) IPs
  * storage server request tracker server to change it's status
    to that of tracker leader when the storage server found 
@@ -7,7 +7,9 @@ Version 6.03  2019-11-16
  * bugfix: fdfs_monitor fix get index of the specified tracker server
  * storage server write to data_init_flag and mark file safely
    (write to temp file then rename)
-
+ * code refine: combine g_fdfs_store_paths and g_path_space_list,
+   and extent struct FDFSStorePathInfo
+ 
   NOTE: the tracker and storage server must upgrade together
 
 Version 6.02  2019-11-12

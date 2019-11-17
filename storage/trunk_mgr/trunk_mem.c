@@ -1953,8 +1953,8 @@ int trunk_create_trunk_file_advance(void *args)
 	free_mb_sum = 0;
 	for (i=0; i<g_fdfs_store_paths.count; i++)
 	{
-		total_mb_sum += g_path_space_list[i].total_mb;
-		free_mb_sum += g_path_space_list[i].free_mb;
+		total_mb_sum += g_fdfs_store_paths.paths[i].total_mb;
+		free_mb_sum += g_fdfs_store_paths.paths[i].free_mb;
 	}
 
 	if (!storage_check_reserved_space_path(total_mb_sum, free_mb_sum \

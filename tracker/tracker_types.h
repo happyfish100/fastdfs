@@ -465,11 +465,6 @@ typedef struct {
 } FDFSStorageReservedSpace;
 
 typedef struct {
-	int count;   //store path count
-	char **paths; //file store paths
-} FDFSStorePaths;
-
-typedef struct {
 	TrackerServerInfo *pTrackerServer;
 	int running_time;     //running seconds, more means higher weight
 	int restart_interval; //restart interval, less mean higher weight

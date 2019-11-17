@@ -842,7 +842,7 @@ static int storage_check_and_make_data_dirs()
 
 	for (i=0; i<g_fdfs_store_paths.count; i++)
 	{
-		if ((result=storage_make_data_dirs(g_fdfs_store_paths.paths[i], \
+		if ((result=storage_make_data_dirs(g_fdfs_store_paths.paths[i].path,
 				&pathCreated)) != 0)
 		{
 			return result;
@@ -856,7 +856,7 @@ static int storage_check_and_make_data_dirs()
 			}
 		}
 
-		result = storage_disk_recovery_restore(g_fdfs_store_paths.paths[i]);
+		result = storage_disk_recovery_restore(g_fdfs_store_paths.paths[i].path);
 		if (result == EAGAIN) //need to re-fetch binlog
 		{
 			if ((result=storage_disk_recovery_start(i)) != 0)
@@ -864,7 +864,7 @@ static int storage_check_and_make_data_dirs()
 				return result;
 			}
 
-			result=storage_disk_recovery_restore(g_fdfs_store_paths.paths[i]);
+			result=storage_disk_recovery_restore(g_fdfs_store_paths.paths[i].path);
 		}
 
 		if (result != 0)
@@ -1024,7 +1024,6 @@ static int init_fsync_pthread_cond()
 static int storage_load_paths(IniContext *pItemContext)
 {
 	int result;
-	int bytes;
 
 	result = storage_load_paths_from_conf_file(pItemContext);
 	if (result != 0)
@@ -1032,16 +1031,6 @@ static int storage_load_paths(IniContext *pItemContext)
 		return result;
 	}
 
-	bytes = sizeof(FDFSStorePathInfo) * g_fdfs_store_paths.count;
-	g_path_space_list = (FDFSStorePathInfo *)malloc(bytes);
-	if (g_path_space_list == NULL)
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"malloc %d bytes fail, errno: %d, error info: %s", \
-			__LINE__, bytes, errno, STRERROR(errno));
-		return errno != 0 ? errno : ENOMEM;
-	}
-	memset(g_path_space_list, 0, bytes);
 	return 0;
 }
 
@@ -1996,10 +1985,10 @@ int storage_func_destroy()
 	{
 		for (i=0; i<g_fdfs_store_paths.count; i++)
 		{
-			if (g_fdfs_store_paths.paths[i] != NULL)
+			if (g_fdfs_store_paths.paths[i].path != NULL)
 			{
-				free(g_fdfs_store_paths.paths[i]);
-				g_fdfs_store_paths.paths[i] = NULL;
+				free(g_fdfs_store_paths.paths[i].path);
+				g_fdfs_store_paths.paths[i].path = NULL;
 			}
 		}
 
@@ -2185,7 +2174,7 @@ int storage_logic_to_local_full_filename(const char *logic_filename,
 	}
 
 	snprintf(full_filename, filename_size, "%s/data/%s",
-            g_fdfs_store_paths.paths[*store_path_index], true_filename);
+            g_fdfs_store_paths.paths[*store_path_index].path, true_filename);
     return 0;
 }
 
