@@ -51,8 +51,18 @@
 #include "fdfs_http_shared.h"
 #endif
 
+typedef struct
+{
+    char ip_addr[IP_ADDRESS_SIZE];
+    short port;
+    unsigned char store_path_index;
+    char padding;
+    int create_time;
+} FDFSStorePathMarkInfo;
+
 #define DATA_DIR_INITED_FILENAME	".data_init_flag"
 #define STORAGE_STAT_FILENAME		"storage_stat.dat"
+#define STORE_PATH_MARK_FILENAME	".fastdfs_vars"
 
 #define INIT_ITEM_STORAGE_JOIN_TIME	"storage_join_time"
 #define INIT_ITEM_SYNC_OLD_DONE		"sync_old_done"
@@ -63,6 +73,7 @@
 #define INIT_ITEM_LAST_HTTP_PORT	"last_http_port"
 #define INIT_ITEM_CURRENT_TRUNK_FILE_ID "current_trunk_file_id"
 #define INIT_ITEM_TRUNK_LAST_COMPRESS_TIME "trunk_last_compress_time"
+#define INIT_ITEM_STORE_PATH_MARK_PREFIX   "store_path_mark"
 
 #define STAT_ITEM_TOTAL_UPLOAD		"total_upload_count"
 #define STAT_ITEM_SUCCESS_UPLOAD	"success_upload_count"
@@ -632,6 +643,7 @@ int storage_write_to_sync_ini_file()
     char ip_str[256];
 	int len;
     int result;
+    int i;
 
 	snprintf(full_filename, sizeof(full_filename),
 		"%s/data/%s", g_fdfs_base_path, DATA_DIR_INITED_FILENAME);
@@ -657,6 +669,17 @@ int storage_write_to_sync_ini_file()
 		INIT_ITEM_CURRENT_TRUNK_FILE_ID, g_current_trunk_file_id,
 		INIT_ITEM_TRUNK_LAST_COMPRESS_TIME, (int)g_trunk_last_compress_time
 	    );
+
+
+	for (i=0; i<g_fdfs_store_paths.count; i++)
+    {
+        if (g_fdfs_store_paths.paths[i].mark != NULL)
+        {
+            len += sprintf(buff + len, "%s%d=%s\n",
+                    INIT_ITEM_STORE_PATH_MARK_PREFIX, i,
+                    g_fdfs_store_paths.paths[i].mark);
+        }
+    }
 
     if ((result=safeWriteToFile(full_filename, buff, len)) != 0)
     {
@@ -691,6 +714,258 @@ int storage_check_and_make_global_data_path()
     return 0;
 }
 
+static int storage_load_store_path_marks(IniContext *pIniContext)
+{
+    char *pValue;
+    char name[64];
+    int i;
+
+	for (i=0; i<g_fdfs_store_paths.count; i++)
+    {
+        sprintf(name, "%s%d", INIT_ITEM_STORE_PATH_MARK_PREFIX, i);
+        pValue = iniGetStrValue(NULL, name, pIniContext);
+        if (pValue != NULL)
+        {
+            g_fdfs_store_paths.paths[i].mark = strdup(pValue);
+            if (g_fdfs_store_paths.paths[i].mark == NULL)
+            {
+                logError("file: "__FILE__", line: %d, "
+                        "strdup %s fail", __LINE__, pValue);
+                return errno != 0 ? errno : ENOMEM;
+            }
+        }
+    }
+
+    return 0;
+}
+
+static int storage_generate_store_path_mark(const int store_path_index)
+{
+    FDFSStorePathMarkInfo mark_info;
+	char full_filename[MAX_PATH_SIZE];
+    char buff[256];
+    char *mark_str;
+    int result;
+    int mark_len;
+    int buff_len;
+    int bytes;
+
+    bytes = sizeof(FDFSStorePathMarkInfo) * 4 / 3;
+	mark_str = (char *)malloc(bytes);
+	if (mark_str == NULL)
+	{
+		logError("file: "__FILE__", line: %d, "
+			"malloc %d bytes fail, "
+			"errno: %d, error info: %s", __LINE__,
+            bytes, errno, STRERROR(errno));
+		return errno != 0 ? errno : ENOMEM;
+	}
+
+    memset(&mark_info, 0, sizeof(FDFSStorePathMarkInfo));
+    strcpy(mark_info.ip_addr, g_tracker_client_ip.ips[0].address);
+    mark_info.port = g_server_port;
+    mark_info.store_path_index = store_path_index;
+    mark_info.create_time = g_current_time;
+
+	base64_encode_ex(&g_fdfs_base64_context, (char *)&mark_info,
+            sizeof(mark_info), mark_str, &mark_len, false);
+
+    {
+        char time_str[32];
+
+        mark_info.ip_addr[IP_ADDRESS_SIZE - 1] = '\0';
+        formatDatetime(mark_info.create_time,
+                "%Y-%m-%d %H:%M:%S",
+                time_str, sizeof(time_str));
+
+        logInfo("file: "__FILE__", line: %d, "
+                "the store path #%d, fields in the mark file: "
+                "{ ip_addr: %s, port: %d,"
+                " store_path_index: %d,"
+                " create_time: %s }, mark_str: %s",
+                __LINE__, store_path_index,
+                mark_info.ip_addr, mark_info.port,
+                mark_info.store_path_index,
+                time_str, mark_str);
+    }
+
+    snprintf(full_filename, sizeof(full_filename), "%s/data/%s",
+            g_fdfs_store_paths.paths[store_path_index].path,
+            STORE_PATH_MARK_FILENAME);
+    buff_len = sprintf(buff, "%s=%s\n",
+            INIT_ITEM_STORE_PATH_MARK_PREFIX, mark_str);
+    if ((result=safeWriteToFile(full_filename, buff, buff_len)) != 0)
+    {
+        free(mark_str);
+        return result;
+    }
+
+    if (g_fdfs_store_paths.paths[store_path_index].mark != NULL)
+    {
+        free(g_fdfs_store_paths.paths[store_path_index].mark);
+    }
+
+    g_fdfs_store_paths.paths[store_path_index].mark = mark_str;
+    return 0;
+}
+
+static int storage_check_store_path_mark(const int store_path_index,
+        const bool bPathCreated)
+{
+	char full_filename[MAX_PATH_SIZE];
+    char *mark;
+    int result;
+
+    snprintf(full_filename, sizeof(full_filename), "%s/data/%s",
+            g_fdfs_store_paths.paths[store_path_index].path,
+            STORE_PATH_MARK_FILENAME);
+    if (fileExists(full_filename))
+    {
+		IniContext iniContext;
+		char *pValue;
+
+		if ((result=iniLoadFromFile(full_filename, &iniContext)) != 0)
+		{
+			logError("file: "__FILE__", line: %d, "
+				"load from file \"%s\" fail, "
+				"error code: %d", __LINE__,
+                full_filename, result);
+			return result;
+		}
+
+		pValue = iniGetStrValue(NULL, INIT_ITEM_STORE_PATH_MARK_PREFIX,
+				&iniContext);
+		if (pValue != NULL)
+        {
+            mark = strdup(pValue);
+            if (mark == NULL)
+            {
+                logError("file: "__FILE__", line: %d, "
+                        "strdup %s fail", __LINE__, pValue);
+                iniFreeContext(&iniContext);
+                return errno != 0 ? errno : ENOMEM;
+            }
+        }
+        else
+        {
+            mark = NULL;
+        }
+        iniFreeContext(&iniContext);
+   }
+    else
+    {
+        mark = NULL;
+    }
+
+    if (g_fdfs_store_paths.paths[store_path_index].mark == NULL)
+    {
+        if (mark != NULL)
+        {
+			logCrit("file: "__FILE__", line: %d, "
+                    "the store path #%d: %s maybe used by other "
+                    "storage server. if you confirm that it is NOT "
+                    "used by other storage server, you can delete "
+                    "the mark file %s then try again", __LINE__,
+                    store_path_index, g_fdfs_store_paths.
+                    paths[store_path_index].path, full_filename);
+            free(mark);
+            return EINVAL;
+        }
+    }
+    else
+    {
+        if (mark != NULL)
+        {
+            if (strcmp(g_fdfs_store_paths.paths[store_path_index].mark,
+                        mark) != 0)
+            {
+                FDFSStorePathMarkInfo mark_info;
+                int mark_len;
+                int dest_len;
+
+                mark_len = strlen(mark);
+                dest_len = sizeof(FDFSStorePathMarkInfo) * 4 / 3;
+                if (mark_len != dest_len)
+                {
+                    logError("file: "__FILE__", line: %d, "
+                            "the mark string is not base64 encoded, "
+                            "store path #%d, the mark file: %s, "
+                            "the mark string: %s", __LINE__,
+                            store_path_index, full_filename, mark);
+                    memset(&mark_info, 0, sizeof(FDFSStorePathMarkInfo));
+                }
+                else if (base64_decode_auto(&g_fdfs_base64_context,
+                            mark, mark_len, (char *)&mark_info,
+                            &dest_len) == NULL)
+                {
+                    logError("file: "__FILE__", line: %d, "
+                            "the mark string is not base64 encoded, "
+                            "store path #%d, the mark file: %s, "
+                            "the mark string: %s", __LINE__,
+                            store_path_index, full_filename, mark);
+                    memset(&mark_info, 0, sizeof(FDFSStorePathMarkInfo));
+                }
+
+                if (mark_info.port > 0)
+                {
+                    char time_str[32];
+
+                    mark_info.ip_addr[IP_ADDRESS_SIZE - 1] = '\0';
+                    formatDatetime(mark_info.create_time,
+                            "%Y-%m-%d %H:%M:%S",
+                            time_str, sizeof(time_str));
+
+                    logCrit("file: "__FILE__", line: %d, "
+                            "the store path #%d: %s maybe used by other "
+                            "storage server. fields in the mark file: "
+                            "{ ip_addr: %s, port: %d,"
+                            " store_path_index: %d,"
+                            " create_time: %s }, "
+                            "if you confirm that it is NOT "
+                            "used by other storage server, you can delete "
+                            "the mark file %s then try again", __LINE__,
+                            store_path_index, g_fdfs_store_paths.
+                            paths[store_path_index].path,
+                            mark_info.ip_addr, mark_info.port,
+                            mark_info.store_path_index, time_str,
+                            full_filename);
+                }
+                else
+                {
+                    logCrit("file: "__FILE__", line: %d, "
+                            "the store path #%d: %s maybe used by other "
+                            "storage server. if you confirm that it is NOT "
+                            "used by other storage server, you can delete "
+                            "the mark file %s then try again", __LINE__,
+                            store_path_index, g_fdfs_store_paths.
+                            paths[store_path_index].path, full_filename);
+                }
+
+                free(mark);
+                return EINVAL;
+            }
+        }
+        else
+        {
+            if (!bPathCreated)
+            {
+                logWarning("file: "__FILE__", line: %d, "
+                        "the mark file of store path #%d: %s is missed, "
+                        "try to re-create the mark file: %s", __LINE__,
+                        store_path_index, g_fdfs_store_paths.
+                        paths[store_path_index].path, full_filename);
+            }
+        }
+    }
+
+    if ((result=storage_generate_store_path_mark(store_path_index)) != 0)
+    {
+        return result;
+    }
+
+    return storage_write_to_sync_ini_file();
+}
+
 static int storage_check_and_make_data_dirs()
 {
 	int result;
@@ -700,9 +975,9 @@ static int storage_check_and_make_data_dirs()
     char error_info[256];
 	bool pathCreated;
 
-	snprintf(data_path, sizeof(data_path), "%s/data", \
+	snprintf(data_path, sizeof(data_path), "%s/data",
 			g_fdfs_base_path);
-	snprintf(full_filename, sizeof(full_filename), "%s/%s", \
+	snprintf(full_filename, sizeof(full_filename), "%s/%s",
 			data_path, DATA_DIR_INITED_FILENAME);
 	if (fileExists(full_filename))
 	{
@@ -790,6 +1065,12 @@ static int storage_check_and_make_data_dirs()
 		g_trunk_last_compress_time = iniGetIntValue(NULL, \
 			INIT_ITEM_TRUNK_LAST_COMPRESS_TIME , &iniContext, 0);
 
+        if ((result=storage_load_store_path_marks(&iniContext)) != 0)
+        {
+            iniFreeContext(&iniContext);
+            return result;
+        }
+
 		iniFreeContext(&iniContext);
 
 		if (g_last_server_port == 0 || g_last_http_port == 0)
@@ -845,6 +1126,11 @@ static int storage_check_and_make_data_dirs()
 		if ((result=storage_make_data_dirs(g_fdfs_store_paths.paths[i].path,
 				&pathCreated)) != 0)
 		{
+			return result;
+		}
+
+        if ((result=storage_check_store_path_mark(i, pathCreated)) != 0)
+        {
 			return result;
 		}
 
@@ -1124,13 +1410,6 @@ int storage_func_init(const char *filename, \
 	int64_t buff_size;
 	int64_t rotate_access_log_size;
 	int64_t rotate_error_log_size;
-
-	/*
-	while (nThreadCount > 0)
-	{
-		sleep(1);
-	}
-	*/
 
 	if ((result=iniLoadFromFile(filename, &iniContext)) != 0)
 	{

@@ -9,6 +9,7 @@ Version 6.03  2019-11-17
    (write to temp file then rename)
  * code refine: combine g_fdfs_store_paths and g_path_space_list,
    and extent struct FDFSStorePathInfo
+ * check store path's mark file to prevent confusion
  
   NOTE: the tracker and storage server must upgrade together
 
