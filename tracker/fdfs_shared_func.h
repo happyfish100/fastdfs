@@ -80,6 +80,9 @@ bool fdfs_server_contain_ex(TrackerServerInfo *pServer1,
 bool fdfs_server_equal(TrackerServerInfo *pServer1,
         TrackerServerInfo *pServer2);
 
+bool fdfs_server_contain_local_service(TrackerServerInfo *pServerInfo,
+        const int target_port);
+
 /**
 * tracker group get server
 * params:

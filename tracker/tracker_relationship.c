@@ -177,6 +177,21 @@ static int relationship_cmp_tracker_status(const void *p1, const void *p2)
 	return conn1->port - conn2->port;
 }
 
+static int relationship_get_tracker_status(TrackerRunningStatus *pStatus)
+{
+    if (fdfs_server_contain_local_service(pStatus->pTrackerServer,
+                g_server_port))
+    {
+        tracker_calc_running_times(pStatus);
+        pStatus->if_leader = g_if_leader_self;
+        return 0;
+    }
+    else
+    {
+        return fdfs_get_tracker_status(pStatus->pTrackerServer, pStatus);
+    }
+}
+
 static int relationship_get_tracker_leader(TrackerRunningStatus *pTrackerStatus)
 {
 	TrackerServerInfo *pTrackerServer;
@@ -196,7 +211,7 @@ static int relationship_get_tracker_leader(TrackerRunningStatus *pTrackerStatus)
 		pTrackerServer<pTrackerEnd; pTrackerServer++)
 	{
 		pStatus->pTrackerServer = pTrackerServer;
-		r = fdfs_get_tracker_status(pTrackerServer, pStatus);
+        r = relationship_get_tracker_status(pStatus);
 		if (r == 0)
 		{
 			pStatus++;
@@ -236,14 +251,6 @@ static int relationship_get_tracker_leader(TrackerRunningStatus *pTrackerStatus)
 			sizeof(TrackerRunningStatus));
 	return 0;
 }
-
-#define relationship_notify_next_leader(pTrackerServer, pLeader, bConnectFail) \
-	do_notify_leader_changed(pTrackerServer, pLeader, \
-		TRACKER_PROTO_CMD_TRACKER_NOTIFY_NEXT_LEADER, bConnectFail)
-
-#define relationship_commit_next_leader(pTrackerServer, pLeader, bConnectFail) \
-	do_notify_leader_changed(pTrackerServer, pLeader, \
-		TRACKER_PROTO_CMD_TRACKER_COMMIT_NEXT_LEADER, bConnectFail)
 
 static int do_notify_leader_changed(TrackerServerInfo *pTrackerServer, \
 		ConnectionInfo *pLeader, const char cmd, bool *bConnectFail)
@@ -320,7 +327,74 @@ static int do_notify_leader_changed(TrackerServerInfo *pTrackerServer, \
 	return result;
 }
 
-static int relationship_notify_leader_changed(ConnectionInfo *pLeader)
+void relationship_set_tracker_leader(const int server_index,
+        ConnectionInfo *pLeader, const bool leader_self)
+{
+    g_tracker_servers.leader_index = server_index;
+    g_next_leader_index = -1;
+
+    if (leader_self)
+    {
+        g_if_leader_self = true;
+        g_tracker_leader_chg_count++;
+    }
+    else
+    {
+        logInfo("file: "__FILE__", line: %d, "
+            "the tracker leader is %s:%d", __LINE__,
+            pLeader->ip_addr, pLeader->port);
+    }
+}
+
+static int relationship_notify_next_leader(TrackerServerInfo *pTrackerServer,
+        TrackerRunningStatus *pTrackerStatus, bool *bConnectFail)
+{
+    if (pTrackerStatus->pTrackerServer == pTrackerServer)
+    {
+        g_next_leader_index = pTrackerServer - g_tracker_servers.servers;
+        return 0;
+    }
+    else
+    {
+        ConnectionInfo *pLeader;
+        pLeader = pTrackerStatus->pTrackerServer->connections;
+        return do_notify_leader_changed(pTrackerServer, pLeader,
+                TRACKER_PROTO_CMD_TRACKER_NOTIFY_NEXT_LEADER, bConnectFail);
+    }
+}
+
+static int relationship_commit_next_leader(TrackerServerInfo *pTrackerServer,
+        TrackerRunningStatus *pTrackerStatus, bool *bConnectFail)
+{
+    ConnectionInfo *pLeader;
+
+    pLeader = pTrackerStatus->pTrackerServer->connections;
+    if (pTrackerStatus->pTrackerServer == pTrackerServer)
+    {
+        int server_index;
+        int expect_index;
+        server_index = g_next_leader_index;
+        expect_index = pTrackerServer - g_tracker_servers.servers;
+        if (server_index != expect_index)
+        {
+            logError("file: "__FILE__", line: %d, "
+                    "g_next_leader_index: %d != expected: %d",
+                    __LINE__, server_index, expect_index);
+            g_next_leader_index = -1;
+            return EBUSY;
+        }
+
+        relationship_set_tracker_leader(server_index, pLeader, true);
+        return 0;
+    }
+    else
+    {
+        return do_notify_leader_changed(pTrackerServer, pLeader,
+                TRACKER_PROTO_CMD_TRACKER_COMMIT_NEXT_LEADER, bConnectFail);
+    }
+}
+
+static int relationship_notify_leader_changed(TrackerRunningStatus *pTrackerStatus)
 {
 	TrackerServerInfo *pTrackerServer;
 	TrackerServerInfo *pTrackerEnd;
@@ -331,11 +405,11 @@ static int relationship_notify_leader_changed(ConnectionInfo *pLeader)
 	result = ENOENT;
 	pTrackerEnd = g_tracker_servers.servers + g_tracker_servers.server_count;
 	success_count = 0;
-	for (pTrackerServer=g_tracker_servers.servers; \
+	for (pTrackerServer=g_tracker_servers.servers;
 		pTrackerServer<pTrackerEnd; pTrackerServer++)
 	{
-		if ((result=relationship_notify_next_leader(pTrackerServer, \
-				pLeader, &bConnectFail)) != 0)
+		if ((result=relationship_notify_next_leader(pTrackerServer,
+				pTrackerStatus, &bConnectFail)) != 0)
 		{
 			if (!bConnectFail)
 			{
@@ -355,11 +429,11 @@ static int relationship_notify_leader_changed(ConnectionInfo *pLeader)
 
 	result = ENOENT;
 	success_count = 0;
-	for (pTrackerServer=g_tracker_servers.servers; \
+	for (pTrackerServer=g_tracker_servers.servers;
 		pTrackerServer<pTrackerEnd; pTrackerServer++)
 	{
-		if ((result=relationship_commit_next_leader(pTrackerServer, \
-				pLeader, &bConnectFail)) != 0)
+		if ((result=relationship_commit_next_leader(pTrackerServer,
+				pTrackerStatus, &bConnectFail)) != 0)
 		{
 			if (!bConnectFail)
 			{
@@ -399,9 +473,11 @@ static int relationship_select_leader()
 	}
 
     conn = trackerStatus.pTrackerServer->connections;
-	if (conn->port == g_server_port && is_local_host_ip(conn->ip_addr))
+    if (fdfs_server_contain_local_service(trackerStatus.
+                pTrackerServer, g_server_port))
 	{
-		if ((result=relationship_notify_leader_changed(conn)) != 0)
+		if ((result=relationship_notify_leader_changed(
+                        &trackerStatus)) != 0)
 		{
 			return result;
 		}

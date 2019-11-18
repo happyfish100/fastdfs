@@ -24,6 +24,9 @@ extern bool g_if_leader_self;  //if I am leader
 int tracker_relationship_init();
 int tracker_relationship_destroy();
 
+void relationship_set_tracker_leader(const int server_index,
+        ConnectionInfo *pLeader, const bool if_leader_self);
+
 #ifdef __cplusplus
 }
 #endif

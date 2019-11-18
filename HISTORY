@@ -10,6 +10,7 @@ Version 6.03  2019-11-17
  * code refine: combine g_fdfs_store_paths and g_path_space_list,
    and extent struct FDFSStorePathInfo
  * check store path's mark file to prevent confusion
+ * new selected tracker leader do NOT notify self by network
  
   NOTE: the tracker and storage server must upgrade together
 

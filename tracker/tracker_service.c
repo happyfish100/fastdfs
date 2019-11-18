@@ -897,8 +897,8 @@ static int tracker_deal_notify_next_leader(struct fast_task_info *pTask)
 		return ENOENT;
 	}
 
-	if (g_if_leader_self && (leader.port != g_server_port || \
-		!is_local_host_ip(leader.ip_addr)))
+	if (g_if_leader_self && !(leader.port == g_server_port &&
+		is_local_host_ip(leader.ip_addr)))
 	{
 		g_if_leader_self = false;
 		g_tracker_servers.leader_index = -1;
@@ -922,6 +922,7 @@ static int tracker_deal_commit_next_leader(struct fast_task_info *pTask)
 	char *ipAndPort[2];
 	ConnectionInfo leader;
 	int server_index;
+    bool leader_self;
 	
 	if (pTask->length - sizeof(TrackerHeader) != FDFS_PROTO_IP_PORT_SIZE)
 	{
@@ -969,19 +970,9 @@ static int tracker_deal_commit_next_leader(struct fast_task_info *pTask)
 		return EINVAL;
 	}
 
-	g_tracker_servers.leader_index = server_index;
-	g_next_leader_index = -1;
-	if (leader.port == g_server_port && is_local_host_ip(leader.ip_addr))
-	{
-		g_if_leader_self = true;
-		g_tracker_leader_chg_count++;
-	}
-	else
-	{
-		logInfo("file: "__FILE__", line: %d, " \
-			"the tracker leader is %s:%d", __LINE__, \
-			leader.ip_addr, leader.port);
-	}
+    leader_self = (leader.port == g_server_port) &&
+            is_local_host_ip(leader.ip_addr);
+    relationship_set_tracker_leader(server_index, &leader, leader_self);
 
 	return 0;
 }

@@ -13,6 +13,7 @@
 #include "fastcommon/logger.h"
 #include "fastcommon/sockopt.h"
 #include "fastcommon/shared_func.h"
+#include "fastcommon/local_ip_func.h"
 #include "tracker_proto.h"
 #include "fdfs_global.h"
 #include "fdfs_shared_func.h"
@@ -107,6 +108,24 @@ bool fdfs_server_equal(TrackerServerInfo *pServer1,
     }
 
     return true;
+}
+
+bool fdfs_server_contain_local_service(TrackerServerInfo *pServerInfo,
+        const int target_port)
+{
+    const char *current_ip;
+    
+    current_ip = get_first_local_ip();
+    while (current_ip != NULL)
+    {
+        if (fdfs_server_contain(pServerInfo, current_ip, target_port))
+        {
+            return true;
+        }
+        current_ip = get_next_local_ip(current_ip);
+    }
+
+    return false;
 }
 
 TrackerServerInfo *fdfs_tracker_group_get_server(TrackerServerGroup *pGroup,

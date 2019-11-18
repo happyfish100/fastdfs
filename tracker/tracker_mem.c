@@ -4275,8 +4275,7 @@ static int tracker_mem_get_tracker_server(FDFSStorageJoinBody *pJoinBody, \
     for (pTrackerServer=pJoinBody->tracker_servers;
             pTrackerServer<pTrackerEnd; pTrackerServer++)
 	{
-		if (pTrackerServer->connections[0].port == g_server_port &&
-			is_local_host_ip(pTrackerServer->connections[0].ip_addr))
+		if (fdfs_server_contain_local_service(pTrackerServer, g_server_port))
 		{
 			continue;
 		}
