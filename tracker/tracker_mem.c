@@ -4710,16 +4710,21 @@ int tracker_mem_add_group_and_storage(TrackerClientInfo *pClientInfo, \
 	}
 	else
 	{
-		if (pClientInfo->pGroup->store_path_count != \
+		if (pClientInfo->pGroup->store_path_count !=
 			pJoinBody->store_path_count)
 		{
-			ppEnd = pClientInfo->pGroup->all_servers + \
+			ppEnd = pClientInfo->pGroup->all_servers +
 				pClientInfo->pGroup->count;
-			for (ppServer=pClientInfo->pGroup->all_servers; \
+			for (ppServer=pClientInfo->pGroup->all_servers;
 				ppServer<ppEnd; ppServer++)
 			{
-				if ((*ppServer)->store_path_count != \
-					pJoinBody->store_path_count)
+				if ((*ppServer)->status == FDFS_STORAGE_STATUS_DELETED)
+                {
+                    continue;
+                }
+
+                if ((*ppServer)->store_path_count !=
+                         pJoinBody->store_path_count)
 				{
 					break;
 				}
@@ -4727,9 +4732,9 @@ int tracker_mem_add_group_and_storage(TrackerClientInfo *pClientInfo, \
 
 			if (ppServer == ppEnd)  //all servers are same, adjust
 			{
-				if ((result=tracker_realloc_group_path_mbs( \
-			 	    pClientInfo->pGroup, \
-				    pJoinBody->store_path_count))!=0)
+				if ((result=tracker_realloc_group_path_mbs(
+                                pClientInfo->pGroup, pJoinBody->
+                                store_path_count)) != 0)
 				{
 					return result;
 				}
