@@ -877,7 +877,12 @@ static int storage_check_store_path_mark(const int store_path_index,
         if (mark != NULL)
         {
             if (strcmp(g_fdfs_store_paths.paths[store_path_index].mark,
-                        mark) != 0)
+                        mark) == 0)
+            {
+                free(mark);
+                return 0;
+            }
+            else
             {
                 FDFSStorePathMarkInfo mark_info;
                 int mark_len;
