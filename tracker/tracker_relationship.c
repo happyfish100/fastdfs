@@ -562,9 +562,9 @@ static void *relationship_thread_entrance(void* arg)
 	int sleep_seconds;
 
 	fail_count = 0;
+    sleep_seconds = 1;
 	while (g_continue_flag)
 	{
-		sleep_seconds = 1;
 		if (g_tracker_servers.servers != NULL)
 		{
 			if (g_tracker_servers.leader_index < 0)
@@ -574,20 +574,26 @@ static void *relationship_thread_entrance(void* arg)
 					sleep_seconds = 1 + (int)((double)rand()
 					* (double)MAX_SLEEP_SECONDS / RAND_MAX);
 				}
+                else
+                {
+                    sleep_seconds = 1;
+                }
 			}
 			else
 			{
 				if (relationship_ping_leader() == 0)
 				{
 					fail_count = 0;
+                    sleep_seconds = 1;
 				}
 				else
 				{
-					fail_count++;
-					if (fail_count >= 3)
+                    sleep_seconds *= 2;
+					if (++fail_count >= 3)
 					{
 						g_tracker_servers.leader_index = -1;
 						fail_count = 0;
+                        sleep_seconds = 1;
 					}
 				}
 			}
