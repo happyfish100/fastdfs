@@ -581,6 +581,8 @@ static void *relationship_thread_entrance(void* arg)
 			}
 			else
 			{
+                int leader_index;
+                leader_index = g_tracker_servers.leader_index;
 				if (relationship_ping_leader() == 0)
 				{
 					fail_count = 0;
@@ -588,8 +590,28 @@ static void *relationship_thread_entrance(void* arg)
 				}
 				else
 				{
+                    char leader_str[64];
+                    ConnectionInfo *pLeader;
+
+                    if (leader_index < 0)
+                    {
+                        strcpy(leader_str, "unknown leader");
+                    }
+                    else
+                    {
+                        pLeader = g_tracker_servers.servers
+                            [leader_index].connections;
+                        sprintf(leader_str, "leader %s:%d",
+                                pLeader->ip_addr, pLeader->port);
+                    }
+
+                    ++fail_count;
+                    logError("file: "__FILE__", line: %d, "
+                            "%dth ping %s fail", __LINE__,
+                            fail_count, leader_str);
+
                     sleep_seconds *= 2;
-					if (++fail_count >= 3)
+					if (fail_count >= 3)
 					{
 						g_tracker_servers.leader_index = -1;
 						fail_count = 0;
