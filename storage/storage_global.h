@@ -155,6 +155,7 @@ extern bool g_thread_kill_done;
 
 extern bool g_file_sync_skip_invalid_record;
 
+extern bool g_check_store_path_mark;
 extern bool g_compress_binlog;
 extern TimeInfo g_compress_binlog_time;  //compress binlog time base
 

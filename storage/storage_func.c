@@ -671,13 +671,16 @@ int storage_write_to_sync_ini_file()
 	    );
 
 
-	for (i=0; i<g_fdfs_store_paths.count; i++)
+    if (g_check_store_path_mark)
     {
-        if (g_fdfs_store_paths.paths[i].mark != NULL)
+        for (i=0; i<g_fdfs_store_paths.count; i++)
         {
-            len += sprintf(buff + len, "%s%d=%s\n",
-                    INIT_ITEM_STORE_PATH_MARK_PREFIX, i,
-                    g_fdfs_store_paths.paths[i].mark);
+            if (g_fdfs_store_paths.paths[i].mark != NULL)
+            {
+                len += sprintf(buff + len, "%s%d=%s\n",
+                        INIT_ITEM_STORE_PATH_MARK_PREFIX, i,
+                        g_fdfs_store_paths.paths[i].mark);
+            }
         }
     }
 
@@ -719,6 +722,11 @@ static int storage_load_store_path_marks(IniContext *pIniContext)
     char *pValue;
     char name[64];
     int i;
+
+    if (!g_check_store_path_mark)
+    {
+        return 0;
+    }
 
 	for (i=0; i<g_fdfs_store_paths.count; i++)
     {
@@ -815,6 +823,11 @@ static int storage_check_store_path_mark(const int store_path_index,
 	char full_filename[MAX_PATH_SIZE];
     char *mark;
     int result;
+
+    if (!g_check_store_path_mark)
+    {
+        return 0;
+    }
 
     snprintf(full_filename, sizeof(full_filename), "%s/data/%s",
             g_fdfs_store_paths.paths[store_path_index].path,
@@ -928,8 +941,11 @@ static int storage_check_store_path_mark(const int store_path_index,
                             " create_time: %s }, "
                             "if you confirm that it is NOT "
                             "used by other storage server, you can delete "
-                            "the mark file %s then try again", __LINE__,
-                            store_path_index, g_fdfs_store_paths.
+                            "the mark file %s then try again. if you DON'T "
+                            "really need to check store path mark to prevent "
+                            "confusion, you can set the parameter "
+                            "check_store_path_mark to false in storage.conf",
+                            __LINE__, store_path_index, g_fdfs_store_paths.
                             paths[store_path_index].path,
                             mark_info.ip_addr, mark_info.port,
                             mark_info.store_path_index, time_str,
@@ -2064,6 +2080,8 @@ int storage_func_init(const char *filename, \
 			break;
 		}
 
+		g_check_store_path_mark = iniGetBoolValue(NULL,
+                "check_store_path_mark", &iniContext, true);
 		if ((result=fdfs_connection_pool_init(filename, &iniContext)) != 0)
 		{
 			break;
@@ -2134,7 +2152,8 @@ int storage_func_init(const char *filename, \
 			"use_connection_pool=%d, " \
 			"g_connection_pool_max_idle_time=%ds, " \
 			"compress_binlog=%d, " \
-			"compress_binlog_time=%02d:%02d", \
+			"compress_binlog_time=%02d:%02d, " \
+            "check_store_path_mark=%d",  \
 			g_fdfs_version.major, g_fdfs_version.minor, \
 			g_fdfs_base_path, g_fdfs_store_paths.count, \
 			g_subdir_count_per_path, \
@@ -2171,7 +2190,7 @@ int storage_func_init(const char *filename, \
 			g_file_sync_skip_invalid_record, \
 			g_use_connection_pool, g_connection_pool_max_idle_time, \
             g_compress_binlog, g_compress_binlog_time.hour,   \
-            g_compress_binlog_time.minute);
+            g_compress_binlog_time.minute, g_check_store_path_mark);
 
 #ifdef WITH_HTTPD
 		if (!g_http_params.disabled)

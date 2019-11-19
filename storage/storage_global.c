@@ -106,6 +106,7 @@ bool g_storage_ip_changed_auto_adjust = false;
 bool g_thread_kill_done = false;
 bool g_file_sync_skip_invalid_record = false;
 
+bool g_check_store_path_mark = true;
 bool g_compress_binlog = false;
 TimeInfo g_compress_binlog_time = {0, 0};
 

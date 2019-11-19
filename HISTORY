@@ -1,5 +1,5 @@
 
-Version 6.03  2019-11-17
+Version 6.03  2019-11-19
  * dual IPs support two different types of inner (intranet) IPs
  * storage server request tracker server to change it's status
    to that of tracker leader when the storage server found 
