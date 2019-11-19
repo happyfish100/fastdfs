@@ -778,25 +778,6 @@ static int storage_generate_store_path_mark(const int store_path_index)
 	base64_encode_ex(&g_fdfs_base64_context, (char *)&mark_info,
             sizeof(mark_info), mark_str, &mark_len, false);
 
-    {
-        char time_str[32];
-
-        mark_info.ip_addr[IP_ADDRESS_SIZE - 1] = '\0';
-        formatDatetime(mark_info.create_time,
-                "%Y-%m-%d %H:%M:%S",
-                time_str, sizeof(time_str));
-
-        logInfo("file: "__FILE__", line: %d, "
-                "the store path #%d, fields in the mark file: "
-                "{ ip_addr: %s, port: %d,"
-                " store_path_index: %d,"
-                " create_time: %s }, mark_str: %s",
-                __LINE__, store_path_index,
-                mark_info.ip_addr, mark_info.port,
-                mark_info.store_path_index,
-                time_str, mark_str);
-    }
-
     snprintf(full_filename, sizeof(full_filename), "%s/data/%s",
             g_fdfs_store_paths.paths[store_path_index].path,
             STORE_PATH_MARK_FILENAME);
