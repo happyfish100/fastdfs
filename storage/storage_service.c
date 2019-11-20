@@ -4144,7 +4144,7 @@ static int storage_server_trunk_confirm_or_free(struct fast_task_info *pTask)
 	}
 }
 
-static int storage_server_fetch_one_path_binlog_dealer( \
+static int storage_server_fetch_one_path_binlog_dealer(
 		struct fast_task_info *pTask)
 {
 #define STORAGE_LAST_AHEAD_BYTES   (2 * FDFS_PROTO_PKG_LEN_SIZE)
@@ -4167,7 +4167,7 @@ static int storage_server_fetch_one_path_binlog_dealer( \
 	int64_t pkg_len;
 
 	pClientInfo = (StorageClientInfo *)pTask->arg;
-	if (pClientInfo->total_length - pClientInfo->total_offset <= \
+	if (pClientInfo->total_length - pClientInfo->total_offset <=
 		STORAGE_LAST_AHEAD_BYTES)  //finished, close the connection
 	{
 		STORAGE_NIO_NOTIFY_CLOSE(pTask);
@@ -4177,13 +4177,13 @@ static int storage_server_fetch_one_path_binlog_dealer( \
 	pFileContext =  &(pClientInfo->file_context);
 	pReader = (StorageBinLogReader *)pClientInfo->extra_arg;
 
-	store_path_index = pFileContext->extra_info.upload.trunk_info. \
+	store_path_index = pFileContext->extra_info.upload.trunk_info.
 				path.store_path_index;
 	pBasePath = g_fdfs_store_paths.paths[store_path_index].path;
 	pOutBuff = pTask->data;
 
 	bLast = false;
-	sprintf(diskLogicPath, "%c"FDFS_STORAGE_DATA_DIR_FORMAT, \
+	sprintf(diskLogicPath, "%c"FDFS_STORAGE_DATA_DIR_FORMAT,
 		FDFS_STORAGE_STORE_PATH_PREFIX_CHAR, store_path_index);
 
 	do
@@ -4368,12 +4368,12 @@ static int storage_server_fetch_one_path_binlog_dealer( \
 	pTask->length = pOutBuff - pTask->data;
 	if (bLast)
 	{
-		pkg_len = pClientInfo->total_offset + pTask->length - \
+		pkg_len = pClientInfo->total_offset + pTask->length -
 				sizeof(TrackerHeader);
 		long2buff(pkg_len, pOutBuff);
 
 		pTask->length += FDFS_PROTO_PKG_LEN_SIZE;
-		pClientInfo->total_length = pkg_len + FDFS_PROTO_PKG_LEN_SIZE \
+		pClientInfo->total_length = pkg_len + FDFS_PROTO_PKG_LEN_SIZE
 						+ STORAGE_LAST_AHEAD_BYTES;
 	}
 
@@ -4406,7 +4406,7 @@ static void fetch_one_path_binlog_finish_clean_up(struct fast_task_info *pTask)
 	free(pReader);
 }
 
-static int storage_server_do_fetch_one_path_binlog( \
+static int storage_server_do_fetch_one_path_binlog(
 		struct fast_task_info *pTask, const int store_path_index)
 {
 	StorageClientInfo *pClientInfo;
@@ -4441,20 +4441,20 @@ static int storage_server_do_fetch_one_path_binlog( \
 
 	pFileContext->fd = -1;
 	pFileContext->op = FDFS_STORAGE_FILE_OP_READ;
-	pFileContext->dio_thread_index = storage_dio_get_thread_index( \
+	pFileContext->dio_thread_index = storage_dio_get_thread_index(
 		pTask, store_path_index, pFileContext->op);
 	pFileContext->extra_info.upload.trunk_info.path.store_path_index = 
 				store_path_index;
 	pClientInfo->extra_arg = pReader;
 
-	pClientInfo->total_length = INFINITE_FILE_SIZE + \
+	pClientInfo->total_length = INFINITE_FILE_SIZE +
 					sizeof(TrackerHeader);
 	pClientInfo->total_offset = 0;
 	pTask->length = sizeof(TrackerHeader);
 	pHeader = (TrackerHeader *)pTask->data;
 	pHeader->status = 0;
 	pHeader->cmd = STORAGE_PROTO_CMD_RESP;
-	long2buff(pClientInfo->total_length - sizeof(TrackerHeader), \
+	long2buff(pClientInfo->total_length - sizeof(TrackerHeader),
 			pHeader->pkg_len);
 
 	storage_nio_notify(pTask);
@@ -4512,7 +4512,7 @@ static int storage_server_fetch_one_path_binlog(struct fast_task_info *pTask)
 		return EINVAL;
 	}
 
-	return storage_server_do_fetch_one_path_binlog( \
+	return storage_server_do_fetch_one_path_binlog(
 			pTask, store_path_index);
 }
 

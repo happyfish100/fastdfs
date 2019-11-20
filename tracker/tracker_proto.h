@@ -12,6 +12,7 @@
 #define _TRACKER_PROTO_H_
 
 #include "tracker_types.h"
+#include "fdfs_global.h"
 #include "fastcommon/connection_pool.h"
 #include "fastcommon/ini_file_reader.h"
 
@@ -287,7 +288,15 @@ int metadata_cmp_by_name(const void *p1, const void *p2);
 
 const char *get_storage_status_caption(const int status);
 
-int fdfs_recv_header(ConnectionInfo *pTrackerServer, int64_t *in_bytes);
+int fdfs_recv_header_ex(ConnectionInfo *pTrackerServer,
+        const int network_timeout, int64_t *in_bytes);
+
+static inline int fdfs_recv_header(ConnectionInfo *pTrackerServer,
+        int64_t *in_bytes)
+{
+    return fdfs_recv_header_ex(pTrackerServer,
+        g_fdfs_network_timeout, in_bytes);
+}
 
 int fdfs_recv_response(ConnectionInfo *pTrackerServer, \
 		char **buff, const int buff_size, \

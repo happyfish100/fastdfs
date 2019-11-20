@@ -1,5 +1,5 @@
 
-Version 6.03  2019-11-19
+Version 6.03  2019-11-20
  * dual IPs support two different types of inner (intranet) IPs
  * storage server request tracker server to change it's status
    to that of tracker leader when the storage server found 
@@ -11,6 +11,8 @@ Version 6.03  2019-11-19
    and extent struct FDFSStorePathInfo
  * check store path's mark file to prevent confusion
  * new selected tracker leader do NOT notify self by network
+ * larger network_timeout for fetching one-store-path binlog
+   when disk recovery
  
   NOTE: the tracker and storage server must upgrade together
 

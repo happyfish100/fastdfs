@@ -65,6 +65,7 @@ static int storage_do_fetch_binlog(ConnectionInfo *pSrcStorage, \
 	int64_t in_bytes;
 	int64_t file_bytes;
 	int result;
+    int network_timeout;
 
 	pBasePath = g_fdfs_store_paths.paths[store_path_index].path;
 	recovery_get_binlog_filename(pBasePath, full_binlog_filename);
@@ -75,21 +76,30 @@ static int storage_do_fetch_binlog(ConnectionInfo *pSrcStorage, \
 	long2buff(FDFS_GROUP_NAME_MAX_LEN + 1, pHeader->pkg_len);
 	pHeader->cmd = STORAGE_PROTO_CMD_FETCH_ONE_PATH_BINLOG;
 	strcpy(out_buff + sizeof(TrackerHeader), g_group_name);
-	*(out_buff + sizeof(TrackerHeader) + FDFS_GROUP_NAME_MAX_LEN) = \
+	*(out_buff + sizeof(TrackerHeader) + FDFS_GROUP_NAME_MAX_LEN) =
 			store_path_index;
 
-	if((result=tcpsenddata_nb(pSrcStorage->sock, out_buff, \
+	if((result=tcpsenddata_nb(pSrcStorage->sock, out_buff,
 		sizeof(out_buff), g_fdfs_network_timeout)) != 0)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%d, send data fail, " \
-			"errno: %d, error info: %s.", \
-			__LINE__, pSrcStorage->ip_addr, pSrcStorage->port, \
+		logError("file: "__FILE__", line: %d, "
+			"storage server %s:%d, send data fail, "
+			"errno: %d, error info: %s.",
+			__LINE__, pSrcStorage->ip_addr, pSrcStorage->port,
 			result, STRERROR(result));
 		return result;
 	}
 
-	if ((result=fdfs_recv_header(pSrcStorage, &in_bytes)) != 0)
+    if (g_fdfs_network_timeout >= 600)
+    {
+        network_timeout = g_fdfs_network_timeout;
+    }
+    else
+    {
+        network_timeout = 600;
+    }
+	if ((result=fdfs_recv_header_ex(pSrcStorage, network_timeout,
+                    &in_bytes)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, "
                 "fdfs_recv_header fail, result: %d",
@@ -97,21 +107,20 @@ static int storage_do_fetch_binlog(ConnectionInfo *pSrcStorage, \
 		return result;
 	}
 
-	if ((result=tcprecvfile(pSrcStorage->sock, full_binlog_filename, \
-				in_bytes, 0, g_fdfs_network_timeout, \
-				&file_bytes)) != 0)
+	if ((result=tcprecvfile(pSrcStorage->sock, full_binlog_filename,
+				in_bytes, 0, network_timeout, &file_bytes)) != 0)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%d, tcprecvfile fail, " \
-			"errno: %d, error info: %s.", \
-			__LINE__, pSrcStorage->ip_addr, pSrcStorage->port, \
+		logError("file: "__FILE__", line: %d, "
+			"storage server %s:%d, tcprecvfile fail, "
+			"errno: %d, error info: %s.",
+			__LINE__, pSrcStorage->ip_addr, pSrcStorage->port,
 			result, STRERROR(result));
 		return result;
 	}
 
-	logInfo("file: "__FILE__", line: %d, " \
-		"recovery binlog file size: %"PRId64, \
-		__LINE__, file_bytes);
+	logInfo("file: "__FILE__", line: %d, "
+		"recovery binlog from %s:%d, file size: %"PRId64, __LINE__,
+        pSrcStorage->ip_addr, pSrcStorage->port, file_bytes);
 
 	return 0;
 }
