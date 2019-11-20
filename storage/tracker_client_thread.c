@@ -2022,8 +2022,8 @@ int tracker_report_join(ConnectionInfo *pTrackerServer, \
 				if (g_my_report_status[i].my_result == -1)
 				{
                     logInfo("file: "__FILE__", line: %d, "
-                            "tracker server: #%d. %s:%d, g_my_report_status: %d",
-                            __LINE__, i,
+                            "tracker server: #%d. %s:%d, "
+                            "my_report_result: %d", __LINE__, i,
                             g_tracker_group.servers[i].connections[0].ip_addr,
                             g_tracker_group.servers[i].connections[0].port,
                             g_my_report_status[i].my_result);
