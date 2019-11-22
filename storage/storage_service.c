@@ -1834,9 +1834,11 @@ static void *accept_thread_entrance(void* arg)
 		pTask = free_queue_pop();
 		if (pTask == NULL)
 		{
-			logError("file: "__FILE__", line: %d, " \
-				"malloc task buff failed", \
-				__LINE__);
+			logError("file: "__FILE__", line: %d, "
+				"malloc task buff fail, you should "
+				"increase the parameter \"max_connections\" "
+                "in storage.conf, or check your applications "
+                "for connection leaks", __LINE__);
 			close(incomesock);
 			continue;
 		}

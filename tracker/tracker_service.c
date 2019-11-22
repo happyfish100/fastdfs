@@ -588,14 +588,14 @@ static int tracker_deal_changelog_req(struct fast_task_info *pTask)
 			break;
 		}
 
-		memcpy(group_name, pTask->data + sizeof(TrackerHeader), \
+		memcpy(group_name, pTask->data + sizeof(TrackerHeader),
 			FDFS_GROUP_NAME_MAX_LEN);
 		*(group_name + FDFS_GROUP_NAME_MAX_LEN) = '\0';
 		pGroup = tracker_mem_get_group(group_name);
 		if (pGroup == NULL)
 		{
-			logError("file: "__FILE__", line: %d, " \
-				"client ip: %s, invalid group_name: %s", \
+			logError("file: "__FILE__", line: %d, "
+				"client ip: %s, group_name: %s not exist",
 				__LINE__, pTask->client_ip, group_name);
 			result = ENOENT;
 			break;

@@ -134,10 +134,11 @@ void recv_notify_read(int sock, short event, void *arg)
 		pTask = free_queue_pop();
 		if (pTask == NULL)
 		{
-			logError("file: "__FILE__", line: %d, " \
-				"malloc task buff failed, you should " \
-				"increase the parameter: max_connections", \
-				__LINE__);
+			logError("file: "__FILE__", line: %d, "
+				"malloc task buff fail, you should "
+				"increase the parameter \"max_connections\" "
+                "in tracker.conf, or check your applications "
+                "for connection leaks", __LINE__);
 			close(incomesock);
 			continue;
 		}
