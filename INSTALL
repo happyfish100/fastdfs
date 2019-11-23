@@ -3,50 +3,65 @@ Copy right 2009 Happy Fish / YuQing
 FastDFS may be copied only under the terms of the GNU General
 Public License V3, which may be found in the FastDFS source kit.
 Please visit the FastDFS Home Page for more detail.
-English language: http://english.csource.org/
-Chinese language: http://www.csource.org/
+Chinese language: http://www.fastken.com/
 
-#step 1. download libfastcommon source package from github and install it,
-   the github address:
-   https://github.com/happyfish100/libfastcommon.git
+# step 1. download libfastcommon source codes and install it,
+#   github address:  https://github.com/happyfish100/libfastcommon.git
+#   gitee address:   https://gitee.com/fastdfs100/libfastcommon.git
+# get source codes as:
+   git clone https://github.com/happyfish100/libfastcommon.git
+   cd libfastcommon; git checkout V1.0.41
+   ./make.sh clean && ./make.sh && ./make.sh install
 
-#step 2. download FastDFS source package and unpack it, 
-tar xzf FastDFS_v5.x.tar.gz
-#for example:
-tar xzf FastDFS_v5.08.tar.gz
 
-#step 3. enter the FastDFS dir
-cd FastDFS
+# step 2. download fastdfs source codes and install it, 
+#   github address:  https://github.com/happyfish100/fastdfs.git
+#   gitee address:   https://gitee.com/fastdfs100/fastdfs.git
+# get source codes as:
+   git clone https://github.com/happyfish100/fastdfs.git
+   cd fastdfs; git checkout V6.03
+   ./make.sh clean && ./make.sh && ./make.sh install
 
-#step 4. execute:
-./make.sh
 
-#step 5. make install
-./make.sh install
+# step 3. setup the config files
+ the setup script does NOT overwrite existing config files,
+ please feel free to execute this script (take easy :)
+./setup.sh /etc/fdfs
 
-#step 6. edit/modify the config file of tracker and storage
 
-#step 7. run server programs
-#start the tracker server:
+# step 4. edit or modify the config files of tracker, storage and client
+such as:
+ vi /etc/fdfs/tracker.conf
+ vi /etc/fdfs/storage.conf
+ vi /etc/fdfs/client.conf
+
+ and so on ...
+
+
+# step 5. run the server programs
+# start the tracker server:
 /usr/bin/fdfs_trackerd /etc/fdfs/tracker.conf restart
-#in Linux, you can start fdfs_trackerd as a service:
-/sbin/service fdfs_trackerd start
 
-#start the storage server:
+# start the storage server:
 /usr/bin/fdfs_storaged /etc/fdfs/storage.conf restart
-#in Linux, you can start fdfs_storaged as a service:
-/sbin/service fdfs_storaged start
 
-#step 8. run test program
-#run the client test program:
+# (optional) in Linux, you can start fdfs_trackerd and fdfs_storaged as a service:
+/sbin/service fdfs_trackerd restart
+/sbin/service fdfs_storaged restart
+
+
+# step 6. (optional) run monitor program
+# such as:
+/usr/bin/fdfs_monitor /etc/fdfs/client.conf
+
+
+# step 7. (optional) run the test program
+# such as:
 /usr/bin/fdfs_test <client_conf_filename> <operation>
 /usr/bin/fdfs_test1 <client_conf_filename> <operation>
-#for example, upload a file:
-/usr/bin/fdfs_test conf/client.conf upload /usr/include/stdlib.h
 
-#step 9. run monitor program
-#run the monitor program:
-/usr/bin/fdfs_monitor <client_conf_filename>
+# for example, upload a file for test:
+/usr/bin/fdfs_test /etc/fdfs/client.conf upload /usr/include/stdlib.h
 
 
 tracker server config file sample please see conf/tracker.conf
@@ -54,7 +69,6 @@ tracker server config file sample please see conf/tracker.conf
 storage server config file sample please see conf/storage.conf
 
 client config file sample please see conf/client.conf
-
 
 Item detail
 1. server common items
