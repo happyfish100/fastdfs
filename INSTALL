@@ -8,7 +8,8 @@ Chinese language: http://www.fastken.com/
 # step 1. download libfastcommon source codes and install it,
 #   github address:  https://github.com/happyfish100/libfastcommon.git
 #   gitee address:   https://gitee.com/fastdfs100/libfastcommon.git
-# get source codes as:
+# command lines as:
+
    git clone https://github.com/happyfish100/libfastcommon.git
    cd libfastcommon; git checkout V1.0.41
    ./make.sh clean && ./make.sh && ./make.sh install
@@ -17,15 +18,17 @@ Chinese language: http://www.fastken.com/
 # step 2. download fastdfs source codes and install it, 
 #   github address:  https://github.com/happyfish100/fastdfs.git
 #   gitee address:   https://gitee.com/fastdfs100/fastdfs.git
-# get source codes as:
+# command lines as:
+
    git clone https://github.com/happyfish100/fastdfs.git
    cd fastdfs; git checkout V6.03
    ./make.sh clean && ./make.sh && ./make.sh install
 
 
 # step 3. setup the config files
- the setup script does NOT overwrite existing config files,
- please feel free to execute this script (take easy :)
+#   the setup script does NOT overwrite existing config files,
+#   please feel free to execute this script (take easy :)
+
 ./setup.sh /etc/fdfs
 
 
