@@ -92,10 +92,11 @@ static int storage_report_ip_changed(ConnectionInfo *pTrackerServer)
 	}
 
 	pInBuff = in_buff;
-	result = fdfs_recv_response(pTrackerServer, \
+	result = fdfs_recv_response(pTrackerServer,
                 &pInBuff, 0, &in_bytes);
 
-	if (result == 0 || result == EALREADY || result == ENOENT)
+	if (result == 0 || result == EALREADY || result == ENOENT
+            || result == EEXIST)
 	{
         if (result != 0)
         {
@@ -107,11 +108,11 @@ static int storage_report_ip_changed(ConnectionInfo *pTrackerServer)
 	}
 	else
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%d, recv data fail or " \
-			"response status != 0, " \
-			"errno: %d, error info: %s", \
-			__LINE__, pTrackerServer->ip_addr, \
+		logError("file: "__FILE__", line: %d, "
+			"tracker server %s:%d, recv data fail or "
+			"response status != 0, "
+			"errno: %d, error info: %s",
+			__LINE__, pTrackerServer->ip_addr,
 			pTrackerServer->port, result, STRERROR(result));
 		return result == EBUSY ? 0 : result;
 	}
