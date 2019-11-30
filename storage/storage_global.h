@@ -128,6 +128,8 @@ extern byte g_id_type_in_filename; //id type of the storage server in the filena
 extern bool g_use_access_log;  //if log to access log
 extern bool g_rotate_access_log;  //if rotate the access log every day
 extern bool g_rotate_error_log;  //if rotate the error log every day
+extern bool g_compress_old_access_log; //if compress the old access log
+extern bool g_compress_old_error_log;  //if compress the old error log
 
 extern TimeInfo g_access_log_rotate_time; //rotate access log time base
 extern TimeInfo g_error_log_rotate_time;  //rotate error log time base

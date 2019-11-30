@@ -579,8 +579,16 @@ int tracker_load_from_conf_file(const char *filename, \
 			return result;
 		}
 
-		g_rotate_error_log = iniGetBoolValue(NULL, "rotate_error_log",\
+		g_rotate_error_log = iniGetBoolValue(NULL, "rotate_error_log",
 					&iniContext, false);
+        g_compress_old_error_log = iniGetBoolValue(NULL, "compress_old_error_log",
+                &iniContext, false);
+        if (g_compress_old_error_log)
+        {
+            log_set_compress_log_flags(LOG_COMPRESS_FLAGS_ENABLED |
+                    LOG_COMPRESS_FLAGS_NEW_THREAD);
+        }
+
 		if ((result=get_time_item_from_conf(&iniContext, \
 			"error_log_rotate_time", &g_error_log_rotate_time, \
 			0, 0)) != 0)
@@ -744,6 +752,7 @@ int tracker_load_from_conf_file(const char *filename, \
 			"storage_id/ip_count=%d / %d, " \
 			"rotate_error_log=%d, " \
 			"error_log_rotate_time=%02d:%02d, " \
+            "compress_old_error_log=%d, " \
 			"rotate_error_log_size=%"PRId64", " \
 			"log_file_keep_days=%d, " \
 			"store_slave_file_use_link=%d, " \
@@ -780,7 +789,7 @@ int tracker_load_from_conf_file(const char *filename, \
 			FDFS_ID_TYPE_SERVER_ID ? "id" : "ip", \
             g_storage_ids_by_id.count, g_storage_ids_by_ip.count, \
 			g_rotate_error_log, g_error_log_rotate_time.hour, \
-			g_error_log_rotate_time.minute, \
+			g_error_log_rotate_time.minute, g_compress_old_error_log, \
 			g_log_context.rotate_size, g_log_file_keep_days,
 			g_store_slave_file_use_link, \
 			g_use_connection_pool, g_connection_pool_max_idle_time);

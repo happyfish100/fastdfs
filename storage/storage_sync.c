@@ -1792,7 +1792,8 @@ static int uncompress_binlog_file(StorageBinLogReader *pReader,
     logInfo("file: "__FILE__", line: %d, "
             "try to uncompress binlog %s",
             __LINE__, gzip_filename);
-    snprintf(command, sizeof(command), "gzip -d %s 2>&1", gzip_filename);
+    snprintf(command, sizeof(command), "%s -d %s 2>&1",
+            get_gzip_command_filename(), gzip_filename);
     result = getExecResult(command, output, sizeof(output));
     unlink(flag_filename);
     if (result != 0)
@@ -1873,7 +1874,8 @@ static int compress_binlog_file(const char *filename)
             "try to compress binlog %s",
             __LINE__, filename);
 
-    snprintf(command, sizeof(command), "gzip %s 2>&1", filename);
+    snprintf(command, sizeof(command), "%s %s 2>&1",
+            get_gzip_command_filename(), filename);
     result = getExecResult(command, output, sizeof(output));
     unlink(flag_filename);
     if (result != 0)

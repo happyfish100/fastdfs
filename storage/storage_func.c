@@ -1994,6 +1994,23 @@ int storage_func_init(const char *filename, \
 
 		g_rotate_error_log = iniGetBoolValue(NULL, "rotate_error_log",\
 					&iniContext, false);
+		g_compress_old_access_log = iniGetBoolValue(NULL, "compress_old_access_log",
+					&iniContext, false);
+		g_compress_old_error_log = iniGetBoolValue(NULL, "compress_old_error_log",
+					&iniContext, false);
+
+        if (g_compress_old_error_log)
+        {
+            log_set_compress_log_flags(LOG_COMPRESS_FLAGS_ENABLED |
+                    LOG_COMPRESS_FLAGS_NEW_THREAD);
+        }
+		if (g_use_access_log && g_compress_old_access_log)
+        {
+            log_set_compress_log_flags_ex(&g_access_log_context,
+                    LOG_COMPRESS_FLAGS_ENABLED |
+                    LOG_COMPRESS_FLAGS_NEW_THREAD);
+        }
+
 		if ((result=get_time_item_from_conf(&iniContext, \
 			"error_log_rotate_time", &g_error_log_rotate_time, \
 			0, 0)) != 0)
@@ -2124,8 +2141,10 @@ int storage_func_init(const char *filename, \
 			"HTTP server port=%d, domain name=%s, " \
 			"use_access_log=%d, rotate_access_log=%d, " \
 			"access_log_rotate_time=%02d:%02d, " \
+            "compress_old_access_log=%d, " \
 			"rotate_error_log=%d, " \
 			"error_log_rotate_time=%02d:%02d, " \
+            "compress_old_error_log=%d, " \
 			"rotate_access_log_size=%"PRId64", " \
 			"rotate_error_log_size=%"PRId64", " \
 			"log_file_keep_days=%d, " \
@@ -2163,9 +2182,9 @@ int storage_func_init(const char *filename, \
 			g_key_namespace, g_keep_alive, \
 			g_http_port, g_http_domain, g_use_access_log, \
 			g_rotate_access_log, g_access_log_rotate_time.hour, \
-			g_access_log_rotate_time.minute, \
+			g_access_log_rotate_time.minute, g_compress_old_access_log, \
 			g_rotate_error_log, g_error_log_rotate_time.hour, \
-			g_error_log_rotate_time.minute, \
+			g_error_log_rotate_time.minute, g_compress_old_error_log, \
 			g_access_log_context.rotate_size, \
 			g_log_context.rotate_size, g_log_file_keep_days, \
 			g_file_sync_skip_invalid_record, \

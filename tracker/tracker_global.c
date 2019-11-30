@@ -39,6 +39,7 @@ bool g_storage_ip_changed_auto_adjust = true;
 bool g_use_storage_id = false;  //if use storage ID instead of IP address
 byte g_id_type_in_filename = FDFS_ID_TYPE_IP_ADDRESS; //id type of the storage server in the filename
 bool g_rotate_error_log = false;  //if rotate the error log every day
+bool g_compress_old_error_log = false;  //if compress the old error log
 TimeInfo g_error_log_rotate_time  = {0, 0, 0}; //rotate error log time base
 
 int g_thread_stack_size = 64 * 1024;
