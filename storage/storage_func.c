@@ -1998,17 +1998,24 @@ int storage_func_init(const char *filename, \
 					&iniContext, false);
 		g_compress_old_error_log = iniGetBoolValue(NULL, "compress_old_error_log",
 					&iniContext, false);
+		g_compress_error_log_days_before = iniGetIntValue(NULL,
+				"compress_error_log_days_before", &iniContext, 1);
+		g_compress_access_log_days_before = iniGetIntValue(NULL,
+				"compress_access_log_days_before", &iniContext, 1);
 
         if (g_compress_old_error_log)
         {
             log_set_compress_log_flags(LOG_COMPRESS_FLAGS_ENABLED |
                     LOG_COMPRESS_FLAGS_NEW_THREAD);
+            log_set_compress_log_days_before(g_compress_error_log_days_before);
         }
 		if (g_use_access_log && g_compress_old_access_log)
         {
             log_set_compress_log_flags_ex(&g_access_log_context,
                     LOG_COMPRESS_FLAGS_ENABLED |
                     LOG_COMPRESS_FLAGS_NEW_THREAD);
+            log_set_compress_log_days_before_ex(&g_access_log_context,
+                    g_compress_access_log_days_before);
         }
 
 		if ((result=get_time_item_from_conf(&iniContext, \
@@ -2142,9 +2149,11 @@ int storage_func_init(const char *filename, \
 			"use_access_log=%d, rotate_access_log=%d, " \
 			"access_log_rotate_time=%02d:%02d, " \
             "compress_old_access_log=%d, " \
+            "compress_access_log_days_before=%d, " \
 			"rotate_error_log=%d, " \
 			"error_log_rotate_time=%02d:%02d, " \
             "compress_old_error_log=%d, " \
+            "compress_error_log_days_before=%d, " \
 			"rotate_access_log_size=%"PRId64", " \
 			"rotate_error_log_size=%"PRId64", " \
 			"log_file_keep_days=%d, " \
@@ -2183,8 +2192,10 @@ int storage_func_init(const char *filename, \
 			g_http_port, g_http_domain, g_use_access_log, \
 			g_rotate_access_log, g_access_log_rotate_time.hour, \
 			g_access_log_rotate_time.minute, g_compress_old_access_log, \
+            g_compress_access_log_days_before, \
 			g_rotate_error_log, g_error_log_rotate_time.hour, \
 			g_error_log_rotate_time.minute, g_compress_old_error_log, \
+            g_compress_error_log_days_before, \
 			g_access_log_context.rotate_size, \
 			g_log_context.rotate_size, g_log_file_keep_days, \
 			g_file_sync_skip_invalid_record, \

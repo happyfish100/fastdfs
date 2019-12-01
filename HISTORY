@@ -1,5 +1,5 @@
 
-Version 6.04  2019-11-30
+Version 6.04  2019-12-01
  * storage_report_ip_changed ignore result EEXIST
  * use get_gzip_command_filename from libfastcommon v1.42
  * support compress error log and access log

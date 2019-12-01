@@ -175,6 +175,8 @@ extern char g_exe_name[256];
 #endif
 
 extern int g_log_file_keep_days;
+extern int g_compress_access_log_days_before;
+extern int g_compress_error_log_days_before;
 
 extern struct storage_nio_thread_data *g_nio_thread_data;  //network io thread data
 extern struct storage_dio_thread_data *g_dio_thread_data;  //disk io thread data

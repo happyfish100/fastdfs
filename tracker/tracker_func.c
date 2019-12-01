@@ -583,10 +583,13 @@ int tracker_load_from_conf_file(const char *filename, \
 					&iniContext, false);
         g_compress_old_error_log = iniGetBoolValue(NULL, "compress_old_error_log",
                 &iniContext, false);
+		g_compress_error_log_days_before = iniGetIntValue(NULL,
+				"compress_error_log_days_before", &iniContext, 1);
         if (g_compress_old_error_log)
         {
             log_set_compress_log_flags(LOG_COMPRESS_FLAGS_ENABLED |
                     LOG_COMPRESS_FLAGS_NEW_THREAD);
+            log_set_compress_log_days_before(g_compress_error_log_days_before);
         }
 
 		if ((result=get_time_item_from_conf(&iniContext, \
@@ -753,6 +756,7 @@ int tracker_load_from_conf_file(const char *filename, \
 			"rotate_error_log=%d, " \
 			"error_log_rotate_time=%02d:%02d, " \
             "compress_old_error_log=%d, " \
+            "compress_error_log_days_before=%d, " \
 			"rotate_error_log_size=%"PRId64", " \
 			"log_file_keep_days=%d, " \
 			"store_slave_file_use_link=%d, " \
@@ -790,6 +794,7 @@ int tracker_load_from_conf_file(const char *filename, \
             g_storage_ids_by_id.count, g_storage_ids_by_ip.count, \
 			g_rotate_error_log, g_error_log_rotate_time.hour, \
 			g_error_log_rotate_time.minute, g_compress_old_error_log, \
+            g_compress_error_log_days_before, \
 			g_log_context.rotate_size, g_log_file_keep_days,
 			g_store_slave_file_use_link, \
 			g_use_connection_pool, g_connection_pool_max_idle_time);

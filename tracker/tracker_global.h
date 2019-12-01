@@ -99,6 +99,7 @@ extern char g_exe_name[256];
 #endif
 
 extern int g_log_file_keep_days;
+extern int g_compress_error_log_days_before;
 extern FDFSConnectionStat g_connection_stat;
 
 #ifdef __cplusplus

@@ -126,6 +126,8 @@ char g_exe_name[256] = {0};
 #endif
 
 int g_log_file_keep_days = 0;
+int g_compress_access_log_days_before = 0;
+int g_compress_error_log_days_before = 0;
 struct storage_nio_thread_data *g_nio_thread_data = NULL;
 struct storage_dio_thread_data *g_dio_thread_data = NULL;
 
