@@ -1071,6 +1071,7 @@ static int do_dispatch_binlog_for_threads(const char *pBasePath)
     RecoveryDispatchInfo *dispatchs;
     RecoveryDispatchInfo *disp;
     int64_t total_count;
+    int hash_code;
     int bytes;
     int result;
     int i;
@@ -1128,8 +1129,18 @@ static int do_dispatch_binlog_for_threads(const char *pBasePath)
                 break;
             }
 
-            disp = dispatchs + (unsigned int)(Time33Hash(record.filename,
-                    record.filename_len)) % g_disk_recovery_threads;
+            if (record.src_filename_len > 0)
+            {
+                hash_code = Time33Hash(record.src_filename,
+                        record.src_filename_len);
+            }
+            else
+            {
+                hash_code = Time33Hash(record.filename,
+                        record.filename_len);
+            }
+            disp = dispatchs + ((unsigned int)hash_code) %
+                g_disk_recovery_threads;
             if ((result=disk_recovery_write_to_binlog(disp->fp,
                             disp->temp_filename, &record)) != 0)
             {
