@@ -31,6 +31,7 @@ bool g_disk_rw_direct = false;
 bool g_disk_rw_separated = true;
 int g_disk_reader_threads = DEFAULT_DISK_READER_THREADS;
 int g_disk_writer_threads = DEFAULT_DISK_WRITER_THREADS;
+int g_disk_recovery_threads = 1;
 int g_extra_open_file_flags = 0;
 
 int g_file_distribute_path_mode = FDFS_FILE_DIST_PATH_ROUND_ROBIN;

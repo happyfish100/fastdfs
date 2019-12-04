@@ -49,8 +49,12 @@
 #include "storage_dump.h"
 #endif
 
+#define ACCEPT_STAGE_NONE    0
+#define ACCEPT_STAGE_DOING   1
+#define ACCEPT_STAGE_DONE    2
+
 static bool bTerminateFlag = false;
-static bool bAcceptEndFlag = false;
+static char accept_stage = ACCEPT_STAGE_NONE;
 
 static void sigQuitHandler(int sig);
 static void sigHupHandler(int sig);
@@ -58,6 +62,7 @@ static void sigUsrHandler(int sig);
 static void sigAlarmHandler(int sig);
 
 static int setupSchedules(pthread_t *schedule_tid);
+static int setupSignalHandlers();
 
 #if defined(DEBUG_FLAG)
 
@@ -83,7 +88,6 @@ int main(int argc, char *argv[])
 	int sock;
 	int wait_count;
 	pthread_t schedule_tid;
-	struct sigaction act;
 	char pidFilename[MAX_PATH_SIZE];
 	bool stop;
 
@@ -148,6 +152,13 @@ int main(int argc, char *argv[])
 		return result;
 	}
 
+    if ((result=setupSignalHandlers()) != 0)
+    {
+		logCrit("exit abnormally!\n");
+		log_destroy();
+		return result;
+    }
+
 	memset(g_bind_addr, 0, sizeof(g_bind_addr));
 	if ((result=storage_func_init(conf_filename, \
 			g_bind_addr, sizeof(g_bind_addr))) != 0)
@@ -207,84 +218,6 @@ int main(int argc, char *argv[])
 		return result;
 	}
 
-	memset(&act, 0, sizeof(act));
-	sigemptyset(&act.sa_mask);
-
-	act.sa_handler = sigUsrHandler;
-	if(sigaction(SIGUSR1, &act, NULL) < 0 || \
-		sigaction(SIGUSR2, &act, NULL) < 0)
-	{
-		logCrit("file: "__FILE__", line: %d, " \
-			"call sigaction fail, errno: %d, error info: %s", \
-			__LINE__, errno, STRERROR(errno));
-		logCrit("exit abnormally!\n");
-		return errno;
-	}
-
-	act.sa_handler = sigHupHandler;
-	if(sigaction(SIGHUP, &act, NULL) < 0)
-	{
-		logCrit("file: "__FILE__", line: %d, " \
-			"call sigaction fail, errno: %d, error info: %s", \
-			__LINE__, errno, STRERROR(errno));
-		logCrit("exit abnormally!\n");
-		return errno;
-	}
-	
-	act.sa_handler = SIG_IGN;
-	if(sigaction(SIGPIPE, &act, NULL) < 0)
-	{
-		logCrit("file: "__FILE__", line: %d, " \
-			"call sigaction fail, errno: %d, error info: %s", \
-			__LINE__, errno, STRERROR(errno));
-		logCrit("exit abnormally!\n");
-		return errno;
-	}
-
-	act.sa_handler = sigQuitHandler;
-	if(sigaction(SIGINT, &act, NULL) < 0 || \
-		sigaction(SIGTERM, &act, NULL) < 0 || \
-		sigaction(SIGQUIT, &act, NULL) < 0)
-	{
-		logCrit("file: "__FILE__", line: %d, " \
-			"call sigaction fail, errno: %d, error info: %s", \
-			__LINE__, errno, STRERROR(errno));
-		logCrit("exit abnormally!\n");
-		return errno;
-	}
-
-#if defined(DEBUG_FLAG)
-
-/*
-#if defined(OS_LINUX)
-	memset(&act, 0, sizeof(act));
-        act.sa_sigaction = sigSegvHandler;
-        act.sa_flags = SA_SIGINFO;
-        if (sigaction(SIGSEGV, &act, NULL) < 0 || \
-        	sigaction(SIGABRT, &act, NULL) < 0)
-	{
-		logCrit("file: "__FILE__", line: %d, " \
-			"call sigaction fail, errno: %d, error info: %s", \
-			__LINE__, errno, STRERROR(errno));
-		logCrit("exit abnormally!\n");
-		return errno;
-	}
-#endif
-*/
-
-	memset(&act, 0, sizeof(act));
-	sigemptyset(&act.sa_mask);
-	act.sa_handler = sigDumpHandler;
-	if(sigaction(SIGUSR1, &act, NULL) < 0 || \
-		sigaction(SIGUSR2, &act, NULL) < 0)
-	{
-		logCrit("file: "__FILE__", line: %d, " \
-			"call sigaction fail, errno: %d, error info: %s", \
-			__LINE__, errno, STRERROR(errno));
-		logCrit("exit abnormally!\n");
-		return errno;
-	}
-#endif
 
 #ifdef WITH_HTTPD
 	if (!g_http_params.disabled)
@@ -333,10 +266,10 @@ int main(int argc, char *argv[])
 	log_set_cache(true);
 
 	bTerminateFlag = false;
-	bAcceptEndFlag = false;
+	accept_stage = ACCEPT_STAGE_DOING;
 	
 	storage_accept_loop(sock);
-	bAcceptEndFlag = true;
+	accept_stage = ACCEPT_STAGE_DONE;
 
 	fdfs_binlog_sync_func(NULL);  //binlog fsync
 
@@ -412,7 +345,7 @@ static void sigAlarmHandler(int sig)
 {
 	ConnectionInfo server;
 
-	if (bAcceptEndFlag)
+	if (accept_stage != ACCEPT_STAGE_DOING)
 	{
 		return;
 	}
@@ -583,3 +516,82 @@ static int setupSchedules(pthread_t *schedule_tid)
     return 0;
 }
 
+static int setupSignalHandlers()
+{
+	struct sigaction act;
+
+	memset(&act, 0, sizeof(act));
+	sigemptyset(&act.sa_mask);
+
+	act.sa_handler = sigUsrHandler;
+	if(sigaction(SIGUSR1, &act, NULL) < 0 || \
+		sigaction(SIGUSR2, &act, NULL) < 0)
+	{
+		logCrit("file: "__FILE__", line: %d, " \
+			"call sigaction fail, errno: %d, error info: %s", \
+			__LINE__, errno, STRERROR(errno));
+		return errno != 0 ? errno : EFAULT;
+	}
+
+	act.sa_handler = sigHupHandler;
+	if(sigaction(SIGHUP, &act, NULL) < 0)
+	{
+		logCrit("file: "__FILE__", line: %d, " \
+			"call sigaction fail, errno: %d, error info: %s", \
+			__LINE__, errno, STRERROR(errno));
+		return errno != 0 ? errno : EFAULT;
+	}
+	
+	act.sa_handler = SIG_IGN;
+	if(sigaction(SIGPIPE, &act, NULL) < 0)
+	{
+		logCrit("file: "__FILE__", line: %d, " \
+			"call sigaction fail, errno: %d, error info: %s", \
+			__LINE__, errno, STRERROR(errno));
+		return errno != 0 ? errno : EFAULT;
+	}
+
+	act.sa_handler = sigQuitHandler;
+	if(sigaction(SIGINT, &act, NULL) < 0 || \
+		sigaction(SIGTERM, &act, NULL) < 0 || \
+		sigaction(SIGQUIT, &act, NULL) < 0)
+	{
+		logCrit("file: "__FILE__", line: %d, " \
+			"call sigaction fail, errno: %d, error info: %s", \
+			__LINE__, errno, STRERROR(errno));
+		return errno != 0 ? errno : EFAULT;
+	}
+
+#if defined(DEBUG_FLAG)
+
+/*
+#if defined(OS_LINUX)
+	memset(&act, 0, sizeof(act));
+        act.sa_sigaction = sigSegvHandler;
+        act.sa_flags = SA_SIGINFO;
+        if (sigaction(SIGSEGV, &act, NULL) < 0 || \
+        	sigaction(SIGABRT, &act, NULL) < 0)
+	{
+		logCrit("file: "__FILE__", line: %d, " \
+			"call sigaction fail, errno: %d, error info: %s", \
+			__LINE__, errno, STRERROR(errno));
+		return errno != 0 ? errno : EFAULT;
+	}
+#endif
+*/
+
+	memset(&act, 0, sizeof(act));
+	sigemptyset(&act.sa_mask);
+	act.sa_handler = sigDumpHandler;
+	if(sigaction(SIGUSR1, &act, NULL) < 0 || \
+		sigaction(SIGUSR2, &act, NULL) < 0)
+	{
+		logCrit("file: "__FILE__", line: %d, " \
+			"call sigaction fail, errno: %d, error info: %s", \
+			__LINE__, errno, STRERROR(errno));
+		return errno != 0 ? errno : EFAULT;
+	}
+#endif
+
+    return 0;
+}

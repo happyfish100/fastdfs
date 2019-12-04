@@ -1,8 +1,12 @@
 
-Version 6.04  2019-12-01
+Version 6.04  2019-12-04
  * storage_report_ip_changed ignore result EEXIST
  * use get_gzip_command_filename from libfastcommon v1.42
  * support compress error log and access log
+ * disk recovery support multi-threads to speed up
+
+  NOTE: you MUST upgrade libfastcommon to V1.42 or later
+
 
 Version 6.03  2019-11-20
  * dual IPs support two different types of inner (intranet) IPs
@@ -21,6 +25,7 @@ Version 6.03  2019-11-20
  
   NOTE: the tracker and storage server must upgrade together
 
+
 Version 6.02  2019-11-12
  * get_file_info calculate CRC32 for appender file type
  * disk recovery download file to local temp file then rename it
@@ -28,11 +33,13 @@ Version 6.02  2019-11-12
  * support regenerate filename for appender file
    NOTE: the regenerated file will be a normal file!
 
+
 Version 6.01  2019-10-25
  * compress and uncompress binlog file by gzip when need,
    config items in storage.conf: compress_binlog and compress_binlog_time
  * bugfix: must check and create data path before write_to_pid_file
    in fdfs_storaged.c
+
 
 Version 6.00  2019-10-16
  * tracker and storage server support dual IPs
@@ -48,6 +55,7 @@ Version 6.00  2019-10-16
  * storage server report current tracker IP to the tracker server when join
  * tracker server check tracker list when storage server join
  * use socketCreateExAuto and socketClientExAuto exported by libfastcommon
+
 
 Version 5.12  2018-06-07
  * code refine for rare case

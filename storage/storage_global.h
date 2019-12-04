@@ -78,6 +78,7 @@ extern bool g_disk_rw_direct;     //if file read / write directly
 extern bool g_disk_rw_separated;  //if disk read / write separated
 extern int g_disk_reader_threads; //disk reader thread count per store base path
 extern int g_disk_writer_threads; //disk writer thread count per store base path
+extern int g_disk_recovery_threads; //disk recovery thread count
 extern int g_extra_open_file_flags; //extra open file flags
 
 extern int g_file_distribute_path_mode;

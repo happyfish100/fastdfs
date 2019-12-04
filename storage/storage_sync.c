@@ -2372,7 +2372,7 @@ int storage_reader_init(FDFSStorageBrief *pStorage, StorageBinLogReader *pReader
 	pReader->last_scan_rows = pReader->scan_row_count;
 	pReader->last_sync_rows = pReader->sync_row_count;
 
-	if ((result=storage_open_readable_binlog(pReader, \
+	if ((result=storage_open_readable_binlog(pReader,
 			get_binlog_readable_filename, pReader)) != 0)
 	{
 		return result;

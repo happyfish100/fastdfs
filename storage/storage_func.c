@@ -1138,21 +1138,23 @@ static int storage_check_and_make_data_dirs()
 
 		if (g_sync_old_done && pathCreated)  //repair damaged disk
 		{
-			if ((result=storage_disk_recovery_start(i)) != 0)
+			if ((result=storage_disk_recovery_prepare(i)) != 0)
 			{
 				return result;
 			}
 		}
 
-		result = storage_disk_recovery_restore(g_fdfs_store_paths.paths[i].path);
+		result = storage_disk_recovery_check_restore(
+                g_fdfs_store_paths.paths[i].path);
 		if (result == EAGAIN) //need to re-fetch binlog
 		{
-			if ((result=storage_disk_recovery_start(i)) != 0)
+			if ((result=storage_disk_recovery_prepare(i)) != 0)
 			{
 				return result;
 			}
 
-			result=storage_disk_recovery_restore(g_fdfs_store_paths.paths[i].path);
+			result = storage_disk_recovery_check_restore(
+                    g_fdfs_store_paths.paths[i].path);
 		}
 
 		if (result != 0)
@@ -1712,6 +1714,18 @@ int storage_func_init(const char *filename, \
 			break;
 		}
 
+		g_disk_recovery_threads = iniGetIntValue(NULL,
+                "disk_recovery_threads", &iniContext, 1);
+		if (g_disk_recovery_threads <= 0)
+		{
+			logError("file: "__FILE__", line: %d, "
+				"item \"disk_recovery_threads\" is invalid, "
+				"value: %d <= 0!", __LINE__,
+				g_disk_recovery_threads);
+            result = EINVAL;
+            break;
+		}
+
 		/*
 		g_disk_rw_direct = iniGetBoolValue(NULL, \
 				"disk_rw_direct", &iniContext, false);
@@ -2127,7 +2141,7 @@ int storage_func_init(const char *filename, \
 			"max_connections=%d, accept_threads=%d, " \
 			"work_threads=%d, "    \
 			"disk_rw_separated=%d, disk_reader_threads=%d, " \
-			"disk_writer_threads=%d, " \
+			"disk_writer_threads=%d, disk_recovery_threads=%d, " \
 			"buff_size=%d KB, heart_beat_interval=%ds, " \
 			"stat_report_interval=%ds, tracker_server_count=%d, " \
 			"sync_wait_msec=%dms, sync_interval=%dms, " \
@@ -2172,7 +2186,7 @@ int storage_func_init(const char *filename, \
 			g_client_bind_addr, g_max_connections, \
 			g_accept_threads, g_work_threads, g_disk_rw_separated, \
 			g_disk_reader_threads, g_disk_writer_threads, \
-			g_buff_size / 1024, \
+            g_disk_recovery_threads, g_buff_size / 1024, \
 			g_heart_beat_interval, g_stat_report_interval, \
 			g_tracker_group.server_count, g_sync_wait_usec / 1000, \
 			g_sync_interval / 1000, \

@@ -4359,7 +4359,15 @@ static int storage_server_fetch_one_path_binlog_dealer(
 		{
 			break;
 		}
-	} while(1);
+	} while (g_continue_flag);
+
+    if (!g_continue_flag)
+    {
+        if (result == 0)
+        {
+            result = EINTR;
+        }
+    }
 
 	if (result != 0) //error occurs
 	{
@@ -4386,6 +4394,7 @@ static int storage_server_fetch_one_path_binlog_dealer(
 static void fetch_one_path_binlog_finish_clean_up(struct fast_task_info *pTask)
 {
 	StorageClientInfo *pClientInfo;
+	StorageFileContext *pFileContext;
 	StorageBinLogReader *pReader;
 
 	pClientInfo = (StorageClientInfo *)pTask->arg;
@@ -4403,6 +4412,12 @@ static void fetch_one_path_binlog_finish_clean_up(struct fast_task_info *pTask)
 	{
 		unlink(pReader->mark_filename);
 	}
+
+	pFileContext =  &(pClientInfo->file_context);
+    logInfo("file: "__FILE__", line: %d, "
+            "client ip: %s, fetch binlog of store path #%d done",
+            __LINE__, pTask->client_ip, pFileContext->extra_info.
+            upload.trunk_info.path.store_path_index);
 
 	storage_reader_destroy(pReader);
 	free(pReader);
@@ -4426,6 +4441,10 @@ static int storage_server_do_fetch_one_path_binlog(
 			errno, STRERROR(errno));
 		return errno != 0 ? errno : ENOMEM;
 	}
+
+    logInfo("file: "__FILE__", line: %d, "
+            "client ip: %s, fetch binlog of store path #%d ...",
+            __LINE__, pTask->client_ip, store_path_index);
 
 	pClientInfo = (StorageClientInfo *)pTask->arg;
 	pFileContext =  &(pClientInfo->file_context);

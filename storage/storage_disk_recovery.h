@@ -18,8 +18,8 @@
 extern "C" {
 #endif
 
-int storage_disk_recovery_start(const int store_path_index);
-int storage_disk_recovery_restore(const char *pBasePath);
+int storage_disk_recovery_prepare(const int store_path_index);
+int storage_disk_recovery_check_restore(const char *pBasePath);
 
 #ifdef __cplusplus
 }
