@@ -2207,6 +2207,8 @@ int storage_reader_init(FDFSStorageBrief *pStorage, StorageBinLogReader *pReader
     pReader->sync_row_count = 0;
     pReader->last_file_exist = 0;
 	pReader->binlog_fd = -1;
+    pReader->binlog_buff.version = 0;
+    pReader->binlog_buff.length = 0;
 
 	pReader->binlog_buff.buffer = (char *)malloc( \
 				STORAGE_BINLOG_BUFFER_SIZE);
@@ -2477,7 +2479,7 @@ static int storage_binlog_preread(StorageBinLogReader *pReader)
 	int bytes_read;
 	int saved_binlog_write_version;
 
-	if (pReader->binlog_buff.version == binlog_write_version && \
+	if (pReader->binlog_buff.version == binlog_write_version &&
 		pReader->binlog_buff.length == 0)
 	{
 		return ENOENT;
