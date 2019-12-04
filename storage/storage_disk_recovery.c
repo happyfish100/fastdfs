@@ -104,7 +104,7 @@ static inline char *recovery_get_global_full_filename(const char *pBasePath,
         const char *filename, char *full_filename)
 {
     return recovery_get_full_filename_ex(pBasePath, -1,
-            RECOVERY_FLAG_FILENAME, full_filename);
+            filename, full_filename);
 }
 
 static inline char *recovery_get_global_binlog_filename(const char *pBasePath,
@@ -1266,6 +1266,7 @@ static int storage_disk_recovery_do_restore(const char *pBasePath)
     int bytes;
     int i;
     int k;
+    int sig;
     pthread_t *recovery_tids;
     void **args;
     RecoveryThreadData *thread_data;
@@ -1329,7 +1330,10 @@ static int storage_disk_recovery_do_restore(const char *pBasePath)
 
     if (__sync_fetch_and_add(&current_recovery_thread_count, 0) > 0)
     {
-        for (i=0; i<30; i++)
+#define MAX_WAIT_COUNT 30
+
+        sig = SIGINT;
+        for (i=0; i<MAX_WAIT_COUNT; i++)
         {
             if ((thread_count=__sync_fetch_and_add(
                 &current_recovery_thread_count, 0)) == 0)
@@ -1337,11 +1341,16 @@ static int storage_disk_recovery_do_restore(const char *pBasePath)
                 break;
             }
 
+            if (i >= MAX_WAIT_COUNT / 2)
+            {
+                sig = SIGTERM;
+            }
+
             for (k=0; k<g_disk_recovery_threads; k++)
             {
                 if (__sync_fetch_and_add(&thread_data[k].alive, 0) > 0)
                 {
-                    pthread_kill(thread_data[k].tid, SIGINT);
+                    pthread_kill(thread_data[k].tid, sig);
                 }
             }
 
