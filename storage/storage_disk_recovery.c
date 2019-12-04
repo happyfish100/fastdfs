@@ -23,7 +23,6 @@
 #include <sys/param.h>
 #include "fdfs_define.h"
 #include "fastcommon/logger.h"
-#include "fastcommon/fc_list.h"
 #include "fastcommon/sockopt.h"
 #include "fastcommon/avl_tree.h"
 #include "fastcommon/shared_func.h"
@@ -45,9 +44,9 @@ typedef struct {
 } FDFSTrunkFileIdInfo;
 
 typedef struct recovery_thread_data {
-    struct fc_list_head link;
 	int thread_index;    //-1 for global
     int result;
+    volatile int alive;
     bool done;
     const char *base_path;
     pthread_t tid;
@@ -949,6 +948,8 @@ static void *storage_disk_recovery_restore_entrance(void *arg)
 	ConnectionInfo srcStorage;
 
     pThreadData = (RecoveryThreadData *)arg;
+    pThreadData->tid = pthread_self();
+    __sync_add_and_fetch(&pThreadData->alive, 1);
     __sync_add_and_fetch(&current_recovery_thread_count, 1);
 
     do
@@ -979,6 +980,8 @@ static void *storage_disk_recovery_restore_entrance(void *arg)
     } while (0);
 
     __sync_sub_and_fetch(&current_recovery_thread_count, 1);
+    __sync_sub_and_fetch(&pThreadData->alive, 1);
+    sleep(1);
 
     return NULL;
 }
@@ -1262,6 +1265,7 @@ static int storage_disk_recovery_do_restore(const char *pBasePath)
     int thread_count;
     int bytes;
     int i;
+    int k;
     pthread_t *recovery_tids;
     void **args;
     RecoveryThreadData *thread_data;
@@ -1305,6 +1309,7 @@ static int storage_disk_recovery_do_restore(const char *pBasePath)
         thread_data[i].thread_index = i;
         thread_data[i].result = EINTR;
         thread_data[i].done = false;
+        thread_data[i].alive = 0;
         args[i] = thread_data + i;
     }
 
@@ -1324,12 +1329,20 @@ static int storage_disk_recovery_do_restore(const char *pBasePath)
 
     if (__sync_fetch_and_add(&current_recovery_thread_count, 0) > 0)
     {
-        for (i=0; i<10; i++)
+        for (i=0; i<30; i++)
         {
             if ((thread_count=__sync_fetch_and_add(
                 &current_recovery_thread_count, 0)) == 0)
             {
                 break;
+            }
+
+            for (k=0; k<g_disk_recovery_threads; k++)
+            {
+                if (__sync_fetch_and_add(&thread_data[k].alive, 0) > 0)
+                {
+                    pthread_kill(thread_data[k].tid, SIGINT);
+                }
             }
 
             logInfo("file: "__FILE__", line: %d, "
@@ -1340,6 +1353,7 @@ static int storage_disk_recovery_do_restore(const char *pBasePath)
         }
     }
 
+    sleep(1);  //wait for thread exit
     free(thread_data);
     free(args);
     free(recovery_tids);
@@ -1351,7 +1365,7 @@ static int storage_disk_recovery_do_restore(const char *pBasePath)
 
     while (g_continue_flag)
     {
-        if (storage_report_storage_status(g_my_server_id_str, \
+        if (storage_report_storage_status(g_my_server_id_str,
                     g_tracker_client_ip.ips[0].address,
                     saved_storage_status) == 0)
         {
