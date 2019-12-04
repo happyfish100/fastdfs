@@ -413,8 +413,10 @@ static int tracker_check_and_sync(struct fast_task_info *pTask, \
 			pDestServer->status = pServer->status;
 			memcpy(pDestServer->id, pServer->id,
 				FDFS_STORAGE_ID_MAX_SIZE);
-			memcpy(pDestServer->ip_addr, FDFS_CURRENT_IP_ADDR(pServer),
-				IP_ADDRESS_SIZE);
+			memcpy(pDestServer->ip_addr,
+                    fdfs_get_ipaddr_by_peer_ip(&pServer->ip_addrs,
+                        pTask->client_ip), IP_ADDRESS_SIZE);
+
 			int2buff(pClientInfo->pGroup->storage_port,
 				pDestServer->port);
 		}
@@ -438,8 +440,9 @@ static int tracker_check_and_sync(struct fast_task_info *pTask, \
 			pDestServer->status = (*ppServer)->status;
 			memcpy(pDestServer->id, (*ppServer)->id,
 				FDFS_STORAGE_ID_MAX_SIZE);
-			memcpy(pDestServer->ip_addr, FDFS_CURRENT_IP_ADDR(*ppServer),
-				IP_ADDRESS_SIZE);
+			memcpy(pDestServer->ip_addr,
+                    fdfs_get_ipaddr_by_peer_ip(&(*ppServer)->ip_addrs,
+                        pTask->client_ip), IP_ADDRESS_SIZE);
 			int2buff(pClientInfo->pGroup->storage_port,
 				pDestServer->port);
 			pDestServer++;
@@ -2400,7 +2403,8 @@ static int tracker_deal_server_list_group_storages(struct fast_task_info *pTask)
 		pStorageStat = &((*ppServer)->stat);
 		pDest->status = (*ppServer)->status;
 		strcpy(pDest->id, (*ppServer)->id);
-		strcpy(pDest->ip_addr, FDFS_CURRENT_IP_ADDR(*ppServer));
+		strcpy(pDest->ip_addr, fdfs_get_ipaddr_by_peer_ip(
+                    &(*ppServer)->ip_addrs, pTask->client_ip));
 		if ((*ppServer)->psync_src_server != NULL)
 		{
 			strcpy(pDest->src_id, \

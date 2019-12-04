@@ -23,10 +23,11 @@
 #include <sys/param.h>
 #include "fdfs_define.h"
 #include "fastcommon/logger.h"
-#include "fdfs_global.h"
+#include "fastcommon/fc_list.h"
 #include "fastcommon/sockopt.h"
 #include "fastcommon/avl_tree.h"
 #include "fastcommon/shared_func.h"
+#include "fdfs_global.h"
 #include "tracker_types.h"
 #include "tracker_proto.h"
 #include "storage_global.h"
@@ -43,11 +44,13 @@ typedef struct {
 	int id;                  //trunk file id
 } FDFSTrunkFileIdInfo;
 
-typedef struct {
+typedef struct recovery_thread_data {
+    struct fc_list_head link;
 	int thread_index;    //-1 for global
     int result;
     bool done;
     const char *base_path;
+    pthread_t tid;
 } RecoveryThreadData;
 
 #define RECOVERY_BINLOG_FILENAME	".binlog.recovery"
@@ -1321,7 +1324,7 @@ static int storage_disk_recovery_do_restore(const char *pBasePath)
 
     if (__sync_fetch_and_add(&current_recovery_thread_count, 0) > 0)
     {
-        for (i=0; i<60; i++)
+        for (i=0; i<10; i++)
         {
             if ((thread_count=__sync_fetch_and_add(
                 &current_recovery_thread_count, 0)) == 0)
