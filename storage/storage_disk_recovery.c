@@ -495,7 +495,7 @@ static int recovery_init_global_binlog_file(const char *pBasePath)
 	return writeToFile(full_binlog_filename, buff, 0);
 }
 
-static int recovery_init_flag_file_ex(const char *pBasePath,
+static int recovery_init_flag_file(const char *pBasePath,
 		const bool fetch_binlog_done, const int recovery_threads)
 {
 	char full_filename[MAX_PATH_SIZE];
@@ -503,13 +503,6 @@ static int recovery_init_flag_file_ex(const char *pBasePath,
     recovery_get_flag_filename(pBasePath, full_filename);
     return do_write_to_flag_file(full_filename,
             fetch_binlog_done, recovery_threads);
-}
-
-static inline int recovery_init_flag_file(const char *pBasePath,
-		const bool fetch_binlog_done, const int recovery_threads)
-{
-    return recovery_init_flag_file_ex(pBasePath,
-		fetch_binlog_done, recovery_threads);
 }
 
 static int recovery_load_params_from_flag_file(const char *full_flag_filename)
@@ -1017,7 +1010,7 @@ static int storage_disk_recovery_old_version_migrate(const char *pBasePath)
         return result;
     }
 
-    if ((result=recovery_init_flag_file_ex(pBasePath, true, 1)) != 0)
+    if ((result=recovery_init_flag_file(pBasePath, true, 1)) != 0)
     {
         return result;
     }
