@@ -2198,26 +2198,17 @@ int storage_reader_init(FDFSStorageBrief *pStorage, StorageBinLogReader *pReader
 	bool bFileExist;
 	bool bNeedSyncOld;
 
-    pReader->binlog_index = 0;
-    pReader->binlog_offset = 0;
-    pReader->need_sync_old = 0;
-    pReader->sync_old_done = 0;
-    pReader->until_timestamp = 0;
-    pReader->scan_row_count = 0;
-    pReader->sync_row_count = 0;
-    pReader->last_file_exist = 0;
-	pReader->binlog_fd = -1;
-    pReader->binlog_buff.version = 0;
-    pReader->binlog_buff.length = 0;
+    memset(pReader, 0, sizeof(StorageBinLogReader));
+    pReader->binlog_fd = -1;
 
-	pReader->binlog_buff.buffer = (char *)malloc( \
+	pReader->binlog_buff.buffer = (char *)malloc(
 				STORAGE_BINLOG_BUFFER_SIZE);
 	if (pReader->binlog_buff.buffer == NULL)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"malloc %d bytes fail, " \
-			"errno: %d, error info: %s", \
-			__LINE__, STORAGE_BINLOG_BUFFER_SIZE, \
+		logError("file: "__FILE__", line: %d, "
+			"malloc %d bytes fail, "
+			"errno: %d, error info: %s",
+			__LINE__, STORAGE_BINLOG_BUFFER_SIZE,
 			errno, STRERROR(errno));
 		return errno != 0 ? errno : ENOMEM;
 	}

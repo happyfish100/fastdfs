@@ -4,7 +4,8 @@ Version 6.04  2019-12-05
  * use get_gzip_command_filename from libfastcommon v1.42
  * support compress error log and access log
  * disk recovery support multi-threads to speed up
- * bugfix: init pReader->binlog_buff.version/length to 0
+ * bugfix: should use memset to init pReader in function
+   storage_reader_init, this bug is caused by v6.01
 
   NOTE: you MUST upgrade libfastcommon to V1.42 or later
 
