@@ -441,6 +441,7 @@ static void sigQuitHandler(int sig)
 {
 	if (!bTerminateFlag)
 	{
+        tcp_set_try_again_when_interrupt(false);
 		set_timer(1, 1, sigAlarmHandler);
 
 		bTerminateFlag = true;
