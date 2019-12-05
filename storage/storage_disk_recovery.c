@@ -1091,7 +1091,8 @@ static int do_dispatch_binlog_for_threads(const char *pBasePath)
     for (i=0; i<g_disk_recovery_threads; i++)
     {
         recovery_get_full_filename_ex(pBasePath, i,
-                RECOVERY_BINLOG_FILENAME, dispatchs[i].binlog_filename);
+                RECOVERY_BINLOG_FILENAME,
+                dispatchs[i].binlog_filename);
         snprintf(dispatchs[i].temp_filename,
                 sizeof(dispatchs[i].temp_filename),
                 "%s.tmp", dispatchs[i].binlog_filename);
@@ -1166,13 +1167,14 @@ static int do_dispatch_binlog_for_threads(const char *pBasePath)
         if (rename(dispatchs[i].temp_filename,
                     dispatchs[i].binlog_filename) != 0)
         {
+            result = errno != 0 ? errno : EPERM;
             logError("file: "__FILE__", line: %d, "
                     "rename file %s to %s fail, "
                     "errno: %d, error info: %s", __LINE__,
                     dispatchs[i].temp_filename,
                     dispatchs[i].binlog_filename,
-                    errno, STRERROR(errno));
-            return errno != 0 ? errno : EPERM;
+                    result, STRERROR(result));
+            break;
         }
 
         recovery_get_full_filename_ex(pBasePath, i,
@@ -1186,16 +1188,19 @@ static int do_dispatch_binlog_for_threads(const char *pBasePath)
         stat(dispatchs[i].binlog_filename, &file_stat);
         log_buff.len += snprintf(log_buff.str + log_buff.len,
                 sizeof(buff) - log_buff.len,
-                ", {thread: #%d, lines: %"PRId64
-                ", size: %"PRId64"}",
+                ", {thread: #%d, record_count: %"PRId64
+                ", file_size: %"PRId64"}",
                 i, dispatchs[i].count,
                 (int64_t)file_stat.st_size);
     }
     free(dispatchs);
 
-    logInfo("file: "__FILE__", line: %d, "
-            "dispatch stats => total lines: %"PRId64"%s",
-            __LINE__, total_count, log_buff.str);
+    if (result == 0)
+    {
+        logInfo("file: "__FILE__", line: %d, "
+                "dispatch stats => record count: %"PRId64"%s",
+                __LINE__, total_count, log_buff.str);
+    }
     return result;
 }
 
