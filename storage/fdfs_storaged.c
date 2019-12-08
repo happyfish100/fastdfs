@@ -301,7 +301,7 @@ int main(int argc, char *argv[])
 */
 
 		usleep(10000);
-		if (++wait_count > 6000)
+		if (++wait_count > 9000)
 		{
 			logWarning("waiting timeout, exit!");
 			break;
