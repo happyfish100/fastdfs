@@ -1808,7 +1808,7 @@ int storage_do_append_file(ConnectionInfo *pTrackerServer, \
 }
 
 /**
-STORAGE_PROTO_CMD_APPEND_FILE:
+STORAGE_PROTO_CMD_MODIFY_FILE:
 8 bytes: appender filename length
 8 bytes: file offset
 8 bytes: file size

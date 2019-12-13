@@ -77,8 +77,10 @@ static void sigDumpHandler(int sig);
 
 static void usage(const char *program)
 {
-	fprintf(stderr, "Usage: %s <config_file> [start | stop | restart]\n",
-		program);
+	fprintf(stderr, "FastDFS server v%d.%02d\n"
+            "Usage: %s <config_file> [start | stop | restart]\n",
+            g_fdfs_version.major, g_fdfs_version.minor,
+            program);
 }
 
 int main(int argc, char *argv[])
@@ -104,6 +106,14 @@ int main(int argc, char *argv[])
 	trunk_shared_init();
 
 	conf_filename = argv[1];
+    if (!fileExists(conf_filename))
+    {
+        if (starts_with(conf_filename, "-"))
+        {
+            usage(argv[0]);
+            return 0;
+        }
+    }
 	if ((result=get_base_path_from_conf_file(conf_filename,
 		g_fdfs_base_path, sizeof(g_fdfs_base_path))) != 0)
 	{
