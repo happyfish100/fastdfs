@@ -695,6 +695,8 @@ static int tracker_deal_parameter_req(struct fast_task_info *pTask)
 		"trunk_init_check_occupying=%d\n"     \
 		"trunk_init_reload_from_binlog=%d\n"  \
 		"trunk_compress_binlog_min_interval=%d\n"  \
+		"trunk_compress_binlog_interval=%d\n"  \
+		"trunk_compress_binlog_time_base=%02d:%02d\n" \
 		"store_slave_file_use_link=%d\n",    \
 		g_use_storage_id, g_id_type_in_filename == \
     FDFS_ID_TYPE_SERVER_ID ? "id" : "ip", \
@@ -712,6 +714,9 @@ static int tracker_deal_parameter_req(struct fast_task_info *pTask)
 		g_trunk_init_check_occupying, \
 		g_trunk_init_reload_from_binlog, \
 		g_trunk_compress_binlog_min_interval, \
+        g_trunk_compress_binlog_interval, \
+        g_trunk_compress_binlog_time_base.hour, \
+        g_trunk_compress_binlog_time_base.minute, \
 		g_store_slave_file_use_link);
 
 	return 0;

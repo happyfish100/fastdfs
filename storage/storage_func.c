@@ -73,6 +73,8 @@ typedef struct
 #define INIT_ITEM_LAST_HTTP_PORT	"last_http_port"
 #define INIT_ITEM_CURRENT_TRUNK_FILE_ID "current_trunk_file_id"
 #define INIT_ITEM_TRUNK_LAST_COMPRESS_TIME "trunk_last_compress_time"
+#define INIT_ITEM_TRUNK_BINLOG_COMPRESS_IN_PROGRESS \
+    "trunk_binlog_compress_in_progress"
 #define INIT_ITEM_STORE_PATH_MARK_PREFIX   "store_path_mark"
 
 #define STAT_ITEM_TOTAL_UPLOAD		"total_upload_count"
@@ -658,6 +660,7 @@ int storage_write_to_sync_ini_file()
 		"%s=%d\n"
 		"%s=%d\n"
 		"%s=%d\n"
+		"%s=%d\n"
 		"%s=%d\n",
 		INIT_ITEM_STORAGE_JOIN_TIME, g_storage_join_time,
 		INIT_ITEM_SYNC_OLD_DONE, g_sync_old_done,
@@ -667,9 +670,10 @@ int storage_write_to_sync_ini_file()
 		INIT_ITEM_LAST_SERVER_PORT, g_last_server_port,
 		INIT_ITEM_LAST_HTTP_PORT, g_last_http_port,
 		INIT_ITEM_CURRENT_TRUNK_FILE_ID, g_current_trunk_file_id,
-		INIT_ITEM_TRUNK_LAST_COMPRESS_TIME, (int)g_trunk_last_compress_time
+		INIT_ITEM_TRUNK_LAST_COMPRESS_TIME, (int)g_trunk_last_compress_time,
+        INIT_ITEM_TRUNK_BINLOG_COMPRESS_IN_PROGRESS,
+        g_trunk_binlog_compress_in_progress
 	    );
-
 
     if (g_check_store_path_mark)
     {
@@ -1062,10 +1066,13 @@ static int storage_check_and_make_data_dirs()
 			g_last_http_port = atoi(pValue);
 		}
 
-		g_current_trunk_file_id = iniGetIntValue(NULL, \
+		g_current_trunk_file_id = iniGetIntValue(NULL,
 			INIT_ITEM_CURRENT_TRUNK_FILE_ID, &iniContext, 0);
-		g_trunk_last_compress_time = iniGetIntValue(NULL, \
+		g_trunk_last_compress_time = iniGetIntValue(NULL,
 			INIT_ITEM_TRUNK_LAST_COMPRESS_TIME , &iniContext, 0);
+        g_trunk_binlog_compress_in_progress = iniGetIntValue(NULL,
+                INIT_ITEM_TRUNK_BINLOG_COMPRESS_IN_PROGRESS,
+                &iniContext, 0);
 
         if ((result=storage_load_store_path_marks(&iniContext)) != 0)
         {

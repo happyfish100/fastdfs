@@ -55,7 +55,9 @@ int g_slot_min_size = 256;    //slot min size, such as 256 bytes
 int g_slot_max_size = 16 * 1024 * 1024;    //slot max size, such as 16MB
 int g_trunk_file_size = 64 * 1024 * 1024;  //the trunk file size, such as 64MB
 TimeInfo g_trunk_create_file_time_base = {0, 0};
+TimeInfo g_trunk_compress_binlog_time_base = {0, 0};
 int g_trunk_create_file_interval = 86400;
+int g_trunk_compress_binlog_interval = 0;
 int g_trunk_compress_binlog_min_interval = 0;
 int64_t g_trunk_create_file_space_threshold = 0;
 

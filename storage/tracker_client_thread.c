@@ -37,7 +37,8 @@
 #include "trunk_sync.h"
 #include "storage_param_getter.h"
 
-#define TRUNK_FILE_CREATOR_TASK_ID   88
+#define TRUNK_FILE_CREATOR_TASK_ID     88
+#define TRUNK_BINLOG_COMPRESS_TASK_ID  89
 
 static pthread_mutex_t reporter_thread_lock;
 
@@ -876,9 +877,11 @@ static int tracker_merge_servers(ConnectionInfo *pTrackerServer,
 					FDFS_STORAGE_STATUS_SYNCING)) && \
 				((*ppFound)->server.status > pServer->status))
 			{
+                pServer->id[FDFS_STORAGE_ID_MAX_SIZE - 1] = '\0';
                 *(pServer->ip_addr + IP_ADDRESS_SIZE - 1) = '\0';
-				if (is_local_host_ip(pServer->ip_addr) && \
-					buff2int(pServer->port) == g_server_port)
+				if ((strcmp(pServer->id, g_my_server_id_str) == 0) ||
+                        (is_local_host_ip(pServer->ip_addr) &&
+                         buff2int(pServer->port) == g_server_port))
 				{
 					need_rejoin_tracker = true;
 					logWarning("file: "__FILE__", line: %d, " \
@@ -1204,6 +1207,74 @@ static void set_trunk_server(const char *ip_addr, const int port)
     }
 }
 
+static int do_set_trunk_server_myself(ConnectionInfo *pTrackerServer)
+{
+	int result;
+    ScheduleArray scheduleArray;
+    ScheduleEntry entries[2];
+    ScheduleEntry *entry;
+
+    tracker_fetch_trunk_fid(pTrackerServer);
+    g_if_trunker_self = true;
+
+    if ((result=storage_trunk_init()) != 0)
+    {
+        return result;
+    }
+
+    scheduleArray.entries = entries;
+    entry = entries;
+    if (g_trunk_create_file_advance &&
+            g_trunk_create_file_interval > 0)
+    {
+        INIT_SCHEDULE_ENTRY_EX(*entry, TRUNK_FILE_CREATOR_TASK_ID,
+                g_trunk_create_file_time_base,
+                g_trunk_create_file_interval,
+                trunk_create_trunk_file_advance, NULL);
+        entry->new_thread = true;
+        entry++;
+    }
+
+    if (g_trunk_compress_binlog_interval > 0)
+    {
+        INIT_SCHEDULE_ENTRY_EX(*entry, TRUNK_BINLOG_COMPRESS_TASK_ID,
+                g_trunk_compress_binlog_time_base,
+                g_trunk_compress_binlog_interval,
+                trunk_binlog_compress_func, NULL);
+        entry->new_thread = true;
+        entry++;
+    }
+
+    scheduleArray.count = entry - entries;
+    if (scheduleArray.count > 0)
+    {
+        sched_add_entries(&scheduleArray);
+    }
+
+    trunk_sync_thread_start_all();
+    return 0;
+}
+
+static void do_unset_trunk_server_myself(ConnectionInfo *pTrackerServer)
+{
+    tracker_report_trunk_fid(pTrackerServer);
+    g_if_trunker_self = false;
+
+    trunk_waiting_sync_thread_exit();
+
+    storage_trunk_destroy_ex(true);
+    if (g_trunk_create_file_advance &&
+            g_trunk_create_file_interval > 0)
+    {
+        sched_del_entry(TRUNK_FILE_CREATOR_TASK_ID);
+    }
+
+    if (g_trunk_compress_binlog_interval > 0)
+    {
+        sched_del_entry(TRUNK_BINLOG_COMPRESS_TASK_ID);
+    }
+}
+
 static int tracker_check_response(ConnectionInfo *pTrackerServer,
 	const int tracker_index, bool *bServerPortChanged)
 {
@@ -1384,11 +1455,13 @@ static int tracker_check_response(ConnectionInfo *pTrackerServer,
 		{
         int port;
 
+        pBriefServers->id[FDFS_STORAGE_ID_MAX_SIZE - 1] = '\0';
         pBriefServers->ip_addr[IP_ADDRESS_SIZE - 1] = '\0';
         port = buff2int(pBriefServers->port);
         set_trunk_server(pBriefServers->ip_addr, port);
-		if (is_local_host_ip(pBriefServers->ip_addr) &&
-			port == g_server_port)
+        if ((strcmp(pBriefServers->id, g_my_server_id_str) == 0) ||
+            (is_local_host_ip(pBriefServers->ip_addr) &&
+             port == g_server_port))
 		{
 			if (g_if_trunker_self)
 			{
@@ -1403,32 +1476,10 @@ static int tracker_check_response(ConnectionInfo *pTrackerServer,
 				"I am the the trunk server %s:%d", __LINE__,
 				pBriefServers->ip_addr, port);
 
-			tracker_fetch_trunk_fid(pTrackerServer);
-			g_if_trunker_self = true;
-
-			if ((result=storage_trunk_init()) != 0)
-			{
-				return result;
-			}
-
-			if (g_trunk_create_file_advance &&
-				g_trunk_create_file_interval > 0)
-			{
-			ScheduleArray scheduleArray;
-			ScheduleEntry entries[1];
-
-			entries[0].id = TRUNK_FILE_CREATOR_TASK_ID;
-			entries[0].time_base = g_trunk_create_file_time_base;
-			entries[0].interval = g_trunk_create_file_interval;
-			entries[0].task_func = trunk_create_trunk_file_advance;
-			entries[0].func_args = NULL;
-
-			scheduleArray.count = 1;
-			scheduleArray.entries = entries;
-			sched_add_entries(&scheduleArray);
-			}
-
-			trunk_sync_thread_start_all();
+            if ((result=do_set_trunk_server_myself(pTrackerServer)) != 0)
+            {
+                return result;
+            }
 			}
 		}
 		else
@@ -1440,46 +1491,13 @@ static int tracker_check_response(ConnectionInfo *pTrackerServer,
 
 			if (g_if_trunker_self)
 			{
-				int saved_trunk_sync_thread_count;
-
 				logWarning("file: "__FILE__", line: %d, " \
 					"I am the old trunk server, " \
 					"the new trunk server is %s:%d", \
 					__LINE__, g_trunk_server.connections[0].ip_addr, \
 					g_trunk_server.connections[0].port);
 
-				tracker_report_trunk_fid(pTrackerServer);
-				g_if_trunker_self = false;
-
-				saved_trunk_sync_thread_count = \
-						g_trunk_sync_thread_count;
-				if (saved_trunk_sync_thread_count > 0)
-				{
-					logInfo("file: "__FILE__", line: %d, "\
-						"waiting %d trunk sync " \
-						"threads exit ...", __LINE__, \
-						saved_trunk_sync_thread_count);
-				}
-
-				while (g_trunk_sync_thread_count > 0)
-				{
-					usleep(50000);
-				}
-
-				if (saved_trunk_sync_thread_count > 0)
-				{
-					logInfo("file: "__FILE__", line: %d, " \
-						"%d trunk sync threads exited",\
-						__LINE__, \
-						saved_trunk_sync_thread_count);
-				}
-				
-				storage_trunk_destroy_ex(true);
-				if (g_trunk_create_file_advance && \
-					g_trunk_create_file_interval > 0)
-				{
-				sched_del_entry(TRUNK_FILE_CREATOR_TASK_ID);
-				}
+                do_unset_trunk_server_myself(pTrackerServer);
 			}
 		}
 		}

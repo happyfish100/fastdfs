@@ -79,7 +79,9 @@ extern int g_slot_min_size;    //slot min size, such as 256 bytes
 extern int g_slot_max_size;    //slot max size, such as 16MB
 extern int g_trunk_file_size;  //the trunk file size, such as 64MB
 extern TimeInfo g_trunk_create_file_time_base;
+extern TimeInfo g_trunk_compress_binlog_time_base;
 extern int g_trunk_create_file_interval;
+extern int g_trunk_compress_binlog_interval;
 extern int g_trunk_compress_binlog_min_interval;
 extern int64_t g_trunk_create_file_space_threshold;
 

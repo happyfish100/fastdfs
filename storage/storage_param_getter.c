@@ -132,12 +132,20 @@ int storage_get_params_from_tracker()
 			"trunk_create_file_space_threshold", \
 			&iniContext, 0);
 
-	g_trunk_init_check_occupying = iniGetBoolValue(NULL, \
+	g_trunk_init_check_occupying = iniGetBoolValue(NULL,
 			"trunk_init_check_occupying", &iniContext, false);
-	g_trunk_init_reload_from_binlog = iniGetBoolValue(NULL, \
+	g_trunk_init_reload_from_binlog = iniGetBoolValue(NULL,
 			"trunk_init_reload_from_binlog", &iniContext, false);
-	g_trunk_compress_binlog_min_interval = iniGetIntValue(NULL, \
+	g_trunk_compress_binlog_min_interval = iniGetIntValue(NULL,
 			"trunk_compress_binlog_min_interval", &iniContext, 0);
+	g_trunk_compress_binlog_interval = iniGetIntValue(NULL,
+			"trunk_compress_binlog_interval", &iniContext, 0);
+    if ((result=get_time_item_from_conf(&iniContext,
+                    "trunk_compress_binlog_time_base",
+                    &g_trunk_compress_binlog_time_base, 3, 0)) != 0)
+    {
+        return result;
+    }
 
 	g_store_slave_file_use_link = iniGetBoolValue(NULL, \
 			"store_slave_file_use_link", &iniContext, false);
@@ -187,6 +195,8 @@ int storage_get_params_from_tracker()
 		"trunk_init_check_occupying=%d, "   \
 		"trunk_init_reload_from_binlog=%d, " \
 		"trunk_compress_binlog_min_interval=%d, " \
+		"trunk_compress_binlog_interval=%d, " \
+		"trunk_compress_binlog_time_base=%02d:%02d, " \
 		"store_slave_file_use_link=%d", \
 		__LINE__, g_use_storage_id, \
 		g_id_type_in_filename == FDFS_ID_TYPE_SERVER_ID ? "id" : "ip", \
@@ -204,6 +214,9 @@ int storage_get_params_from_tracker()
 		(FDFS_ONE_MB * 1024)), g_trunk_init_check_occupying, \
 		g_trunk_init_reload_from_binlog, \
 		g_trunk_compress_binlog_min_interval, \
+		g_trunk_compress_binlog_interval, \
+        g_trunk_compress_binlog_time_base.hour, \
+        g_trunk_compress_binlog_time_base.minute, \
 		g_store_slave_file_use_link);
 
 	if (g_use_storage_id && *g_sync_src_id != '\0' && \

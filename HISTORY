@@ -1,8 +1,11 @@
 
-Version 6.05  2019-12-13
+Version 6.05  2019-12-14
  * fdfs_trackerd and fdfs_storaged print the server version in usage.
    you can execute fdfs_trackerd or fdfs_storaged without parameters
    to show the server version
+ * trunk server support compress the trunk binlog periodically,
+   config items in tracker.conf: trunk_compress_binlog_interval
+   and trunk_compress_binlog_time_base
 
 Version 6.04  2019-12-05
  * storage_report_ip_changed ignore result EEXIST

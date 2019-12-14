@@ -313,29 +313,35 @@ int trunk_binlog_compress_apply()
 		return 0;
 	}
 
-	if ((result=trunk_binlog_close_writer(true)) != 0)
-	{
-		return result;
-	}
+    pthread_mutex_lock(&trunk_sync_thread_lock);
 
-	if (rename(binlog_filename, rollback_filename) != 0)
-	{
-		result = errno != 0 ? errno : EIO;
-		logError("file: "__FILE__", line: %d, " \
-			"rename %s to %s fail, " \
-			"errno: %d, error info: %s",
-			__LINE__, binlog_filename, rollback_filename,
-			result, STRERROR(result));
-		return result;
-	}
+    do
+    {
+        if ((result=trunk_binlog_close_writer(false)) != 0)
+        {
+            break;
+        }
 
-	if ((result=trunk_binlog_open_writer(binlog_filename)) != 0)
-	{
-		rename(rollback_filename, binlog_filename);  //rollback
-		return result;
-	}
+        if (rename(binlog_filename, rollback_filename) != 0)
+        {
+            result = errno != 0 ? errno : EIO;
+            logError("file: "__FILE__", line: %d, " \
+                    "rename %s to %s fail, " \
+                    "errno: %d, error info: %s",
+                    __LINE__, binlog_filename, rollback_filename,
+                    result, STRERROR(result));
+            break;
+        }
 
-	return 0;
+        if ((result=trunk_binlog_open_writer(binlog_filename)) != 0)
+        {
+            rename(rollback_filename, binlog_filename);  //rollback
+            break;
+        }
+    } while (0);
+
+    pthread_mutex_unlock(&trunk_sync_thread_lock);
+    return result;
 }
 
 static int trunk_binlog_open_read(const char *filename,
@@ -478,46 +484,53 @@ int trunk_binlog_compress_commit()
 		return errno != 0 ? errno : ENOENT;
 	}
 
+    pthread_mutex_lock(&trunk_sync_thread_lock);
 	if (need_open_binlog)
 	{
-		trunk_binlog_close_writer(true);
+		trunk_binlog_close_writer(false);
 	}
 
-	result = trunk_binlog_merge_file(data_fd);
-	close(data_fd);
-	if (result != 0)
-	{
-		return result;
-	}
-	if (unlink(data_filename) != 0)
-	{
-		result = errno != 0 ? errno : EPERM;
-		logError("file: "__FILE__", line: %d, " \
-			"unlink %s fail, errno: %d, error info: %s",
-			__LINE__, data_filename,
-			result, STRERROR(result));
-		return result;
-	}
+    do
+    {
+        result = trunk_binlog_merge_file(data_fd);
+        close(data_fd);
+        if (result != 0)
+        {
+            break;
+        }
+        if (unlink(data_filename) != 0)
+        {
+            result = errno != 0 ? errno : EPERM;
+            logError("file: "__FILE__", line: %d, "
+                    "unlink %s fail, errno: %d, error info: %s",
+                    __LINE__, data_filename,
+                    result, STRERROR(result));
+            break;
+        }
 
-	get_trunk_rollback_filename(rollback_filename);
-	if (access(rollback_filename, F_OK) == 0)
-	{
-		if (unlink(rollback_filename) != 0)
-		{
-			result = errno != 0 ? errno : EPERM;
-			logWarning("file: "__FILE__", line: %d, " \
-				"unlink %s fail, errno: %d, error info: %s",
-				__LINE__, rollback_filename,
-				result, STRERROR(result));
-		}
-	}
+        get_trunk_rollback_filename(rollback_filename);
+        if (access(rollback_filename, F_OK) == 0)
+        {
+            if (unlink(rollback_filename) != 0)
+            {
+                result = errno != 0 ? errno : EPERM;
+                logWarning("file: "__FILE__", line: %d, "
+                        "unlink %s fail, errno: %d, error info: %s",
+                        __LINE__, rollback_filename,
+                        result, STRERROR(result));
+                break;
+            }
+        }
 
-	if (need_open_binlog)
-	{
-		return trunk_binlog_open_writer(binlog_filename);
-	}
+        if (need_open_binlog)
+        {
+            result = trunk_binlog_open_writer(binlog_filename);
+        }
+    } while (0);
 
-	return 0;
+    pthread_mutex_unlock(&trunk_sync_thread_lock);
+
+    return result;
 }
 
 int trunk_binlog_compress_rollback()
@@ -557,7 +570,7 @@ int trunk_binlog_compress_rollback()
 		{
 			return 0;
 		}
-		logError("file: "__FILE__", line: %d, " \
+		logError("file: "__FILE__", line: %d, "
 			"stat file %s fail, errno: %d, error info: %s",
 			__LINE__, rollback_filename,
 			result, STRERROR(result));
@@ -570,38 +583,46 @@ int trunk_binlog_compress_rollback()
 		return 0;
 	}
 
-	if ((result=trunk_binlog_close_writer(true)) != 0)
-	{
-		return result;
-	}
+    pthread_mutex_lock(&trunk_sync_thread_lock);
+    do
+    {
+        if ((result=trunk_binlog_close_writer(false)) != 0)
+        {
+            break;
+        }
 
-	if ((rollback_fd=trunk_binlog_open_read(rollback_filename,
-		false)) < 0)
-	{
-		return errno != 0 ? errno : ENOENT;
-	}
+        if ((rollback_fd=trunk_binlog_open_read(rollback_filename,
+                        false)) < 0)
+        {
+            result = errno != 0 ? errno : ENOENT;
+            break;
+        }
 
-	result = trunk_binlog_merge_file(rollback_fd);
-	close(rollback_fd);
-	if (result == 0)
-	{
-		if (unlink(rollback_filename) != 0)
-		{
-			result = errno != 0 ? errno : EPERM;
-			logWarning("file: "__FILE__", line: %d, " \
-				"unlink %s fail, " \
-				"errno: %d, error info: %s",
-				__LINE__, rollback_filename,
-				result, STRERROR(result));
-		}
+        result = trunk_binlog_merge_file(rollback_fd);
+        close(rollback_fd);
+        if (result == 0)
+        {
+            if (unlink(rollback_filename) != 0)
+            {
+                result = errno != 0 ? errno : EPERM;
+                logWarning("file: "__FILE__", line: %d, " \
+                        "unlink %s fail, " \
+                        "errno: %d, error info: %s",
+                        __LINE__, rollback_filename,
+                        result, STRERROR(result));
+                break;
+            }
 
-		return trunk_binlog_open_writer(binlog_filename);
-	}
-	else
-	{
-		trunk_binlog_open_writer(binlog_filename);
-		return result;
-	}
+            result = trunk_binlog_open_writer(binlog_filename);
+        }
+        else
+        {
+            result = trunk_binlog_open_writer(binlog_filename);
+        }
+    } while (0);
+
+    pthread_mutex_unlock(&trunk_sync_thread_lock);
+    return result;
 }
 
 static int trunk_binlog_fsync_ex(const bool bNeedLock, \
@@ -1221,23 +1242,23 @@ int trunk_unlink_mark_file(const char *storage_id)
 	t = g_current_time;
 	localtime_r(&t, &tm);
 
-	trunk_get_mark_filename_by_id(storage_id, old_filename, \
+	trunk_get_mark_filename_by_id(storage_id, old_filename,
 		sizeof(old_filename));
 	if (!fileExists(old_filename))
 	{
 		return ENOENT;
 	}
 
-	snprintf(new_filename, sizeof(new_filename), \
-		"%s.%04d%02d%02d%02d%02d%02d", old_filename, \
-		tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday, \
+	snprintf(new_filename, sizeof(new_filename),
+		"%s.%04d%02d%02d%02d%02d%02d", old_filename,
+		tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday,
 		tm.tm_hour, tm.tm_min, tm.tm_sec);
 	if (rename(old_filename, new_filename) != 0)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"rename file %s to %s fail" \
-			", errno: %d, error info: %s", \
-			__LINE__, old_filename, new_filename, \
+		logError("file: "__FILE__", line: %d, "
+			"rename file %s to %s fail, "
+			"errno: %d, error info: %s",
+			__LINE__, old_filename, new_filename,
 			errno, STRERROR(errno));
 		return errno != 0 ? errno : EACCES;
 	}
@@ -1470,7 +1491,8 @@ static void* trunk_sync_thread_entrance(void* arg)
 			__LINE__, pStorage->ip_addr, local_ip_addr);
 		*/
 
-		if (is_local_host_ip(pStorage->ip_addr))
+		if ((strcmp(pStorage->id, g_my_server_id_str) == 0) ||
+                is_local_host_ip(pStorage->ip_addr))
 		{  //can't self sync to self
 			logError("file: "__FILE__", line: %d, " \
 				"ip_addr %s belong to the local host," \
@@ -1630,7 +1652,8 @@ int trunk_sync_thread_start(const FDFSStorageBrief *pStorage)
 		return 0;
 	}
 
-	if (is_local_host_ip(pStorage->ip_addr)) //can't self sync to self
+	if ((strcmp(pStorage->id, g_my_server_id_str) == 0) ||
+            is_local_host_ip(pStorage->ip_addr)) //can't self sync to self
 	{
 		return 0;
 	}
@@ -1695,6 +1718,42 @@ int trunk_sync_thread_start(const FDFSStorageBrief *pStorage)
 	return 0;
 }
 
+void trunk_waiting_sync_thread_exit()
+{
+    int saved_trunk_sync_thread_count;
+    int count;
+
+    saved_trunk_sync_thread_count = g_trunk_sync_thread_count;
+    if (saved_trunk_sync_thread_count > 0)
+    {
+        logInfo("file: "__FILE__", line: %d, "
+                "waiting %d trunk sync threads exit ...",
+                __LINE__, saved_trunk_sync_thread_count);
+    }
+
+    count = 0;
+    while (g_trunk_sync_thread_count > 0 && count < 20)
+    {
+        usleep(50000);
+        count++;
+    }
+
+    if (g_trunk_sync_thread_count > 0)
+    {
+        logWarning("file: "__FILE__", line: %d, "
+                "kill %d trunk sync threads.",
+                __LINE__, g_trunk_sync_thread_count);
+        kill_trunk_sync_threads();
+    }
+
+    if (saved_trunk_sync_thread_count > 0)
+    {
+        logInfo("file: "__FILE__", line: %d, "
+                "%d trunk sync threads exited",
+                __LINE__, saved_trunk_sync_thread_count);
+    }
+}
+
 int trunk_unlink_all_mark_files()
 {
 	FDFSStorageServer *pStorageServer;
@@ -1710,7 +1769,7 @@ int trunk_unlink_all_mark_files()
 			continue;
 		}
 
-		if ((result=trunk_unlink_mark_file( \
+		if ((result=trunk_unlink_mark_file(
 			pStorageServer->server.id)) != 0)
 		{
 			if (result != ENOENT)
