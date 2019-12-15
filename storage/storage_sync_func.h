@@ -17,11 +17,11 @@
 extern "C" {
 #endif
 
-void storage_sync_connect_storage_server_ex(FDFSStorageBrief *pStorage,
+void storage_sync_connect_storage_server_ex(const FDFSStorageBrief *pStorage,
         ConnectionInfo *conn, bool *check_flag);
 
 static inline void storage_sync_connect_storage_server(
-        FDFSStorageBrief *pStorage, ConnectionInfo *conn)
+        const FDFSStorageBrief *pStorage, ConnectionInfo *conn)
 {
     bool check_flag = true;
     storage_sync_connect_storage_server_ex(pStorage,

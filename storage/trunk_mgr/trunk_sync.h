@@ -73,13 +73,16 @@ int trunk_rename_mark_file(const char *old_ip_addr, const int old_port, \
 int trunk_open_readable_binlog(TrunkBinLogReader *pReader, \
 		get_filename_func filename_func, const void *pArg);
 
-int trunk_reader_init(FDFSStorageBrief *pStorage, TrunkBinLogReader *pReader);
+int trunk_reader_init(const FDFSStorageBrief *pStorage,
+        TrunkBinLogReader *pReader);
 void trunk_reader_destroy(TrunkBinLogReader *pReader);
 
 //trunk binlog compress
 int trunk_binlog_compress_apply();
 int trunk_binlog_compress_commit();
 int trunk_binlog_compress_rollback();
+
+int trunk_sync_notify_thread_reset_offset();
 
 #ifdef __cplusplus
 }

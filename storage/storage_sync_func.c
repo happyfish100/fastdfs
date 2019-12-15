@@ -29,7 +29,7 @@
 #include "storage_func.h"
 #include "storage_sync_func.h"
 
-void storage_sync_connect_storage_server_ex(FDFSStorageBrief *pStorage,
+void storage_sync_connect_storage_server_ex(const FDFSStorageBrief *pStorage,
         ConnectionInfo *conn, bool *check_flag)
 {
     int nContinuousFail;

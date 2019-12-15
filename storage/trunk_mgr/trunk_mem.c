@@ -520,6 +520,15 @@ static int storage_trunk_compress()
 {
 	int result;
  
+    if (g_current_time - g_up_time < 600)
+    {
+        logWarning("file: "__FILE__", line: %d, "
+                "too little time lapse: %ds afer startup, "
+                "skip trunk binlog compress", __LINE__,
+                (int)(g_current_time - g_up_time));
+        return EBUSY;
+    }
+
     if (__sync_add_and_fetch(&g_trunk_binlog_compress_in_progress, 1) != 1)
     {
         __sync_sub_and_fetch(&g_trunk_binlog_compress_in_progress, 1);
@@ -563,7 +572,6 @@ static int storage_trunk_compress()
     {
         logInfo("file: "__FILE__", line: %d, "
                 "compress trunk binlog successfully.", __LINE__);
-        return trunk_unlink_all_mark_files();  //because the binlog file be compressed
     }
     else
     {
@@ -576,6 +584,8 @@ static int storage_trunk_compress()
 
 static int storage_trunk_save()
 {
+    int result;
+
 	if (!(g_trunk_compress_binlog_min_interval > 0 &&
 		g_current_time - g_trunk_last_compress_time >
 		g_trunk_compress_binlog_min_interval))
@@ -594,7 +604,12 @@ static int storage_trunk_save()
         }
 	}
     
-    return storage_trunk_compress();
+    if ((result=storage_trunk_compress()) == 0)
+    {
+        return trunk_unlink_all_mark_files();  //because the binlog file be compressed
+    }
+
+    return result;
 }
 
 int trunk_binlog_compress_func(void *args)
@@ -617,12 +632,7 @@ int trunk_binlog_compress_func(void *args)
         return 0;
     }
 
-    g_if_trunker_self = false;   //for sync thread exit
-    trunk_waiting_sync_thread_exit();
-
-    g_if_trunker_self = true;    //restore to true
-    trunk_sync_thread_start_all();
-
+    trunk_sync_notify_thread_reset_offset();
     return 0;
 }
 
