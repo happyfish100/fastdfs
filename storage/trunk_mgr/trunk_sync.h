@@ -74,7 +74,7 @@ int trunk_open_readable_binlog(TrunkBinLogReader *pReader, \
 		get_filename_func filename_func, const void *pArg);
 
 int trunk_reader_init(const FDFSStorageBrief *pStorage,
-        TrunkBinLogReader *pReader);
+        TrunkBinLogReader *pReader, const bool reset_binlog_offset);
 void trunk_reader_destroy(TrunkBinLogReader *pReader);
 
 //trunk binlog compress
@@ -83,6 +83,7 @@ int trunk_binlog_compress_commit();
 int trunk_binlog_compress_rollback();
 
 int trunk_sync_notify_thread_reset_offset();
+int trunk_binlog_get_write_version();
 
 #ifdef __cplusplus
 }

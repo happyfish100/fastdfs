@@ -988,7 +988,7 @@ static char *trunk_get_mark_filename_by_id(const char *storage_id,
 }
 
 int trunk_reader_init(const FDFSStorageBrief *pStorage,
-        TrunkBinLogReader *pReader)
+        TrunkBinLogReader *pReader, const bool reset_binlog_offset)
 {
 	char full_filename[MAX_PATH_SIZE];
 	IniContext iniContext;
@@ -1116,7 +1116,13 @@ int trunk_reader_init(const FDFSStorageBrief *pStorage,
 		}
 	}
 
-	if ((result=trunk_open_readable_binlog(pReader, \
+    if (reset_binlog_offset && pReader->binlog_offset > 0)
+    {
+        pReader->binlog_offset = 0;
+        trunk_write_to_mark_file(pReader);
+    }
+
+    if ((result=trunk_open_readable_binlog(pReader,
 			get_binlog_readable_filename, pReader)) != 0)
 	{
 		return result;
@@ -1178,7 +1184,7 @@ static int trunk_binlog_preread(TrunkBinLogReader *pReader)
 	int bytes_read;
 	int saved_trunk_binlog_write_version;
 
-	if (pReader->binlog_buff.version == trunk_binlog_write_version && \
+	if (pReader->binlog_buff.version == trunk_binlog_write_version &&
 		pReader->binlog_buff.length == 0)
 	{
 		return ENOENT;
@@ -1550,12 +1556,12 @@ static void *trunk_sync_thread_entrance(void* arg)
 			break;
 		}
 
-		if ((result=trunk_reader_init(pStorage, &reader)) != 0)
+		if ((result=trunk_reader_init(pStorage, &reader,
+                        thread_data->reset_binlog_offset)) != 0)
 		{
-			logCrit("file: "__FILE__", line: %d, " \
-				"trunk_reader_init fail, errno=%d, " \
-				"program exit!", \
-				__LINE__, result);
+			logCrit("file: "__FILE__", line: %d, "
+				"trunk_reader_init fail, errno=%d, "
+				"program exit!", __LINE__, result);
 			g_continue_flag = false;
 			break;
 		}
@@ -1733,6 +1739,7 @@ TrunkSyncThreadInfo *trunk_sync_alloc_thread_data()
 {
     TrunkSyncThreadInfo **thread_info;
     TrunkSyncThreadInfo **info_end;
+    TrunkSyncThreadInfo **old_thread_data;
     TrunkSyncThreadInfo **new_thread_data;
     TrunkSyncThreadInfo **new_data_start;
     int alloc_count;
@@ -1802,12 +1809,13 @@ TrunkSyncThreadInfo *trunk_sync_alloc_thread_data()
         memset(*thread_info, 0, sizeof(TrunkSyncThreadInfo));
     }
 
-    if (sync_thread_info_array.thread_data != NULL)
-    {
-        free(sync_thread_info_array.thread_data);
-    }
+    old_thread_data = sync_thread_info_array.thread_data;
     sync_thread_info_array.thread_data = new_thread_data;
     sync_thread_info_array.alloc_count = alloc_count;
+    if (old_thread_data != NULL)
+    {
+        free(old_thread_data);
+    }
 
     return *new_data_start;
 }
@@ -1947,3 +1955,7 @@ int trunk_unlink_all_mark_files()
 	return 0;
 }
 
+int trunk_binlog_get_write_version()
+{
+    return trunk_binlog_write_version;
+}

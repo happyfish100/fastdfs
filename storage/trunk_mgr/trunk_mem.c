@@ -518,6 +518,8 @@ static int storage_trunk_do_save()
 
 static int storage_trunk_compress()
 {
+    static int last_write_version = 0;
+    int current_write_version;
 	int result;
  
     if (g_current_time - g_up_time < 600)
@@ -526,7 +528,16 @@ static int storage_trunk_compress()
                 "too little time lapse: %ds afer startup, "
                 "skip trunk binlog compress", __LINE__,
                 (int)(g_current_time - g_up_time));
-        return EBUSY;
+        return EAGAIN;
+    }
+
+    current_write_version = trunk_binlog_get_write_version();
+    if (current_write_version == last_write_version)
+    {
+        logInfo("file: "__FILE__", line: %d, "
+                "binlog NOT changed, do NOT need compress",
+                __LINE__);
+        return EALREADY;
     }
 
     if (__sync_add_and_fetch(&g_trunk_binlog_compress_in_progress, 1) != 1)
@@ -563,6 +574,7 @@ static int storage_trunk_compress()
         }
 
         g_trunk_last_compress_time = g_current_time;
+        last_write_version = current_write_version;
     } while (0);
 
     __sync_sub_and_fetch(&g_trunk_binlog_compress_in_progress, 1);
@@ -609,7 +621,8 @@ static int storage_trunk_save()
         return trunk_unlink_all_mark_files();  //because the binlog file be compressed
     }
 
-    return result;
+    return (result == EAGAIN || result == EALREADY ||
+            result == EINPROGRESS) ? 0 : result;
 }
 
 int trunk_binlog_compress_func(void *args)
@@ -818,7 +831,7 @@ static int storage_trunk_restore(const int64_t restore_offset)
 	memset(&record, 0, sizeof(record));
 	memset(&reader, 0, sizeof(reader));
 	reader.binlog_offset = restore_offset;
-	if ((result=trunk_reader_init(NULL, &reader)) != 0)
+	if ((result=trunk_reader_init(NULL, &reader, false)) != 0)
 	{
 		return result;
 	}
