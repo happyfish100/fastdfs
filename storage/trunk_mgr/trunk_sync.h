@@ -28,8 +28,8 @@ extern "C" {
 typedef struct
 {
 	char storage_id[FDFS_STORAGE_ID_MAX_SIZE];
+	char mark_filename[MAX_PATH_SIZE];
 	BinLogBuffer binlog_buff;
-	int mark_fd;
 	int binlog_fd;
 	int64_t binlog_offset;
 	int64_t last_binlog_offset;  //for write to mark file
@@ -65,7 +65,7 @@ void trunk_waiting_sync_thread_exit();
 
 char *get_trunk_binlog_filename(char *full_filename);
 char *trunk_mark_filename_by_reader(const void *pArg, char *full_filename);
-int trunk_unlink_all_mark_files();
+int trunk_unlink_all_mark_files(const bool force_delete);
 int trunk_unlink_mark_file(const char *storage_id);
 int trunk_rename_mark_file(const char *old_ip_addr, const int old_port, \
 		const char *new_ip_addr, const int new_port);
@@ -78,12 +78,23 @@ int trunk_reader_init(const FDFSStorageBrief *pStorage,
 void trunk_reader_destroy(TrunkBinLogReader *pReader);
 
 //trunk binlog compress
+int trunk_binlog_compress_delete_binlog_rollback_file(const bool silence);
+int trunk_binlog_compress_delete_rollback_files(const bool silence);
+int trunk_binlog_compress_delete_temp_files_after_commit();
 int trunk_binlog_compress_apply();
 int trunk_binlog_compress_commit();
 int trunk_binlog_compress_rollback();
 
 int trunk_sync_notify_thread_reset_offset();
 int trunk_binlog_get_write_version();
+
+char *get_trunk_binlog_tmp_filename_ex(const char *binlog_filename,
+        char *tmp_filename);
+
+static inline char *get_trunk_binlog_tmp_filename(char *tmp_filename)
+{
+    return get_trunk_binlog_tmp_filename_ex(NULL, tmp_filename);
+}
 
 #ifdef __cplusplus
 }

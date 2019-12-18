@@ -15,6 +15,7 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <dirent.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -38,10 +39,11 @@
 #include "storage_sync_func.h"
 #include "trunk_sync.h"
 
-#define TRUNK_SYNC_BINLOG_FILENAME	"binlog"
+#define TRUNK_SYNC_BINLOG_FILENAME	    "binlog"
 #define TRUNK_SYNC_BINLOG_ROLLBACK_EXT	".rollback"
-#define TRUNK_SYNC_MARK_FILE_EXT	".mark"
-#define TRUNK_DIR_NAME			"trunk"
+#define TRUNK_SYNC_MARK_FILE_EXT_STR	".mark"
+#define TRUNK_SYNC_MARK_FILE_EXT_LEN	(sizeof(TRUNK_SYNC_MARK_FILE_EXT_STR) - 1)
+#define TRUNK_DIR_NAME			        "trunk"
 #define MARK_ITEM_BINLOG_FILE_OFFSET	"binlog_offset"
 
 static int trunk_binlog_fd = -1;
@@ -85,7 +87,7 @@ char *get_trunk_binlog_filename(char *full_filename)
 	return full_filename;
 }
 
-static char *get_trunk_rollback_filename(char *full_filename)
+static char *get_trunk_binlog_rollback_filename(char *full_filename)
 {
 	get_trunk_binlog_filename(full_filename);
 	if (strlen(full_filename) + sizeof(TRUNK_SYNC_BINLOG_ROLLBACK_EXT) >
@@ -95,6 +97,38 @@ static char *get_trunk_rollback_filename(char *full_filename)
 	}
 	strcat(full_filename, TRUNK_SYNC_BINLOG_ROLLBACK_EXT);
 	return full_filename;
+}
+
+static char *get_trunk_data_rollback_filename(char *full_filename)
+{
+	storage_trunk_get_data_filename(full_filename);
+	if (strlen(full_filename) + sizeof(TRUNK_SYNC_BINLOG_ROLLBACK_EXT) >
+		MAX_PATH_SIZE)
+	{
+		return NULL;
+	}
+	strcat(full_filename, TRUNK_SYNC_BINLOG_ROLLBACK_EXT);
+	return full_filename;
+}
+
+char *get_trunk_binlog_tmp_filename_ex(const char *binlog_filename,
+        char *tmp_filename)
+{
+    const char *true_binlog_filename;
+	char filename[MAX_PATH_SIZE];
+
+    if (binlog_filename == NULL)
+    {
+        get_trunk_binlog_filename(filename);
+        true_binlog_filename = filename;
+    }
+    else
+    {
+        true_binlog_filename = binlog_filename;
+    }
+
+	sprintf(tmp_filename, "%s.tmp", true_binlog_filename);
+    return tmp_filename;
 }
 
 static int trunk_binlog_open_writer(const char *binlog_filename)
@@ -264,12 +298,15 @@ int kill_trunk_sync_threads()
 int trunk_sync_notify_thread_reset_offset()
 {
 	int result;
+    int i;
+    int count;
+    bool done;
     TrunkSyncThreadInfo **thread_info;
     TrunkSyncThreadInfo **info_end;
 
 	if (sync_thread_info_array.thread_data == NULL)
 	{
-		return 0;
+		return EINVAL;
 	}
 
 	if ((result=pthread_mutex_lock(&trunk_sync_thread_lock)) != 0)
@@ -280,6 +317,7 @@ int trunk_sync_notify_thread_reset_offset()
 			__LINE__, result, STRERROR(result));
 	}
 
+    count = 0;
     info_end = sync_thread_info_array.thread_data +
         sync_thread_info_array.alloc_count;
     for (thread_info=sync_thread_info_array.thread_data;
@@ -288,6 +326,7 @@ int trunk_sync_notify_thread_reset_offset()
         if ((*thread_info)->running)
         {
             (*thread_info)->reset_binlog_offset = true;
+            count++;
         }
     }
 
@@ -299,7 +338,59 @@ int trunk_sync_notify_thread_reset_offset()
 			__LINE__, result, STRERROR(result));
 	}
 
-	return result;
+	logInfo("file: "__FILE__", line: %d, "
+            "notify %d trunk sync threads to reset offset.",
+            __LINE__, count);
+
+    done = false;
+    for (i=0; i<300 && g_continue_flag; i++)
+    {
+        info_end = sync_thread_info_array.thread_data +
+            sync_thread_info_array.alloc_count;
+        for (thread_info=sync_thread_info_array.thread_data;
+                thread_info<info_end; thread_info++)
+        {
+            if ((*thread_info)->running && (*thread_info)->reset_binlog_offset)
+            {
+                break;
+            }
+        }
+
+        if (thread_info == info_end)
+        {
+            done = true;
+            break;
+        }
+
+        sleep(1);
+    }
+
+    if (done)
+    {
+        logInfo("file: "__FILE__", line: %d, "
+                "trunk sync threads reset binlog offset done.",
+                __LINE__);
+        return 0;
+    }
+    else
+    {
+        count = 0;
+        info_end = sync_thread_info_array.thread_data +
+            sync_thread_info_array.alloc_count;
+        for (thread_info=sync_thread_info_array.thread_data;
+                thread_info<info_end; thread_info++)
+        {
+            if ((*thread_info)->running && (*thread_info)->reset_binlog_offset)
+            {
+                count++;
+            }
+        }
+
+        logError("file: "__FILE__", line: %d, "
+                "%d trunk sync threads reset binlog offset timeout.",
+                __LINE__, count);
+        return EBUSY;
+    }
 }
 
 int trunk_binlog_sync_func(void *args)
@@ -339,80 +430,120 @@ int trunk_binlog_truncate()
 	return 0;
 }
 
-int trunk_binlog_compress_apply()
+static int trunk_binlog_delete_rollback_file(const char *filename,
+        const bool silence)
 {
 	int result;
-	char binlog_filename[MAX_PATH_SIZE];
-	char rollback_filename[MAX_PATH_SIZE];
+    if (access(filename, F_OK) == 0)
+    {
+        if (!silence)
+        {
+            logWarning("file: "__FILE__", line: %d, "
+                    "rollback file %s exist, delete it!",
+                    __LINE__, filename);
+        }
+        if (unlink(filename) != 0)
+        {
+            result = errno != 0 ? errno : EPERM;
+            if (result != ENOENT)
+            {
+                logError("file: "__FILE__", line: %d, "
+                        "unlink file %s fail, errno: %d, error info: %s",
+                        __LINE__, filename, result, STRERROR(result));
+                return result;
+            }
+        }
+    }
+    else
+    {
+        result = errno != 0 ? errno : EPERM;
+        if (result != ENOENT)
+        {
+            logError("file: "__FILE__", line: %d, "
+                    "access file %s fail, errno: %d, error info: %s",
+                    __LINE__, filename, result, STRERROR(result));
+            return result;
+        }
+    }
 
-	get_trunk_binlog_filename(binlog_filename);
-	if (get_trunk_rollback_filename(rollback_filename) == NULL)
+    return 0;
+}
+
+int trunk_binlog_compress_delete_binlog_rollback_file(const bool silence)
+{
+	char binlog_rollback_filename[MAX_PATH_SIZE];
+
+	if (get_trunk_binlog_rollback_filename(binlog_rollback_filename) == NULL)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"filename: %s is too long",
-			__LINE__, binlog_filename);
+		logError("file: "__FILE__", line: %d, "
+			"binlog rollback filename is too long", __LINE__);
 		return ENAMETOOLONG;
 	}
 
-	if (trunk_binlog_fd < 0)
-	{
-		if (access(binlog_filename, F_OK) == 0)
-		{
-			if (rename(binlog_filename, rollback_filename) != 0)
-			{
-				result = errno != 0 ? errno : EIO;
-				logError("file: "__FILE__", line: %d, " \
-					"rename %s to %s fail, " \
-					"errno: %d, error info: %s",
-					__LINE__, binlog_filename,
-					rollback_filename, result,
-					STRERROR(result));
-				return result;
-			}
-		}
-		else if (errno != ENOENT)
-		{
-			result = errno != 0 ? errno : EIO;
-			logError("file: "__FILE__", line: %d, " \
-				"call access %s fail, " \
-				"errno: %d, error info: %s",
-				__LINE__, binlog_filename,
-				result, STRERROR(result));
-			return result;
-		}
+    return trunk_binlog_delete_rollback_file(binlog_rollback_filename, silence);
+}
 
-		return 0;
-	}
+int trunk_binlog_compress_delete_rollback_files(const bool silence)
+{
+	int result;
+	char data_rollback_filename[MAX_PATH_SIZE];
 
-    pthread_mutex_lock(&trunk_sync_thread_lock);
-
-    do
+    if ((result=trunk_binlog_compress_delete_binlog_rollback_file(
+                    silence)) != 0)
     {
-        if ((result=trunk_binlog_close_writer(false)) != 0)
-        {
-            break;
-        }
+        return result;
+    }
 
-        if (rename(binlog_filename, rollback_filename) != 0)
+    if (get_trunk_data_rollback_filename(data_rollback_filename) == NULL)
+    {
+		logError("file: "__FILE__", line: %d, "
+			"data rollback filename is too long", __LINE__);
+		return ENAMETOOLONG;
+    }
+
+    if ((result=trunk_binlog_delete_rollback_file(data_rollback_filename,
+                    silence)) != 0)
+    {
+        return result;
+    }
+
+    return 0;
+}
+
+static int trunk_binlog_rename_file(const char *src_filename,
+        const char *dest_filename, const int log_ignore_errno)
+{
+	int result;
+    if (access(src_filename, F_OK) == 0)
+    {
+        if (rename(src_filename, dest_filename) != 0)
         {
             result = errno != 0 ? errno : EIO;
-            logError("file: "__FILE__", line: %d, " \
-                    "rename %s to %s fail, " \
+            logError("file: "__FILE__", line: %d, "
+                    "rename %s to %s fail, "
                     "errno: %d, error info: %s",
-                    __LINE__, binlog_filename, rollback_filename,
-                    result, STRERROR(result));
-            break;
+                    __LINE__, src_filename,
+                    dest_filename, result,
+                    STRERROR(result));
+            return result;
         }
-
-        if ((result=trunk_binlog_open_writer(binlog_filename)) != 0)
+    }
+    else
+    {
+        result = errno != 0 ? errno : EIO;
+        if (result - log_ignore_errno != 0)
         {
-            rename(rollback_filename, binlog_filename);  //rollback
-            break;
+            logError("file: "__FILE__", line: %d, "
+                    "call access %s fail, "
+                    "errno: %d, error info: %s",
+                    __LINE__, src_filename,
+                    result, STRERROR(result));
         }
-    } while (0);
 
-    pthread_mutex_unlock(&trunk_sync_thread_lock);
-    return result;
+        return result;
+    }
+
+    return 0;
 }
 
 static int trunk_binlog_open_read(const char *filename,
@@ -445,7 +576,7 @@ static int trunk_binlog_open_read(const char *filename,
 	return fd;
 }
 
-static int trunk_binlog_merge_file(int old_fd)
+static int trunk_binlog_merge_file(int old_fd, const int stage)
 {
 	int result;
 	int tmp_fd;
@@ -454,19 +585,19 @@ static int trunk_binlog_merge_file(int old_fd)
 	char tmp_filename[MAX_PATH_SIZE];
 	char buff[64 * 1024];
 
-	get_trunk_binlog_filename(binlog_filename);
-	sprintf(tmp_filename, "%s.tmp", binlog_filename);
+    get_trunk_binlog_filename(binlog_filename);
+    get_trunk_binlog_tmp_filename_ex(binlog_filename, tmp_filename);
 	tmp_fd = open(tmp_filename, O_WRONLY | O_CREAT | O_TRUNC, 0644);
 	if (tmp_fd < 0)
 	{
 		result = errno != 0 ? errno : EACCES;
-		logError("file: "__FILE__", line: %d, " \
-			"open file \"%s\" fail, " \
-			"errno: %d, error info: %s", \
+		logError("file: "__FILE__", line: %d, "
+			"open file \"%s\" fail, "
+			"errno: %d, error info: %s",
 			__LINE__, tmp_filename, result, STRERROR(result));
 		return result;
 	}
-
+    
 	while ((bytes=fc_safe_read(old_fd, buff, sizeof(buff))) > 0)
 	{
 		if (fc_safe_write(tmp_fd, buff, bytes) != bytes)
@@ -523,6 +654,9 @@ static int trunk_binlog_merge_file(int old_fd)
 	}
 	close(tmp_fd);
 
+    g_trunk_binlog_compress_stage = stage;
+    storage_write_to_sync_ini_file();
+
 	if (rename(tmp_filename, binlog_filename) != 0)
 	{
 		result = errno != 0 ? errno : EPERM;
@@ -537,6 +671,269 @@ static int trunk_binlog_merge_file(int old_fd)
 	return 0;
 }
 
+static int trunk_compress_rollback_data_file()
+{
+    int result;
+	char data_filename[MAX_PATH_SIZE];
+    char data_rollback_filename[MAX_PATH_SIZE];
+    struct stat fs;
+
+	storage_trunk_get_data_filename(data_filename);
+    get_trunk_data_rollback_filename(data_rollback_filename);
+
+    if (stat(data_rollback_filename, &fs) != 0)
+    {
+        result = errno != 0 ? errno : EPERM;
+        if (result == ENOENT)
+        {
+            return 0;
+        }
+
+        logError("file: "__FILE__", line: %d, "
+                "stat file %s fail, errno: %d, error info: %s",
+                __LINE__, data_rollback_filename,
+                result, STRERROR(result));
+        return result;
+    }
+
+    if (unlink(data_filename) != 0)
+    {
+        result = errno != 0 ? errno : EPERM;
+        if (result != ENOENT)
+        {
+            logError("file: "__FILE__", line: %d, "
+                    "unlink %s fail, errno: %d, error info: %s",
+                    __LINE__, data_filename, result, STRERROR(result));
+            return result;
+        }
+    }
+
+    if (fs.st_size == 0)
+    {
+        unlink(data_rollback_filename);  //delete zero file directly
+        return 0;
+    }
+
+    if (rename(data_rollback_filename, data_filename) != 0)
+    {
+        result = errno != 0 ? errno : EPERM;
+        if (result == ENOENT)
+        {
+            return 0;
+        }
+
+        logError("file: "__FILE__", line: %d, "
+                "rename file %s to %s fail, "
+                "errno: %d, error info: %s",
+                __LINE__, data_rollback_filename,
+                data_filename, result, STRERROR(result));
+        return result;
+    }
+
+    return 0;
+}
+
+static int trunk_compress_rollback_binlog_file(const char *binlog_filename)
+{
+    int result;
+    int rollback_fd;
+    char binlog_rollback_filename[MAX_PATH_SIZE];
+    struct stat fs;
+
+    get_trunk_binlog_rollback_filename(binlog_rollback_filename);
+    if (stat(binlog_rollback_filename, &fs) != 0)
+    {
+        result = errno != 0 ? errno : ENOENT;
+        if (result == ENOENT)
+        {
+            return 0;
+        }
+        logError("file: "__FILE__", line: %d, "
+                "stat file %s fail, errno: %d, error info: %s",
+                __LINE__, binlog_rollback_filename,
+                result, STRERROR(result));
+        return result;
+    }
+
+    if (fs.st_size == 0)
+    {
+        unlink(binlog_rollback_filename);  //delete zero file directly
+        return 0;
+    }
+
+    if (access(binlog_filename, F_OK) != 0)
+    {
+        result = errno != 0 ? errno : EPERM;
+        if (result == ENOENT)
+        {
+            if (rename(binlog_rollback_filename, binlog_filename) != 0)
+            {
+                result = errno != 0 ? errno : EPERM;
+                if (result != ENOENT)
+                {
+                    logError("file: "__FILE__", line: %d, "
+                            "rename file %s to %s fail, "
+                            "errno: %d, error info: %s",
+                            __LINE__, binlog_rollback_filename,
+                            binlog_filename, errno, STRERROR(errno));
+                    return result;
+                }
+            }
+
+            return 0;
+        }
+        else
+        {
+            logError("file: "__FILE__", line: %d, "
+                    "access file %s fail, errno: %d, error info: %s",
+                    __LINE__, binlog_filename, errno, STRERROR(errno));
+            return result;
+        }
+    }
+
+    if ((rollback_fd=trunk_binlog_open_read(binlog_rollback_filename,
+                    false)) < 0)
+    {
+        result = errno != 0 ? errno : EPERM;
+        if (result == ENOENT)
+        {
+            return 0;
+        }
+
+        return result;
+    }
+
+    result = trunk_binlog_merge_file(rollback_fd,
+            STORAGE_TRUNK_COMPRESS_STAGE_ROLLBACK_MERGING);
+    close(rollback_fd);
+
+    g_trunk_binlog_compress_stage =
+        STORAGE_TRUNK_COMPRESS_STAGE_ROLLBACK_MERGE_DONE;
+    storage_write_to_sync_ini_file();
+
+    if (unlink(binlog_rollback_filename) != 0)
+    {
+        logWarning("file: "__FILE__", line: %d, "
+                "unlink %s fail, errno: %d, error info: %s",
+                __LINE__, binlog_rollback_filename,
+                errno, STRERROR(errno));
+    }
+
+    return result;
+}
+
+int trunk_binlog_compress_delete_temp_files_after_commit()
+{
+    int result;
+	char data_filename[MAX_PATH_SIZE];
+
+	storage_trunk_get_data_filename(data_filename);
+    if (unlink(data_filename) != 0)
+    {
+        result = errno != 0 ? errno : ENOENT;
+        logError("file: "__FILE__", line: %d, "
+                "unlink %s fail, errno: %d, error info: %s",
+                __LINE__, data_filename,
+                result, STRERROR(result));
+        if (result != ENOENT)
+        {
+            return result;
+        }
+    }
+
+    return trunk_binlog_compress_delete_rollback_files(true);
+}
+
+int trunk_binlog_compress_apply()
+{
+	int result;
+	int open_res;
+	bool need_open_binlog;
+	char binlog_filename[MAX_PATH_SIZE];
+	char data_filename[MAX_PATH_SIZE];
+	char binlog_rollback_filename[MAX_PATH_SIZE];
+	char data_rollback_filename[MAX_PATH_SIZE];
+
+	get_trunk_binlog_filename(binlog_filename);
+	if (get_trunk_binlog_rollback_filename(binlog_rollback_filename) == NULL)
+	{
+		logError("file: "__FILE__", line: %d, "
+			"filename: %s is too long",
+			__LINE__, binlog_filename);
+		return ENAMETOOLONG;
+	}
+
+	storage_trunk_get_data_filename(data_filename);
+    if (get_trunk_data_rollback_filename(data_rollback_filename) == NULL)
+    {
+		logError("file: "__FILE__", line: %d, "
+			"data rollback filename is too long", __LINE__);
+		return ENAMETOOLONG;
+    }
+
+    if (access(binlog_filename, F_OK) != 0)
+    {
+        result = errno != 0 ? errno : EPERM;
+        logError("file: "__FILE__", line: %d, "
+                "access file: %s is fail, "
+                "errno: %d, error info: %s",
+                __LINE__, binlog_filename,
+                result, STRERROR(result));
+        return result;
+    }
+
+	need_open_binlog = trunk_binlog_fd >= 0;
+
+    pthread_mutex_lock(&trunk_sync_thread_lock);
+	if (need_open_binlog)
+	{
+		trunk_binlog_close_writer(false);
+	}
+
+    do
+    {
+        result = trunk_binlog_rename_file(data_filename,
+                data_rollback_filename, ENOENT);
+        if (result != 0)
+        {
+            if (result == ENOENT)
+            {
+                result = writeToFile(data_rollback_filename, "", 0);
+            }
+
+            if (result != 0)
+            {
+                break;
+            }
+        }
+
+        if ((result=trunk_binlog_rename_file(binlog_filename,
+                        binlog_rollback_filename, 0)) != 0)
+        {
+            trunk_compress_rollback_data_file();
+            break;
+        }
+    } while (0);
+
+    if (need_open_binlog)
+    {
+        if ((open_res=trunk_binlog_open_writer(binlog_filename)) != 0)
+        {
+            trunk_binlog_rename_file(binlog_rollback_filename,
+                    binlog_filename, 0);   //rollback
+            trunk_compress_rollback_data_file();
+
+            if (result == 0)
+            {
+                result = open_res;
+            }
+        }
+    }
+
+    pthread_mutex_unlock(&trunk_sync_thread_lock);
+    return result;
+}
+
 int trunk_binlog_compress_commit()
 {
 	int result;
@@ -544,7 +941,6 @@ int trunk_binlog_compress_commit()
 	bool need_open_binlog;
 	char binlog_filename[MAX_PATH_SIZE];
 	char data_filename[MAX_PATH_SIZE];
-	char rollback_filename[MAX_PATH_SIZE];
 
 	need_open_binlog = trunk_binlog_fd >= 0;
 	get_trunk_binlog_filename(binlog_filename);
@@ -563,35 +959,26 @@ int trunk_binlog_compress_commit()
 
     do
     {
-        result = trunk_binlog_merge_file(data_fd);
+        result = trunk_binlog_merge_file(data_fd,
+                STORAGE_TRUNK_COMPRESS_STAGE_COMMIT_MERGING);
         close(data_fd);
         if (result != 0)
         {
             break;
         }
-        if (unlink(data_filename) != 0)
+
+        g_trunk_binlog_compress_stage =
+            STORAGE_TRUNK_COMPRESS_STAGE_COMMIT_MERGE_DONE;
+        storage_write_to_sync_ini_file();
+
+        if ((result=trunk_binlog_compress_delete_temp_files_after_commit()) != 0)
         {
-            result = errno != 0 ? errno : EPERM;
-            logError("file: "__FILE__", line: %d, "
-                    "unlink %s fail, errno: %d, error info: %s",
-                    __LINE__, data_filename,
-                    result, STRERROR(result));
             break;
         }
 
-        get_trunk_rollback_filename(rollback_filename);
-        if (access(rollback_filename, F_OK) == 0)
-        {
-            if (unlink(rollback_filename) != 0)
-            {
-                result = errno != 0 ? errno : EPERM;
-                logWarning("file: "__FILE__", line: %d, "
-                        "unlink %s fail, errno: %d, error info: %s",
-                        __LINE__, rollback_filename,
-                        result, STRERROR(result));
-                break;
-            }
-        }
+        g_trunk_binlog_compress_stage =
+            STORAGE_TRUNK_COMPRESS_STAGE_COMPRESS_SUCCESS;
+        storage_write_to_sync_ini_file();
 
         if (need_open_binlog)
         {
@@ -604,95 +991,54 @@ int trunk_binlog_compress_commit()
     return result;
 }
 
-int trunk_binlog_compress_rollback()
+static int do_compress_rollback()
 {
 	int result;
-	int rollback_fd;
+	bool need_open_binlog;
 	char binlog_filename[MAX_PATH_SIZE];
-	char rollback_filename[MAX_PATH_SIZE];
-	struct stat fs;
 
+	need_open_binlog = trunk_binlog_fd >= 0;
 	get_trunk_binlog_filename(binlog_filename);
-	get_trunk_rollback_filename(rollback_filename);
-	if (trunk_binlog_fd < 0)
-	{
-		if (access(rollback_filename, F_OK) == 0)
-		{
-			if (rename(rollback_filename, binlog_filename) != 0)
-			{
-				result = errno != 0 ? errno : EPERM;
-				logError("file: "__FILE__", line: %d, "\
-					"rename %s to %s fail, " \
-					"errno: %d, error info: %s",
-					__LINE__, rollback_filename,
-					binlog_filename, result,
-					STRERROR(result));
-				return result;
-			}
-		}
-
-		return 0;
-	}
-
-	if (stat(rollback_filename, &fs) != 0)
-	{
-		result = errno != 0 ? errno : ENOENT;
-		if (result == ENOENT)
-		{
-			return 0;
-		}
-		logError("file: "__FILE__", line: %d, "
-			"stat file %s fail, errno: %d, error info: %s",
-			__LINE__, rollback_filename,
-			result, STRERROR(result));
-		return result;
-	}
-
-	if (fs.st_size == 0)
-	{
-		unlink(rollback_filename);  //delete zero file directly
-		return 0;
-	}
 
     pthread_mutex_lock(&trunk_sync_thread_lock);
+	if (need_open_binlog)
+	{
+		trunk_binlog_close_writer(false);
+	}
+
     do
     {
-        if ((result=trunk_binlog_close_writer(false)) != 0)
+        if ((result=trunk_compress_rollback_binlog_file(binlog_filename)) != 0)
         {
             break;
         }
 
-        if ((rollback_fd=trunk_binlog_open_read(rollback_filename,
-                        false)) < 0)
+        if ((result=trunk_compress_rollback_data_file()) != 0)
         {
-            result = errno != 0 ? errno : ENOENT;
             break;
         }
 
-        result = trunk_binlog_merge_file(rollback_fd);
-        close(rollback_fd);
-        if (result == 0)
-        {
-            if (unlink(rollback_filename) != 0)
-            {
-                result = errno != 0 ? errno : EPERM;
-                logWarning("file: "__FILE__", line: %d, " \
-                        "unlink %s fail, " \
-                        "errno: %d, error info: %s",
-                        __LINE__, rollback_filename,
-                        result, STRERROR(result));
-                break;
-            }
-
-            result = trunk_binlog_open_writer(binlog_filename);
-        }
-        else
+        if (need_open_binlog)
         {
             result = trunk_binlog_open_writer(binlog_filename);
         }
     } while (0);
 
     pthread_mutex_unlock(&trunk_sync_thread_lock);
+    return result;
+}
+
+int trunk_binlog_compress_rollback()
+{
+    int result;
+
+    if ((result=do_compress_rollback()) == 0)
+    {
+        g_trunk_binlog_compress_stage =
+            STORAGE_TRUNK_COMPRESS_STAGE_FINISHED;
+        storage_write_to_sync_ini_file();
+    }
+
     return result;
 }
 
@@ -943,13 +1289,13 @@ static char *trunk_get_mark_filename_by_id_and_port(const char *storage_id, \
 	{
 		snprintf(full_filename, filename_size, \
 			"%s/data/"TRUNK_DIR_NAME"/%s%s", g_fdfs_base_path, \
-			storage_id, TRUNK_SYNC_MARK_FILE_EXT);
+			storage_id, TRUNK_SYNC_MARK_FILE_EXT_STR);
 	}
 	else
 	{
 		snprintf(full_filename, filename_size, \
 			"%s/data/"TRUNK_DIR_NAME"/%s_%d%s", g_fdfs_base_path, \
-			storage_id, port, TRUNK_SYNC_MARK_FILE_EXT);
+			storage_id, port, TRUNK_SYNC_MARK_FILE_EXT_STR);
 	}
 
 	return full_filename;
@@ -960,7 +1306,7 @@ static char *trunk_get_mark_filename_by_ip_and_port(const char *ip_addr, \
 {
 	snprintf(full_filename, filename_size, \
 		"%s/data/"TRUNK_DIR_NAME"/%s_%d%s", g_fdfs_base_path, \
-		ip_addr, port, TRUNK_SYNC_MARK_FILE_EXT);
+		ip_addr, port, TRUNK_SYNC_MARK_FILE_EXT_STR);
 
 	return full_filename;
 }
@@ -990,7 +1336,6 @@ static char *trunk_get_mark_filename_by_id(const char *storage_id,
 int trunk_reader_init(const FDFSStorageBrief *pStorage,
         TrunkBinLogReader *pReader, const bool reset_binlog_offset)
 {
-	char full_filename[MAX_PATH_SIZE];
 	IniContext iniContext;
 	int result;
 	int64_t saved_binlog_offset;
@@ -999,7 +1344,6 @@ int trunk_reader_init(const FDFSStorageBrief *pStorage,
 	saved_binlog_offset = pReader->binlog_offset;
 
 	memset(pReader, 0, sizeof(TrunkBinLogReader));
-	pReader->mark_fd = -1;
 	pReader->binlog_fd = -1;
 
 	pReader->binlog_buff.buffer = (char *)malloc( \
@@ -1023,7 +1367,7 @@ int trunk_reader_init(const FDFSStorageBrief *pStorage,
 	{
 		strcpy(pReader->storage_id, pStorage->id);
 	}
-	trunk_mark_filename_by_reader(pReader, full_filename);
+	trunk_mark_filename_by_reader(pReader, pReader->mark_filename);
 
 	if (pStorage == NULL)
 	{
@@ -1032,22 +1376,23 @@ int trunk_reader_init(const FDFSStorageBrief *pStorage,
 	}
 	else
 	{
-		bFileExist = fileExists(full_filename);
+		bFileExist = fileExists(pReader->mark_filename);
 		if (!bFileExist && (g_use_storage_id && pStorage != NULL))
 		{
 			char old_mark_filename[MAX_PATH_SIZE];
-			trunk_get_mark_filename_by_ip_and_port( \
-				pStorage->ip_addr, g_server_port, \
+			trunk_get_mark_filename_by_ip_and_port(
+				pStorage->ip_addr, g_server_port,
 				old_mark_filename, sizeof(old_mark_filename));
 			if (fileExists(old_mark_filename))
 			{
-				if (rename(old_mark_filename, full_filename)!=0)
+				if (rename(old_mark_filename,
+                            pReader->mark_filename) != 0)
 				{
-					logError("file: "__FILE__", line: %d, "\
-						"rename file %s to %s fail" \
-						", errno: %d, error info: %s", \
-						__LINE__, old_mark_filename, \
-						full_filename, errno, \
+					logError("file: "__FILE__", line: %d, "
+						"rename file %s to %s fail, "
+						"errno: %d, error info: %s",
+						__LINE__, old_mark_filename,
+						pReader->mark_filename, errno,
 						STRERROR(errno));
 					return errno != 0 ? errno : EACCES;
 				}
@@ -1059,35 +1404,36 @@ int trunk_reader_init(const FDFSStorageBrief *pStorage,
 	if (bFileExist)
 	{
 		memset(&iniContext, 0, sizeof(IniContext));
-		if ((result=iniLoadFromFile(full_filename, &iniContext)) \
-			 != 0)
+		if ((result=iniLoadFromFile(pReader->mark_filename,
+                        &iniContext)) != 0)
 		{
-			logError("file: "__FILE__", line: %d, " \
-				"load from mark file \"%s\" fail, " \
-				"error code: %d", \
-				__LINE__, full_filename, result);
+			logError("file: "__FILE__", line: %d, "
+				"load from mark file \"%s\" fail, "
+				"error code: %d", __LINE__,
+                pReader->mark_filename, result);
 			return result;
 		}
 
 		if (iniContext.global.count < 1)
 		{
 			iniFreeContext(&iniContext);
-			logError("file: "__FILE__", line: %d, " \
-				"in mark file \"%s\", item count: %d < 7", \
-				__LINE__, full_filename, iniContext.global.count);
+			logError("file: "__FILE__", line: %d, "
+				"in mark file \"%s\", item count: %d < 1",
+				__LINE__, pReader->mark_filename,
+                iniContext.global.count);
 			return ENOENT;
 		}
 
-		pReader->binlog_offset = iniGetInt64Value(NULL, \
-					MARK_ITEM_BINLOG_FILE_OFFSET, \
+		pReader->binlog_offset = iniGetInt64Value(NULL,
+					MARK_ITEM_BINLOG_FILE_OFFSET,
 					&iniContext, -1);
 		if (pReader->binlog_offset < 0)
 		{
 			iniFreeContext(&iniContext);
-			logError("file: "__FILE__", line: %d, " \
-				"in mark file \"%s\", binlog_offset: "\
-				"%"PRId64" < 0", \
-				__LINE__, full_filename, \
+			logError("file: "__FILE__", line: %d, "
+				"in mark file \"%s\", binlog_offset: "
+				"%"PRId64" < 0", __LINE__,
+                pReader->mark_filename,
 				pReader->binlog_offset);
 			return EINVAL;
 		}
@@ -1096,18 +1442,6 @@ int trunk_reader_init(const FDFSStorageBrief *pStorage,
 	}
 
 	pReader->last_binlog_offset = pReader->binlog_offset;
-
-	pReader->mark_fd = open(full_filename, O_WRONLY | O_CREAT, 0644);
-	if (pReader->mark_fd < 0)
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"open mark file \"%s\" fail, " \
-			"error no: %d, error info: %s", \
-			__LINE__, full_filename, \
-			errno, STRERROR(errno));
-		return errno != 0 ? errno : ENOENT;
-	}
-
 	if (!bFileExist && pStorage != NULL)
 	{
 		if ((result=trunk_write_to_mark_file(pReader)) != 0)
@@ -1139,12 +1473,6 @@ int trunk_reader_init(const FDFSStorageBrief *pStorage,
 
 void trunk_reader_destroy(TrunkBinLogReader *pReader)
 {
-	if (pReader->mark_fd >= 0)
-	{
-		close(pReader->mark_fd);
-		pReader->mark_fd = -1;
-	}
-
 	if (pReader->binlog_fd >= 0)
 	{
 		close(pReader->binlog_fd);
@@ -1170,11 +1498,11 @@ static int trunk_write_to_mark_file(TrunkBinLogReader *pReader)
 		"%s=%"PRId64"\n",
 		MARK_ITEM_BINLOG_FILE_OFFSET, pReader->binlog_offset);
 
-	if ((result=storage_write_to_fd(pReader->mark_fd,
-		trunk_mark_filename_by_reader, pReader, buff, len)) == 0)
-	{
+    if ((result=safeWriteToFile(pReader->mark_filename, buff, len)) == 0)
+    {
+        STORAGE_CHOWN(pReader->mark_filename, geteuid(), getegid())
 		pReader->last_binlog_offset = pReader->binlog_offset;
-	}
+    }
 
 	return result;
 }
@@ -1518,7 +1846,6 @@ static void *trunk_sync_thread_entrance(void* arg)
 	
 	memset(local_ip_addr, 0, sizeof(local_ip_addr));
 	memset(&reader, 0, sizeof(reader));
-	reader.mark_fd = -1;
 	reader.binlog_fd = -1;
 
 	current_time =  g_current_time;
@@ -1624,13 +1951,13 @@ static void *trunk_sync_thread_entrance(void* arg)
 			read_result = trunk_binlog_preread(&reader);
 			if (read_result == ENOENT)
 			{
-				if (reader.last_binlog_offset != \
+				if (reader.last_binlog_offset !=
 					reader.binlog_offset)
 				{
 					if (trunk_write_to_mark_file(&reader)!=0)
 					{
-					logCrit("file: "__FILE__", line: %d, " \
-						"trunk_write_to_mark_file fail, " \
+					logCrit("file: "__FILE__", line: %d, "
+						"trunk_write_to_mark_file fail, "
 						"program exit!", __LINE__);
 					g_continue_flag = false;
 					break;
@@ -1905,7 +2232,7 @@ void trunk_waiting_sync_thread_exit()
     }
 
     count = 0;
-    while (g_trunk_sync_thread_count > 0 && count < 20)
+    while (g_trunk_sync_thread_count > 0 && count < 60)
     {
         usleep(50000);
         count++;
@@ -1927,32 +2254,98 @@ void trunk_waiting_sync_thread_exit()
     }
 }
 
-int trunk_unlink_all_mark_files()
+int trunk_unlink_all_mark_files(const bool force_delete)
 {
-	FDFSStorageServer *pStorageServer;
-	FDFSStorageServer *pServerEnd;
+	char file_path[MAX_PATH_SIZE];
+	char old_filename[MAX_PATH_SIZE];
+	char new_filename[MAX_PATH_SIZE];
+    DIR *dir;
+    struct dirent *ent;
 	int result;
+    int name_len;
+	time_t t;
+	struct tm tm;
 
-	pServerEnd = g_storage_servers + g_storage_count;
-	for (pStorageServer=g_storage_servers; pStorageServer<pServerEnd; 
-		pStorageServer++)
-	{
-		if (storage_server_is_myself(&(pStorageServer->server)))
-		{
-			continue;
-		}
+	t = g_current_time;
+	localtime_r(&t, &tm);
 
-		if ((result=trunk_unlink_mark_file(
-			pStorageServer->server.id)) != 0)
-		{
-			if (result != ENOENT)
-			{
-				return result;
-			}
-		}
-	}
+	snprintf(file_path, sizeof(file_path),
+		"%s/data/%s", g_fdfs_base_path, TRUNK_DIR_NAME);
 
-	return 0;
+    if ((dir=opendir(file_path)) == NULL)
+    {
+        result = errno != 0 ? errno : EPERM;
+		logError("file: "__FILE__", line: %d, "
+                "call opendir %s fail, errno: %d, error info: %s",
+                __LINE__, file_path, result, STRERROR(result));
+        return result;
+    }
+
+    result = 0;
+    while ((ent=readdir(dir)) != NULL)
+    {
+        name_len = strlen(ent->d_name);
+        if (name_len <= TRUNK_SYNC_MARK_FILE_EXT_LEN)
+        {
+            continue;
+        }
+        if (memcmp(ent->d_name + (name_len -
+                        TRUNK_SYNC_MARK_FILE_EXT_LEN),
+                    TRUNK_SYNC_MARK_FILE_EXT_STR,
+                    TRUNK_SYNC_MARK_FILE_EXT_LEN) != 0)
+        {
+            continue;
+        }
+
+        snprintf(old_filename, sizeof(old_filename), "%s/%s",
+                file_path, ent->d_name);
+        if (force_delete)
+        {
+            if (unlink(old_filename) != 0)
+            {
+                result = errno != 0 ? errno : EPERM;
+                if (result == ENOENT)
+                {
+                    result = 0;
+                }
+                else
+                {
+                    logError("file: "__FILE__", line: %d, "
+                            "unlink %s fail, errno: %d, error info: %s",
+                            __LINE__, old_filename,
+                            result, STRERROR(result));
+                    break;
+                }
+            }
+        }
+        else
+        {
+            snprintf(new_filename, sizeof(new_filename),
+                    "%s.%04d%02d%02d%02d%02d%02d", old_filename,
+                    tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday,
+                    tm.tm_hour, tm.tm_min, tm.tm_sec);
+            if (rename(old_filename, new_filename) != 0)
+            {
+                result = errno != 0 ? errno : EPERM;
+                if (result == ENOENT)
+                {
+                    result = 0;
+                }
+                else
+                {
+                    logError("file: "__FILE__", line: %d, "
+                            "rename file %s to %s fail, "
+                            "errno: %d, error info: %s",
+                            __LINE__, old_filename, new_filename,
+                            result, STRERROR(result));
+                    break;
+                }
+            }
+        }
+    }
+
+    closedir(dir);
+	return result;
 }
 
 int trunk_binlog_get_write_version()

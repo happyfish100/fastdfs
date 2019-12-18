@@ -1262,7 +1262,7 @@ static void do_unset_trunk_server_myself(ConnectionInfo *pTrackerServer)
 
     trunk_waiting_sync_thread_exit();
 
-    storage_trunk_destroy_ex(true);
+    storage_trunk_destroy_ex(true, true);
     if (g_trunk_create_file_advance &&
             g_trunk_create_file_interval > 0)
     {

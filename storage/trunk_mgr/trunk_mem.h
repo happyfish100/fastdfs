@@ -22,6 +22,17 @@
 #include "trunk_shared.h"
 #include "fdfs_shared_func.h"
 
+#define STORAGE_TRUNK_COMPRESS_STAGE_NONE                0
+#define STORAGE_TRUNK_COMPRESS_STAGE_COMPRESS_BEGIN      1
+#define STORAGE_TRUNK_COMPRESS_STAGE_APPLY_DONE          2
+#define STORAGE_TRUNK_COMPRESS_STAGE_SAVE_DONE           3
+#define STORAGE_TRUNK_COMPRESS_STAGE_COMMIT_MERGING      4
+#define STORAGE_TRUNK_COMPRESS_STAGE_COMMIT_MERGE_DONE   5
+#define STORAGE_TRUNK_COMPRESS_STAGE_COMPRESS_SUCCESS    6
+#define STORAGE_TRUNK_COMPRESS_STAGE_ROLLBACK_MERGING    7
+#define STORAGE_TRUNK_COMPRESS_STAGE_ROLLBACK_MERGE_DONE 8
+#define STORAGE_TRUNK_COMPRESS_STAGE_FINISHED            9
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -44,7 +55,7 @@ extern bool g_if_use_trunk_file;   //if use trunk file
 extern bool g_trunk_create_file_advance;
 extern bool g_trunk_init_check_occupying;
 extern bool g_trunk_init_reload_from_binlog;
-extern volatile int g_trunk_binlog_compress_in_progress;
+extern int g_trunk_binlog_compress_stage;
 extern bool g_if_trunker_self;   //if am i trunk server
 extern int64_t g_trunk_create_file_space_threshold;
 extern int64_t g_trunk_total_free_space;  //trunk total free space in bytes
@@ -63,9 +74,10 @@ typedef struct {
 } FDFSTrunkSlot;
 
 int storage_trunk_init();
-int storage_trunk_destroy_ex(const bool bNeedSleep);
+int storage_trunk_destroy_ex(const bool bNeedSleep,
+        const bool bSaveData);
 
-#define storage_trunk_destroy() storage_trunk_destroy_ex(false)
+#define storage_trunk_destroy() storage_trunk_destroy_ex(false, true)
 
 int trunk_alloc_space(const int size, FDFSTrunkFullInfo *pResult);
 int trunk_alloc_confirm(const FDFSTrunkFullInfo *pTrunkInfo, const int status);
@@ -91,6 +103,8 @@ int trunk_file_delete(const char *trunk_filename, \
 int trunk_create_trunk_file_advance(void *args);
 
 int trunk_binlog_compress_func(void *args);
+
+int storage_trunk_binlog_compress_check_recovery();
 
 int storage_delete_trunk_data_file();
 

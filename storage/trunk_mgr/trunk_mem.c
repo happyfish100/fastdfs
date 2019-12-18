@@ -62,13 +62,14 @@ bool g_if_trunker_self = false;
 bool g_trunk_create_file_advance = false;
 bool g_trunk_init_check_occupying = false;
 bool g_trunk_init_reload_from_binlog = false;
-volatile int g_trunk_binlog_compress_in_progress = 0;
-volatile int g_trunk_data_save_in_progress = 0;
-static byte trunk_init_flag = STORAGE_TRUNK_INIT_FLAG_NONE;
+int g_trunk_binlog_compress_stage = STORAGE_TRUNK_COMPRESS_STAGE_NONE;
 int64_t g_trunk_total_free_space = 0;
 int64_t g_trunk_create_file_space_threshold = 0;
 time_t g_trunk_last_compress_time = 0;
 
+static byte trunk_init_flag = STORAGE_TRUNK_INIT_FLAG_NONE;
+static volatile int trunk_binlog_compress_in_progress = 0;
+static volatile int trunk_data_save_in_progress = 0;
 static pthread_mutex_t trunk_file_lock;
 static pthread_mutex_t trunk_mem_lock;
 static struct fast_mblock_man free_blocks_man;
@@ -272,7 +273,8 @@ int storage_trunk_init()
 	return 0;
 }
 
-int storage_trunk_destroy_ex(const bool bNeedSleep)
+int storage_trunk_destroy_ex(const bool bNeedSleep,
+        const bool bSaveData)
 {
 	int result;
 	int i;
@@ -292,7 +294,14 @@ int storage_trunk_destroy_ex(const bool bNeedSleep)
 
 	logDebug("file: "__FILE__", line: %d, " \
 		"storage trunk destroy", __LINE__);
-	result = storage_trunk_save();
+    if (bSaveData)
+    {
+        result = storage_trunk_save();
+    }
+    else
+    {
+        result = 0;
+    }
 
 	for (i=0; i<g_fdfs_store_paths.count; i++)
 	{
@@ -500,20 +509,99 @@ static int do_save_trunk_data()
 static int storage_trunk_do_save()
 {
 	int result;
-    if (__sync_add_and_fetch(&g_trunk_data_save_in_progress, 1) != 1)
+    if (__sync_add_and_fetch(&trunk_data_save_in_progress, 1) != 1)
     {
-        __sync_sub_and_fetch(&g_trunk_data_save_in_progress, 1);
+        __sync_sub_and_fetch(&trunk_data_save_in_progress, 1);
 		logError("file: "__FILE__", line: %d, "
                 "trunk binlog compress already in progress, "
-                "g_trunk_data_save_in_progress=%d", __LINE__,
-                g_trunk_data_save_in_progress);
+                "trunk_data_save_in_progress=%d", __LINE__,
+                trunk_data_save_in_progress);
         return EINPROGRESS;
     }
 
     result = do_save_trunk_data();
-    __sync_sub_and_fetch(&g_trunk_data_save_in_progress, 1);
+    __sync_sub_and_fetch(&trunk_data_save_in_progress, 1);
 
 	return result;
+}
+
+int storage_trunk_binlog_compress_check_recovery()
+{
+    int result;
+	char tmp_filename[MAX_PATH_SIZE];
+
+    if (g_trunk_binlog_compress_stage ==
+            STORAGE_TRUNK_COMPRESS_STAGE_NONE ||
+            g_trunk_binlog_compress_stage ==
+            STORAGE_TRUNK_COMPRESS_STAGE_FINISHED)
+    {
+        return 0;
+    }
+
+    result = 0;
+    do {
+        if (g_trunk_binlog_compress_stage ==
+                STORAGE_TRUNK_COMPRESS_STAGE_COMMIT_MERGING)
+        {
+            get_trunk_binlog_tmp_filename(tmp_filename);
+            if (access(tmp_filename, F_OK) != 0)
+            {
+                if (errno == ENOENT)
+                {
+                    g_trunk_binlog_compress_stage =
+                        STORAGE_TRUNK_COMPRESS_STAGE_COMMIT_MERGE_DONE;
+                }
+            }
+        }
+        else if (g_trunk_binlog_compress_stage ==
+                STORAGE_TRUNK_COMPRESS_STAGE_ROLLBACK_MERGING)
+        {
+            get_trunk_binlog_tmp_filename(tmp_filename);
+            if (access(tmp_filename, F_OK) != 0)
+            {
+                if (errno == ENOENT)
+                {
+                    g_trunk_binlog_compress_stage =
+                        STORAGE_TRUNK_COMPRESS_STAGE_ROLLBACK_MERGE_DONE;
+                }
+            }
+        }
+
+        switch (g_trunk_binlog_compress_stage)
+        {
+            case STORAGE_TRUNK_COMPRESS_STAGE_COMPRESS_BEGIN:
+            case STORAGE_TRUNK_COMPRESS_STAGE_APPLY_DONE:
+            case STORAGE_TRUNK_COMPRESS_STAGE_SAVE_DONE:
+            case STORAGE_TRUNK_COMPRESS_STAGE_COMMIT_MERGING:
+            case STORAGE_TRUNK_COMPRESS_STAGE_ROLLBACK_MERGING:
+                result = trunk_binlog_compress_rollback();
+                break;
+            case STORAGE_TRUNK_COMPRESS_STAGE_ROLLBACK_MERGE_DONE:
+                if ((result=trunk_binlog_compress_delete_binlog_rollback_file(
+                                true)) == 0)
+                {
+                    result = trunk_binlog_compress_rollback();
+                }
+                break;
+            case STORAGE_TRUNK_COMPRESS_STAGE_COMMIT_MERGE_DONE:
+                if ((result=trunk_binlog_compress_delete_temp_files_after_commit()) != 0)
+                {
+                    break;
+                }
+            case STORAGE_TRUNK_COMPRESS_STAGE_COMPRESS_SUCCESS:
+                /* unlink all mark files because the binlog file be compressed */
+                result = trunk_unlink_all_mark_files(true);
+                if (result == 0)
+                {
+                    g_trunk_binlog_compress_stage =
+                        STORAGE_TRUNK_COMPRESS_STAGE_FINISHED;
+                    result = storage_write_to_sync_ini_file();
+                }
+                break;
+        }
+    } while (0);
+
+    return result;
 }
 
 static int storage_trunk_compress()
@@ -522,6 +610,18 @@ static int storage_trunk_compress()
     int current_write_version;
 	int result;
  
+    if (!(g_trunk_binlog_compress_stage ==
+                STORAGE_TRUNK_COMPRESS_STAGE_NONE ||
+                g_trunk_binlog_compress_stage ==
+                STORAGE_TRUNK_COMPRESS_STAGE_FINISHED))
+    {
+        logWarning("file: "__FILE__", line: %d, "
+                "g_trunk_binlog_compress_stage = %d, "
+                "can't start trunk binglog compress!",
+                __LINE__, g_trunk_binlog_compress_stage);
+        return EAGAIN;
+    }
+
     if (g_current_time - g_up_time < 600)
     {
         logWarning("file: "__FILE__", line: %d, "
@@ -540,32 +640,47 @@ static int storage_trunk_compress()
         return EALREADY;
     }
 
-    if (__sync_add_and_fetch(&g_trunk_binlog_compress_in_progress, 1) != 1)
+    if (__sync_add_and_fetch(&trunk_binlog_compress_in_progress, 1) != 1)
     {
-        __sync_sub_and_fetch(&g_trunk_binlog_compress_in_progress, 1);
+        __sync_sub_and_fetch(&trunk_binlog_compress_in_progress, 1);
 		logError("file: "__FILE__", line: %d, "
                 "trunk binlog compress already in progress, "
-                "g_trunk_binlog_compress_in_progress=%d",
-                __LINE__, g_trunk_binlog_compress_in_progress);
+                "trunk_binlog_compress_in_progress=%d",
+                __LINE__, trunk_binlog_compress_in_progress);
         return EINPROGRESS;
     }
-
-    storage_write_to_sync_ini_file();
 
     logInfo("file: "__FILE__", line: %d, "
             "start compress trunk binlog ...", __LINE__);
     do
     {
+        if ((result=trunk_binlog_compress_delete_rollback_files(false)) != 0)
+        {
+            break;
+        }
+
+        g_trunk_binlog_compress_stage =
+            STORAGE_TRUNK_COMPRESS_STAGE_COMPRESS_BEGIN;
+        storage_write_to_sync_ini_file();
+
         if ((result=trunk_binlog_compress_apply()) != 0)
         {
             break;
         }
+
+        g_trunk_binlog_compress_stage =
+            STORAGE_TRUNK_COMPRESS_STAGE_APPLY_DONE;
+        storage_write_to_sync_ini_file();
 
         if ((result=storage_trunk_do_save()) != 0)
         {
             trunk_binlog_compress_rollback();
             break;
         }
+
+        g_trunk_binlog_compress_stage =
+            STORAGE_TRUNK_COMPRESS_STAGE_SAVE_DONE;
+        storage_write_to_sync_ini_file();
 
         if ((result=trunk_binlog_compress_commit()) != 0)
         {
@@ -575,10 +690,12 @@ static int storage_trunk_compress()
 
         g_trunk_last_compress_time = g_current_time;
         last_write_version = current_write_version;
+
+        /* unlink all mark files because the binlog file be compressed */
+        result = trunk_unlink_all_mark_files(true);
     } while (0);
 
-    __sync_sub_and_fetch(&g_trunk_binlog_compress_in_progress, 1);
-    storage_write_to_sync_ini_file();
+    __sync_sub_and_fetch(&trunk_binlog_compress_in_progress, 1);
 
     if (result == 0)
     {
@@ -587,8 +704,24 @@ static int storage_trunk_compress()
     }
     else
     {
-        logError("file: "__FILE__", line: %d, "
-                "compress trunk binlog fail.", __LINE__);
+        if (g_trunk_binlog_compress_stage !=
+                STORAGE_TRUNK_COMPRESS_STAGE_FINISHED)
+        {
+            logCrit("file: "__FILE__", line: %d, "
+                    "compress trunk binlog fail, "
+                    "g_trunk_binlog_compress_stage = %d, "
+                    "set g_if_trunker_self to false!", __LINE__,
+                    g_trunk_binlog_compress_stage);
+
+            g_if_trunker_self = false;
+            trunk_waiting_sync_thread_exit();
+            storage_trunk_destroy_ex(true, false);
+        }
+        else
+        {
+            logError("file: "__FILE__", line: %d, "
+                    "compress trunk binlog fail.", __LINE__);
+        }
     }
 
 	return result;
@@ -602,7 +735,7 @@ static int storage_trunk_save()
 		g_current_time - g_trunk_last_compress_time >
 		g_trunk_compress_binlog_min_interval))
 	{
-        if (__sync_add_and_fetch(&g_trunk_binlog_compress_in_progress, 0) == 0)
+        if (__sync_add_and_fetch(&trunk_binlog_compress_in_progress, 0) == 0)
         {
             return storage_trunk_do_save();
         }
@@ -610,15 +743,16 @@ static int storage_trunk_save()
         {
             logWarning("file: "__FILE__", line: %d, "
                     "trunk binlog compress already in progress, "
-                    "g_trunk_binlog_compress_in_progress=%d",
-                    __LINE__, g_trunk_binlog_compress_in_progress);
+                    "trunk_binlog_compress_in_progress=%d",
+                    __LINE__, trunk_binlog_compress_in_progress);
             return 0;
         }
 	}
     
     if ((result=storage_trunk_compress()) == 0)
     {
-        return trunk_unlink_all_mark_files();  //because the binlog file be compressed
+        g_trunk_binlog_compress_stage = STORAGE_TRUNK_COMPRESS_STAGE_FINISHED;
+        return storage_write_to_sync_ini_file();
     }
 
     return (result == EAGAIN || result == EALREADY ||
@@ -634,19 +768,20 @@ int trunk_binlog_compress_func(void *args)
         return 0;
     }
 
-    result = storage_trunk_compress();
-    if (result != 0)
+    if ((result=storage_trunk_compress()) != 0)
     {
         return result;
     }
 
     if (!g_if_trunker_self)
     {
-        return 0;
+        g_trunk_binlog_compress_stage = STORAGE_TRUNK_COMPRESS_STAGE_FINISHED;
+        return storage_write_to_sync_ini_file();
     }
 
     trunk_sync_notify_thread_reset_offset();
-    return 0;
+    g_trunk_binlog_compress_stage = STORAGE_TRUNK_COMPRESS_STAGE_FINISHED;
+    return storage_write_to_sync_ini_file();
 }
 
 static bool storage_trunk_is_space_occupied(const FDFSTrunkFullInfo *pTrunkInfo)
@@ -980,10 +1115,13 @@ static int storage_trunk_restore(const int64_t restore_offset)
 	trunk_mark_filename_by_reader(&reader, trunk_mark_filename);
 	if (unlink(trunk_mark_filename) != 0)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"unlink file %s fail, " \
-			"errno: %d, error info: %s", __LINE__, \
-			trunk_mark_filename, errno, STRERROR(errno));
+        if (errno != ENOENT)
+        {
+            logError("file: "__FILE__", line: %d, "
+                    "unlink file %s fail, "
+                    "errno: %d, error info: %s", __LINE__,
+                    trunk_mark_filename, errno, STRERROR(errno));
+        }
 	}
 
 	if (result != 0)
@@ -1039,10 +1177,10 @@ int storage_delete_trunk_data_file()
 	result = errno != 0 ? errno : ENOENT;
 	if (result != ENOENT)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"unlink trunk data file: %s fail, " \
-			"errno: %d, error info: %s", \
-			__LINE__, trunk_data_filename, \
+		logError("file: "__FILE__", line: %d, "
+			"unlink trunk data file: %s fail, "
+			"errno: %d, error info: %s",
+			__LINE__, trunk_data_filename,
 			result, STRERROR(result));
 	}
 

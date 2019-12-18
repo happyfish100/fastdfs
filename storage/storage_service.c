@@ -4064,7 +4064,7 @@ static int storage_server_trunk_delete_binlog_marks(struct fast_task_info *pTask
 		return result;
 	}
 
-	return trunk_unlink_all_mark_files();
+	return trunk_unlink_all_mark_files(false);
 }
 
 /**
