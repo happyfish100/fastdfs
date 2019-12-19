@@ -74,30 +74,30 @@ int storage_get_params_from_tracker()
 	char reserved_space_str[32];
 	char *pIdType;
 
-	if ((result=fdfs_get_ini_context_from_tracker(&g_tracker_group, \
-		&iniContext, (bool * volatile)&g_continue_flag, \
+	if ((result=fdfs_get_ini_context_from_tracker(&g_tracker_group,
+		&iniContext, (bool * volatile)&g_continue_flag,
 		g_client_bind_addr, g_bind_addr)) != 0)
 	{
 		return result;
 	}
 
-	g_storage_ip_changed_auto_adjust = iniGetBoolValue(NULL, \
-			"storage_ip_changed_auto_adjust", \
+	g_storage_ip_changed_auto_adjust = iniGetBoolValue(NULL,
+			"storage_ip_changed_auto_adjust",
 			&iniContext, false);
 
-	g_store_path_mode = iniGetIntValue(NULL, "store_path", &iniContext, \
+	g_store_path_mode = iniGetIntValue(NULL, "store_path", &iniContext,
 				FDFS_STORE_PATH_ROUND_ROBIN);
 
-	if ((result=fdfs_parse_storage_reserved_space(&iniContext, \
+	if ((result=fdfs_parse_storage_reserved_space(&iniContext,
 		&g_storage_reserved_space)) != 0)
 	{
 		iniFreeContext(&iniContext);
 		return result;
 	}
-	if (g_storage_reserved_space.flag == \
+	if (g_storage_reserved_space.flag ==
 		TRACKER_STORAGE_RESERVED_SPACE_FLAG_MB)
 	{
-		g_avg_storage_reserved_mb = g_storage_reserved_space.rs.mb \
+		g_avg_storage_reserved_mb = g_storage_reserved_space.rs.mb
 						/ g_fdfs_store_paths.count;
 	}
 	else
@@ -105,31 +105,31 @@ int storage_get_params_from_tracker()
 		g_avg_storage_reserved_mb = 0;
 	}
 
-	g_use_storage_id = iniGetBoolValue(NULL, "use_storage_id", \
+	g_use_storage_id = iniGetBoolValue(NULL, "use_storage_id",
 				&iniContext, false);
-	use_trunk_file = iniGetBoolValue(NULL, "use_trunk_file", \
+	use_trunk_file = iniGetBoolValue(NULL, "use_trunk_file",
 				&iniContext, false);
-	g_slot_min_size = iniGetIntValue(NULL, "slot_min_size", \
+	g_slot_min_size = iniGetIntValue(NULL, "slot_min_size",
 				&iniContext, 256);
-	g_trunk_file_size = iniGetIntValue(NULL, "trunk_file_size", \
+	g_trunk_file_size = iniGetIntValue(NULL, "trunk_file_size",
 				&iniContext, 64 * 1024 * 1024);
-	g_slot_max_size = iniGetIntValue(NULL, "slot_max_size", \
+	g_slot_max_size = iniGetIntValue(NULL, "slot_max_size",
 				&iniContext, g_trunk_file_size / 2);
 
-	g_trunk_create_file_advance = iniGetBoolValue(NULL, \
+	g_trunk_create_file_advance = iniGetBoolValue(NULL,
 			"trunk_create_file_advance", &iniContext, false);
-	if ((result=get_time_item_from_conf(&iniContext, \
-               	"trunk_create_file_time_base", \
+	if ((result=get_time_item_from_conf(&iniContext,
+               	"trunk_create_file_time_base",
 		&g_trunk_create_file_time_base, 2, 0)) != 0)
 	{
 		iniFreeContext(&iniContext);
 		return result;
 	}
-	g_trunk_create_file_interval = iniGetIntValue(NULL, \
-			"trunk_create_file_interval", &iniContext, \
+	g_trunk_create_file_interval = iniGetIntValue(NULL,
+			"trunk_create_file_interval", &iniContext,
 			86400);
-	g_trunk_create_file_space_threshold = iniGetInt64Value(NULL, \
-			"trunk_create_file_space_threshold", \
+	g_trunk_create_file_space_threshold = iniGetInt64Value(NULL,
+			"trunk_create_file_space_threshold",
 			&iniContext, 0);
 
 	g_trunk_init_check_occupying = iniGetBoolValue(NULL,
@@ -147,7 +147,9 @@ int storage_get_params_from_tracker()
         return result;
     }
 
-	g_store_slave_file_use_link = iniGetBoolValue(NULL, \
+    g_trunk_binlog_max_backups = iniGetIntValue(NULL,
+			"trunk_binlog_max_backups", &iniContext, 0);
+	g_store_slave_file_use_link = iniGetBoolValue(NULL,
 			"store_slave_file_use_link", &iniContext, false);
 
 	pIdType = iniGetStrValue(NULL, "id_type_in_filename", &iniContext);
@@ -178,48 +180,50 @@ int storage_get_params_from_tracker()
 	}
 	g_if_use_trunk_file = use_trunk_file;
 
-	logInfo("file: "__FILE__", line: %d, " \
-		"use_storage_id=%d, " \
-		"id_type_in_filename=%s, " \
-		"storage_ip_changed_auto_adjust=%d, " \
-		"store_path=%d, " \
-		"reserved_storage_space=%s, " \
-		"use_trunk_file=%d, " \
-		"slot_min_size=%d, " \
-		"slot_max_size=%d MB, " \
-		"trunk_file_size=%d MB, " \
-		"trunk_create_file_advance=%d, " \
-		"trunk_create_file_time_base=%02d:%02d, " \
-		"trunk_create_file_interval=%d, " \
-		"trunk_create_file_space_threshold=%d GB, " \
-		"trunk_init_check_occupying=%d, "   \
-		"trunk_init_reload_from_binlog=%d, " \
-		"trunk_compress_binlog_min_interval=%d, " \
-		"trunk_compress_binlog_interval=%d, " \
-		"trunk_compress_binlog_time_base=%02d:%02d, " \
-		"store_slave_file_use_link=%d", \
-		__LINE__, g_use_storage_id, \
-		g_id_type_in_filename == FDFS_ID_TYPE_SERVER_ID ? "id" : "ip", \
-		g_storage_ip_changed_auto_adjust, \
-		g_store_path_mode, fdfs_storage_reserved_space_to_string( \
-			&g_storage_reserved_space, reserved_space_str), \
-		g_if_use_trunk_file, g_slot_min_size, \
-		g_slot_max_size / FDFS_ONE_MB, \
-		g_trunk_file_size / FDFS_ONE_MB, \
-		g_trunk_create_file_advance, \
-		g_trunk_create_file_time_base.hour, \
-		g_trunk_create_file_time_base.minute, \
-		g_trunk_create_file_interval, \
-		(int)(g_trunk_create_file_space_threshold / \
-		(FDFS_ONE_MB * 1024)), g_trunk_init_check_occupying, \
-		g_trunk_init_reload_from_binlog, \
-		g_trunk_compress_binlog_min_interval, \
-		g_trunk_compress_binlog_interval, \
-        g_trunk_compress_binlog_time_base.hour, \
-        g_trunk_compress_binlog_time_base.minute, \
+	logInfo("file: "__FILE__", line: %d, "
+		"use_storage_id=%d, "
+		"id_type_in_filename=%s, "
+		"storage_ip_changed_auto_adjust=%d, "
+		"store_path=%d, "
+		"reserved_storage_space=%s, "
+		"use_trunk_file=%d, "
+		"slot_min_size=%d, "
+		"slot_max_size=%d MB, "
+		"trunk_file_size=%d MB, "
+		"trunk_create_file_advance=%d, "
+		"trunk_create_file_time_base=%02d:%02d, "
+		"trunk_create_file_interval=%d, "
+		"trunk_create_file_space_threshold=%d GB, "
+		"trunk_init_check_occupying=%d, "
+		"trunk_init_reload_from_binlog=%d, "
+		"trunk_compress_binlog_min_interval=%d, "
+		"trunk_compress_binlog_interval=%d, "
+		"trunk_compress_binlog_time_base=%02d:%02d, "
+		"trunk_binlog_max_backups=%d, "
+		"store_slave_file_use_link=%d",
+		__LINE__, g_use_storage_id,
+		g_id_type_in_filename == FDFS_ID_TYPE_SERVER_ID ? "id" : "ip",
+		g_storage_ip_changed_auto_adjust,
+		g_store_path_mode, fdfs_storage_reserved_space_to_string(
+			&g_storage_reserved_space, reserved_space_str),
+		g_if_use_trunk_file, g_slot_min_size,
+		g_slot_max_size / FDFS_ONE_MB,
+		g_trunk_file_size / FDFS_ONE_MB,
+		g_trunk_create_file_advance,
+		g_trunk_create_file_time_base.hour,
+		g_trunk_create_file_time_base.minute,
+		g_trunk_create_file_interval,
+		(int)(g_trunk_create_file_space_threshold /
+		(FDFS_ONE_MB * 1024)), g_trunk_init_check_occupying,
+		g_trunk_init_reload_from_binlog,
+		g_trunk_compress_binlog_min_interval,
+		g_trunk_compress_binlog_interval,
+        g_trunk_compress_binlog_time_base.hour,
+        g_trunk_compress_binlog_time_base.minute,
+        g_trunk_binlog_max_backups,
 		g_store_slave_file_use_link);
 
-	if (g_use_storage_id && *g_sync_src_id != '\0' && \
+	if (g_use_storage_id && *g_sync_src_id != '\0' &&
 		!fdfs_is_server_id_valid(g_sync_src_id))
 	{
 		if ((result=storage_convert_src_server_id()) == 0)

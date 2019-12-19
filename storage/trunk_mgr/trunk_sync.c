@@ -39,7 +39,8 @@
 #include "storage_sync_func.h"
 #include "trunk_sync.h"
 
-#define TRUNK_SYNC_BINLOG_FILENAME	    "binlog"
+#define TRUNK_SYNC_BINLOG_FILENAME_STR	"binlog"
+#define TRUNK_SYNC_BINLOG_FILENAME_LEN  (sizeof(TRUNK_SYNC_BINLOG_FILENAME_STR) - 1)
 #define TRUNK_SYNC_BINLOG_ROLLBACK_EXT	".rollback"
 #define TRUNK_SYNC_MARK_FILE_EXT_STR	".mark"
 #define TRUNK_SYNC_MARK_FILE_EXT_LEN	(sizeof(TRUNK_SYNC_MARK_FILE_EXT_STR) - 1)
@@ -82,7 +83,7 @@ static int trunk_binlog_preread(TrunkBinLogReader *pReader);
 char *get_trunk_binlog_filename(char *full_filename)
 {
 	snprintf(full_filename, MAX_PATH_SIZE, \
-		"%s/data/"TRUNK_DIR_NAME"/"TRUNK_SYNC_BINLOG_FILENAME, \
+		"%s/data/"TRUNK_DIR_NAME"/"TRUNK_SYNC_BINLOG_FILENAME_STR, \
 		g_fdfs_base_path);
 	return full_filename;
 }
@@ -405,29 +406,227 @@ int trunk_binlog_sync_func(void *args)
 	}
 }
 
+#define BACKUP_FILENAME_LEN  (TRUNK_SYNC_BINLOG_FILENAME_LEN + 15)
+
+typedef struct
+{
+    char filename[BACKUP_FILENAME_LEN + 1];
+} TrunkBinlogBackupFileInfo;
+
+typedef struct
+{
+    TrunkBinlogBackupFileInfo *files;
+    int count;
+    int alloc;
+} TrunkBinlogBackupFileArray;
+
+static int trunk_binlog_check_alloc_filename_array(
+        TrunkBinlogBackupFileArray *file_array)
+{
+    int bytes;
+    TrunkBinlogBackupFileInfo *files;
+    int alloc;
+
+    if (file_array->count < file_array->alloc)
+    {
+        return 0;
+    }
+
+    if (file_array->alloc == 0)
+    {
+        alloc = g_trunk_binlog_max_backups + 1;
+    }
+    else
+    {
+        alloc = file_array->alloc * 2;
+    }
+
+    bytes = sizeof(TrunkBinlogBackupFileInfo) * alloc;
+    files = (TrunkBinlogBackupFileInfo *)malloc(bytes);
+    if (files == NULL)
+    {
+		logError("file: "__FILE__", line: %d, "
+                "malloc %d bytes fail", __LINE__, bytes);
+        return ENOMEM;
+    }
+
+    if (file_array->count > 0)
+    {
+        memcpy(files, file_array->files, sizeof(TrunkBinlogBackupFileInfo) *
+                file_array->count);
+    }
+
+    if (file_array->files != NULL)
+    {
+        free(file_array->files);
+    }
+
+    file_array->files = files;
+    file_array->alloc = alloc;
+    return 0;
+}
+
+static int trunk_binlog_compare_filename(const void *p1, const void *p2)
+{
+    return strcmp(((TrunkBinlogBackupFileInfo *)p1)->filename,
+            ((TrunkBinlogBackupFileInfo *)p2)->filename);
+}
+
+static int trunk_binlog_delete_overflow_backups()
+{
+#define	BACKUP_FILENAME_PREFIX_STR TRUNK_SYNC_BINLOG_FILENAME_STR"."
+#define	BACKUP_FILENAME_PREFIX_LEN (sizeof(BACKUP_FILENAME_PREFIX_STR) - 1)
+
+    int result;
+    int i;
+    int over_count;
+	char file_path[MAX_PATH_SIZE];
+	char full_filename[MAX_PATH_SIZE];
+    DIR *dir;
+    struct dirent *ent;
+    TrunkBinlogBackupFileArray file_array;
+
+	snprintf(file_path, sizeof(file_path),
+		"%s/data/%s", g_fdfs_base_path, TRUNK_DIR_NAME);
+    if ((dir=opendir(file_path)) == NULL)
+    {
+        result = errno != 0 ? errno : EPERM;
+		logError("file: "__FILE__", line: %d, "
+                "call opendir %s fail, errno: %d, error info: %s",
+                __LINE__, file_path, result, STRERROR(result));
+        return result;
+    }
+
+    result = 0;
+    file_array.files = NULL;
+    file_array.count = 0;
+    file_array.alloc = 0;
+    while ((ent=readdir(dir)) != NULL)
+    {
+        if (strlen(ent->d_name) == BACKUP_FILENAME_LEN &&
+                memcmp(ent->d_name, BACKUP_FILENAME_PREFIX_STR,
+                    BACKUP_FILENAME_PREFIX_LEN) == 0)
+        {
+            if ((result=trunk_binlog_check_alloc_filename_array(
+                            &file_array)) != 0)
+            {
+                break;
+            }
+
+            strcpy(file_array.files[file_array.count].
+                    filename, ent->d_name);
+            file_array.count++;
+            break;
+        }
+    }
+
+    closedir(dir);
+
+    over_count = file_array.count - g_trunk_binlog_max_backups;
+    if (result != 0 || over_count <= 0)
+    {
+        if (file_array.files != NULL)
+        {
+            free(file_array.files);
+        }
+        return result;
+    }
+
+    qsort(file_array.files, file_array.count,
+            sizeof(TrunkBinlogBackupFileInfo),
+            trunk_binlog_compare_filename);
+    for (i=0; i<over_count; i++)
+    {
+        sprintf(full_filename, "%s/%s", file_path,
+                file_array.files[i].filename);
+        logInfo("unlink old file: %s", full_filename);
+        unlink(full_filename);
+    }
+
+    free(file_array.files);
+    return 0;
+}
+
+static int trunk_binlog_backup_and_truncate()
+{
+    int result;
+    int open_res;
+	char binlog_filename[MAX_PATH_SIZE];
+    char backup_filename[MAX_PATH_SIZE];
+    time_t t;
+    struct tm tm;
+
+    if ((result=trunk_binlog_delete_overflow_backups()) != 0)
+    {
+        return result;
+    }
+
+    if ((result=trunk_binlog_close_writer(false)) != 0)
+    {
+        return result;
+    }
+
+    do
+    {
+        t = g_current_time;
+        localtime_r(&t, &tm);
+
+        get_trunk_binlog_filename(binlog_filename);
+        snprintf(backup_filename, sizeof(backup_filename),
+                "%s.%04d%02d%02d%02d%02d%02d", binlog_filename,
+                tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday,
+                tm.tm_hour, tm.tm_min, tm.tm_sec);
+        if (rename(binlog_filename, backup_filename) != 0)
+        {
+            result = errno != 0 ? errno : EACCES;
+            logError("file: "__FILE__", line: %d, "
+                    "rename file %s to %s fail, "
+                    "errno: %d, error info: %s", __LINE__,
+                    binlog_filename, backup_filename,
+                    result, STRERROR(result));
+            break;
+        }
+    } while (0);
+
+    open_res = trunk_binlog_open_writer(binlog_filename);
+    return (result == 0) ? open_res : result;
+}
+
 int trunk_binlog_truncate()
 {
 	int result;
 
-	if (trunk_binlog_write_cache_len > 0)
-	{
-		if ((result=trunk_binlog_fsync(true)) != 0)
-		{
-			return result;
-		}
-	}
+    result = 0;
+    pthread_mutex_lock(&trunk_sync_thread_lock);
+    do
+    {
+        if (g_trunk_binlog_max_backups > 0)
+        {
+            result = trunk_binlog_backup_and_truncate();
+        }
+        else
+        {
+            if (trunk_binlog_write_cache_len > 0)
+            {
+                if ((result=trunk_binlog_fsync(false)) != 0)
+                {
+                    break;
+                }
+            }
+            if (ftruncate(trunk_binlog_fd, 0) != 0)
+            {
+                result = errno != 0 ? errno : EIO;
+                logError("file: "__FILE__", line: %d, "
+                        "call ftruncate fail, "
+                        "errno: %d, error info: %s",
+                        __LINE__, result, STRERROR(result));
+                break;
+            }
+        }
+    } while (0);
 
-	if (ftruncate(trunk_binlog_fd, 0) != 0)
-	{
-		result = errno != 0 ? errno : EIO;
-		logError("file: "__FILE__", line: %d, " \
-			"call ftruncate fail, " \
-			"errno: %d, error info: %s", \
-			__LINE__, result, STRERROR(result));
-		return result;
-	}
-
-	return 0;
+    pthread_mutex_unlock(&trunk_sync_thread_lock);
+	return result;
 }
 
 static int trunk_binlog_delete_rollback_file(const char *filename,
@@ -1206,7 +1405,7 @@ int trunk_binlog_write_buffer(const char *buff, const int length)
 	return write_ret;
 }
 
-static char *get_binlog_readable_filename(const void *pArg, \
+static char *get_binlog_readable_filename(const void *pArg,
 		char *full_filename)
 {
 	static char buff[MAX_PATH_SIZE];
@@ -1217,7 +1416,7 @@ static char *get_binlog_readable_filename(const void *pArg, \
 	}
 
 	snprintf(full_filename, MAX_PATH_SIZE, 
-		"%s/data/"TRUNK_DIR_NAME"/"TRUNK_SYNC_BINLOG_FILENAME, \
+		"%s/data/"TRUNK_DIR_NAME"/"TRUNK_SYNC_BINLOG_FILENAME_STR,
 		g_fdfs_base_path);
 	return full_filename;
 }

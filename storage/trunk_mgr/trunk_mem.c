@@ -56,6 +56,7 @@ TimeInfo g_trunk_compress_binlog_time_base = {0, 0};
 int g_trunk_create_file_interval = 86400;
 int g_trunk_compress_binlog_min_interval = 0;
 int g_trunk_compress_binlog_interval = 0;
+int g_trunk_binlog_max_backups = 0;
 TrackerServerInfo g_trunk_server = {0, 0};
 bool g_if_use_trunk_file = false;
 bool g_if_trunker_self = false;

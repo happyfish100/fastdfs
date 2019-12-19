@@ -50,6 +50,7 @@ extern TimeInfo g_trunk_compress_binlog_time_base;
 extern int g_trunk_create_file_interval;
 extern int g_trunk_compress_binlog_min_interval;
 extern int g_trunk_compress_binlog_interval;
+extern int g_trunk_binlog_max_backups;
 extern TrackerServerInfo g_trunk_server;  //the trunk server
 extern bool g_if_use_trunk_file;   //if use trunk file
 extern bool g_trunk_create_file_advance;

@@ -661,6 +661,7 @@ static int tracker_deal_get_trunk_fid(struct fast_task_info *pTask)
 static int tracker_deal_parameter_req(struct fast_task_info *pTask)
 {
 	char reserved_space_str[32];
+    int body_len;
 
 	if (pTask->length - sizeof(TrackerHeader) != 0)
 	{
@@ -676,49 +677,51 @@ static int tracker_deal_parameter_req(struct fast_task_info *pTask)
 		return EINVAL;
 	}
 	
-	pTask->length = sizeof(TrackerHeader) + \
-	sprintf(pTask->data + sizeof(TrackerHeader), \
-		"use_storage_id=%d\n" \
-		"id_type_in_filename=%s\n" \
-		"storage_ip_changed_auto_adjust=%d\n" \
-		"storage_sync_file_max_delay=%d\n" \
-		"store_path=%d\n" \
-		"reserved_storage_space=%s\n" \
-		"use_trunk_file=%d\n" \
-		"slot_min_size=%d\n" \
-		"slot_max_size=%d\n" \
-		"trunk_file_size=%d\n" \
-		"trunk_create_file_advance=%d\n" \
-		"trunk_create_file_time_base=%02d:%02d\n" \
-		"trunk_create_file_interval=%d\n" \
-		"trunk_create_file_space_threshold=%"PRId64"\n" \
-		"trunk_init_check_occupying=%d\n"     \
-		"trunk_init_reload_from_binlog=%d\n"  \
-		"trunk_compress_binlog_min_interval=%d\n"  \
-		"trunk_compress_binlog_interval=%d\n"  \
-		"trunk_compress_binlog_time_base=%02d:%02d\n" \
-		"store_slave_file_use_link=%d\n",    \
-		g_use_storage_id, g_id_type_in_filename == \
-    FDFS_ID_TYPE_SERVER_ID ? "id" : "ip", \
-    g_storage_ip_changed_auto_adjust, \
-		g_storage_sync_file_max_delay, g_groups.store_path, \
-		fdfs_storage_reserved_space_to_string( \
-			&g_storage_reserved_space, reserved_space_str), \
-		g_if_use_trunk_file, \
-		g_slot_min_size, g_slot_max_size, \
-		g_trunk_file_size, g_trunk_create_file_advance, \
-		g_trunk_create_file_time_base.hour, \
-		g_trunk_create_file_time_base.minute, \
-		g_trunk_create_file_interval, \
-		g_trunk_create_file_space_threshold, \
-		g_trunk_init_check_occupying, \
-		g_trunk_init_reload_from_binlog, \
-		g_trunk_compress_binlog_min_interval, \
-        g_trunk_compress_binlog_interval, \
-        g_trunk_compress_binlog_time_base.hour, \
-        g_trunk_compress_binlog_time_base.minute, \
-		g_store_slave_file_use_link);
+    body_len = sprintf(pTask->data + sizeof(TrackerHeader),
+            "use_storage_id=%d\n"
+            "id_type_in_filename=%s\n"
+            "storage_ip_changed_auto_adjust=%d\n"
+            "storage_sync_file_max_delay=%d\n"
+            "store_path=%d\n"
+            "reserved_storage_space=%s\n"
+            "use_trunk_file=%d\n"
+            "slot_min_size=%d\n"
+            "slot_max_size=%d\n"
+            "trunk_file_size=%d\n"
+            "trunk_create_file_advance=%d\n"
+            "trunk_create_file_time_base=%02d:%02d\n"
+            "trunk_create_file_interval=%d\n"
+            "trunk_create_file_space_threshold=%"PRId64"\n"
+            "trunk_init_check_occupying=%d\n"
+            "trunk_init_reload_from_binlog=%d\n"
+            "trunk_compress_binlog_min_interval=%d\n"
+            "trunk_compress_binlog_interval=%d\n"
+            "trunk_compress_binlog_time_base=%02d:%02d\n"
+            "trunk_binlog_max_backups=%d\n"
+            "store_slave_file_use_link=%d\n",
+        g_use_storage_id, g_id_type_in_filename ==
+            FDFS_ID_TYPE_SERVER_ID ? "id" : "ip",
+        g_storage_ip_changed_auto_adjust,
+        g_storage_sync_file_max_delay, g_groups.store_path,
+        fdfs_storage_reserved_space_to_string(
+                &g_storage_reserved_space, reserved_space_str),
+        g_if_use_trunk_file,
+        g_slot_min_size, g_slot_max_size,
+        g_trunk_file_size, g_trunk_create_file_advance,
+        g_trunk_create_file_time_base.hour,
+        g_trunk_create_file_time_base.minute,
+        g_trunk_create_file_interval,
+        g_trunk_create_file_space_threshold,
+        g_trunk_init_check_occupying,
+        g_trunk_init_reload_from_binlog,
+        g_trunk_compress_binlog_min_interval,
+        g_trunk_compress_binlog_interval,
+        g_trunk_compress_binlog_time_base.hour,
+        g_trunk_compress_binlog_time_base.minute,
+        g_trunk_binlog_max_backups,
+        g_store_slave_file_use_link);
 
+	pTask->length = sizeof(TrackerHeader) + body_len;
 	return 0;
 }
 
