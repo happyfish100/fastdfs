@@ -4059,12 +4059,12 @@ static int storage_server_trunk_delete_binlog_marks(struct fast_task_info *pTask
 	}
 
 	result = storage_delete_trunk_data_file();
-	if (!(result == 0 || result == ENOENT))
+	if (result != 0)
 	{
 		return result;
 	}
 
-	return trunk_unlink_all_mark_files(false);
+	return trunk_unlink_all_mark_files();
 }
 
 /**

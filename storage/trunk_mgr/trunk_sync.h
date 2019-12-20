@@ -65,7 +65,7 @@ void trunk_waiting_sync_thread_exit();
 
 char *get_trunk_binlog_filename(char *full_filename);
 char *trunk_mark_filename_by_reader(const void *pArg, char *full_filename);
-int trunk_unlink_all_mark_files(const bool force_delete);
+int trunk_unlink_all_mark_files();
 int trunk_unlink_mark_file(const char *storage_id);
 int trunk_rename_mark_file(const char *old_ip_addr, const int old_port, \
 		const char *new_ip_addr, const int new_port);
@@ -87,6 +87,8 @@ int trunk_binlog_compress_rollback();
 
 int trunk_sync_notify_thread_reset_offset();
 int trunk_binlog_get_write_version();
+
+int storage_delete_trunk_data_file();
 
 char *get_trunk_binlog_tmp_filename_ex(const char *binlog_filename,
         char *tmp_filename);

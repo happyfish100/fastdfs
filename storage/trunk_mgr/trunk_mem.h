@@ -107,8 +107,6 @@ int trunk_binlog_compress_func(void *args);
 
 int storage_trunk_binlog_compress_check_recovery();
 
-int storage_delete_trunk_data_file();
-
 char *storage_trunk_get_data_filename(char *full_filename);
 
 #define storage_check_reserved_space(pGroup) \

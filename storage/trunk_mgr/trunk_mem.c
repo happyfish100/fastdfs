@@ -591,7 +591,7 @@ int storage_trunk_binlog_compress_check_recovery()
                 }
             case STORAGE_TRUNK_COMPRESS_STAGE_COMPRESS_SUCCESS:
                 /* unlink all mark files because the binlog file be compressed */
-                result = trunk_unlink_all_mark_files(true);
+                result = trunk_unlink_all_mark_files();
                 if (result == 0)
                 {
                     g_trunk_binlog_compress_stage =
@@ -693,7 +693,7 @@ static int storage_trunk_compress()
         last_write_version = current_write_version;
 
         /* unlink all mark files because the binlog file be compressed */
-        result = trunk_unlink_all_mark_files(true);
+        result = trunk_unlink_all_mark_files();
     } while (0);
 
     __sync_sub_and_fetch(&trunk_binlog_compress_in_progress, 1);
@@ -1159,30 +1159,6 @@ static int storage_trunk_restore(const int64_t restore_offset)
 			"%"PRId64, __LINE__, \
 			restore_offset, trunk_binlog_size - restore_offset);
 		return storage_trunk_save();
-	}
-
-	return result;
-}
-
-int storage_delete_trunk_data_file()
-{
-	char trunk_data_filename[MAX_PATH_SIZE];
-	int result;
-
-	storage_trunk_get_data_filename(trunk_data_filename);
-	if (unlink(trunk_data_filename) == 0)
-	{
-		return 0;
-	}
-
-	result = errno != 0 ? errno : ENOENT;
-	if (result != ENOENT)
-	{
-		logError("file: "__FILE__", line: %d, "
-			"unlink trunk data file: %s fail, "
-			"errno: %d, error info: %s",
-			__LINE__, trunk_data_filename,
-			result, STRERROR(result));
 	}
 
 	return result;

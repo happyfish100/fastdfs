@@ -387,7 +387,7 @@ int trunk_sync_notify_thread_reset_offset()
             }
         }
 
-        logError("file: "__FILE__", line: %d, "
+        logWarning("file: "__FILE__", line: %d, "
                 "%d trunk sync threads reset binlog offset timeout.",
                 __LINE__, count);
         return EBUSY;
@@ -516,13 +516,12 @@ static int trunk_binlog_delete_overflow_backups()
             strcpy(file_array.files[file_array.count].
                     filename, ent->d_name);
             file_array.count++;
-            break;
         }
     }
 
     closedir(dir);
 
-    over_count = file_array.count - g_trunk_binlog_max_backups;
+    over_count = (file_array.count - g_trunk_binlog_max_backups) + 1;
     if (result != 0 || over_count <= 0)
     {
         if (file_array.files != NULL)
@@ -539,7 +538,6 @@ static int trunk_binlog_delete_overflow_backups()
     {
         sprintf(full_filename, "%s/%s", file_path,
                 file_array.files[i].filename);
-        logInfo("unlink old file: %s", full_filename);
         unlink(full_filename);
     }
 
@@ -592,6 +590,34 @@ static int trunk_binlog_backup_and_truncate()
     return (result == 0) ? open_res : result;
 }
 
+int storage_delete_trunk_data_file()
+{
+	char trunk_data_filename[MAX_PATH_SIZE];
+	int result;
+
+	storage_trunk_get_data_filename(trunk_data_filename);
+	if (unlink(trunk_data_filename) == 0)
+	{
+		return 0;
+	}
+
+	result = errno != 0 ? errno : ENOENT;
+	if (result == ENOENT)
+	{
+        result = 0;
+    }
+    else
+    {
+		logError("file: "__FILE__", line: %d, "
+			"unlink trunk data file: %s fail, "
+			"errno: %d, error info: %s",
+			__LINE__, trunk_data_filename,
+			result, STRERROR(result));
+	}
+
+	return result;
+}
+
 int trunk_binlog_truncate()
 {
 	int result;
@@ -626,6 +652,11 @@ int trunk_binlog_truncate()
     } while (0);
 
     pthread_mutex_unlock(&trunk_sync_thread_lock);
+    if (result == 0)
+    {
+        result = storage_delete_trunk_data_file();
+    }
+
 	return result;
 }
 
@@ -2453,11 +2484,10 @@ void trunk_waiting_sync_thread_exit()
     }
 }
 
-int trunk_unlink_all_mark_files(const bool force_delete)
+int trunk_unlink_all_mark_files()
 {
 	char file_path[MAX_PATH_SIZE];
-	char old_filename[MAX_PATH_SIZE];
-	char new_filename[MAX_PATH_SIZE];
+	char full_filename[MAX_PATH_SIZE];
     DIR *dir;
     struct dirent *ent;
 	int result;
@@ -2496,49 +2526,22 @@ int trunk_unlink_all_mark_files(const bool force_delete)
             continue;
         }
 
-        snprintf(old_filename, sizeof(old_filename), "%s/%s",
+        snprintf(full_filename, sizeof(full_filename), "%s/%s",
                 file_path, ent->d_name);
-        if (force_delete)
+        if (unlink(full_filename) != 0)
         {
-            if (unlink(old_filename) != 0)
+            result = errno != 0 ? errno : EPERM;
+            if (result == ENOENT)
             {
-                result = errno != 0 ? errno : EPERM;
-                if (result == ENOENT)
-                {
-                    result = 0;
-                }
-                else
-                {
-                    logError("file: "__FILE__", line: %d, "
-                            "unlink %s fail, errno: %d, error info: %s",
-                            __LINE__, old_filename,
-                            result, STRERROR(result));
-                    break;
-                }
+                result = 0;
             }
-        }
-        else
-        {
-            snprintf(new_filename, sizeof(new_filename),
-                    "%s.%04d%02d%02d%02d%02d%02d", old_filename,
-                    tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday,
-                    tm.tm_hour, tm.tm_min, tm.tm_sec);
-            if (rename(old_filename, new_filename) != 0)
+            else
             {
-                result = errno != 0 ? errno : EPERM;
-                if (result == ENOENT)
-                {
-                    result = 0;
-                }
-                else
-                {
-                    logError("file: "__FILE__", line: %d, "
-                            "rename file %s to %s fail, "
-                            "errno: %d, error info: %s",
-                            __LINE__, old_filename, new_filename,
-                            result, STRERROR(result));
-                    break;
-                }
+                logError("file: "__FILE__", line: %d, "
+                        "unlink %s fail, errno: %d, error info: %s",
+                        __LINE__, full_filename,
+                        result, STRERROR(result));
+                break;
             }
         }
     }
