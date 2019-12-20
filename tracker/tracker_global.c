@@ -60,6 +60,7 @@ int g_trunk_create_file_interval = 86400;
 int g_trunk_compress_binlog_interval = 0;
 int g_trunk_compress_binlog_min_interval = 0;
 int g_trunk_binlog_max_backups = 0;
+int g_trunk_alloc_alignment_size = 0;
 int64_t g_trunk_create_file_space_threshold = 0;
 
 time_t g_up_time = 0;

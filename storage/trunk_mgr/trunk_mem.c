@@ -42,9 +42,10 @@
 #define STORAGE_TRUNK_INIT_FLAG_DESTROYING  1
 #define STORAGE_TRUNK_INIT_FLAG_DONE        2
 
-int g_slot_min_size;
-int g_trunk_file_size;
-int g_slot_max_size;
+int g_slot_min_size = 0;
+int g_slot_max_size = 0;
+int g_trunk_alloc_alignment_size = 0;
+int g_trunk_file_size = 0;
 int g_store_path_mode = FDFS_STORE_PATH_ROUND_ROBIN;
 FDFSStorageReservedSpace g_storage_reserved_space = {
 			TRACKER_STORAGE_RESERVED_SPACE_FLAG_MB};
@@ -1748,10 +1749,33 @@ int trunk_alloc_space(const int size, FDFSTrunkFullInfo *pResult)
 	FDFSTrunkNode *pPreviousNode;
 	FDFSTrunkNode *pTrunkNode;
 	int result;
+    int aligned_size;
+    int remain;
 
 	STORAGE_TRUNK_CHECK_STATUS();
 
-	target_slot.size = (size > g_slot_min_size) ? size : g_slot_min_size;
+    if (size <= g_slot_min_size)
+    {
+        aligned_size = g_slot_min_size;
+    }
+    else if (g_trunk_alloc_alignment_size == 0)
+    {
+        aligned_size = size;
+    }
+    else
+    {
+        remain = size % g_trunk_alloc_alignment_size;
+        if (remain == 0)
+        {
+            aligned_size = size;
+        }
+        else
+        {
+            aligned_size = size + (g_trunk_alloc_alignment_size - remain);
+        }
+    }
+
+	target_slot.size = aligned_size;
 	target_slot.head = NULL;
 
 	pPreviousNode = NULL;
@@ -1759,7 +1783,7 @@ int trunk_alloc_space(const int size, FDFSTrunkFullInfo *pResult)
 	pthread_mutex_lock(&trunk_mem_lock);
 	while (1)
 	{
-		pSlot = (FDFSTrunkSlot *)avl_tree_find_ge(tree_info_by_sizes \
+		pSlot = (FDFSTrunkSlot *)avl_tree_find_ge(tree_info_by_sizes
 			 + pResult->path.store_path_index, &target_slot);
 		if (pSlot == NULL)
 		{
@@ -1768,7 +1792,7 @@ int trunk_alloc_space(const int size, FDFSTrunkFullInfo *pResult)
 
 		pPreviousNode = NULL;
 		pTrunkNode = pSlot->head;
-		while (pTrunkNode != NULL && \
+		while (pTrunkNode != NULL &&
 			pTrunkNode->trunk.status == FDFS_TRUNK_STATUS_HOLD)
 		{
 			pPreviousNode = pTrunkNode;
@@ -1790,7 +1814,7 @@ int trunk_alloc_space(const int size, FDFSTrunkFullInfo *pResult)
 			pSlot->head = pTrunkNode->next;
 			if (pSlot->head == NULL)
 			{
-				trunk_delete_size_tree_entry(pResult->path. \
+				trunk_delete_size_tree_entry(pResult->path.
 					store_path_index, pSlot);
 			}
 		}
@@ -1803,7 +1827,7 @@ int trunk_alloc_space(const int size, FDFSTrunkFullInfo *pResult)
 	}
 	else
 	{
-		pTrunkNode = trunk_create_trunk_file(pResult->path. \
+		pTrunkNode = trunk_create_trunk_file(pResult->path.
 					store_path_index, &result);
 		if (pTrunkNode == NULL)
 		{
@@ -1813,7 +1837,7 @@ int trunk_alloc_space(const int size, FDFSTrunkFullInfo *pResult)
 	}
 	pthread_mutex_unlock(&trunk_mem_lock);
 
-	result = trunk_split(pTrunkNode, size);
+	result = trunk_split(pTrunkNode, aligned_size);
 	if (result != 0)
 	{
 		return result;
@@ -1823,9 +1847,12 @@ int trunk_alloc_space(const int size, FDFSTrunkFullInfo *pResult)
 	result = trunk_add_free_block(pTrunkNode, true);
 	if (result == 0)
 	{
-		memcpy(pResult, &(pTrunkNode->trunk), \
+		memcpy(pResult, &(pTrunkNode->trunk),
 			sizeof(FDFSTrunkFullInfo));
 	}
+
+    logInfo("alloc size: %d, aligned_size: %d, alloced trunk size: %d",
+            size, aligned_size, pResult->file.size);
 
 	return result;
 }

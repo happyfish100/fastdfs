@@ -84,6 +84,7 @@ extern int g_trunk_create_file_interval;
 extern int g_trunk_compress_binlog_interval;
 extern int g_trunk_compress_binlog_min_interval;
 extern int g_trunk_binlog_max_backups;
+extern int g_trunk_alloc_alignment_size;
 extern int64_t g_trunk_create_file_space_threshold;
 
 extern time_t g_up_time;

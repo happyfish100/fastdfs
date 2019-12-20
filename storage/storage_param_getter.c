@@ -114,7 +114,13 @@ int storage_get_params_from_tracker()
 	g_trunk_file_size = iniGetIntValue(NULL, "trunk_file_size",
 				&iniContext, 64 * 1024 * 1024);
 	g_slot_max_size = iniGetIntValue(NULL, "slot_max_size",
-				&iniContext, g_trunk_file_size / 2);
+				&iniContext, g_trunk_file_size / 4);
+	g_trunk_alloc_alignment_size = iniGetIntValue(NULL,
+            "trunk_alloc_alignment_size", &iniContext, 0);
+    if (g_slot_min_size < g_trunk_alloc_alignment_size)
+    {
+        g_slot_min_size = g_trunk_alloc_alignment_size;
+    }
 
 	g_trunk_create_file_advance = iniGetBoolValue(NULL,
 			"trunk_create_file_advance", &iniContext, false);
@@ -188,7 +194,8 @@ int storage_get_params_from_tracker()
 		"reserved_storage_space=%s, "
 		"use_trunk_file=%d, "
 		"slot_min_size=%d, "
-		"slot_max_size=%d MB, "
+		"slot_max_size=%d KB, "
+		"trunk_alloc_alignment_size=%d, "
 		"trunk_file_size=%d MB, "
 		"trunk_create_file_advance=%d, "
 		"trunk_create_file_time_base=%02d:%02d, "
@@ -207,7 +214,8 @@ int storage_get_params_from_tracker()
 		g_store_path_mode, fdfs_storage_reserved_space_to_string(
 			&g_storage_reserved_space, reserved_space_str),
 		g_if_use_trunk_file, g_slot_min_size,
-		g_slot_max_size / FDFS_ONE_MB,
+		g_slot_max_size / 1024,
+        g_trunk_alloc_alignment_size,
 		g_trunk_file_size / FDFS_ONE_MB,
 		g_trunk_create_file_advance,
 		g_trunk_create_file_time_base.hour,

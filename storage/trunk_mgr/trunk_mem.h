@@ -39,6 +39,7 @@ extern "C" {
 
 extern int g_slot_min_size;    //slot min size, such as 256 bytes
 extern int g_slot_max_size;    //slot max size
+extern int g_trunk_alloc_alignment_size;  //the alignment size for trunk alloc
 extern int g_trunk_file_size;  //the trunk file size, such as 64MB
 extern int g_store_path_mode;  //store which path mode, fetch from tracker
 extern FDFSStorageReservedSpace g_storage_reserved_space;  //fetch from tracker

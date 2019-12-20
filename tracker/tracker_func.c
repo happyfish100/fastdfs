@@ -504,19 +504,19 @@ int tracker_load_from_conf_file(const char *filename, \
 		g_trunk_file_size = (int)trunk_file_size;
 		if (g_trunk_file_size < 4 * 1024 * 1024)
 		{
-			logWarning("file: "__FILE__", line: %d, " \
-				"item \"trunk_file_size\" %d is too small, " \
+			logWarning("file: "__FILE__", line: %d, "
+				"item \"trunk_file_size\" %d is too small, "
 				"change to 4MB", __LINE__, g_trunk_file_size);
 			g_trunk_file_size = 4 * 1024 * 1024;
 		}
 
-		pSlotMaxSize = iniGetStrValue(NULL, \
+		pSlotMaxSize = iniGetStrValue(NULL,
 			"slot_max_size", &iniContext);
 		if (pSlotMaxSize == NULL)
 		{
-			slot_max_size = g_trunk_file_size / 2;
+			slot_max_size = g_trunk_file_size / 8;
 		}
-		else if ((result=parse_bytes(pSlotMaxSize, 1, \
+		else if ((result=parse_bytes(pSlotMaxSize, 1,
 				&slot_max_size)) != 0)
 		{
 			return result;
@@ -524,26 +524,26 @@ int tracker_load_from_conf_file(const char *filename, \
 		g_slot_max_size = (int)slot_max_size;
 		if (g_slot_max_size <= g_slot_min_size)
 		{
-			logError("file: "__FILE__", line: %d, " \
-				"item \"slot_max_size\" %d is invalid, " \
-				"which <= slot_min_size: %d", \
+			logError("file: "__FILE__", line: %d, "
+				"item \"slot_max_size\" %d is invalid, "
+				"which <= slot_min_size: %d",
 				__LINE__, g_slot_max_size, g_slot_min_size);
 			result = EINVAL;
 			break;
 		}
 		if (g_slot_max_size > g_trunk_file_size / 2)
 		{
-			logWarning("file: "__FILE__", line: %d, " \
-				"item \"slot_max_size\": %d is too large, " \
-				"change to %d", __LINE__, g_slot_max_size, \
+			logWarning("file: "__FILE__", line: %d, "
+				"item \"slot_max_size\": %d is too large, "
+				"change to %d", __LINE__, g_slot_max_size,
 				g_trunk_file_size / 2);
 			g_slot_max_size = g_trunk_file_size / 2;
 		}
 
-		g_trunk_create_file_advance = iniGetBoolValue(NULL, \
+		g_trunk_create_file_advance = iniGetBoolValue(NULL,
 			"trunk_create_file_advance", &iniContext, false);
-		if ((result=get_time_item_from_conf(&iniContext, \
-                	"trunk_create_file_time_base", \
+		if ((result=get_time_item_from_conf(&iniContext,
+                        "trunk_create_file_time_base",
 			&g_trunk_create_file_time_base, 2, 0)) != 0)
 		{
 			return result;
@@ -579,13 +579,25 @@ int tracker_load_from_conf_file(const char *filename, \
         g_trunk_binlog_max_backups = iniGetIntValue(NULL,
 				"trunk_binlog_max_backups", &iniContext, 0);
 
-		g_trunk_init_check_occupying = iniGetBoolValue(NULL, \
+        g_trunk_alloc_alignment_size = iniGetIntValue(NULL,
+				"trunk_alloc_alignment_size", &iniContext, 0);
+        if (g_slot_min_size < g_trunk_alloc_alignment_size)
+        {
+            logWarning("file: "__FILE__", line: %d, "
+                    "item \"slot_min_size\": %d < "
+                    "\"trunk_alloc_alignment_size\": %d, "
+                    "change to %d", __LINE__, g_slot_min_size,
+                    g_trunk_alloc_alignment_size);
+            g_slot_min_size = g_trunk_alloc_alignment_size;
+        }
+
+		g_trunk_init_check_occupying = iniGetBoolValue(NULL,
 			"trunk_init_check_occupying", &iniContext, false);
 
-		g_trunk_init_reload_from_binlog = iniGetBoolValue(NULL, \
+		g_trunk_init_reload_from_binlog = iniGetBoolValue(NULL,
 			"trunk_init_reload_from_binlog", &iniContext, false);
 
-		if ((result=tracker_load_storage_id_info( \
+		if ((result=tracker_load_storage_id_info(
 				filename, &iniContext)) != 0)
 		{
 			return result;
@@ -604,40 +616,40 @@ int tracker_load_from_conf_file(const char *filename, \
             log_set_compress_log_days_before(g_compress_error_log_days_before);
         }
 
-		if ((result=get_time_item_from_conf(&iniContext, \
-			"error_log_rotate_time", &g_error_log_rotate_time, \
+		if ((result=get_time_item_from_conf(&iniContext,
+			"error_log_rotate_time", &g_error_log_rotate_time,
 			0, 0)) != 0)
 		{
 			break;
 		}
 
-		pRotateErrorLogSize = iniGetStrValue(NULL, \
+		pRotateErrorLogSize = iniGetStrValue(NULL,
 			"rotate_error_log_size", &iniContext);
 		if (pRotateErrorLogSize == NULL)
 		{
 			rotate_error_log_size = 0;
 		}
-		else if ((result=parse_bytes(pRotateErrorLogSize, 1, \
+		else if ((result=parse_bytes(pRotateErrorLogSize, 1,
 				&rotate_error_log_size)) != 0)
 		{
 			break;
 		}
-		if (rotate_error_log_size > 0 && \
+		if (rotate_error_log_size > 0 &&
 			rotate_error_log_size < FDFS_ONE_MB)
 		{
-			logWarning("file: "__FILE__", line: %d, " \
-				"item \"rotate_error_log_size\": " \
-				"%"PRId64" is too small, " \
-				"change to 1 MB", __LINE__, \
+			logWarning("file: "__FILE__", line: %d, "
+				"item \"rotate_error_log_size\": "
+				"%"PRId64" is too small, "
+				"change to 1 MB", __LINE__,
 				rotate_error_log_size);
 			rotate_error_log_size = FDFS_ONE_MB;
 		}
 		fdfs_set_log_rotate_size(&g_log_context, rotate_error_log_size);
 
-		g_log_file_keep_days = iniGetIntValue(NULL, \
+		g_log_file_keep_days = iniGetIntValue(NULL,
 				"log_file_keep_days", &iniContext, 0);
 
-		g_store_slave_file_use_link = iniGetBoolValue(NULL, \
+		g_store_slave_file_use_link = iniGetBoolValue(NULL,
 			"store_slave_file_use_link", &iniContext, false);
 
 		if ((result=fdfs_connection_pool_init(filename, &iniContext)) != 0)
@@ -753,7 +765,8 @@ int tracker_load_from_conf_file(const char *filename, \
 			"storage_sync_file_max_time=%ds, "
 			"use_trunk_file=%d, "
 			"slot_min_size=%d, "
-			"slot_max_size=%d MB, "
+			"slot_max_size=%d KB, "
+			"trunk_alloc_alignment_size=%d, "
 			"trunk_file_size=%d MB, "
 			"trunk_create_file_advance=%d, "
 			"trunk_create_file_time_base=%02d:%02d, "
@@ -794,7 +807,8 @@ int tracker_load_from_conf_file(const char *filename, \
 			g_storage_sync_file_max_delay,
 			g_storage_sync_file_max_time,
 			g_if_use_trunk_file, g_slot_min_size,
-			g_slot_max_size / FDFS_ONE_MB,
+			g_slot_max_size / 1024,
+            g_trunk_alloc_alignment_size,
 			g_trunk_file_size / FDFS_ONE_MB,
 			g_trunk_create_file_advance,
 			g_trunk_create_file_time_base.hour,
