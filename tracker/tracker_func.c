@@ -587,6 +587,7 @@ int tracker_load_from_conf_file(const char *filename, \
                     "item \"slot_min_size\": %d < "
                     "\"trunk_alloc_alignment_size\": %d, "
                     "change to %d", __LINE__, g_slot_min_size,
+                    g_trunk_alloc_alignment_size,
                     g_trunk_alloc_alignment_size);
             g_slot_min_size = g_trunk_alloc_alignment_size;
         }

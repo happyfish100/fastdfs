@@ -1272,7 +1272,7 @@ int trunk_binlog_compress_rollback()
     return result;
 }
 
-static int trunk_binlog_fsync_ex(const bool bNeedLock, \
+static int trunk_binlog_fsync_ex(const bool bNeedLock,
 		const char *buff, int *length)
 {
 	int result;
@@ -1281,9 +1281,9 @@ static int trunk_binlog_fsync_ex(const bool bNeedLock, \
 
 	if (bNeedLock && (result=pthread_mutex_lock(&trunk_sync_thread_lock)) != 0)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"call pthread_mutex_lock fail, " \
-			"errno: %d, error info: %s", \
+		logError("file: "__FILE__", line: %d, "
+			"call pthread_mutex_lock fail, "
+			"errno: %d, error info: %s",
 			__LINE__, result, STRERROR(result));
 	}
 
@@ -1294,19 +1294,19 @@ static int trunk_binlog_fsync_ex(const bool bNeedLock, \
 	else if (fc_safe_write(trunk_binlog_fd, buff, *length) != *length)
 	{
 		write_ret = errno != 0 ? errno : EIO;
-		logError("file: "__FILE__", line: %d, " \
-			"write to binlog file \"%s\" fail, fd=%d, " \
-			"errno: %d, error info: %s",  \
-			__LINE__, get_trunk_binlog_filename(full_filename), \
+		logError("file: "__FILE__", line: %d, "
+			"write to binlog file \"%s\" fail, fd=%d, "
+			"errno: %d, error info: %s",
+			__LINE__, get_trunk_binlog_filename(full_filename),
 			trunk_binlog_fd, errno, STRERROR(errno));
 	}
 	else if (fsync(trunk_binlog_fd) != 0)
 	{
 		write_ret = errno != 0 ? errno : EIO;
-		logError("file: "__FILE__", line: %d, " \
-			"sync to binlog file \"%s\" fail, " \
-			"errno: %d, error info: %s",  \
-			__LINE__, get_trunk_binlog_filename(full_filename), \
+		logError("file: "__FILE__", line: %d, "
+			"sync to binlog file \"%s\" fail, "
+			"errno: %d, error info: %s",
+			__LINE__, get_trunk_binlog_filename(full_filename),
 			errno, STRERROR(errno));
 	}
 	else
@@ -1322,9 +1322,9 @@ static int trunk_binlog_fsync_ex(const bool bNeedLock, \
 
 	if (bNeedLock && (result=pthread_mutex_unlock(&trunk_sync_thread_lock)) != 0)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"call pthread_mutex_unlock fail, " \
-			"errno: %d, error info: %s", \
+		logError("file: "__FILE__", line: %d, "
+			"call pthread_mutex_unlock fail, "
+			"errno: %d, error info: %s",
 			__LINE__, result, STRERROR(result));
 	}
 
