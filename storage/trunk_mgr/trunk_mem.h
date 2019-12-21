@@ -57,6 +57,7 @@ extern bool g_if_use_trunk_file;   //if use trunk file
 extern bool g_trunk_create_file_advance;
 extern bool g_trunk_init_check_occupying;
 extern bool g_trunk_init_reload_from_binlog;
+extern bool g_trunk_free_space_merge;
 extern int g_trunk_binlog_compress_stage;
 extern bool g_if_trunker_self;   //if am i trunk server
 extern int64_t g_trunk_create_file_space_threshold;

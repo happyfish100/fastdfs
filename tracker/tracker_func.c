@@ -598,6 +598,9 @@ int tracker_load_from_conf_file(const char *filename, \
 		g_trunk_init_reload_from_binlog = iniGetBoolValue(NULL,
 			"trunk_init_reload_from_binlog", &iniContext, false);
 
+		g_trunk_free_space_merge = iniGetBoolValue(NULL,
+			"trunk_free_space_merge", &iniContext, false);
+
 		if ((result=tracker_load_storage_id_info(
 				filename, &iniContext)) != 0)
 		{
@@ -775,6 +778,7 @@ int tracker_load_from_conf_file(const char *filename, \
 			"trunk_create_file_space_threshold=%d GB, "
 			"trunk_init_check_occupying=%d, "
 			"trunk_init_reload_from_binlog=%d, "
+			"trunk_free_space_merge=%d, "
 			"trunk_compress_binlog_min_interval=%d, "
 			"trunk_compress_binlog_interval=%d, "
 			"trunk_compress_binlog_time_base=%02d:%02d, "
@@ -818,6 +822,7 @@ int tracker_load_from_conf_file(const char *filename, \
 			(int)(g_trunk_create_file_space_threshold /
 			(FDFS_ONE_MB * 1024)), g_trunk_init_check_occupying,
 			g_trunk_init_reload_from_binlog,
+            g_trunk_free_space_merge,
 			g_trunk_compress_binlog_min_interval,
 			g_trunk_compress_binlog_interval,
             g_trunk_compress_binlog_time_base.hour,

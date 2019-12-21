@@ -75,6 +75,7 @@ extern bool g_if_use_trunk_file;   //if use trunk file
 extern bool g_trunk_create_file_advance;
 extern bool g_trunk_init_check_occupying;
 extern bool g_trunk_init_reload_from_binlog;
+extern bool g_trunk_free_space_merge;
 extern int g_slot_min_size;    //slot min size, such as 256 bytes
 extern int g_slot_max_size;    //slot max size, such as 16MB
 extern int g_trunk_file_size;  //the trunk file size, such as 64MB

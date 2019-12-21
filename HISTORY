@@ -1,5 +1,5 @@
 
-Version 6.05  2019-12-20
+Version 6.05  2019-12-21
  * fdfs_trackerd and fdfs_storaged print the server version in usage.
    you can execute fdfs_trackerd or fdfs_storaged without parameters
    to show the server version
@@ -10,6 +10,7 @@ Version 6.05  2019-12-20
  * support backup binlog file when truncate trunk binlog,
    the config item in tracker.conf: trunk_binlog_max_backups
  * support alignment size for trunk space allocation
+ * support merge free trunk spaces
 
 Version 6.04  2019-12-05
  * storage_report_ip_changed ignore result EEXIST

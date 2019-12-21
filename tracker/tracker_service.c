@@ -695,6 +695,7 @@ static int tracker_deal_parameter_req(struct fast_task_info *pTask)
             "trunk_create_file_space_threshold=%"PRId64"\n"
             "trunk_init_check_occupying=%d\n"
             "trunk_init_reload_from_binlog=%d\n"
+            "trunk_free_space_merge=%d\n"
             "trunk_compress_binlog_min_interval=%d\n"
             "trunk_compress_binlog_interval=%d\n"
             "trunk_compress_binlog_time_base=%02d:%02d\n"
@@ -716,6 +717,7 @@ static int tracker_deal_parameter_req(struct fast_task_info *pTask)
         g_trunk_create_file_space_threshold,
         g_trunk_init_check_occupying,
         g_trunk_init_reload_from_binlog,
+        g_trunk_free_space_merge,
         g_trunk_compress_binlog_min_interval,
         g_trunk_compress_binlog_interval,
         g_trunk_compress_binlog_time_base.hour,
