@@ -456,6 +456,7 @@ static int tree_walk_callback_to_file(void *data, void *args)
         }
         pCallbackArgs->stats.trunk_count++;
         pCallbackArgs->stats.total_size += pCurrent->trunk.file.size;
+
 		pCurrent = pCurrent->next;
 	}
 
@@ -486,6 +487,7 @@ static int tree_walk_callback_to_list(void *data, void *args)
 
         pCallbackArgs->stats.trunk_count++;
         pCallbackArgs->stats.total_size += pCurrent->trunk.file.size;
+
 		pCurrent = pCurrent->next;
 	}
 
@@ -549,8 +551,8 @@ static void trunk_merge_spaces(FDFSTrunkFullInfo **ppMergeFirst,
         (*ppMergeFirst)->file.offset + (*ppLast)->file.size;
 
     stat->merge_count++;
+    stat->merged_trunk_count += (ppLast - ppMergeFirst) + 1;
     stat->merged_size += (*ppMergeFirst)->file.size;
-    stat->merged_trunk_count += ppLast - ppMergeFirst + 1;
 
     append_size = 0;
     for (ppTrunkInfo=ppMergeFirst + 1; ppTrunkInfo<=ppLast; ppTrunkInfo++)
@@ -604,21 +606,18 @@ static int trunk_save_merged_spaces(struct walk_callback_args *pCallbackArgs)
         {
             trunk_merge_spaces(ppMergeFirst, previous, &merge_stat);
         }
-
         if ((result=save_one_trunk(pCallbackArgs, *ppMergeFirst)) != 0)
         {
             return result;
         }
 
         ppMergeFirst = ppTrunkInfo;
-        ppTrunkInfo++;
 	}
 
     if (ppEnd - ppMergeFirst > 1)
     {
         trunk_merge_spaces(ppMergeFirst, previous, &merge_stat);
     }
-
     if ((result=save_one_trunk(pCallbackArgs, *ppMergeFirst)) != 0)
     {
         return result;
