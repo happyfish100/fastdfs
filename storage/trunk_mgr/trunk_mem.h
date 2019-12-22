@@ -45,7 +45,7 @@ extern int g_store_path_mode;  //store which path mode, fetch from tracker
 extern FDFSStorageReservedSpace g_storage_reserved_space;  //fetch from tracker
 extern int g_avg_storage_reserved_mb;  //calc by above var: g_storage_reserved_mb
 extern int g_store_path_index;  //store to which path
-extern int g_current_trunk_file_id;  //current trunk file id
+extern volatile int g_current_trunk_file_id;  //current trunk file id
 extern TimeInfo g_trunk_create_file_time_base;
 extern TimeInfo g_trunk_compress_binlog_time_base;
 extern int g_trunk_create_file_interval;
@@ -61,7 +61,7 @@ extern bool g_trunk_free_space_merge;
 extern int g_trunk_binlog_compress_stage;
 extern bool g_if_trunker_self;   //if am i trunk server
 extern int64_t g_trunk_create_file_space_threshold;
-extern int64_t g_trunk_total_free_space;  //trunk total free space in bytes
+extern volatile int64_t g_trunk_total_free_space;  //trunk total free space in bytes
 extern time_t g_trunk_last_compress_time;
 
 typedef struct tagFDFSTrunkNode {

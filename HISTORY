@@ -1,5 +1,5 @@
 
-Version 6.05  2019-12-21
+Version 6.05  2019-12-22
  * fdfs_trackerd and fdfs_storaged print the server version in usage.
    you can execute fdfs_trackerd or fdfs_storaged without parameters
    to show the server version
