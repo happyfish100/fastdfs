@@ -144,6 +144,8 @@ int storage_get_params_from_tracker()
 			"trunk_init_reload_from_binlog", &iniContext, false);
 	g_trunk_free_space_merge = iniGetBoolValue(NULL,
 			"trunk_free_space_merge", &iniContext, false);
+	g_delete_unused_trunk_files = iniGetBoolValue(NULL,
+			"delete_unused_trunk_files", &iniContext, false);
 	g_trunk_compress_binlog_min_interval = iniGetIntValue(NULL,
 			"trunk_compress_binlog_min_interval", &iniContext, 0);
 	g_trunk_compress_binlog_interval = iniGetIntValue(NULL,
@@ -206,6 +208,7 @@ int storage_get_params_from_tracker()
 		"trunk_init_check_occupying=%d, "
 		"trunk_init_reload_from_binlog=%d, "
 		"trunk_free_space_merge=%d, "
+		"delete_unused_trunk_files=%d, "
 		"trunk_compress_binlog_min_interval=%d, "
 		"trunk_compress_binlog_interval=%d, "
 		"trunk_compress_binlog_time_base=%02d:%02d, "
@@ -228,6 +231,7 @@ int storage_get_params_from_tracker()
 		(FDFS_ONE_MB * 1024)), g_trunk_init_check_occupying,
 		g_trunk_init_reload_from_binlog,
 		g_trunk_free_space_merge,
+		g_delete_unused_trunk_files,
 		g_trunk_compress_binlog_min_interval,
 		g_trunk_compress_binlog_interval,
         g_trunk_compress_binlog_time_base.hour,

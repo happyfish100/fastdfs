@@ -65,6 +65,7 @@ bool g_trunk_create_file_advance = false;
 bool g_trunk_init_check_occupying = false;
 bool g_trunk_init_reload_from_binlog = false;
 bool g_trunk_free_space_merge = false;
+bool g_delete_unused_trunk_files = false;
 int g_trunk_binlog_compress_stage = STORAGE_TRUNK_COMPRESS_STAGE_NONE;
 volatile int64_t g_trunk_total_free_space = 0;
 int64_t g_trunk_create_file_space_threshold = 0;
@@ -542,17 +543,20 @@ typedef struct trunk_merge_stat
 } TrunkMergeStat;
 
 static void trunk_merge_spaces(FDFSTrunkFullInfo **ppMergeFirst,
-        FDFSTrunkFullInfo **ppLast, TrunkMergeStat *stat)
+        FDFSTrunkFullInfo **ppLast, TrunkMergeStat *merge_stat,
+        bool *bDeleted)
 {
 	FDFSTrunkFullInfo **ppTrunkInfo;
     int append_size;
+    char full_filename[MAX_PATH_SIZE];
+    struct stat file_stat;
 
     (*ppMergeFirst)->file.size = (*ppLast)->file.offset -
         (*ppMergeFirst)->file.offset + (*ppLast)->file.size;
 
-    stat->merge_count++;
-    stat->merged_trunk_count += (ppLast - ppMergeFirst) + 1;
-    stat->merged_size += (*ppMergeFirst)->file.size;
+    merge_stat->merge_count++;
+    merge_stat->merged_trunk_count += (ppLast - ppMergeFirst) + 1;
+    merge_stat->merged_size += (*ppMergeFirst)->file.size;
 
     append_size = 0;
     for (ppTrunkInfo=ppMergeFirst + 1; ppTrunkInfo<=ppLast; ppTrunkInfo++)
@@ -563,6 +567,52 @@ static void trunk_merge_spaces(FDFSTrunkFullInfo **ppMergeFirst,
 
     __sync_add_and_fetch(&g_trunk_total_free_space,
             append_size);
+    do
+    {
+        if (!g_delete_unused_trunk_files)
+        {
+            break;
+        }
+
+        if (!((*ppMergeFirst)->file.offset == 0 &&
+                    (*ppMergeFirst)->file.size >= g_trunk_file_size))
+        {
+            break;
+        }
+
+        trunk_get_full_filename(*ppMergeFirst, full_filename,
+                sizeof(full_filename));
+        if (stat(full_filename, &file_stat) != 0)
+        {
+            logError("file: "__FILE__", line: %d, "
+                    "stat trunk file %s fail, "
+                    "errno: %d, error info: %s", __LINE__,
+                    full_filename, errno, STRERROR(errno));
+            break;
+        }
+        if ((*ppMergeFirst)->file.size != file_stat.st_size)
+        {
+            break;
+        }
+
+        if (unlink(full_filename) != 0)
+        {
+            if (errno != ENOENT)
+            {
+                logError("file: "__FILE__", line: %d, "
+                        "unlink trunk file %s fail, "
+                        "errno: %d, error info: %s", __LINE__,
+                        full_filename, errno, STRERROR(errno));
+                break;
+            }
+        }
+
+        logInfo("file: "__FILE__", line: %d, "
+                "delete unused trunk file: %s",
+                __LINE__, full_filename);
+        trunk_delete_space_ex(*ppMergeFirst, false, false);
+        *bDeleted = true;
+    } while (0);
 }
 
 static int trunk_save_merged_spaces(struct walk_callback_args *pCallbackArgs)
@@ -574,6 +624,7 @@ static int trunk_save_merged_spaces(struct walk_callback_args *pCallbackArgs)
     TrunkMergeStat merge_stat;
     char comma_buff[32];
 	int result;
+    bool bDeleted;
 
     if (pCallbackArgs->trunk_array.count == 0)
     {
@@ -602,25 +653,35 @@ static int trunk_save_merged_spaces(struct walk_callback_args *pCallbackArgs)
             continue;
         }
 
+        bDeleted = false;
         if (ppTrunkInfo - ppMergeFirst > 1)
         {
-            trunk_merge_spaces(ppMergeFirst, previous, &merge_stat);
+            trunk_merge_spaces(ppMergeFirst, previous,
+                    &merge_stat, &bDeleted);
         }
-        if ((result=save_one_trunk(pCallbackArgs, *ppMergeFirst)) != 0)
+        if (!bDeleted)
         {
-            return result;
+            if ((result=save_one_trunk(pCallbackArgs, *ppMergeFirst)) != 0)
+            {
+                return result;
+            }
         }
 
         ppMergeFirst = previous = ppTrunkInfo;
 	}
 
+    bDeleted = false;
     if (ppEnd - ppMergeFirst > 1)
     {
-        trunk_merge_spaces(ppMergeFirst, previous, &merge_stat);
+        trunk_merge_spaces(ppMergeFirst, previous,
+                &merge_stat, &bDeleted);
     }
-    if ((result=save_one_trunk(pCallbackArgs, *ppMergeFirst)) != 0)
+    if (!bDeleted)
     {
-        return result;
+        if ((result=save_one_trunk(pCallbackArgs, *ppMergeFirst)) != 0)
+        {
+            return result;
+        }
     }
 
     logInfo("file: "__FILE__", line: %d, "

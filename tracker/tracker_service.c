@@ -665,12 +665,12 @@ static int tracker_deal_parameter_req(struct fast_task_info *pTask)
 
 	if (pTask->length - sizeof(TrackerHeader) != 0)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"cmd=%d, client ip: %s, package size " \
-			PKG_LEN_PRINTF_FORMAT" is not correct, " \
-			"expect length = %d", __LINE__, \
-			TRACKER_PROTO_CMD_STORAGE_PARAMETER_REQ, \
-			pTask->client_ip, pTask->length - \
+		logError("file: "__FILE__", line: %d, "
+			"cmd=%d, client ip: %s, package size "
+			PKG_LEN_PRINTF_FORMAT" is not correct, "
+			"expect length = %d", __LINE__,
+			TRACKER_PROTO_CMD_STORAGE_PARAMETER_REQ,
+			pTask->client_ip, pTask->length -
 			(int)sizeof(TrackerHeader), 0);
 
 		pTask->length = sizeof(TrackerHeader);
@@ -696,6 +696,7 @@ static int tracker_deal_parameter_req(struct fast_task_info *pTask)
             "trunk_init_check_occupying=%d\n"
             "trunk_init_reload_from_binlog=%d\n"
             "trunk_free_space_merge=%d\n"
+            "delete_unused_trunk_files=%d\n"
             "trunk_compress_binlog_min_interval=%d\n"
             "trunk_compress_binlog_interval=%d\n"
             "trunk_compress_binlog_time_base=%02d:%02d\n"
@@ -718,6 +719,7 @@ static int tracker_deal_parameter_req(struct fast_task_info *pTask)
         g_trunk_init_check_occupying,
         g_trunk_init_reload_from_binlog,
         g_trunk_free_space_merge,
+        g_delete_unused_trunk_files,
         g_trunk_compress_binlog_min_interval,
         g_trunk_compress_binlog_interval,
         g_trunk_compress_binlog_time_base.hour,
