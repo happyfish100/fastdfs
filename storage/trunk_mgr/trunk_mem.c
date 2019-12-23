@@ -591,14 +591,14 @@ static int trunk_save_merged_spaces(struct walk_callback_args *pCallbackArgs)
     ppEnd = pCallbackArgs->trunk_array.trunks +
         pCallbackArgs->trunk_array.count;
     ppTrunkInfo = pCallbackArgs->trunk_array.trunks;
-    ppMergeFirst = ppTrunkInfo;
+    ppMergeFirst = previous = ppTrunkInfo;
 	while (++ppTrunkInfo < ppEnd)
 	{
-        previous = ppTrunkInfo - 1;
         if (trunk_compare_path_and_id(*previous, *ppTrunkInfo) == 0 &&
                 (*previous)->file.offset + (*previous)->file.size ==
                 (*ppTrunkInfo)->file.offset)
         {
+            previous = ppTrunkInfo;
             continue;
         }
 
@@ -611,7 +611,7 @@ static int trunk_save_merged_spaces(struct walk_callback_args *pCallbackArgs)
             return result;
         }
 
-        ppMergeFirst = ppTrunkInfo;
+        ppMergeFirst = previous = ppTrunkInfo;
 	}
 
     if (ppEnd - ppMergeFirst > 1)
