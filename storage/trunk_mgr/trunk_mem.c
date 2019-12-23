@@ -81,7 +81,11 @@ static struct fast_mblock_man tree_nodes_man;
 static AVLTreeInfo *tree_info_by_sizes = NULL; //for block alloc
 
 static int trunk_create_next_file(FDFSTrunkFullInfo *pTrunkInfo);
-static int trunk_add_free_block(FDFSTrunkNode *pNode, const bool bWriteBinLog);
+static int trunk_add_free_block_ex(FDFSTrunkNode *pNode,
+        const bool bNeedLock, const bool bWriteBinLog);
+
+#define trunk_add_free_block(pNode, bWriteBinLog) \
+    trunk_add_free_block_ex(pNode, true, bWriteBinLog)
 
 static int trunk_restore_node(const FDFSTrunkFullInfo *pTrunkInfo);
 
@@ -89,6 +93,10 @@ static int trunk_delete_space_ex(const FDFSTrunkFullInfo *pTrunkInfo,
 		const bool bNeedLock, const bool bWriteBinLog);
 #define trunk_delete_space(pTrunkInfo, bWriteBinLog)   \
     trunk_delete_space_ex(pTrunkInfo, true, bWriteBinLog)
+
+static FDFSTrunkFullInfo *free_space_by_trunk(const FDFSTrunkFullInfo
+        *pTrunkInfo, const bool bNeedLock, const bool bWriteBinLog,
+        int *result);
 
 static int storage_trunk_save();
 static int storage_trunk_load();
@@ -543,30 +551,25 @@ typedef struct trunk_merge_stat
 } TrunkMergeStat;
 
 static void trunk_merge_spaces(FDFSTrunkFullInfo **ppMergeFirst,
-        FDFSTrunkFullInfo **ppLast, TrunkMergeStat *merge_stat,
-        bool *bDeleted)
+        FDFSTrunkFullInfo **ppLast, TrunkMergeStat *merge_stat)
 {
 	FDFSTrunkFullInfo **ppTrunkInfo;
-    int append_size;
+    int merged_size;
     char full_filename[MAX_PATH_SIZE];
     struct stat file_stat;
 
-    (*ppMergeFirst)->file.size = (*ppLast)->file.offset -
-        (*ppMergeFirst)->file.offset + (*ppLast)->file.size;
+    merged_size = (*ppLast)->file.offset - (*ppMergeFirst)->file.offset
+        + (*ppLast)->file.size;
 
     merge_stat->merge_count++;
     merge_stat->merged_trunk_count += (ppLast - ppMergeFirst) + 1;
-    merge_stat->merged_size += (*ppMergeFirst)->file.size;
+    merge_stat->merged_size += merged_size;
 
-    append_size = 0;
     for (ppTrunkInfo=ppMergeFirst + 1; ppTrunkInfo<=ppLast; ppTrunkInfo++)
     {
-        append_size += (*ppTrunkInfo)->file.size;
         trunk_delete_space_ex(*ppTrunkInfo, false, false);
     }
 
-    __sync_add_and_fetch(&g_trunk_total_free_space,
-            append_size);
     do
     {
         if (!g_delete_unused_trunk_files)
@@ -575,7 +578,7 @@ static void trunk_merge_spaces(FDFSTrunkFullInfo **ppMergeFirst,
         }
 
         if (!((*ppMergeFirst)->file.offset == 0 &&
-                    (*ppMergeFirst)->file.size >= g_trunk_file_size))
+                    merged_size >= g_trunk_file_size))
         {
             break;
         }
@@ -590,7 +593,7 @@ static void trunk_merge_spaces(FDFSTrunkFullInfo **ppMergeFirst,
                     full_filename, errno, STRERROR(errno));
             break;
         }
-        if ((*ppMergeFirst)->file.size != file_stat.st_size)
+        if (merged_size != file_stat.st_size)
         {
             break;
         }
@@ -611,8 +614,21 @@ static void trunk_merge_spaces(FDFSTrunkFullInfo **ppMergeFirst,
                 "delete unused trunk file: %s",
                 __LINE__, full_filename);
         trunk_delete_space_ex(*ppMergeFirst, false, false);
-        *bDeleted = true;
+        *ppMergeFirst = NULL;
     } while (0);
+
+    if (*ppMergeFirst != NULL)
+    {
+        FDFSTrunkFullInfo trunkInfo;
+        int result;
+
+        trunkInfo = **ppMergeFirst;
+        trunkInfo.file.size = merged_size;
+
+        trunk_delete_space_ex(*ppMergeFirst, false, false);
+        *ppMergeFirst = free_space_by_trunk(&trunkInfo,
+                false, false, &result);
+    }
 }
 
 static int trunk_save_merged_spaces(struct walk_callback_args *pCallbackArgs)
@@ -624,7 +640,6 @@ static int trunk_save_merged_spaces(struct walk_callback_args *pCallbackArgs)
     TrunkMergeStat merge_stat;
     char comma_buff[32];
 	int result;
-    bool bDeleted;
 
     if (pCallbackArgs->trunk_array.count == 0)
     {
@@ -653,13 +668,11 @@ static int trunk_save_merged_spaces(struct walk_callback_args *pCallbackArgs)
             continue;
         }
 
-        bDeleted = false;
         if (ppTrunkInfo - ppMergeFirst > 1)
         {
-            trunk_merge_spaces(ppMergeFirst, previous,
-                    &merge_stat, &bDeleted);
+            trunk_merge_spaces(ppMergeFirst, previous, &merge_stat);
         }
-        if (!bDeleted)
+        if (*ppMergeFirst != NULL)
         {
             if ((result=save_one_trunk(pCallbackArgs, *ppMergeFirst)) != 0)
             {
@@ -670,13 +683,11 @@ static int trunk_save_merged_spaces(struct walk_callback_args *pCallbackArgs)
         ppMergeFirst = previous = ppTrunkInfo;
 	}
 
-    bDeleted = false;
     if (ppEnd - ppMergeFirst > 1)
     {
-        trunk_merge_spaces(ppMergeFirst, previous,
-                &merge_stat, &bDeleted);
+        trunk_merge_spaces(ppMergeFirst, previous, &merge_stat);
     }
-    if (!bDeleted)
+    if (*ppMergeFirst != NULL)
     {
         if ((result=save_one_trunk(pCallbackArgs, *ppMergeFirst)) != 0)
         {
@@ -1672,48 +1683,23 @@ static int storage_trunk_load()
 	return storage_trunk_restore(restore_offset);
 }
 
-int trunk_free_space(const FDFSTrunkFullInfo *pTrunkInfo, \
-		const bool bWriteBinLog)
+static FDFSTrunkFullInfo *free_space_by_trunk(const FDFSTrunkFullInfo
+        *pTrunkInfo, const bool bNeedLock, const bool bWriteBinLog,
+        int *result)
 {
-	int result;
 	struct fast_mblock_node *pMblockNode;
 	FDFSTrunkNode *pTrunkNode;
-
-	if (!g_if_trunker_self)
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"I am not trunk server!", __LINE__);
-		return EINVAL;
-	}
-
-	if (trunk_init_flag != STORAGE_TRUNK_INIT_FLAG_DONE)
-	{
-		if (bWriteBinLog)
-		{
-			logError("file: "__FILE__", line: %d, " \
-				"I am not inited!", __LINE__);
-			return EINVAL;
-		}
-	}
-
-	if (pTrunkInfo->file.size < g_slot_min_size)
-	{
-		logDebug("file: "__FILE__", line: %d, " \
-			"space: %d is too small, do not need recycle!", \
-			__LINE__, pTrunkInfo->file.size);
-		return 0;
-	}
 
 	pMblockNode = fast_mblock_alloc(&free_blocks_man);
 	if (pMblockNode == NULL)
 	{
-		result = errno != 0 ? errno : EIO;
-		logError("file: "__FILE__", line: %d, " \
-			"malloc %d bytes fail, " \
-			"errno: %d, error info: %s", \
-			__LINE__, (int)sizeof(FDFSTrunkNode), \
-			result, STRERROR(result));
-		return result;
+		*result = errno != 0 ? errno : EIO;
+		logError("file: "__FILE__", line: %d, "
+			"malloc %d bytes fail, "
+			"errno: %d, error info: %s",
+			__LINE__, (int)sizeof(FDFSTrunkNode),
+			*result, STRERROR(*result));
+		return NULL;
 	}
 
 	pTrunkNode = (FDFSTrunkNode *)pMblockNode->data;
@@ -1722,89 +1708,130 @@ int trunk_free_space(const FDFSTrunkFullInfo *pTrunkInfo, \
 	pTrunkNode->pMblockNode = pMblockNode;
 	pTrunkNode->trunk.status = FDFS_TRUNK_STATUS_FREE;
 	pTrunkNode->next = NULL;
-	return trunk_add_free_block(pTrunkNode, bWriteBinLog);
+	*result = trunk_add_free_block_ex(pTrunkNode, bNeedLock, bWriteBinLog);
+    return &pTrunkNode->trunk;
 }
 
-static int trunk_add_free_block(FDFSTrunkNode *pNode, const bool bWriteBinLog)
+int trunk_free_space(const FDFSTrunkFullInfo *pTrunkInfo,
+		const bool bWriteBinLog)
+{
+    int result;
+	if (!g_if_trunker_self)
+	{
+		logError("file: "__FILE__", line: %d, "
+			"I am not trunk server!", __LINE__);
+		return EINVAL;
+	}
+
+	if (trunk_init_flag != STORAGE_TRUNK_INIT_FLAG_DONE)
+	{
+		if (bWriteBinLog)
+		{
+			logError("file: "__FILE__", line: %d, "
+				"I am not inited!", __LINE__);
+			return EINVAL;
+		}
+	}
+
+	if (pTrunkInfo->file.size < g_slot_min_size)
+	{
+		logDebug("file: "__FILE__", line: %d, "
+			"space: %d is too small, do not need reclaim!",
+			__LINE__, pTrunkInfo->file.size);
+		return 0;
+	}
+
+    free_space_by_trunk(pTrunkInfo, true, bWriteBinLog, &result);
+    return result;
+}
+
+static int trunk_add_free_block_ex(FDFSTrunkNode *pNode,
+        const bool bNeedLock, const bool bWriteBinLog)
 {
 	int result;
 	struct fast_mblock_node *pMblockNode;
 	FDFSTrunkSlot target_slot;
 	FDFSTrunkSlot *chain;
 
-	pthread_mutex_lock(&trunk_mem_lock);
+	if (bNeedLock)
+    {
+        pthread_mutex_lock(&trunk_mem_lock);
+    }
 
-	if ((result=trunk_free_block_check_duplicate(&(pNode->trunk))) != 0)
-	{
-		pthread_mutex_unlock(&trunk_mem_lock);
-		return result;
-	}
+    do
+    {
+        if ((result=trunk_free_block_check_duplicate(&(pNode->trunk))) != 0)
+        {
+            break;
+        }
 
-	target_slot.size = pNode->trunk.file.size;
-	target_slot.head = NULL;
-	chain = (FDFSTrunkSlot *)avl_tree_find(tree_info_by_sizes +  \
-			pNode->trunk.path.store_path_index, &target_slot);
-	if (chain == NULL)
-	{
-		pMblockNode = fast_mblock_alloc(&tree_nodes_man);
-		if (pMblockNode == NULL)
-		{
-			result = errno != 0 ? errno : EIO;
-			logError("file: "__FILE__", line: %d, " \
-				"malloc %d bytes fail, " \
-				"errno: %d, error info: %s", \
-				__LINE__, (int)sizeof(FDFSTrunkSlot), \
-				result, STRERROR(result));
-			pthread_mutex_unlock(&trunk_mem_lock);
-			return result;
-		}
+        target_slot.size = pNode->trunk.file.size;
+        target_slot.head = NULL;
+        chain = (FDFSTrunkSlot *)avl_tree_find(tree_info_by_sizes +
+                pNode->trunk.path.store_path_index, &target_slot);
+        if (chain == NULL)
+        {
+            pMblockNode = fast_mblock_alloc(&tree_nodes_man);
+            if (pMblockNode == NULL)
+            {
+                result = errno != 0 ? errno : EIO;
+                logError("file: "__FILE__", line: %d, "
+                        "malloc %d bytes fail, "
+                        "errno: %d, error info: %s",
+                        __LINE__, (int)sizeof(FDFSTrunkSlot),
+                        result, STRERROR(result));
+                break;
+            }
 
-		chain = (FDFSTrunkSlot *)pMblockNode->data;
-		chain->pMblockNode = pMblockNode;
-		chain->size = pNode->trunk.file.size;
-		pNode->next = NULL;
-		chain->head = pNode;
+            chain = (FDFSTrunkSlot *)pMblockNode->data;
+            chain->pMblockNode = pMblockNode;
+            chain->size = pNode->trunk.file.size;
+            pNode->next = NULL;
+            chain->head = pNode;
 
-		if (avl_tree_insert(tree_info_by_sizes + pNode->trunk. \
-				path.store_path_index, chain) != 1)
-		{
-			result = errno != 0 ? errno : ENOMEM;
-			logError("file: "__FILE__", line: %d, " \
-				"avl_tree_insert fail, " \
-				"errno: %d, error info: %s", \
-				__LINE__, result, STRERROR(result));
-			pthread_mutex_unlock(&trunk_mem_lock);
-			return result;
-		}
-	}
-	else
-	{
-		pNode->next = chain->head;
-		chain->head = pNode;
-	}
+            if (avl_tree_insert(tree_info_by_sizes + pNode->trunk.
+                        path.store_path_index, chain) != 1)
+            {
+                result = errno != 0 ? errno : ENOMEM;
+                logError("file: "__FILE__", line: %d, "
+                        "avl_tree_insert fail, "
+                        "errno: %d, error info: %s",
+                        __LINE__, result, STRERROR(result));
+                break;
+            }
+        }
+        else
+        {
+            pNode->next = chain->head;
+            chain->head = pNode;
+        }
 
-	if (bWriteBinLog)
-	{
-		result = trunk_mem_binlog_write(g_current_time,
-				TRUNK_OP_TYPE_ADD_SPACE, &(pNode->trunk));
-	}
-	else
-	{
-        __sync_add_and_fetch(&g_trunk_total_free_space,
-                pNode->trunk.file.size);
-		result = 0;
-	}
+        if (bWriteBinLog)
+        {
+            result = trunk_mem_binlog_write(g_current_time,
+                    TRUNK_OP_TYPE_ADD_SPACE, &(pNode->trunk));
+        }
+        else
+        {
+            __sync_add_and_fetch(&g_trunk_total_free_space,
+                    pNode->trunk.file.size);
+            result = 0;
+        }
 
-	if (result == 0)
-	{
-		result = trunk_free_block_insert(&(pNode->trunk));
-	}
-	else
-	{
-		trunk_free_block_insert(&(pNode->trunk));
-	}
+        if (result == 0)
+        {
+            result = trunk_free_block_insert(&(pNode->trunk));
+        }
+        else
+        {
+            trunk_free_block_insert(&(pNode->trunk));
+        }
+    } while (0);
 
-	pthread_mutex_unlock(&trunk_mem_lock);
+	if (bNeedLock)
+    {
+        pthread_mutex_unlock(&trunk_mem_lock);
+    }
 
 	return result;
 }
