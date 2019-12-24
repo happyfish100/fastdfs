@@ -643,6 +643,7 @@ static int trunk_save_merged_spaces(struct walk_callback_args *pCallbackArgs)
     TrunkMergeStat merge_stat;
     char merged_comma_buff[32];
     char deleted_comma_buff[32];
+    char delete_file_prompt[256];
 	int result;
 
     if (pCallbackArgs->trunk_array.count == 0)
@@ -701,15 +702,25 @@ static int trunk_save_merged_spaces(struct walk_callback_args *pCallbackArgs)
         }
     }
 
+    if (g_delete_unused_trunk_files)
+    {
+            sprintf(delete_file_prompt, ", deleted file count: %d, "
+                    "deleted file size: %s", merge_stat.deleted_file_count,
+                    long_to_comma_str(merge_stat.deleted_file_size,
+                        deleted_comma_buff));
+    }
+    else
+    {
+        *delete_file_prompt = '\0';
+    }
+
     logInfo("file: "__FILE__", line: %d, "
             "merge free trunk spaces, merge count: %d, "
-            "merged trunk count: %d, merged size: %s, "
-            "deleted file count: %d, deleted file size: %s",
+            "merged trunk count: %d, merged size: %s%s",
             __LINE__, merge_stat.merge_count,
             merge_stat.merged_trunk_count,
             long_to_comma_str(merge_stat.merged_size, merged_comma_buff),
-            merge_stat.deleted_file_count, long_to_comma_str(
-                merge_stat.deleted_file_size, deleted_comma_buff));
+            delete_file_prompt);
 
 	return 0;
 }
