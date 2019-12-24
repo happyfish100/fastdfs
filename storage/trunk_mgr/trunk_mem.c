@@ -2540,7 +2540,7 @@ int trunk_file_delete(const char *trunk_filename, \
 	remain_bytes = pTrunkInfo->file.size - FDFS_TRUNK_FILE_HEADER_SIZE;
 	while (remain_bytes > 0)
 	{
-		write_bytes = remain_bytes > sizeof(buff) ? \
+		write_bytes = remain_bytes > sizeof(buff) ?
 				sizeof(buff) : remain_bytes;
 		if (fc_safe_write(fd, buff, write_bytes) != write_bytes)
 		{

@@ -814,35 +814,34 @@ int dio_check_trunk_file_ex(int fd, const char *filename, const int64_t offset)
 {
 	int result;
 	char old_header[FDFS_TRUNK_FILE_HEADER_SIZE];
-	char expect_header[FDFS_TRUNK_FILE_HEADER_SIZE];
+	static char expect_header[FDFS_TRUNK_FILE_HEADER_SIZE] = {'\0'};
 
 	if (fc_safe_read(fd, old_header, FDFS_TRUNK_FILE_HEADER_SIZE) !=
 		FDFS_TRUNK_FILE_HEADER_SIZE)
 	{
 		result = errno != 0 ? errno : EIO;
-		logError("file: "__FILE__", line: %d, " \
-			"read trunk header of file: %s fail, " \
-			"errno: %d, error info: %s", \
-			__LINE__, filename, \
+		logError("file: "__FILE__", line: %d, "
+			"read trunk header of file: %s fail, "
+			"errno: %d, error info: %s",
+			__LINE__, filename,
 			result, STRERROR(result));
 		return result;
 	}
 
-	memset(expect_header, 0, sizeof(expect_header));
-	if (memcmp(old_header, expect_header, \
+	if (memcmp(old_header, expect_header,
 		FDFS_TRUNK_FILE_HEADER_SIZE) != 0)
 	{
 		FDFSTrunkHeader srcOldTrunkHeader;
 		FDFSTrunkHeader newOldTrunkHeader;
 
 		trunk_unpack_header(old_header, &srcOldTrunkHeader);
-		memcpy(&newOldTrunkHeader, &srcOldTrunkHeader, \
+		memcpy(&newOldTrunkHeader, &srcOldTrunkHeader,
 			sizeof(FDFSTrunkHeader));
 		newOldTrunkHeader.alloc_size = 0;
 		newOldTrunkHeader.file_size = 0;
 		newOldTrunkHeader.file_type = 0;
 		trunk_pack_header(&newOldTrunkHeader, old_header);
-		if (memcmp(old_header, expect_header, \
+		if (memcmp(old_header, expect_header,
 			FDFS_TRUNK_FILE_HEADER_SIZE) != 0)
 		{
 			char buff[256];
