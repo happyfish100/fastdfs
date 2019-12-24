@@ -659,7 +659,7 @@ int storage_write_to_sync_ini_file()
             "%s=%s\n"
             "%s=%d\n"
             "%s=%d\n"
-            "%s=%d\n"
+            "%s=%u\n"
             "%s=%d\n"
             "%s=%d\n",
             INIT_ITEM_STORAGE_JOIN_TIME, g_storage_join_time,
@@ -1107,7 +1107,7 @@ static int storage_check_and_make_data_dirs()
 			"g_last_storage_ip = %s, "
 			"g_last_server_port = %d, "
 			"g_last_http_port = %d, "
-			"g_current_trunk_file_id = %d, "
+			"g_current_trunk_file_id = %u, "
 			"g_trunk_last_compress_time = %d",
 			g_sync_old_done, g_sync_src_id, g_sync_until_timestamp,
 			g_last_storage_ip, g_last_server_port, g_last_http_port,

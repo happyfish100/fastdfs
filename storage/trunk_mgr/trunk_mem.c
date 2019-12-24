@@ -130,7 +130,7 @@ static int storage_trunk_node_compare_offset(void *p1, void *p2)
 	pTrunkInfo1 = &(((FDFSTrunkNode *)p1)->trunk);
 	pTrunkInfo2 = &(((FDFSTrunkNode *)p2)->trunk);
 
-	result = memcmp(&(pTrunkInfo1->path), &(pTrunkInfo2->path), \
+	result = memcmp(&(pTrunkInfo1->path), &(pTrunkInfo2->path),
 			sizeof(FDFSTrunkPathInfo));
 	if (result != 0)
 	{
@@ -329,8 +329,6 @@ static int64_t storage_trunk_get_binlog_size()
 	char full_filename[MAX_PATH_SIZE];
 	struct stat stat_buf;
 
-    trunk_binlog_sync_func(NULL);
-
 	get_trunk_binlog_filename(full_filename);
 	if (stat(full_filename, &stat_buf) != 0)
 	{
@@ -418,7 +416,7 @@ static int save_one_trunk(struct walk_callback_args *pCallbackArgs,
     int result;
 
     len = sprintf(pCallbackArgs->pCurrent,
-            "%d %c %d %d %d %d %d %d\n",
+            "%d %c %d %d %d %u %d %d\n",
             (int)g_current_time, TRUNK_OP_TYPE_ADD_SPACE,
             pTrunkInfo->path.store_path_index,
             pTrunkInfo->path.sub_path_high,
@@ -547,7 +545,9 @@ typedef struct trunk_merge_stat
 {
     int merge_count;
     int merged_trunk_count;
+    int deleted_file_count;
     int64_t merged_size;
+    int64_t deleted_file_size;
 } TrunkMergeStat;
 
 static void trunk_merge_spaces(FDFSTrunkFullInfo **ppMergeFirst,
@@ -613,6 +613,9 @@ static void trunk_merge_spaces(FDFSTrunkFullInfo **ppMergeFirst,
         logInfo("file: "__FILE__", line: %d, "
                 "delete unused trunk file: %s",
                 __LINE__, full_filename);
+
+        merge_stat->deleted_file_count++;
+        merge_stat->deleted_file_size += merged_size;
         trunk_delete_space_ex(*ppMergeFirst, false, false);
         *ppMergeFirst = NULL;
     } while (0);
@@ -638,7 +641,8 @@ static int trunk_save_merged_spaces(struct walk_callback_args *pCallbackArgs)
 	FDFSTrunkFullInfo **previous;
 	FDFSTrunkFullInfo **ppMergeFirst;
     TrunkMergeStat merge_stat;
-    char comma_buff[32];
+    char merged_comma_buff[32];
+    char deleted_comma_buff[32];
 	int result;
 
     if (pCallbackArgs->trunk_array.count == 0)
@@ -652,6 +656,8 @@ static int trunk_save_merged_spaces(struct walk_callback_args *pCallbackArgs)
     merge_stat.merge_count = 0;
     merge_stat.merged_trunk_count = 0;
     merge_stat.merged_size = 0;
+    merge_stat.deleted_file_count = 0;
+    merge_stat.deleted_file_size = 0;
     previous = NULL;
 
     ppEnd = pCallbackArgs->trunk_array.trunks +
@@ -697,10 +703,13 @@ static int trunk_save_merged_spaces(struct walk_callback_args *pCallbackArgs)
 
     logInfo("file: "__FILE__", line: %d, "
             "merge free trunk spaces, merge count: %d, "
-            "merged trunk count: %d, merged size: %s",
+            "merged trunk count: %d, merged size: %s, "
+            "deleted file count: %d, deleted file size: %s",
             __LINE__, merge_stat.merge_count,
             merge_stat.merged_trunk_count,
-            long_to_comma_str(merge_stat.merged_size, comma_buff));
+            long_to_comma_str(merge_stat.merged_size, merged_comma_buff),
+            merge_stat.deleted_file_count, long_to_comma_str(
+                merge_stat.deleted_file_size, deleted_comma_buff));
 
 	return 0;
 }
@@ -715,10 +724,14 @@ static int do_save_trunk_data()
 	int result;
 	int i;
 
+	pthread_mutex_lock(&trunk_mem_lock);
+    trunk_binlog_flush(false);
 	trunk_binlog_size = storage_trunk_get_binlog_size();
 	if (trunk_binlog_size < 0)
 	{
-		return errno != 0 ? errno : EPERM;
+		result = errno != 0 ? errno : EIO;
+        pthread_mutex_unlock(&trunk_mem_lock);
+		return result;
 	}
 
 	memset(&callback_args, 0, sizeof(callback_args));
@@ -736,6 +749,8 @@ static int do_save_trunk_data()
 			"errno: %d, error info: %s",
 			__LINE__, callback_args.temp_trunk_filename,
 			result, STRERROR(result));
+
+        pthread_mutex_unlock(&trunk_mem_lock);
 		return result;
 	}
 
@@ -744,7 +759,6 @@ static int do_save_trunk_data()
 	callback_args.pCurrent += len;
 
 	result = 0;
-	pthread_mutex_lock(&trunk_mem_lock);
 	for (i=0; i<g_fdfs_store_paths.count; i++)
 	{
         if (g_trunk_free_space_merge)

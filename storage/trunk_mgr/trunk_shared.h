@@ -46,7 +46,7 @@
 #define IS_TRUNK_FILE_BY_ID(trunkInfo) (trunkInfo.file.id > 0)
 
 #define TRUNK_GET_FILENAME(file_id, filename) \
-	sprintf(filename, "%06d", file_id)
+	sprintf(filename, "%06u", file_id)
 
 typedef struct
 {

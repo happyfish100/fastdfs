@@ -21,7 +21,7 @@ Chinese language: http://www.fastken.com/
 # command lines as:
 
    git clone https://github.com/happyfish100/fastdfs.git
-   cd fastdfs; git checkout V6.04
+   cd fastdfs; git checkout V6.05
    ./make.sh clean && ./make.sh && ./make.sh install
 
 

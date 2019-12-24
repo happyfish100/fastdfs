@@ -293,7 +293,7 @@ char *trunk_info_dump(const FDFSTrunkFullInfo *pTrunkInfo, char *buff, \
 		"store_path_index=%d, " \
 		"sub_path_high=%d, " \
 		"sub_path_low=%d, " \
-		"id=%d, offset=%d, size=%d, status=%d", \
+		"id=%u, offset=%d, size=%d, status=%d", \
 		pTrunkInfo->path.store_path_index, \
 		pTrunkInfo->path.sub_path_high, \
 		pTrunkInfo->path.sub_path_low,  \
@@ -382,7 +382,7 @@ void trunk_file_info_encode(const FDFSTrunkFileInfo *pTrunkFile, char *str)
 	int2buff(pTrunkFile->id, buff);
 	int2buff(pTrunkFile->offset, buff + sizeof(int));
 	int2buff(pTrunkFile->size, buff + sizeof(int) * 2);
-	base64_encode_ex(&g_fdfs_base64_context, buff, sizeof(buff), \
+	base64_encode_ex(&g_fdfs_base64_context, buff, sizeof(buff),
 			str, &len, false);
 }
 
@@ -391,7 +391,7 @@ void trunk_file_info_decode(const char *str, FDFSTrunkFileInfo *pTrunkFile)
 	char buff[FDFS_TRUNK_FILE_INFO_LEN];
 	int len;
 
-	base64_decode_auto(&g_fdfs_base64_context, str, FDFS_TRUNK_FILE_INFO_LEN, \
+	base64_decode_auto(&g_fdfs_base64_context, str, FDFS_TRUNK_FILE_INFO_LEN,
 		buff, &len);
 
 	pTrunkFile->id = buff2int(buff);
@@ -659,10 +659,13 @@ int trunk_file_do_lstat_func_ex(const FDFSStorePaths *pStorePaths, \
 	}
 	else
 	{
-		close(fd);
-		logError("file: "__FILE__", line: %d, " \
-			"Invalid file type: %d", __LINE__, \
+        /*
+		logError("file: "__FILE__", line: %d, "
+			"Invalid file type: %d", __LINE__,
 			pTrunkHeader->file_type);
+         */
+
+		close(fd);
 		return ENOENT;
 	}
 

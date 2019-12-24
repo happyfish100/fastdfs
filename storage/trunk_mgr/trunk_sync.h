@@ -61,6 +61,7 @@ int trunk_sync_thread_start_all();
 int trunk_sync_thread_start(const FDFSStorageBrief *pStorage);
 int kill_trunk_sync_threads();
 int trunk_binlog_sync_func(void *args);
+int trunk_binlog_flush(const bool bNeedLock);   //wrapper for trunk_binlog_fsync
 void trunk_waiting_sync_thread_exit();
 
 char *get_trunk_binlog_filename(char *full_filename);

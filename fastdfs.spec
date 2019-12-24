@@ -3,7 +3,7 @@
 %define FDFSClient libfdfsclient
 %define FDFSClientDevel libfdfsclient-devel
 %define FDFSTool   fastdfs-tool
-%define FDFSVersion 6.0.4
+%define FDFSVersion 6.0.5
 %define CommitVersion %(echo $COMMIT_VERSION)
 
 Name: %{FastDFS}

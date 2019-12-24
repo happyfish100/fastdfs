@@ -1331,6 +1331,13 @@ static int trunk_binlog_fsync_ex(const bool bNeedLock,
 	return write_ret;
 }
 
+int trunk_binlog_flush(const bool bNeedLock)
+{
+    return trunk_binlog_fsync_ex(bNeedLock,
+            trunk_binlog_write_cache_buff,
+            (&trunk_binlog_write_cache_len));
+}
+
 int trunk_binlog_write(const int timestamp, const char op_type, \
 		const FDFSTrunkFullInfo *pTrunk)
 {
@@ -1347,7 +1354,7 @@ int trunk_binlog_write(const int timestamp, const char op_type, \
 
 	trunk_binlog_write_cache_len += sprintf(trunk_binlog_write_cache_buff + \
 					trunk_binlog_write_cache_len, \
-					"%d %c %d %d %d %d %d %d\n", \
+					"%d %c %d %d %d %u %d %d\n", \
 					timestamp, op_type, \
 					pTrunk->path.store_path_index, \
 					pTrunk->path.sub_path_high, \
