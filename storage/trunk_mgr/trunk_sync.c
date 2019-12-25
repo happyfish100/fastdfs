@@ -593,29 +593,9 @@ static int trunk_binlog_backup_and_truncate()
 int storage_delete_trunk_data_file()
 {
 	char trunk_data_filename[MAX_PATH_SIZE];
-	int result;
 
 	storage_trunk_get_data_filename(trunk_data_filename);
-	if (unlink(trunk_data_filename) == 0)
-	{
-		return 0;
-	}
-
-	result = errno != 0 ? errno : ENOENT;
-	if (result == ENOENT)
-	{
-        result = 0;
-    }
-    else
-    {
-		logError("file: "__FILE__", line: %d, "
-			"unlink trunk data file: %s fail, "
-			"errno: %d, error info: %s",
-			__LINE__, trunk_data_filename,
-			result, STRERROR(result));
-	}
-
-	return result;
+    return fc_delete_file_ex(trunk_data_filename, "trunk data");
 }
 
 int trunk_binlog_truncate()

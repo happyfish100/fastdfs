@@ -26,6 +26,7 @@
 #include "fastcommon/pthread_func.h"
 #include "fastcommon/sched_thread.h"
 #include "fastcommon/avl_tree.h"
+#include "fastcommon/buffered_file_writer.h"
 #include "tracker_types.h"
 #include "tracker_proto.h"
 #include "storage_global.h"
@@ -148,7 +149,7 @@ static int storage_trunk_node_compare_offset(void *p1, void *p2)
 
 char *storage_trunk_get_data_filename(char *full_filename)
 {
-	snprintf(full_filename, MAX_PATH_SIZE, "%s/data/%s", \
+	snprintf(full_filename, MAX_PATH_SIZE, "%s/data/%s",
 		g_fdfs_base_path, STORAGE_TRUNK_DATA_FILENAME);
 	return full_filename;
 }
@@ -355,10 +356,7 @@ struct trunk_info_array {
 };
 
 struct walk_callback_args {
-	int fd;
-	char buff[16 * 1024];
-	char temp_trunk_filename[MAX_PATH_SIZE];
-	char *pCurrent;
+    BufferedFileWriter data_writer;
 
     struct trunk_info_array trunk_array;  //for space combine
     struct {
@@ -367,8 +365,7 @@ struct walk_callback_args {
     } stats;
 };
 
-static int trunk_alloc_trunk_array(
-        struct trunk_info_array *trunk_array)
+static int trunk_alloc_trunk_array(struct trunk_info_array *trunk_array)
 {
     int bytes;
     FDFSTrunkFullInfo **trunks;
@@ -376,7 +373,7 @@ static int trunk_alloc_trunk_array(
 
     if (trunk_array->alloc == 0)
     {
-        alloc = 64 * 1024;
+        alloc = 16 * 1024;
     }
     else
     {
@@ -409,13 +406,26 @@ static int trunk_alloc_trunk_array(
     return 0;
 }
 
-static int save_one_trunk(struct walk_callback_args *pCallbackArgs,
+static inline int trunk_merge_add_to_array(struct trunk_info_array
+        *trunk_array, FDFSTrunkFullInfo *pTrunkInfo)
+{
+    int result;
+    if (trunk_array->count >= trunk_array->alloc)
+    {
+        if ((result=trunk_alloc_trunk_array(trunk_array)) != 0)
+        {
+            return result;
+        }
+    }
+
+    trunk_array->trunks[trunk_array->count++] = pTrunkInfo;
+    return 0;
+}
+
+static inline int save_one_trunk(struct walk_callback_args *pCallbackArgs,
         FDFSTrunkFullInfo *pTrunkInfo)
 {
-    int len;
-    int result;
-
-    len = sprintf(pCallbackArgs->pCurrent,
+    return buffered_file_writer_append(&pCallbackArgs->data_writer,
             "%d %c %d %d %d %u %d %d\n",
             (int)g_current_time, TRUNK_OP_TYPE_ADD_SPACE,
             pTrunkInfo->path.store_path_index,
@@ -424,27 +434,6 @@ static int save_one_trunk(struct walk_callback_args *pCallbackArgs,
             pTrunkInfo->file.id,
             pTrunkInfo->file.offset,
             pTrunkInfo->file.size);
-    pCallbackArgs->pCurrent += len;
-    if (pCallbackArgs->pCurrent - pCallbackArgs->buff >
-            sizeof(pCallbackArgs->buff) - 128)
-    {
-        if (fc_safe_write(pCallbackArgs->fd, pCallbackArgs->buff,
-                    pCallbackArgs->pCurrent - pCallbackArgs->buff)
-                != pCallbackArgs->pCurrent - pCallbackArgs->buff)
-        {
-            result = errno != 0 ? errno : EIO;
-            logError("file: "__FILE__", line: %d, "
-                    "write to file %s fail, "
-                    "errno: %d, error info: %s", __LINE__,
-                    pCallbackArgs->temp_trunk_filename,
-                    result, STRERROR(result));
-            return result;
-        }
-
-        pCallbackArgs->pCurrent = pCallbackArgs->buff;
-    }
-
-    return 0;
 }
 
 static int tree_walk_callback_to_file(void *data, void *args)
@@ -480,17 +469,11 @@ static int tree_walk_callback_to_list(void *data, void *args)
 	pCurrent = ((FDFSTrunkSlot *)data)->head;
 	while (pCurrent != NULL)
 	{
-        if (pCallbackArgs->trunk_array.count >= pCallbackArgs->trunk_array.alloc)
+        if ((result=trunk_merge_add_to_array(&pCallbackArgs->trunk_array,
+                        &pCurrent->trunk)) != 0)
         {
-            if ((result=trunk_alloc_trunk_array(
-                            &pCallbackArgs->trunk_array)) != 0)
-            {
-                return result;
-            }
+            return result;
         }
-
-        pCallbackArgs->trunk_array.trunks[pCallbackArgs->trunk_array.
-            count++] = &pCurrent->trunk;
 
         pCallbackArgs->stats.trunk_count++;
         pCallbackArgs->stats.total_size += pCurrent->trunk.file.size;
@@ -550,11 +533,12 @@ typedef struct trunk_merge_stat
     int64_t deleted_file_size;
 } TrunkMergeStat;
 
-static void trunk_merge_spaces(FDFSTrunkFullInfo **ppMergeFirst,
+static int trunk_merge_spaces(FDFSTrunkFullInfo **ppMergeFirst,
         FDFSTrunkFullInfo **ppLast, TrunkMergeStat *merge_stat)
 {
-	FDFSTrunkFullInfo **ppTrunkInfo;
+    int result;
     int merged_size;
+	FDFSTrunkFullInfo **ppTrunkInfo;
     char full_filename[MAX_PATH_SIZE];
     struct stat file_stat;
 
@@ -564,11 +548,6 @@ static void trunk_merge_spaces(FDFSTrunkFullInfo **ppMergeFirst,
     merge_stat->merge_count++;
     merge_stat->merged_trunk_count += (ppLast - ppMergeFirst) + 1;
     merge_stat->merged_size += merged_size;
-
-    for (ppTrunkInfo=ppMergeFirst + 1; ppTrunkInfo<=ppLast; ppTrunkInfo++)
-    {
-        trunk_delete_space_ex(*ppTrunkInfo, false, false);
-    }
 
     do
     {
@@ -620,10 +599,10 @@ static void trunk_merge_spaces(FDFSTrunkFullInfo **ppMergeFirst,
         *ppMergeFirst = NULL;
     } while (0);
 
+    result = 0;
     if (*ppMergeFirst != NULL)
     {
         FDFSTrunkFullInfo trunkInfo;
-        int result;
 
         trunkInfo = **ppMergeFirst;
         trunkInfo.file.size = merged_size;
@@ -632,6 +611,13 @@ static void trunk_merge_spaces(FDFSTrunkFullInfo **ppMergeFirst,
         *ppMergeFirst = free_space_by_trunk(&trunkInfo,
                 false, false, &result);
     }
+
+    for (ppTrunkInfo=ppMergeFirst + 1; ppTrunkInfo<=ppLast; ppTrunkInfo++)
+    {
+        trunk_delete_space_ex(*ppTrunkInfo, false, false);
+    }
+
+    return result;
 }
 
 static int trunk_save_merged_spaces(struct walk_callback_args *pCallbackArgs)
@@ -725,15 +711,58 @@ static int trunk_save_merged_spaces(struct walk_callback_args *pCallbackArgs)
 	return 0;
 }
 
+static int trunk_open_file_writers(struct walk_callback_args *pCallbackArgs)
+{
+    int result;
+    char temp_trunk_filename[MAX_PATH_SIZE];
+
+    memset(pCallbackArgs, 0, sizeof(*pCallbackArgs));
+
+    snprintf(temp_trunk_filename, MAX_PATH_SIZE, "%s/data/.%s.tmp",
+            g_fdfs_base_path, STORAGE_TRUNK_DATA_FILENAME);
+    if ((result=buffered_file_writer_open(&pCallbackArgs->data_writer,
+                    temp_trunk_filename)) != 0)
+    {
+        return result;
+    }
+
+    return 0;
+}
+
+static int trunk_rename_writers_filename(struct walk_callback_args *pCallbackArgs)
+{
+    char trunk_data_filename[MAX_PATH_SIZE];
+    int result;
+
+    storage_trunk_get_data_filename(trunk_data_filename);
+    if (rename(pCallbackArgs->data_writer.filename,
+                trunk_data_filename) != 0)
+    {
+        result = errno != 0 ? errno : EIO;
+        logError("file: "__FILE__", line: %d, "
+                "rename file %s to %s fail, "
+                "errno: %d, error info: %s", __LINE__,
+                pCallbackArgs->data_writer.filename,
+                trunk_data_filename, result, STRERROR(result));
+        return result;
+    }
+
+    return 0;
+}
+
 static int do_save_trunk_data()
 {
 	int64_t trunk_binlog_size;
-	char trunk_data_filename[MAX_PATH_SIZE];
     char comma_buff[32];
 	struct walk_callback_args callback_args;
-	int len;
 	int result;
+	int close_res;
 	int i;
+
+    if ((result=trunk_open_file_writers(&callback_args)) != 0)
+    {
+        return result;
+    }
 
 	pthread_mutex_lock(&trunk_mem_lock);
     trunk_binlog_flush(false);
@@ -745,29 +774,13 @@ static int do_save_trunk_data()
 		return result;
 	}
 
-	memset(&callback_args, 0, sizeof(callback_args));
-	callback_args.pCurrent = callback_args.buff;
-
-	sprintf(callback_args.temp_trunk_filename, "%s/data/.%s.tmp",
-		g_fdfs_base_path, STORAGE_TRUNK_DATA_FILENAME);
-	callback_args.fd = open(callback_args.temp_trunk_filename,
-				O_WRONLY | O_CREAT | O_TRUNC, 0644);
-	if (callback_args.fd < 0)
-	{
-		result = errno != 0 ? errno : EIO;
-		logError("file: "__FILE__", line: %d, "
-			"open file %s fail, "
-			"errno: %d, error info: %s",
-			__LINE__, callback_args.temp_trunk_filename,
-			result, STRERROR(result));
-
+    if ((result=buffered_file_writer_append(&callback_args.data_writer,
+                    "%"PRId64"\n", trunk_binlog_size)) != 0)
+    {
         pthread_mutex_unlock(&trunk_mem_lock);
+        buffered_file_writer_close(&callback_args.data_writer);
 		return result;
-	}
-
-	len = sprintf(callback_args.pCurrent, "%"PRId64"\n",
-			trunk_binlog_size);
-	callback_args.pCurrent += len;
+    }
 
 	result = 0;
 	for (i=0; i<g_fdfs_store_paths.count; i++)
@@ -793,70 +806,32 @@ static int do_save_trunk_data()
             "free trunk stats, count: %d, size: %s",
             __LINE__, callback_args.stats.trunk_count,
             long_to_comma_str(callback_args.stats.total_size,comma_buff));
-    if (g_trunk_free_space_merge)
+    if (g_trunk_free_space_merge && result == 0)
     {
         result = trunk_save_merged_spaces(&callback_args);
-        if (callback_args.trunk_array.trunks != NULL)
-        {
-            free(callback_args.trunk_array.trunks);
-        }
     }
 
-	len = callback_args.pCurrent - callback_args.buff;
-	if (len > 0 && result == 0)
-	{
-		if (fc_safe_write(callback_args.fd, callback_args.buff, len) != len)
-		{
-			result = errno != 0 ? errno : EIO;
-			logError("file: "__FILE__", line: %d, "
-				"write to file %s fail, "
-				"errno: %d, error info: %s",
-				__LINE__, callback_args.temp_trunk_filename,
-				result, STRERROR(result));
-		}
-	}
+    close_res = buffered_file_writer_close(&callback_args.data_writer);
 
-	if (result == 0 && fsync(callback_args.fd) != 0)
-	{
-		result = errno != 0 ? errno : EIO;
-		logError("file: "__FILE__", line: %d, "
-			"fsync file %s fail, "
-			"errno: %d, error info: %s",
-			__LINE__, callback_args.temp_trunk_filename,
-			result, STRERROR(result));
-	}
-
-	if (close(callback_args.fd) != 0)
-	{
-		if (result == 0)
-		{
-			result = errno != 0 ? errno : EIO;
-		}
-		logError("file: "__FILE__", line: %d, "
-			"close file %s fail, "
-			"errno: %d, error info: %s",
-			__LINE__, callback_args.temp_trunk_filename,
-			errno, STRERROR(errno));
-	}
+	if (result == 0)
+    {
+        if (close_res != 0)
+        {
+            result = close_res;
+        }
+        else
+        {
+            result = trunk_rename_writers_filename(&callback_args);
+        }
+    }
 	pthread_mutex_unlock(&trunk_mem_lock);
 
-	if (result != 0)
-	{
-		return result;
-	}
+    if (callback_args.trunk_array.trunks != NULL)
+    {
+        free(callback_args.trunk_array.trunks);
+    }
 
-	storage_trunk_get_data_filename(trunk_data_filename);
-	if (rename(callback_args.temp_trunk_filename, trunk_data_filename) != 0)
-	{
-		result = errno != 0 ? errno : EIO;
-		logError("file: "__FILE__", line: %d, "
-			"rename file %s to %s fail, "
-			"errno: %d, error info: %s", __LINE__,
-			callback_args.temp_trunk_filename, trunk_data_filename,
-			result, STRERROR(result));
-	}
-
-	return result;
+    return result;
 }
 
 static int storage_trunk_do_save()
@@ -2174,7 +2149,7 @@ int trunk_alloc_space(const int size, FDFSTrunkFullInfo *pResult)
 		pPreviousNode = NULL;
 		pTrunkNode = pSlot->head;
 		while (pTrunkNode != NULL &&
-			pTrunkNode->trunk.status == FDFS_TRUNK_STATUS_HOLD)
+			pTrunkNode->trunk.status != FDFS_TRUNK_STATUS_FREE)
 		{
 			pPreviousNode = pTrunkNode;
 			pTrunkNode = pTrunkNode->next;
@@ -2498,16 +2473,13 @@ bool trunk_check_size(const int64_t file_size)
 	return file_size <= g_slot_max_size;
 }
 
-int trunk_file_delete(const char *trunk_filename, \
+int trunk_file_delete(const char *trunk_filename,
 		const FDFSTrunkFullInfo *pTrunkInfo)
 {
-	char pack_buff[FDFS_TRUNK_FILE_HEADER_SIZE];
-	char buff[64 * 1024];
 	int fd;
 	int write_bytes;
 	int result;
 	int remain_bytes;
-	FDFSTrunkHeader trunkHeader;
 
 	fd = open(trunk_filename, O_WRONLY);
 	if (fd < 0)
@@ -2522,27 +2494,13 @@ int trunk_file_delete(const char *trunk_filename, \
 		return result;
 	}
 
-	memset(&trunkHeader, 0, sizeof(trunkHeader));
-	trunkHeader.alloc_size = pTrunkInfo->file.size;
-	trunkHeader.file_type = FDFS_TRUNK_FILE_TYPE_NONE;
-	trunk_pack_header(&trunkHeader, pack_buff);
-
-	write_bytes = fc_safe_write(fd, pack_buff, FDFS_TRUNK_FILE_HEADER_SIZE);
-	if (write_bytes != FDFS_TRUNK_FILE_HEADER_SIZE)
-	{
-		result = errno != 0 ? errno : EIO;
-		close(fd);
-		return result;
-	}
-
-	memset(buff, 0, sizeof(buff));
 	result = 0;
-	remain_bytes = pTrunkInfo->file.size - FDFS_TRUNK_FILE_HEADER_SIZE;
+	remain_bytes = pTrunkInfo->file.size;
 	while (remain_bytes > 0)
 	{
-		write_bytes = remain_bytes > sizeof(buff) ?
-				sizeof(buff) : remain_bytes;
-		if (fc_safe_write(fd, buff, write_bytes) != write_bytes)
+		write_bytes = remain_bytes > g_zero_buffer.length ?
+				g_zero_buffer.length : remain_bytes;
+		if (fc_safe_write(fd, g_zero_buffer.buff, write_bytes) != write_bytes)
 		{
 			result = errno != 0 ? errno : EIO;
 			break;

@@ -222,7 +222,7 @@ int dio_delete_trunk_file(struct fast_task_info *pTask)
 
 	pFileContext = &(((StorageClientInfo *)pTask->arg)->file_context);
 
-	if ((result=trunk_file_delete(pFileContext->filename, \
+	if ((result=trunk_file_delete(pFileContext->filename,
 		&(pFileContext->extra_info.upload.trunk_info))) != 0)
 	{
 		pFileContext->log_callback(pTask, result);

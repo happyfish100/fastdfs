@@ -103,7 +103,11 @@ int main(int argc, char *argv[])
 	g_up_time = g_current_time;
 
 	log_init2();
-	trunk_shared_init();
+	if ((result=trunk_shared_init()) != 0)
+    {
+		log_destroy();
+		return result;
+    }
 
 	conf_filename = argv[1];
     if (!fileExists(conf_filename))

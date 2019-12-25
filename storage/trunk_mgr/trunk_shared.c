@@ -26,10 +26,23 @@
 
 FDFSStorePaths g_fdfs_store_paths = {0, NULL};
 struct base64_context g_fdfs_base64_context;
+BufferInfo g_zero_buffer = {NULL, 0, 0};
 
-void trunk_shared_init()
+int trunk_shared_init()
 {
 	base64_init_ex(&g_fdfs_base64_context, 0, '-', '_', '.');
+    g_zero_buffer.alloc_size = g_zero_buffer.length = 256 * 1024;
+    g_zero_buffer.buff = (char *)malloc(g_zero_buffer.alloc_size);
+    if (g_zero_buffer.buff == NULL)
+    {
+        logError("file: "__FILE__", line: %d, "
+                "malloc %d bytes fail", __LINE__,
+                g_zero_buffer.alloc_size);
+        return ENOMEM;
+    }
+
+    memset(g_zero_buffer.buff, 0, g_zero_buffer.length);
+    return 0;
 }
 
 FDFSStorePathInfo *storage_load_paths_from_conf_file_ex(
