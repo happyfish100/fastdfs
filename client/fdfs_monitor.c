@@ -277,32 +277,35 @@ static int list_storages(FDFSGroupStat *pGroupStat)
 	char szSyncedDelaySeconds[128];
 	char szHostname[128];
 	char szHostnamePrompt[128+8];
+    char szDiskTotalSpace[32];
+    char szDiskFreeSpace[32];
+    char szTrunkSpace[32];
 	int k;
 	int max_last_source_update;
 
-	printf( "group name = %s\n" \
-		"disk total space = %"PRId64" MB\n" \
-		"disk free space = %"PRId64" MB\n" \
-		"trunk free space = %"PRId64" MB\n" \
-		"storage server count = %d\n" \
-		"active server count = %d\n" \
-		"storage server port = %d\n" \
-		"storage HTTP port = %d\n" \
-		"store path count = %d\n" \
-		"subdir count per path = %d\n" \
-		"current write server index = %d\n" \
-		"current trunk file id = %d\n\n", \
-		pGroupStat->group_name, \
-		pGroupStat->total_mb, \
-		pGroupStat->free_mb, \
-		pGroupStat->trunk_free_mb, \
-		pGroupStat->count, \
-		pGroupStat->active_count, \
-		pGroupStat->storage_port, \
-		pGroupStat->storage_http_port, \
-		pGroupStat->store_path_count, \
-		pGroupStat->subdir_count_per_path, \
-		pGroupStat->current_write_server, \
+	printf( "group name = %s\n"
+		"disk total space = %s MB\n"
+		"disk free space = %s MB\n"
+		"trunk free space = %s MB\n"
+		"storage server count = %d\n"
+		"active server count = %d\n"
+		"storage server port = %d\n"
+		"storage HTTP port = %d\n"
+		"store path count = %d\n"
+		"subdir count per path = %d\n"
+		"current write server index = %d\n"
+		"current trunk file id = %d\n\n",
+		pGroupStat->group_name,
+		long_to_comma_str(pGroupStat->total_mb, szDiskTotalSpace),
+		long_to_comma_str(pGroupStat->free_mb, szDiskFreeSpace),
+		long_to_comma_str(pGroupStat->trunk_free_mb, szTrunkSpace),
+		pGroupStat->count,
+		pGroupStat->active_count,
+		pGroupStat->storage_port,
+		pGroupStat->storage_http_port,
+		pGroupStat->store_path_count,
+		pGroupStat->subdir_count_per_path,
+		pGroupStat->current_write_server,
 		pGroupStat->current_trunk_file_id
 	);
 
@@ -411,138 +414,138 @@ static int list_storages(FDFSGroupStat *pGroupStat)
 			*szUpTime = '\0';
 		}
 
-		printf( "\tStorage %d:\n" \
-			"\t\tid = %s\n" \
-			"\t\tip_addr = %s%s  %s\n" \
-			"\t\thttp domain = %s\n" \
-			"\t\tversion = %s\n" \
-			"\t\tjoin time = %s\n" \
-			"\t\tup time = %s\n" \
-			"\t\ttotal storage = %d MB\n" \
-			"\t\tfree storage = %d MB\n" \
-			"\t\tupload priority = %d\n" \
-			"\t\tstore_path_count = %d\n" \
-			"\t\tsubdir_count_per_path = %d\n" \
-			"\t\tstorage_port = %d\n" \
-			"\t\tstorage_http_port = %d\n" \
-			"\t\tcurrent_write_path = %d\n" \
-			"\t\tsource storage id = %s\n" \
-			"\t\tif_trunk_server = %d\n" \
-			"\t\tconnection.alloc_count = %d\n"   \
-			"\t\tconnection.current_count = %d\n"   \
-			"\t\tconnection.max_count = %d\n"   \
-			"\t\ttotal_upload_count = %"PRId64"\n"   \
-			"\t\tsuccess_upload_count = %"PRId64"\n" \
-			"\t\ttotal_append_count = %"PRId64"\n"   \
-			"\t\tsuccess_append_count = %"PRId64"\n" \
-			"\t\ttotal_modify_count = %"PRId64"\n"   \
-			"\t\tsuccess_modify_count = %"PRId64"\n" \
-			"\t\ttotal_truncate_count = %"PRId64"\n"   \
-			"\t\tsuccess_truncate_count = %"PRId64"\n" \
-			"\t\ttotal_set_meta_count = %"PRId64"\n" \
-			"\t\tsuccess_set_meta_count = %"PRId64"\n" \
-			"\t\ttotal_delete_count = %"PRId64"\n" \
-			"\t\tsuccess_delete_count = %"PRId64"\n" \
-			"\t\ttotal_download_count = %"PRId64"\n" \
-			"\t\tsuccess_download_count = %"PRId64"\n" \
-			"\t\ttotal_get_meta_count = %"PRId64"\n" \
-			"\t\tsuccess_get_meta_count = %"PRId64"\n" \
-			"\t\ttotal_create_link_count = %"PRId64"\n" \
-			"\t\tsuccess_create_link_count = %"PRId64"\n"\
-			"\t\ttotal_delete_link_count = %"PRId64"\n" \
-			"\t\tsuccess_delete_link_count = %"PRId64"\n" \
-			"\t\ttotal_upload_bytes = %"PRId64"\n" \
-			"\t\tsuccess_upload_bytes = %"PRId64"\n" \
-			"\t\ttotal_append_bytes = %"PRId64"\n" \
-			"\t\tsuccess_append_bytes = %"PRId64"\n" \
-			"\t\ttotal_modify_bytes = %"PRId64"\n" \
-			"\t\tsuccess_modify_bytes = %"PRId64"\n" \
-			"\t\tstotal_download_bytes = %"PRId64"\n" \
-			"\t\tsuccess_download_bytes = %"PRId64"\n" \
-			"\t\ttotal_sync_in_bytes = %"PRId64"\n" \
-			"\t\tsuccess_sync_in_bytes = %"PRId64"\n" \
-			"\t\ttotal_sync_out_bytes = %"PRId64"\n" \
-			"\t\tsuccess_sync_out_bytes = %"PRId64"\n" \
-			"\t\ttotal_file_open_count = %"PRId64"\n" \
-			"\t\tsuccess_file_open_count = %"PRId64"\n" \
-			"\t\ttotal_file_read_count = %"PRId64"\n" \
-			"\t\tsuccess_file_read_count = %"PRId64"\n" \
-			"\t\ttotal_file_write_count = %"PRId64"\n" \
-			"\t\tsuccess_file_write_count = %"PRId64"\n" \
-			"\t\tlast_heart_beat_time = %s\n" \
-			"\t\tlast_source_update = %s\n" \
-			"\t\tlast_sync_update = %s\n"   \
-			"\t\tlast_synced_timestamp = %s %s\n",  \
-			++k, pStorage->id, pStorage->ip_addr, \
-			szHostnamePrompt, get_storage_status_caption( \
-			    pStorage->status), pStorage->domain_name, \
-			pStorage->version,  \
-			formatDatetime(pStorage->join_time, \
-				"%Y-%m-%d %H:%M:%S", \
-				szJoinTime, sizeof(szJoinTime)), \
-			szUpTime, pStorage->total_mb, \
-			pStorage->free_mb,  \
-			pStorage->upload_priority,  \
-			pStorage->store_path_count,  \
-			pStorage->subdir_count_per_path,  \
-			pStorage->storage_port,  \
-			pStorage->storage_http_port,  \
-			pStorage->current_write_path,  \
-			pStorage->src_id,  \
-			pStorage->if_trunk_server,  \
-			pStorageStat->connection.alloc_count, \
-			pStorageStat->connection.current_count, \
-			pStorageStat->connection.max_count, \
-			pStorageStat->total_upload_count, \
-			pStorageStat->success_upload_count, \
-			pStorageStat->total_append_count, \
-			pStorageStat->success_append_count, \
-			pStorageStat->total_modify_count, \
-			pStorageStat->success_modify_count, \
-			pStorageStat->total_truncate_count, \
-			pStorageStat->success_truncate_count, \
-			pStorageStat->total_set_meta_count, \
-			pStorageStat->success_set_meta_count, \
-			pStorageStat->total_delete_count, \
-			pStorageStat->success_delete_count, \
-			pStorageStat->total_download_count, \
-			pStorageStat->success_download_count, \
-			pStorageStat->total_get_meta_count, \
-			pStorageStat->success_get_meta_count, \
-			pStorageStat->total_create_link_count, \
-			pStorageStat->success_create_link_count, \
-			pStorageStat->total_delete_link_count, \
-			pStorageStat->success_delete_link_count, \
-			pStorageStat->total_upload_bytes, \
-			pStorageStat->success_upload_bytes, \
-			pStorageStat->total_append_bytes, \
-			pStorageStat->success_append_bytes, \
-			pStorageStat->total_modify_bytes, \
-			pStorageStat->success_modify_bytes, \
-			pStorageStat->total_download_bytes, \
-			pStorageStat->success_download_bytes, \
-			pStorageStat->total_sync_in_bytes, \
-			pStorageStat->success_sync_in_bytes, \
-			pStorageStat->total_sync_out_bytes, \
-			pStorageStat->success_sync_out_bytes, \
-			pStorageStat->total_file_open_count, \
-			pStorageStat->success_file_open_count, \
-			pStorageStat->total_file_read_count, \
-			pStorageStat->success_file_read_count, \
-			pStorageStat->total_file_write_count, \
-			pStorageStat->success_file_write_count, \
-			formatDatetime(pStorageStat->last_heart_beat_time, \
-				"%Y-%m-%d %H:%M:%S", \
-				szLastHeartBeatTime, sizeof(szLastHeartBeatTime)), \
-			formatDatetime(pStorageStat->last_source_update, \
-				"%Y-%m-%d %H:%M:%S", \
-				szSrcUpdTime, sizeof(szSrcUpdTime)), \
-			formatDatetime(pStorageStat->last_sync_update, \
-				"%Y-%m-%d %H:%M:%S", \
-				szSyncUpdTime, sizeof(szSyncUpdTime)), \
-			formatDatetime(pStorageStat->last_synced_timestamp, \
-				"%Y-%m-%d %H:%M:%S", \
-				szSyncedTimestamp, sizeof(szSyncedTimestamp)),\
+		printf( "\tStorage %d:\n"
+			"\t\tid = %s\n"
+			"\t\tip_addr = %s%s  %s\n"
+			"\t\thttp domain = %s\n"
+			"\t\tversion = %s\n"
+			"\t\tjoin time = %s\n"
+			"\t\tup time = %s\n"
+			"\t\ttotal storage = %s MB\n"
+			"\t\tfree storage = %s MB\n"
+			"\t\tupload priority = %d\n"
+			"\t\tstore_path_count = %d\n"
+			"\t\tsubdir_count_per_path = %d\n"
+			"\t\tstorage_port = %d\n"
+			"\t\tstorage_http_port = %d\n"
+			"\t\tcurrent_write_path = %d\n"
+			"\t\tsource storage id = %s\n"
+			"\t\tif_trunk_server = %d\n"
+			"\t\tconnection.alloc_count = %d\n"
+			"\t\tconnection.current_count = %d\n"
+			"\t\tconnection.max_count = %d\n"
+			"\t\ttotal_upload_count = %"PRId64"\n"
+			"\t\tsuccess_upload_count = %"PRId64"\n"
+			"\t\ttotal_append_count = %"PRId64"\n"
+			"\t\tsuccess_append_count = %"PRId64"\n"
+			"\t\ttotal_modify_count = %"PRId64"\n"
+			"\t\tsuccess_modify_count = %"PRId64"\n"
+			"\t\ttotal_truncate_count = %"PRId64"\n"
+			"\t\tsuccess_truncate_count = %"PRId64"\n"
+			"\t\ttotal_set_meta_count = %"PRId64"\n"
+			"\t\tsuccess_set_meta_count = %"PRId64"\n"
+			"\t\ttotal_delete_count = %"PRId64"\n"
+			"\t\tsuccess_delete_count = %"PRId64"\n"
+			"\t\ttotal_download_count = %"PRId64"\n"
+			"\t\tsuccess_download_count = %"PRId64"\n"
+			"\t\ttotal_get_meta_count = %"PRId64"\n"
+			"\t\tsuccess_get_meta_count = %"PRId64"\n"
+			"\t\ttotal_create_link_count = %"PRId64"\n"
+			"\t\tsuccess_create_link_count = %"PRId64"\n"
+			"\t\ttotal_delete_link_count = %"PRId64"\n"
+			"\t\tsuccess_delete_link_count = %"PRId64"\n"
+			"\t\ttotal_upload_bytes = %"PRId64"\n"
+			"\t\tsuccess_upload_bytes = %"PRId64"\n"
+			"\t\ttotal_append_bytes = %"PRId64"\n"
+			"\t\tsuccess_append_bytes = %"PRId64"\n"
+			"\t\ttotal_modify_bytes = %"PRId64"\n"
+			"\t\tsuccess_modify_bytes = %"PRId64"\n"
+			"\t\tstotal_download_bytes = %"PRId64"\n"
+			"\t\tsuccess_download_bytes = %"PRId64"\n"
+			"\t\ttotal_sync_in_bytes = %"PRId64"\n"
+			"\t\tsuccess_sync_in_bytes = %"PRId64"\n"
+			"\t\ttotal_sync_out_bytes = %"PRId64"\n"
+			"\t\tsuccess_sync_out_bytes = %"PRId64"\n"
+			"\t\ttotal_file_open_count = %"PRId64"\n"
+			"\t\tsuccess_file_open_count = %"PRId64"\n"
+			"\t\ttotal_file_read_count = %"PRId64"\n"
+			"\t\tsuccess_file_read_count = %"PRId64"\n"
+			"\t\ttotal_file_write_count = %"PRId64"\n"
+			"\t\tsuccess_file_write_count = %"PRId64"\n"
+			"\t\tlast_heart_beat_time = %s\n"
+			"\t\tlast_source_update = %s\n"
+			"\t\tlast_sync_update = %s\n"
+			"\t\tlast_synced_timestamp = %s %s\n",
+			++k, pStorage->id, pStorage->ip_addr,
+			szHostnamePrompt, get_storage_status_caption(
+			    pStorage->status), pStorage->domain_name,
+			pStorage->version,
+			formatDatetime(pStorage->join_time,
+				"%Y-%m-%d %H:%M:%S",
+				szJoinTime, sizeof(szJoinTime)), szUpTime,
+            long_to_comma_str(pStorage->total_mb, szDiskTotalSpace),
+            long_to_comma_str(pStorage->free_mb, szDiskFreeSpace),
+			pStorage->upload_priority,
+			pStorage->store_path_count,
+			pStorage->subdir_count_per_path,
+			pStorage->storage_port,
+			pStorage->storage_http_port,
+			pStorage->current_write_path,
+			pStorage->src_id,
+			pStorage->if_trunk_server,
+			pStorageStat->connection.alloc_count,
+			pStorageStat->connection.current_count,
+			pStorageStat->connection.max_count,
+			pStorageStat->total_upload_count,
+			pStorageStat->success_upload_count,
+			pStorageStat->total_append_count,
+			pStorageStat->success_append_count,
+			pStorageStat->total_modify_count,
+			pStorageStat->success_modify_count,
+			pStorageStat->total_truncate_count,
+			pStorageStat->success_truncate_count,
+			pStorageStat->total_set_meta_count,
+			pStorageStat->success_set_meta_count,
+			pStorageStat->total_delete_count,
+			pStorageStat->success_delete_count,
+			pStorageStat->total_download_count,
+			pStorageStat->success_download_count,
+			pStorageStat->total_get_meta_count,
+			pStorageStat->success_get_meta_count,
+			pStorageStat->total_create_link_count,
+			pStorageStat->success_create_link_count,
+			pStorageStat->total_delete_link_count,
+			pStorageStat->success_delete_link_count,
+			pStorageStat->total_upload_bytes,
+			pStorageStat->success_upload_bytes,
+			pStorageStat->total_append_bytes,
+			pStorageStat->success_append_bytes,
+			pStorageStat->total_modify_bytes,
+			pStorageStat->success_modify_bytes,
+			pStorageStat->total_download_bytes,
+			pStorageStat->success_download_bytes,
+			pStorageStat->total_sync_in_bytes,
+			pStorageStat->success_sync_in_bytes,
+			pStorageStat->total_sync_out_bytes,
+			pStorageStat->success_sync_out_bytes,
+			pStorageStat->total_file_open_count,
+			pStorageStat->success_file_open_count,
+			pStorageStat->total_file_read_count,
+			pStorageStat->success_file_read_count,
+			pStorageStat->total_file_write_count,
+			pStorageStat->success_file_write_count,
+			formatDatetime(pStorageStat->last_heart_beat_time,
+				"%Y-%m-%d %H:%M:%S",
+				szLastHeartBeatTime, sizeof(szLastHeartBeatTime)),
+			formatDatetime(pStorageStat->last_source_update,
+				"%Y-%m-%d %H:%M:%S",
+				szSrcUpdTime, sizeof(szSrcUpdTime)),
+			formatDatetime(pStorageStat->last_sync_update,
+				"%Y-%m-%d %H:%M:%S",
+				szSyncUpdTime, sizeof(szSyncUpdTime)),
+			formatDatetime(pStorageStat->last_synced_timestamp,
+				"%Y-%m-%d %H:%M:%S",
+				szSyncedTimestamp, sizeof(szSyncedTimestamp)),
 			szSyncedDelaySeconds);
 	}
 
