@@ -1,5 +1,5 @@
 
-Version 6.05  2019-12-24
+Version 6.05  2019-12-25
  * fdfs_trackerd and fdfs_storaged print the server version in usage.
    you can execute fdfs_trackerd or fdfs_storaged without parameters
    to show the server version
@@ -21,6 +21,10 @@ Version 6.05  2019-12-24
 
  * support delete unused trunk files
    the config item in tracker.conf: delete_unused_trunk_files
+
+ * fdfs_monitor.c: do NOT call getHostnameByIp
+
+  NOTE: you MUST upgrade libfastcommon to V1.43 or later
 
 
 Version 6.04  2019-12-05

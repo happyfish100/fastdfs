@@ -549,6 +549,11 @@ static int trunk_merge_spaces(FDFSTrunkFullInfo **ppMergeFirst,
     merge_stat->merged_trunk_count += (ppLast - ppMergeFirst) + 1;
     merge_stat->merged_size += merged_size;
 
+    for (ppTrunkInfo=ppMergeFirst + 1; ppTrunkInfo<=ppLast; ppTrunkInfo++)
+    {
+        trunk_delete_space_ex(*ppTrunkInfo, false, false);
+    }
+
     do
     {
         if (!g_delete_unused_trunk_files)
@@ -610,11 +615,6 @@ static int trunk_merge_spaces(FDFSTrunkFullInfo **ppMergeFirst,
         trunk_delete_space_ex(*ppMergeFirst, false, false);
         *ppMergeFirst = free_space_by_trunk(&trunkInfo,
                 false, false, &result);
-    }
-
-    for (ppTrunkInfo=ppMergeFirst + 1; ppTrunkInfo<=ppLast; ppTrunkInfo++)
-    {
-        trunk_delete_space_ex(*ppTrunkInfo, false, false);
     }
 
     return result;

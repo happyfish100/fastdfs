@@ -389,7 +389,8 @@ static int list_storages(FDFSGroupStat *pGroupStat)
 			}
 		}
 
-		getHostnameByIp(pStorage->ip_addr, szHostname, sizeof(szHostname));
+		//getHostnameByIp(pStorage->ip_addr, szHostname, sizeof(szHostname));
+        *szHostname = '\0';
 		if (*szHostname != '\0')
 		{
 			sprintf(szHostnamePrompt, " (%s)", szHostname);
