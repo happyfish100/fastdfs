@@ -444,8 +444,10 @@ static void client_sock_write(int sock, short event, void *arg)
 
 	if (event & IOEVENT_TIMEOUT)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"send timeout", __LINE__);
+		logError("file: "__FILE__", line: %d, "
+			"client ip: %s, send timeout, offset: %d, "
+            "remain bytes: %d", __LINE__, pTask->client_ip,
+            pTask->offset, pTask->length - pTask->offset);
 
 		task_finish_clean_up(pTask);
 		return;
@@ -453,7 +455,7 @@ static void client_sock_write(int sock, short event, void *arg)
 
 	if (event & IOEVENT_ERROR)
 	{
-		logDebug("file: "__FILE__", line: %d, " \
+		logDebug("file: "__FILE__", line: %d, "
 			"client ip: %s, recv error event: %d, "
 			"close connection", __LINE__, pTask->client_ip, event);
 
