@@ -2997,7 +2997,10 @@ static void* storage_sync_thread_entrance(void* arg)
 			continue;
 		}
 
-		if ((result=storage_reader_init(pStorage, pReader)) != 0)
+        storage_reader_remove_from_list(pReader);
+        result = storage_reader_init(pStorage, pReader);
+        storage_reader_add_to_list(pReader);
+		if (result != 0)
 		{
 			logCrit("file: "__FILE__", line: %d, " \
 				"storage_reader_init fail, errno=%d, " \

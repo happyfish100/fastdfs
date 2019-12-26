@@ -325,7 +325,6 @@ int main(int argc, char *argv[])
 	tracker_report_destroy();
 	storage_service_destroy();
 	storage_sync_destroy();
-	storage_func_destroy();
 
 	if (g_if_use_trunk_file)
 	{
@@ -333,6 +332,7 @@ int main(int argc, char *argv[])
 		storage_trunk_destroy();
 	}
 
+	storage_func_destroy();
 	delete_pid_file(pidFilename);
 	logInfo("exit normally.\n");
 	log_destroy();
