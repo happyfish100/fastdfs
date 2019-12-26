@@ -381,7 +381,7 @@ static int trunk_alloc_trunk_array(struct trunk_info_array *trunk_array)
 
     if (trunk_array->alloc == 0)
     {
-        alloc = 16 * 1024;
+        alloc = 64 * 1024;
     }
     else
     {
