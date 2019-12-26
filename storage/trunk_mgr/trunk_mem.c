@@ -286,7 +286,7 @@ int storage_trunk_destroy_ex(const bool bNeedSleep,
 
 	if (trunk_init_flag != STORAGE_TRUNK_INIT_FLAG_DONE)
 	{
-		logWarning("file: "__FILE__", line: %d, " \
+		logWarning("file: "__FILE__", line: %d, "
 			"trunk not inited!", __LINE__);
 		return 0;
 	}
@@ -297,11 +297,19 @@ int storage_trunk_destroy_ex(const bool bNeedSleep,
 		sleep(1);
 	}
 
-	logDebug("file: "__FILE__", line: %d, " \
+	logDebug("file: "__FILE__", line: %d, "
 		"storage trunk destroy", __LINE__);
     if (bSaveData)
     {
-        result = storage_trunk_save();
+        if (g_current_time - g_up_time >= 3600 &&
+                g_trunk_compress_binlog_interval == 0)
+        {
+            result = storage_trunk_save();
+        }
+        else
+        {
+            result = 0;
+        }
     }
     else
     {
@@ -1062,7 +1070,7 @@ static int storage_trunk_save()
 	if (!(g_trunk_compress_binlog_min_interval > 0 &&
 		g_current_time - g_trunk_last_compress_time >
 		g_trunk_compress_binlog_min_interval))
-	{
+    {
         if (__sync_add_and_fetch(&trunk_binlog_compress_in_progress, 0) == 0)
         {
             return storage_trunk_do_save();
@@ -1075,7 +1083,7 @@ static int storage_trunk_save()
                     __LINE__, trunk_binlog_compress_in_progress);
             return 0;
         }
-	}
+    }
     
     if ((result=storage_trunk_compress()) == 0)
     {
@@ -1262,9 +1270,9 @@ static int storage_trunk_restore(const int64_t restore_offset)
 
 	if (restore_offset > trunk_binlog_size)
 	{
-		logWarning("file: "__FILE__", line: %d, " \
-			"restore_offset: %"PRId64 \
-			" > trunk_binlog_size: %"PRId64, \
+		logWarning("file: "__FILE__", line: %d, "
+			"restore_offset: %"PRId64
+			" > trunk_binlog_size: %"PRId64,
 			__LINE__, restore_offset, trunk_binlog_size);
 		return storage_trunk_save();
 	}
@@ -1485,7 +1493,11 @@ static int storage_trunk_restore(const int64_t restore_offset)
 			"%"PRId64", recovery file size: "
 			"%"PRId64, __LINE__,
 			restore_offset, trunk_binlog_size - restore_offset);
-		return storage_trunk_save();
+
+        if (g_trunk_compress_binlog_interval == 0)
+        {
+            return storage_trunk_save();
+        }
 	}
 
 	return result;
@@ -1495,7 +1507,7 @@ static int storage_trunk_load()
 {
 #define TRUNK_DATA_NEW_FIELD_COUNT  8  // >= v5.01
 #define TRUNK_DATA_OLD_FIELD_COUNT  6  // < V5.01
-#define TRUNK_LINE_MAX_LENGHT  64
+#define TRUNK_LINE_MAX_LENGTH  64
 
 	int64_t restore_offset;
 	char trunk_data_filename[MAX_PATH_SIZE];
@@ -1589,24 +1601,24 @@ static int storage_trunk_load()
 			}
 
 			len = strlen(pLineStart);
-			if (len > TRUNK_LINE_MAX_LENGHT)
+			if (len > TRUNK_LINE_MAX_LENGTH)
 			{
-				logError("file: "__FILE__", line: %d, " \
-					"file %s, line length: %d too long", \
+				logError("file: "__FILE__", line: %d, "
+					"file %s, line length: %d too long",
 					__LINE__, trunk_data_filename, len);
 				close(fd);
 				return EINVAL;
 			}
 
 			memcpy(buff, pLineStart, len);
-			if ((bytes=fc_safe_read(fd, buff + len, sizeof(buff) \
+			if ((bytes=fc_safe_read(fd, buff + len, sizeof(buff)
 					- len - 1)) < 0)
 			{
 				result = errno != 0 ? errno : EIO;
-				logError("file: "__FILE__", line: %d, " \
-					"read from file %s fail, " \
-					"errno: %d, error info: %s", \
-					__LINE__, trunk_data_filename, \
+				logError("file: "__FILE__", line: %d, "
+					"read from file %s fail, "
+					"errno: %d, error info: %s",
+					__LINE__, trunk_data_filename,
 					result, STRERROR(result));
 				close(fd);
 				return result;
@@ -1615,9 +1627,9 @@ static int storage_trunk_load()
 			if (bytes == 0)
 			{
 				result = ENOENT;
-				logError("file: "__FILE__", line: %d, " \
-					"file: %s, end of file, expect " \
-					"end line", __LINE__, \
+				logError("file: "__FILE__", line: %d, "
+					"file: %s, end of file, expect "
+					"end line", __LINE__,
 					trunk_data_filename);
 				close(fd);
 				return result;
@@ -1633,11 +1645,11 @@ static int storage_trunk_load()
 		*pLineEnd = '\0';
 		col_count = splitEx(pLineStart, ' ', cols,
 				TRUNK_DATA_NEW_FIELD_COUNT);
-		if (col_count != TRUNK_DATA_NEW_FIELD_COUNT && \
+		if (col_count != TRUNK_DATA_NEW_FIELD_COUNT &&
 			col_count != TRUNK_DATA_OLD_FIELD_COUNT)
 		{
-			logError("file: "__FILE__", line: %d, " \
-				"file %s, line: %d is invalid", \
+			logError("file: "__FILE__", line: %d, "
+				"file %s, line: %d is invalid",
 				__LINE__, trunk_data_filename, line_count);
 			close(fd);
 			return EINVAL;
@@ -1670,14 +1682,14 @@ static int storage_trunk_load()
 
 	if (*pLineStart != '\0')
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"file %s does not end correctly", \
+		logError("file: "__FILE__", line: %d, "
+			"file %s does not end correctly",
 			__LINE__, trunk_data_filename);
 		return EINVAL;
 	}
 
-	logDebug("file: "__FILE__", line: %d, " \
-		"file %s, line count: %d", \
+	logDebug("file: "__FILE__", line: %d, "
+		"file %s, line count: %d",
 		__LINE__, trunk_data_filename, line_count);
 
 	return storage_trunk_restore(restore_offset);
