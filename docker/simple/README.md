@@ -1,8 +1,10 @@
-# FastDFS Dockerfile network (网络版本)
+# FastDFS Docker Simple
 
 ## 声明
 其实并没什么区别 教程是在上一位huayanYu(小锅盖)和 Wiki的作者 的基础上进行了一些修改，本质上还是huayanYu(小锅盖) 和 Wiki 上的作者写的教程
 
+## 概述
+适用于开发环境的 轻量级 Docker 镜像
 
 ## 目录介绍
 ### conf 
