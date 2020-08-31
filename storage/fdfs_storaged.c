@@ -86,6 +86,7 @@ static void usage(const char *program)
 int main(int argc, char *argv[])
 {
 	char *conf_filename;
+    char *action;
 	int result;
 	int sock;
 	int wait_count;
@@ -132,7 +133,8 @@ int main(int argc, char *argv[])
     }
 	snprintf(pidFilename, sizeof(pidFilename),
 		"%s/data/fdfs_storaged.pid", g_fdfs_base_path);
-	if ((result=process_action(pidFilename, argv[2], &stop)) != 0)
+    action = argc >= 3 ? argv[2] : "start";
+	if ((result=process_action(pidFilename, action, &stop)) != 0)
 	{
 		if (result == EINVAL)
 		{

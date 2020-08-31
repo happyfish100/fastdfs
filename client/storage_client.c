@@ -794,22 +794,16 @@ int storage_do_upload_file1(ConnectionInfo *pTrackerServer, \
 STORAGE_PROTO_CMD_UPLOAD_FILE and
 STORAGE_PROTO_CMD_UPLOAD_APPENDER_FILE:
 1 byte: store path index
-8 bytes: meta data bytes
 8 bytes: file size
 FDFS_FILE_EXT_NAME_MAX_LEN bytes: file ext name
-meta data bytes: each meta data seperated by \x01,
-                 name and value seperated by \x02
 file size bytes: file content
 
 STORAGE_PROTO_CMD_UPLOAD_SLAVE_FILE:
 8 bytes: master filename length
-8 bytes: meta data bytes
 8 bytes: file size
 FDFS_FILE_PREFIX_MAX_LEN bytes  : filename prefix
 FDFS_FILE_EXT_NAME_MAX_LEN bytes: file ext name, do not include dot (.)
 master filename bytes: master filename
-meta data bytes: each meta data seperated by \x01,
-                 name and value seperated by \x02
 file size bytes: file content
 **/
 int storage_do_upload_file(ConnectionInfo *pTrackerServer, \
