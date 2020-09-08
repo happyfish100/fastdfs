@@ -24,6 +24,7 @@
 #include "fastcommon/pthread_func.h"
 #include "fastcommon/logger.h"
 #include "fastcommon/sockopt.h"
+#include "fastcommon/ioevent_loop.h"
 #include "storage_dio.h"
 #include "storage_nio.h"
 #include "storage_service.h"
@@ -156,7 +157,7 @@ int storage_dio_queue_push(struct fast_task_info *pTask)
 	pClientInfo->stage |= FDFS_STORAGE_STAGE_DIO_THREAD;
 	if ((result=blocked_queue_push(&(pContext->queue), pTask)) != 0)
 	{
-		add_to_deleted_list(pTask);
+		iovent_add_to_deleted_list(pTask);
 		return result;
 	}
 

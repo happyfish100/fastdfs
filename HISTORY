@@ -1,4 +1,8 @@
 
+Version 6.07  2020-09-08
+ * use libfastcommon V1.44
+   NOTE: you MUST upgrade libfastcommon to V1.44 or later
+
 Version 6.06  2019-12-30
  * bugfixed: fdfs_storaged can't quit normally
  * bugfixed: init/memset return ip address to ascii 0 for Java SDK

@@ -38,13 +38,6 @@ static void client_sock_read(int sock, short event, void *arg);
 static void client_sock_write(int sock, short event, void *arg);
 static int storage_nio_init(struct fast_task_info *pTask);
 
-void add_to_deleted_list(struct fast_task_info *pTask)
-{
-	((StorageClientInfo *)pTask->arg)->canceled = true;
-	pTask->next = pTask->thread_data->deleted_list;
-	pTask->thread_data->deleted_list = pTask;
-}
-
 void task_finish_clean_up(struct fast_task_info *pTask)
 {
 	StorageClientInfo *pClientInfo;
@@ -66,6 +59,7 @@ void task_finish_clean_up(struct fast_task_info *pTask)
 		pTask->event.timer.expires = 0;
 	}
 
+    pTask->canceled = false;
 	memset(pTask->arg, 0, sizeof(StorageClientInfo));
 	free_queue_push(pTask);
 
@@ -87,7 +81,7 @@ static int set_recv_event(struct fast_task_info *pTask)
 		pTask->event.fd, IOEVENT_READ, pTask) != 0)
 	{
 		result = errno != 0 ? errno : ENOENT;
-		add_to_deleted_list(pTask);
+		iovent_add_to_deleted_list(pTask);
 
 		logError("file: "__FILE__", line: %d, "\
 			"ioevent_modify fail, " \
@@ -112,7 +106,7 @@ static int set_send_event(struct fast_task_info *pTask)
 		pTask->event.fd, IOEVENT_WRITE, pTask) != 0)
 	{
 		result = errno != 0 ? errno : ENOENT;
-		add_to_deleted_list(pTask);
+		iovent_add_to_deleted_list(pTask);
 
 		logError("file: "__FILE__", line: %d, "\
 			"ioevent_modify fail, " \
@@ -210,7 +204,7 @@ void storage_recv_notify_read(int sock, short event, void *arg)
 
 		if (result != 0)
 		{
-			add_to_deleted_list(pTask);
+			iovent_add_to_deleted_list(pTask);
 		}
 	}
 }
@@ -248,7 +242,7 @@ static void client_sock_read(int sock, short event, void *arg)
 
 	pTask = (struct fast_task_info *)arg;
         pClientInfo = (StorageClientInfo *)pTask->arg;
-	if (pClientInfo->canceled)
+	if (pTask->canceled)
 	{
 		return;
 	}
@@ -437,7 +431,7 @@ static void client_sock_write(int sock, short event, void *arg)
 
 	pTask = (struct fast_task_info *)arg;
         pClientInfo = (StorageClientInfo *)pTask->arg;
-	if (pClientInfo->canceled)
+	if (pTask->canceled)
 	{
 		return;
 	}

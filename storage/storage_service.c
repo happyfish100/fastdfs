@@ -8434,7 +8434,7 @@ int storage_deal_task(struct fast_task_info *pTask)
 			result = storage_server_fetch_one_path_binlog(pTask);
 			break;
 		case FDFS_PROTO_CMD_QUIT:
-			add_to_deleted_list(pTask);
+			iovent_add_to_deleted_list(pTask);
 			return 0;
 		case FDFS_PROTO_CMD_ACTIVE_TEST:
 			result = storage_deal_active_test(pTask);

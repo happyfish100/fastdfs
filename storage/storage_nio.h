@@ -121,7 +121,6 @@ typedef struct
 typedef struct
 {
 	int nio_thread_index;  //nio thread index
-	bool canceled;
 	char stage;  //nio stage, send or recv
 	char storage_server_id[FDFS_STORAGE_ID_MAX_SIZE];
 
@@ -152,7 +151,6 @@ void storage_recv_notify_read(int sock, short event, void *arg);
 int storage_send_add_event(struct fast_task_info *pTask);
 
 void task_finish_clean_up(struct fast_task_info *pTask);
-void add_to_deleted_list(struct fast_task_info *pTask);
 
 #ifdef __cplusplus
 }

@@ -84,8 +84,8 @@ void storage_sync_connect_storage_server_ex(const FDFSStorageBrief *pStorage,
         {
             strcpy(conn->ip_addr, ip_addrs.ips[i].address);
             conn->sock = socketCreateExAuto(conn->ip_addr,
-                    g_fdfs_connect_timeout, O_NONBLOCK,
-                    g_client_bind_addr ? g_bind_addr : NULL, &result);
+                    O_NONBLOCK, g_client_bind_addr ?
+                    g_bind_addr : NULL, &result);
             if (conn->sock < 0)
             {
                 logCrit("file: "__FILE__", line: %d, "
