@@ -157,7 +157,7 @@ int storage_dio_queue_push(struct fast_task_info *pTask)
 	pClientInfo->stage |= FDFS_STORAGE_STAGE_DIO_THREAD;
 	if ((result=blocked_queue_push(&(pContext->queue), pTask)) != 0)
 	{
-		iovent_add_to_deleted_list(pTask);
+		ioevent_add_to_deleted_list(pTask);
 		return result;
 	}
 

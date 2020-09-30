@@ -81,7 +81,7 @@ static int set_recv_event(struct fast_task_info *pTask)
 		pTask->event.fd, IOEVENT_READ, pTask) != 0)
 	{
 		result = errno != 0 ? errno : ENOENT;
-		iovent_add_to_deleted_list(pTask);
+		ioevent_add_to_deleted_list(pTask);
 
 		logError("file: "__FILE__", line: %d, "\
 			"ioevent_modify fail, " \
@@ -106,7 +106,7 @@ static int set_send_event(struct fast_task_info *pTask)
 		pTask->event.fd, IOEVENT_WRITE, pTask) != 0)
 	{
 		result = errno != 0 ? errno : ENOENT;
-		iovent_add_to_deleted_list(pTask);
+		ioevent_add_to_deleted_list(pTask);
 
 		logError("file: "__FILE__", line: %d, "\
 			"ioevent_modify fail, " \
@@ -204,7 +204,7 @@ void storage_recv_notify_read(int sock, short event, void *arg)
 
 		if (result != 0)
 		{
-			iovent_add_to_deleted_list(pTask);
+			ioevent_add_to_deleted_list(pTask);
 		}
 	}
 }

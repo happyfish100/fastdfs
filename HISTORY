@@ -1,7 +1,8 @@
 
-Version 6.07  2020-09-08
+Version 6.07  2020-09-30
  * use libfastcommon V1.44
    NOTE: you MUST upgrade libfastcommon to V1.44 or later
+ * correct spell iovent to ioevent follows libfastcommon
 
 Version 6.06  2019-12-30
  * bugfixed: fdfs_storaged can't quit normally
