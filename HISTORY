@@ -1,5 +1,5 @@
 
-Version 6.07  2020-09-30
+Version 6.07  2020-12-31
  * use libfastcommon V1.44
    NOTE: you MUST upgrade libfastcommon to V1.44 or later
  * correct spell iovent to ioevent follows libfastcommon
