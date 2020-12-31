@@ -3,7 +3,7 @@
 %define FDFSClient libfdfsclient
 %define FDFSClientDevel libfdfsclient-devel
 %define FDFSTool   fastdfs-tool
-%define FDFSVersion 6.0.6
+%define FDFSVersion 6.0.7
 %define CommitVersion %(echo $COMMIT_VERSION)
 
 Name: %{FastDFS}
@@ -18,14 +18,14 @@ Source: http://perso.orange.fr/sebastien.godard/%{name}-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n) 
 
 Requires: %__cp %__mv %__chmod %__grep %__mkdir %__install %__id
-BuildRequires: libfastcommon-devel >= 1.0.43
+BuildRequires: libfastcommon-devel >= 1.0.45
 
 %description
 This package provides tracker & storage of fastdfs
 commit version: %{CommitVersion}
 
 %package -n %{FDFSServer}
-Requires: libfastcommon >= 1.0.43
+Requires: libfastcommon >= 1.0.45
 Summary: fastdfs tracker & storage
 
 %package -n %{FDFSTool}
@@ -125,6 +125,7 @@ DESTDIR=$RPM_BUILD_ROOT ./make.sh install
 /usr/bin/fdfs_appender_test1
 /usr/bin/fdfs_append_file
 /usr/bin/fdfs_upload_appender
+/usr/bin/fdfs_regenerate_filename
 
 %changelog
 * Mon Jun 23 2014  Zaixue Liao <liaozaixue@yongche.com>
