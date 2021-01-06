@@ -72,7 +72,7 @@ install:
 
 	mkdir -p $(TARGET_INC)/fastdfs
 	cp -f $(FDFS_HEADER_FILES) $(TARGET_INC)/fastdfs
-	if [ ! -f $(CONFIG_PATH)/client.conf.sample ]; then cp -f ../conf/client.conf $(CONFIG_PATH)/client.conf.sample; fi
+	if [ ! -f $(CONFIG_PATH)/client.conf ]; then cp -f ../conf/client.conf $(CONFIG_PATH)/client.conf; fi
 clean:
 	rm -f $(ALL_OBJS) $(ALL_PRGS) $(ALL_LIBS)
 

@@ -2,7 +2,7 @@ ENABLE_STATIC_LIB=0
 ENABLE_SHARED_LIB=1
 TARGET_PREFIX=$DESTDIR/usr
 TARGET_CONF_PATH=$DESTDIR/etc/fdfs
-TARGET_INIT_PATH=$DESTDIR/etc/init.d
+TARGET_SYSTEMD_PATH=$DESTDIR/usr/lib/systemd/system
 
 WITH_LINUX_SERVICE=1
 
@@ -154,28 +154,35 @@ perl -pi -e "s#\\\$\(LIBS\)#$LIBS#g" Makefile
 perl -pi -e "s#\\\$\(TARGET_PREFIX\)#$TARGET_PREFIX#g" Makefile
 cd ..
 
+copy_file()
+{
+    src=$1
+    dest=$2
+
+        if [ ! -f $TARGET_CONF_PATH/tracker.conf ]; then
+          cp -f conf/tracker.conf $TARGET_CONF_PATH/tracker.conf
+        fi
+}
+
 if [ "$1" = "install" ]; then
   cd ..
-  cp -f restart.sh $TARGET_PREFIX/bin
-  cp -f stop.sh $TARGET_PREFIX/bin
-
   if [ "$uname" = "Linux" ]; then
     if [ "$WITH_LINUX_SERVICE" = "1" ]; then
-      if [ ! -d /etc/fdfs ]; then
-        mkdir -p /etc/fdfs
-        cp -f conf/tracker.conf $TARGET_CONF_PATH/tracker.conf.sample
-        cp -f conf/storage.conf $TARGET_CONF_PATH/storage.conf.sample
-        cp -f conf/client.conf $TARGET_CONF_PATH/client.conf.sample
-        cp -f conf/storage_ids.conf $TARGET_CONF_PATH/storage_ids.conf.sample
-        cp -f conf/http.conf $TARGET_CONF_PATH/http.conf.sample
-        cp -f conf/mime.types $TARGET_CONF_PATH/mime.types.sample
+      if [ ! -d $TARGET_CONF_PATH ]; then
+        mkdir -p $TARGET_CONF_PATH
+        cp -f conf/tracker.conf $TARGET_CONF_PATH/tracker.conf
+        cp -f conf/storage.conf $TARGET_CONF_PATH/storage.conf
+        cp -f conf/client.conf $TARGET_CONF_PATH/client.conf
+        cp -f conf/storage_ids.conf $TARGET_CONF_PATH/storage_ids.conf
+        cp -f conf/http.conf $TARGET_CONF_PATH/http.conf
+        cp -f conf/mime.types $TARGET_CONF_PATH/mime.types
       fi
-      mkdir -p $TARGET_INIT_PATH
-      cp -f init.d/fdfs_trackerd $TARGET_INIT_PATH
-      cp -f init.d/fdfs_storaged $TARGET_INIT_PATH
-#      /sbin/chkconfig --add fdfs_trackerd 
-#      /sbin/chkconfig --add fdfs_storaged
+
+      if [ ! -f $TARGET_SYSTEMD_PATH/fdfs_trackerd.service ]; then
+        mkdir -p $TARGET_SYSTEMD_PATH
+        cp -f systemd/fdfs_trackerd.service $TARGET_SYSTEMD_PATH
+        cp -f systemd/fdfs_storaged.service $TARGET_SYSTEMD_PATH
+      fi
     fi
   fi
 fi
-
