@@ -36,6 +36,6 @@ install:
 	mkdir -p $(TARGET_PATH)
 	mkdir -p $(CONFIG_PATH)
 	cp -f $(ALL_PRGS) $(TARGET_PATH)
-	if [ ! -f $(CONFIG_PATH)/storage.conf.sample ]; then cp -f ../conf/storage.conf $(CONFIG_PATH)/storage.conf.sample; fi
+	if [ ! -f $(CONFIG_PATH)/storage.conf ]; then cp -f ../conf/storage.conf $(CONFIG_PATH)/storage.conf; fi
 clean:
 	rm -f $(ALL_OBJS) $(ALL_PRGS)
