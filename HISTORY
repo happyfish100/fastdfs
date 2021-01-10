@@ -1,7 +1,88 @@
 
+Version 6.07  2020-09-30
+ * use libfastcommon V1.44
+   NOTE: you MUST upgrade libfastcommon to V1.44 or later
+ * correct spell iovent to ioevent follows libfastcommon
+
+Version 6.06  2019-12-30
+ * bugfixed: fdfs_storaged can't quit normally
+ * bugfixed: init/memset return ip address to ascii 0 for Java SDK
+
+Version 6.05  2019-12-25
+ * fdfs_trackerd and fdfs_storaged print the server version in usage.
+   you can execute fdfs_trackerd or fdfs_storaged without parameters
+   to show the server version
+
+ * trunk server support compress the trunk binlog periodically,
+   the config items in tracker.conf: trunk_compress_binlog_interval
+   and trunk_compress_binlog_time_base
+
+ * trunk binlog compression support transaction
+
+ * support backup binlog file when truncate trunk binlog,
+   the config item in tracker.conf: trunk_binlog_max_backups
+
+ * support alignment size for trunk space allocation
+   the config item in tracker.conf: trunk_alloc_alignment_size 
+
+ * support merge free trunk spaces
+   the config item in tracker.conf: trunk_free_space_merge
+
+ * support delete unused trunk files
+   the config item in tracker.conf: delete_unused_trunk_files
+
+ * fdfs_monitor.c: do NOT call getHostnameByIp
+
+  NOTE: you MUST upgrade libfastcommon to V1.43 or later
+
+
+Version 6.04  2019-12-05
+ * storage_report_ip_changed ignore result EEXIST
+ * use get_gzip_command_filename from libfastcommon v1.42
+ * support compress error log and access log
+ * disk recovery support multi-threads to speed up
+ * bugfix: should use memset to init pReader in function
+   storage_reader_init, this bug is caused by v6.01
+
+  NOTE: you MUST upgrade libfastcommon to V1.42 or later
+
+
+Version 6.03  2019-11-20
+ * dual IPs support two different types of inner (intranet) IPs
+ * storage server request tracker server to change it's status
+   to that of tracker leader when the storage server found 
+   it's status inconsistence
+ * bugfix: fdfs_monitor fix get index of the specified tracker server
+ * storage server write to data_init_flag and mark file safely
+   (write to temp file then rename)
+ * code refine: combine g_fdfs_store_paths and g_path_space_list,
+   and extent struct FDFSStorePathInfo
+ * check store path's mark file to prevent confusion
+ * new selected tracker leader do NOT notify self by network
+ * larger network_timeout for fetching one-store-path binlog
+   when disk recovery
+ 
+  NOTE: the tracker and storage server must upgrade together
+
+
+Version 6.02  2019-11-12
+ * get_file_info calculate CRC32 for appender file type
+ * disk recovery download file to local temp file then rename it
+   when the local file exists
+ * support regenerate filename for appender file
+   NOTE: the regenerated file will be a normal file!
+
+
+Version 6.01  2019-10-25
+ * compress and uncompress binlog file by gzip when need,
+   config items in storage.conf: compress_binlog and compress_binlog_time
+ * bugfix: must check and create data path before write_to_pid_file
+   in fdfs_storaged.c
+
+
 Version 6.00  2019-10-16
  * tracker and storage server support dual IPs
-   1. you can config dual trackr IPs in storage.conf and client.conf,
+   1. you can config dual tracker IPs in storage.conf and client.conf,
       the configuration item name is "tracker_server"
    2. you can config dual storage IPs in storage_ids.conf
   more detail please see the config files.
@@ -13,6 +94,7 @@ Version 6.00  2019-10-16
  * storage server report current tracker IP to the tracker server when join
  * tracker server check tracker list when storage server join
  * use socketCreateExAuto and socketClientExAuto exported by libfastcommon
+
 
 Version 5.12  2018-06-07
  * code refine for rare case

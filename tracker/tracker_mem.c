@@ -3,7 +3,7 @@
 *
 * FastDFS may be copied only under the terms of the GNU General
 * Public License V3, which may be found in the FastDFS source kit.
-* Please visit the FastDFS Home Page http://www.csource.org/ for more detail.
+* Please visit the FastDFS Home Page http://www.fastken.com/ for more detail.
 **/
 
 #include <sys/types.h>
@@ -3448,9 +3448,9 @@ int tracker_mem_delete_storage(FDFSGroupInfo *pGroup, const char *id)
 		}
 	}
 
-    logDebug("file: "__FILE__", line: %d, " \
-            "delete storage server: %s:%d, group: %s", \
-            __LINE__, pStorageServer->ip_addrs.ips[0],
+    logDebug("file: "__FILE__", line: %d, "
+            "delete storage server: %s:%d, group: %s",
+            __LINE__, pStorageServer->ip_addrs.ips[0].address,
             pStorageServer->storage_port, pGroup->group_name);
 
 	tracker_mem_clear_storage_fields(pStorageServer);
@@ -3536,16 +3536,18 @@ int tracker_mem_storage_ip_changed(FDFSGroupInfo *pGroup, \
 	pthread_mutex_lock(&mem_thread_lock);
 
 	//exchange old and new storage server
-	snprintf(pOldStorageServer->id, sizeof(pOldStorageServer->id), \
+	snprintf(pOldStorageServer->id, sizeof(pOldStorageServer->id),
 		"%s", new_storage_ip);
-	snprintf(pOldStorageServer->ip_addrs.ips[0],
-		sizeof(pOldStorageServer->ip_addrs.ips[0]), "%s", new_storage_ip);
+	snprintf(pOldStorageServer->ip_addrs.ips[0].address,
+		sizeof(pOldStorageServer->ip_addrs.ips[0].address),
+        "%s", new_storage_ip);
 
-	snprintf(pNewStorageServer->id, sizeof(pNewStorageServer->id), \
+	snprintf(pNewStorageServer->id, sizeof(pNewStorageServer->id),
 		"%s", old_storage_ip);
     pNewStorageServer->ip_addrs.count = 1;
-	snprintf(pNewStorageServer->ip_addrs.ips[0],
-		sizeof(pNewStorageServer->ip_addrs.ips[0]), "%s", old_storage_ip);
+	snprintf(pNewStorageServer->ip_addrs.ips[0].address,
+		sizeof(pNewStorageServer->ip_addrs.ips[0].address),
+        "%s", old_storage_ip);
 	pNewStorageServer->status = FDFS_STORAGE_STATUS_IP_CHANGED;
 
 	pGroup->chg_count++;
@@ -3684,7 +3686,7 @@ static int _tracker_mem_add_storage(FDFSGroupInfo *pGroup,
     {
         multi_ip.count = 1;
         multi_ip.index = 0;
-        strcpy(multi_ip.ips[0], ip_addr);
+        strcpy(multi_ip.ips[0].address, ip_addr);
     }
 
 	if (id != NULL)
@@ -4273,8 +4275,7 @@ static int tracker_mem_get_tracker_server(FDFSStorageJoinBody *pJoinBody, \
     for (pTrackerServer=pJoinBody->tracker_servers;
             pTrackerServer<pTrackerEnd; pTrackerServer++)
 	{
-		if (pTrackerServer->connections[0].port == g_server_port &&
-			is_local_host_ip(pTrackerServer->connections[0].ip_addr))
+		if (fdfs_server_contain_local_service(pTrackerServer, g_server_port))
 		{
 			continue;
 		}
@@ -4708,16 +4709,21 @@ int tracker_mem_add_group_and_storage(TrackerClientInfo *pClientInfo, \
 	}
 	else
 	{
-		if (pClientInfo->pGroup->store_path_count != \
+		if (pClientInfo->pGroup->store_path_count !=
 			pJoinBody->store_path_count)
 		{
-			ppEnd = pClientInfo->pGroup->all_servers + \
+			ppEnd = pClientInfo->pGroup->all_servers +
 				pClientInfo->pGroup->count;
-			for (ppServer=pClientInfo->pGroup->all_servers; \
+			for (ppServer=pClientInfo->pGroup->all_servers;
 				ppServer<ppEnd; ppServer++)
 			{
-				if ((*ppServer)->store_path_count != \
-					pJoinBody->store_path_count)
+				if ((*ppServer)->status == FDFS_STORAGE_STATUS_DELETED)
+                {
+                    continue;
+                }
+
+                if ((*ppServer)->store_path_count !=
+                         pJoinBody->store_path_count)
 				{
 					break;
 				}
@@ -4725,9 +4731,9 @@ int tracker_mem_add_group_and_storage(TrackerClientInfo *pClientInfo, \
 
 			if (ppServer == ppEnd)  //all servers are same, adjust
 			{
-				if ((result=tracker_realloc_group_path_mbs( \
-			 	    pClientInfo->pGroup, \
-				    pJoinBody->store_path_count))!=0)
+				if ((result=tracker_realloc_group_path_mbs(
+                                pClientInfo->pGroup, pJoinBody->
+                                store_path_count)) != 0)
 				{
 					return result;
 				}
@@ -4881,14 +4887,14 @@ int tracker_mem_sync_storages(FDFSGroupInfo *pGroup, \
 				continue;
 			}
 
-			memcpy(target_storage.id, pServer->id, \
+			memcpy(target_storage.id, pServer->id,
 				FDFS_STORAGE_ID_MAX_SIZE);
 			pTargetStorage = &target_storage;
-			if ((ppFound=(FDFSStorageDetail **)bsearch( \
-				&pTargetStorage, \
-				pGroup->sorted_servers, \
-				pGroup->count, \
-				sizeof(FDFSStorageDetail *), \
+			if ((ppFound=(FDFSStorageDetail **)bsearch(
+				&pTargetStorage,
+				pGroup->sorted_servers,
+				pGroup->count,
+				sizeof(FDFSStorageDetail *),
 				tracker_mem_cmp_by_storage_id)) != NULL)
 			{
 				if ((*ppFound)->status == pServer->status \
@@ -4946,7 +4952,7 @@ int tracker_mem_sync_storages(FDFSGroupInfo *pGroup, \
 					&pStorageServer, pServer->id,
 					pServer->ip_addr, true, false,
 					&bInserted);
-				if (result != 0)
+				if (result == 0 && bInserted)
 				{
 					pStorageServer->status = pServer->status;
 				}

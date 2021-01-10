@@ -1,5 +1,5 @@
 # centos 7
-FROM centos
+FROM centos:7
 # 添加配置文件
 # add profiles
 ADD conf/client.conf /etc/fdfs/
@@ -19,7 +19,7 @@ ADD source/fastdfs-nginx-module.tar.gz /usr/local/src/
 ADD source/nginx-1.15.4.tar.gz /usr/local/src/
 
 # Run
-RUN yum install git gcc gcc-c ++ make automake autoconf libtool pcre pcre-devel zlib zlib-devel openssl-devel wget vim -y \
+RUN yum install git gcc gcc-c++ make automake autoconf libtool pcre pcre-devel zlib zlib-devel openssl-devel wget vim -y \
   &&  mkdir /home/dfs   \
   &&  cd /usr/local/src/  \
   &&  cd libfastcommon/   \

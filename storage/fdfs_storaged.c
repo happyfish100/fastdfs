@@ -3,7 +3,7 @@
 *
 * FastDFS may be copied only under the terms of the GNU General
 * Public License V3, which may be found in the FastDFS source kit.
-* Please visit the FastDFS Home Page http://www.csource.org/ for more detail.
+* Please visit the FastDFS Home Page http://www.fastken.com/ for more detail.
 **/
 
 #include <stdio.h>
@@ -49,13 +49,20 @@
 #include "storage_dump.h"
 #endif
 
+#define ACCEPT_STAGE_NONE    0
+#define ACCEPT_STAGE_DOING   1
+#define ACCEPT_STAGE_DONE    2
+
 static bool bTerminateFlag = false;
-static bool bAcceptEndFlag = false;
+static char accept_stage = ACCEPT_STAGE_NONE;
 
 static void sigQuitHandler(int sig);
 static void sigHupHandler(int sig);
 static void sigUsrHandler(int sig);
 static void sigAlarmHandler(int sig);
+
+static int setupSchedules(pthread_t *schedule_tid);
+static int setupSignalHandlers();
 
 #if defined(DEBUG_FLAG)
 
@@ -68,24 +75,22 @@ static void sigSegvHandler(int signum, siginfo_t *info, void *ptr);
 static void sigDumpHandler(int sig);
 #endif
 
-#define SCHEDULE_ENTRIES_MAX_COUNT 9
-
 static void usage(const char *program)
 {
-	fprintf(stderr, "Usage: %s <config_file> [start | stop | restart]\n",
-		program);
+	fprintf(stderr, "FastDFS server v%d.%02d\n"
+            "Usage: %s <config_file> [start | stop | restart]\n",
+            g_fdfs_version.major, g_fdfs_version.minor,
+            program);
 }
 
 int main(int argc, char *argv[])
 {
 	char *conf_filename;
+    char *action;
 	int result;
 	int sock;
 	int wait_count;
 	pthread_t schedule_tid;
-	struct sigaction act;
-	ScheduleEntry scheduleEntries[SCHEDULE_ENTRIES_MAX_COUNT];
-	ScheduleArray scheduleArray;
 	char pidFilename[MAX_PATH_SIZE];
 	bool stop;
 
@@ -99,9 +104,21 @@ int main(int argc, char *argv[])
 	g_up_time = g_current_time;
 
 	log_init2();
-	trunk_shared_init();
+	if ((result=trunk_shared_init()) != 0)
+    {
+		log_destroy();
+		return result;
+    }
 
 	conf_filename = argv[1];
+    if (!fileExists(conf_filename))
+    {
+        if (starts_with(conf_filename, "-"))
+        {
+            usage(argv[0]);
+            return 0;
+        }
+    }
 	if ((result=get_base_path_from_conf_file(conf_filename,
 		g_fdfs_base_path, sizeof(g_fdfs_base_path))) != 0)
 	{
@@ -109,9 +126,15 @@ int main(int argc, char *argv[])
 		return result;
 	}
 
+    if ((result=storage_check_and_make_global_data_path()) != 0)
+    {
+		log_destroy();
+        return result;
+    }
 	snprintf(pidFilename, sizeof(pidFilename),
 		"%s/data/fdfs_storaged.pid", g_fdfs_base_path);
-	if ((result=process_action(pidFilename, argv[2], &stop)) != 0)
+    action = argc >= 3 ? argv[2] : "start";
+	if ((result=process_action(pidFilename, action, &stop)) != 0)
 	{
 		if (result == EINVAL)
 		{
@@ -144,6 +167,13 @@ int main(int argc, char *argv[])
 		log_destroy();
 		return result;
 	}
+
+    if ((result=setupSignalHandlers()) != 0)
+    {
+		logCrit("exit abnormally!\n");
+		log_destroy();
+		return result;
+    }
 
 	memset(g_bind_addr, 0, sizeof(g_bind_addr));
 	if ((result=storage_func_init(conf_filename, \
@@ -204,84 +234,6 @@ int main(int argc, char *argv[])
 		return result;
 	}
 
-	memset(&act, 0, sizeof(act));
-	sigemptyset(&act.sa_mask);
-
-	act.sa_handler = sigUsrHandler;
-	if(sigaction(SIGUSR1, &act, NULL) < 0 || \
-		sigaction(SIGUSR2, &act, NULL) < 0)
-	{
-		logCrit("file: "__FILE__", line: %d, " \
-			"call sigaction fail, errno: %d, error info: %s", \
-			__LINE__, errno, STRERROR(errno));
-		logCrit("exit abnormally!\n");
-		return errno;
-	}
-
-	act.sa_handler = sigHupHandler;
-	if(sigaction(SIGHUP, &act, NULL) < 0)
-	{
-		logCrit("file: "__FILE__", line: %d, " \
-			"call sigaction fail, errno: %d, error info: %s", \
-			__LINE__, errno, STRERROR(errno));
-		logCrit("exit abnormally!\n");
-		return errno;
-	}
-	
-	act.sa_handler = SIG_IGN;
-	if(sigaction(SIGPIPE, &act, NULL) < 0)
-	{
-		logCrit("file: "__FILE__", line: %d, " \
-			"call sigaction fail, errno: %d, error info: %s", \
-			__LINE__, errno, STRERROR(errno));
-		logCrit("exit abnormally!\n");
-		return errno;
-	}
-
-	act.sa_handler = sigQuitHandler;
-	if(sigaction(SIGINT, &act, NULL) < 0 || \
-		sigaction(SIGTERM, &act, NULL) < 0 || \
-		sigaction(SIGQUIT, &act, NULL) < 0)
-	{
-		logCrit("file: "__FILE__", line: %d, " \
-			"call sigaction fail, errno: %d, error info: %s", \
-			__LINE__, errno, STRERROR(errno));
-		logCrit("exit abnormally!\n");
-		return errno;
-	}
-
-#if defined(DEBUG_FLAG)
-
-/*
-#if defined(OS_LINUX)
-	memset(&act, 0, sizeof(act));
-        act.sa_sigaction = sigSegvHandler;
-        act.sa_flags = SA_SIGINFO;
-        if (sigaction(SIGSEGV, &act, NULL) < 0 || \
-        	sigaction(SIGABRT, &act, NULL) < 0)
-	{
-		logCrit("file: "__FILE__", line: %d, " \
-			"call sigaction fail, errno: %d, error info: %s", \
-			__LINE__, errno, STRERROR(errno));
-		logCrit("exit abnormally!\n");
-		return errno;
-	}
-#endif
-*/
-
-	memset(&act, 0, sizeof(act));
-	sigemptyset(&act.sa_mask);
-	act.sa_handler = sigDumpHandler;
-	if(sigaction(SIGUSR1, &act, NULL) < 0 || \
-		sigaction(SIGUSR2, &act, NULL) < 0)
-	{
-		logCrit("file: "__FILE__", line: %d, " \
-			"call sigaction fail, errno: %d, error info: %s", \
-			__LINE__, errno, STRERROR(errno));
-		logCrit("exit abnormally!\n");
-		return errno;
-	}
-#endif
 
 #ifdef WITH_HTTPD
 	if (!g_http_params.disabled)
@@ -307,85 +259,12 @@ int main(int argc, char *argv[])
 		return result;
 	}
 
-	scheduleArray.entries = scheduleEntries;
-	scheduleArray.count = 0;
-	memset(scheduleEntries, 0, sizeof(scheduleEntries));
-
-	INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
-		scheduleArray.count + 1, TIME_NONE, TIME_NONE, TIME_NONE,
-		g_sync_log_buff_interval, log_sync_func, &g_log_context);
-	scheduleArray.count++;
-
-	INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
-		scheduleArray.count + 1, TIME_NONE, TIME_NONE, TIME_NONE,
-		g_sync_binlog_buff_interval, fdfs_binlog_sync_func, NULL);
-	scheduleArray.count++;
-
-	INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
-		scheduleArray.count + 1, TIME_NONE, TIME_NONE, TIME_NONE,
-		g_sync_stat_file_interval, fdfs_stat_file_sync_func, NULL);
-	scheduleArray.count++;
-
-	if (g_if_use_trunk_file)
-	{
-		INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
-			scheduleArray.count + 1, TIME_NONE, TIME_NONE, TIME_NONE,
-			1, trunk_binlog_sync_func, NULL);
-		scheduleArray.count++;
-	}
-
-	if (g_use_access_log)
-	{
-		INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
-			scheduleArray.count + 1, TIME_NONE, TIME_NONE, TIME_NONE,
-			g_sync_log_buff_interval, log_sync_func, &g_access_log_context);
-		scheduleArray.count++;
-
-		if (g_rotate_access_log)
-		{
-			INIT_SCHEDULE_ENTRY_EX(scheduleEntries[scheduleArray.count],
-				scheduleArray.count + 1, g_access_log_rotate_time,
-				24 * 3600, log_notify_rotate, &g_access_log_context);
-			scheduleArray.count++;
-
-			if (g_log_file_keep_days > 0)
-			{
-				log_set_keep_days(&g_access_log_context,
-					g_log_file_keep_days);
-
-				INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
-					scheduleArray.count + 1, 1, 0, 0, 24 * 3600,
-					log_delete_old_files, &g_access_log_context);
-				scheduleArray.count++;
-			}
-		}
-	}
-
-	if (g_rotate_error_log)
-	{
-		INIT_SCHEDULE_ENTRY_EX(scheduleEntries[scheduleArray.count],
-			scheduleArray.count + 1, g_error_log_rotate_time,
-			24 * 3600, log_notify_rotate, &g_log_context);
-		scheduleArray.count++;
-
-		if (g_log_file_keep_days > 0)
-		{
-			log_set_keep_days(&g_log_context, g_log_file_keep_days);
-
-			INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
-				scheduleArray.count + 1, 1, 0, 0, 24 * 3600,
-				log_delete_old_files, &g_log_context);
-			scheduleArray.count++;
-		}
-	}
-
-	if ((result=sched_start(&scheduleArray, &schedule_tid, \
-		g_thread_stack_size, (bool * volatile)&g_continue_flag)) != 0)
-	{
+    if ((result=setupSchedules(&schedule_tid)) != 0)
+    {
 		logCrit("exit abnormally!\n");
 		log_destroy();
 		return result;
-	}
+    }
 
 	if ((result=set_run_by(g_run_by_group, g_run_by_user)) != 0)
 	{
@@ -403,10 +282,10 @@ int main(int argc, char *argv[])
 	log_set_cache(true);
 
 	bTerminateFlag = false;
-	bAcceptEndFlag = false;
+	accept_stage = ACCEPT_STAGE_DOING;
 	
 	storage_accept_loop(sock);
-	bAcceptEndFlag = true;
+	accept_stage = ACCEPT_STAGE_DONE;
 
 	fdfs_binlog_sync_func(NULL);  //binlog fsync
 
@@ -438,7 +317,7 @@ int main(int argc, char *argv[])
 */
 
 		usleep(10000);
-		if (++wait_count > 6000)
+		if (++wait_count > 9000)
 		{
 			logWarning("waiting timeout, exit!");
 			break;
@@ -448,7 +327,6 @@ int main(int argc, char *argv[])
 	tracker_report_destroy();
 	storage_service_destroy();
 	storage_sync_destroy();
-	storage_func_destroy();
 
 	if (g_if_use_trunk_file)
 	{
@@ -456,6 +334,7 @@ int main(int argc, char *argv[])
 		storage_trunk_destroy();
 	}
 
+	storage_func_destroy();
 	delete_pid_file(pidFilename);
 	logInfo("exit normally.\n");
 	log_destroy();
@@ -467,6 +346,7 @@ static void sigQuitHandler(int sig)
 {
 	if (!bTerminateFlag)
 	{
+        tcp_set_try_again_when_interrupt(false);
 		set_timer(1, 1, sigAlarmHandler);
 
 		bTerminateFlag = true;
@@ -482,7 +362,7 @@ static void sigAlarmHandler(int sig)
 {
 	ConnectionInfo server;
 
-	if (bAcceptEndFlag)
+	if (accept_stage != ACCEPT_STAGE_DOING)
 	{
 		return;
 	}
@@ -556,3 +436,179 @@ static void sigDumpHandler(int sig)
 }
 #endif
 
+static int setupSchedules(pthread_t *schedule_tid)
+{
+#define SCHEDULE_ENTRIES_MAX_COUNT 10
+
+	ScheduleEntry scheduleEntries[SCHEDULE_ENTRIES_MAX_COUNT];
+	ScheduleArray scheduleArray;
+    int result;
+
+	scheduleArray.entries = scheduleEntries;
+	scheduleArray.count = 0;
+	memset(scheduleEntries, 0, sizeof(scheduleEntries));
+
+	INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
+		scheduleArray.count + 1, TIME_NONE, TIME_NONE, TIME_NONE,
+		g_sync_log_buff_interval, log_sync_func, &g_log_context);
+	scheduleArray.count++;
+
+	INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
+		scheduleArray.count + 1, TIME_NONE, TIME_NONE, TIME_NONE,
+		g_sync_binlog_buff_interval, fdfs_binlog_sync_func, NULL);
+	scheduleArray.count++;
+
+	INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
+		scheduleArray.count + 1, TIME_NONE, TIME_NONE, TIME_NONE,
+		g_sync_stat_file_interval, fdfs_stat_file_sync_func, NULL);
+	scheduleArray.count++;
+
+	if (g_if_use_trunk_file)
+	{
+		INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
+			scheduleArray.count + 1, TIME_NONE, TIME_NONE, TIME_NONE,
+			1, trunk_binlog_sync_func, NULL);
+		scheduleArray.count++;
+	}
+
+	if (g_use_access_log)
+	{
+		INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
+			scheduleArray.count + 1, TIME_NONE, TIME_NONE, TIME_NONE,
+			g_sync_log_buff_interval, log_sync_func, &g_access_log_context);
+		scheduleArray.count++;
+
+		if (g_rotate_access_log)
+		{
+			INIT_SCHEDULE_ENTRY_EX(scheduleEntries[scheduleArray.count],
+				scheduleArray.count + 1, g_access_log_rotate_time,
+				24 * 3600, log_notify_rotate, &g_access_log_context);
+			scheduleArray.count++;
+
+			if (g_log_file_keep_days > 0)
+			{
+				log_set_keep_days(&g_access_log_context,
+					g_log_file_keep_days);
+
+				INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
+					scheduleArray.count + 1, 1, 0, 0, 24 * 3600,
+					log_delete_old_files, &g_access_log_context);
+				scheduleArray.count++;
+			}
+		}
+	}
+
+	if (g_rotate_error_log)
+	{
+		INIT_SCHEDULE_ENTRY_EX(scheduleEntries[scheduleArray.count],
+			scheduleArray.count + 1, g_error_log_rotate_time,
+			24 * 3600, log_notify_rotate, &g_log_context);
+		scheduleArray.count++;
+
+		if (g_log_file_keep_days > 0)
+		{
+			log_set_keep_days(&g_log_context, g_log_file_keep_days);
+
+			INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
+				scheduleArray.count + 1, 1, 0, 0, 24 * 3600,
+				log_delete_old_files, &g_log_context);
+			scheduleArray.count++;
+		}
+	}
+
+	if (g_compress_binlog)
+	{
+		INIT_SCHEDULE_ENTRY_EX(scheduleEntries[scheduleArray.count],
+			scheduleArray.count + 1, g_compress_binlog_time,
+			24 * 3600, fdfs_binlog_compress_func, NULL);
+		scheduleArray.count++;
+    }
+
+	if ((result=sched_start(&scheduleArray, schedule_tid,
+		g_thread_stack_size, (bool * volatile)&g_continue_flag)) != 0)
+	{
+		return result;
+	}
+
+    return 0;
+}
+
+static int setupSignalHandlers()
+{
+	struct sigaction act;
+
+	memset(&act, 0, sizeof(act));
+	sigemptyset(&act.sa_mask);
+
+	act.sa_handler = sigUsrHandler;
+	if(sigaction(SIGUSR1, &act, NULL) < 0 || \
+		sigaction(SIGUSR2, &act, NULL) < 0)
+	{
+		logCrit("file: "__FILE__", line: %d, " \
+			"call sigaction fail, errno: %d, error info: %s", \
+			__LINE__, errno, STRERROR(errno));
+		return errno != 0 ? errno : EFAULT;
+	}
+
+	act.sa_handler = sigHupHandler;
+	if(sigaction(SIGHUP, &act, NULL) < 0)
+	{
+		logCrit("file: "__FILE__", line: %d, " \
+			"call sigaction fail, errno: %d, error info: %s", \
+			__LINE__, errno, STRERROR(errno));
+		return errno != 0 ? errno : EFAULT;
+	}
+	
+	act.sa_handler = SIG_IGN;
+	if(sigaction(SIGPIPE, &act, NULL) < 0)
+	{
+		logCrit("file: "__FILE__", line: %d, " \
+			"call sigaction fail, errno: %d, error info: %s", \
+			__LINE__, errno, STRERROR(errno));
+		return errno != 0 ? errno : EFAULT;
+	}
+
+	act.sa_handler = sigQuitHandler;
+	if(sigaction(SIGINT, &act, NULL) < 0 || \
+		sigaction(SIGTERM, &act, NULL) < 0 || \
+		sigaction(SIGQUIT, &act, NULL) < 0)
+	{
+		logCrit("file: "__FILE__", line: %d, " \
+			"call sigaction fail, errno: %d, error info: %s", \
+			__LINE__, errno, STRERROR(errno));
+		return errno != 0 ? errno : EFAULT;
+	}
+
+#if defined(DEBUG_FLAG)
+
+/*
+#if defined(OS_LINUX)
+	memset(&act, 0, sizeof(act));
+        act.sa_sigaction = sigSegvHandler;
+        act.sa_flags = SA_SIGINFO;
+        if (sigaction(SIGSEGV, &act, NULL) < 0 || \
+        	sigaction(SIGABRT, &act, NULL) < 0)
+	{
+		logCrit("file: "__FILE__", line: %d, " \
+			"call sigaction fail, errno: %d, error info: %s", \
+			__LINE__, errno, STRERROR(errno));
+		return errno != 0 ? errno : EFAULT;
+	}
+#endif
+*/
+
+	memset(&act, 0, sizeof(act));
+	sigemptyset(&act.sa_mask);
+	act.sa_handler = sigDumpHandler;
+	if(sigaction(SIGUSR1, &act, NULL) < 0 || \
+		sigaction(SIGUSR2, &act, NULL) < 0)
+	{
+		logCrit("file: "__FILE__", line: %d, " \
+			"call sigaction fail, errno: %d, error info: %s", \
+			__LINE__, errno, STRERROR(errno));
+		return errno != 0 ? errno : EFAULT;
+	}
+#endif
+
+    return 0;
+}

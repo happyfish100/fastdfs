@@ -3,7 +3,7 @@
 *
 * FastDFS may be copied only under the terms of the GNU General
 * Public License V3, which may be found in the FastDFS source kit.
-* Please visit the FastDFS Home Page http://www.csource.org/ for more detail.
+* Please visit the FastDFS Home Page http://www.fastken.com/ for more detail.
 **/
 
 #include <sys/types.h>
@@ -24,19 +24,20 @@
 #include "tracker_proto.h"
 #include "fdfs_shared_func.h"
 
-int fdfs_recv_header(ConnectionInfo *pTrackerServer, int64_t *in_bytes)
+int fdfs_recv_header_ex(ConnectionInfo *pTrackerServer,
+        const int network_timeout, int64_t *in_bytes)
 {
 	TrackerHeader resp;
 	int result;
 
-	if ((result=tcprecvdata_nb(pTrackerServer->sock, &resp, \
-		sizeof(resp), g_fdfs_network_timeout)) != 0)
+	if ((result=tcprecvdata_nb(pTrackerServer->sock, &resp,
+		sizeof(resp), network_timeout)) != 0)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"server: %s:%d, recv data fail, " \
-			"errno: %d, error info: %s", \
-			__LINE__, pTrackerServer->ip_addr, \
-			pTrackerServer->port, \
+		logError("file: "__FILE__", line: %d, "
+			"server: %s:%d, recv data fail, "
+			"errno: %d, error info: %s",
+			__LINE__, pTrackerServer->ip_addr,
+			pTrackerServer->port,
 			result, STRERROR(result));
 		*in_bytes = 0;
 		return result;
@@ -56,10 +57,10 @@ int fdfs_recv_header(ConnectionInfo *pTrackerServer, int64_t *in_bytes)
 	*in_bytes = buff2long(resp.pkg_len);
 	if (*in_bytes < 0)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"server: %s:%d, recv package size " \
-			"%"PRId64" is not correct", \
-			__LINE__, pTrackerServer->ip_addr, \
+		logError("file: "__FILE__", line: %d, "
+			"server: %s:%d, recv package size "
+			"%"PRId64" is not correct",
+			__LINE__, pTrackerServer->ip_addr,
 			pTrackerServer->port, *in_bytes);
 		*in_bytes = 0;
 		return EINVAL;

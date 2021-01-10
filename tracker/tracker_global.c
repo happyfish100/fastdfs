@@ -3,7 +3,7 @@
 *
 * FastDFS may be copied only under the terms of the GNU General
 * Public License V3, which may be found in the FastDFS source kit.
-* Please visit the FastDFS Home Page http://www.csource.org/ for more detail.
+* Please visit the FastDFS Home Page http://www.fastken.com/ for more detail.
 **/
 
 #include "tracker_global.h"
@@ -39,6 +39,7 @@ bool g_storage_ip_changed_auto_adjust = true;
 bool g_use_storage_id = false;  //if use storage ID instead of IP address
 byte g_id_type_in_filename = FDFS_ID_TYPE_IP_ADDRESS; //id type of the storage server in the filename
 bool g_rotate_error_log = false;  //if rotate the error log every day
+bool g_compress_old_error_log = false;  //if compress the old error log
 TimeInfo g_error_log_rotate_time  = {0, 0, 0}; //rotate error log time base
 
 int g_thread_stack_size = 64 * 1024;
@@ -50,12 +51,18 @@ bool g_if_use_trunk_file = false;   //if use trunk file
 bool g_trunk_create_file_advance = false;
 bool g_trunk_init_check_occupying = false;
 bool g_trunk_init_reload_from_binlog = false;
+bool g_trunk_free_space_merge = false;
+bool g_delete_unused_trunk_files  = false;
 int g_slot_min_size = 256;    //slot min size, such as 256 bytes
 int g_slot_max_size = 16 * 1024 * 1024;    //slot max size, such as 16MB
 int g_trunk_file_size = 64 * 1024 * 1024;  //the trunk file size, such as 64MB
 TimeInfo g_trunk_create_file_time_base = {0, 0};
+TimeInfo g_trunk_compress_binlog_time_base = {0, 0};
 int g_trunk_create_file_interval = 86400;
+int g_trunk_compress_binlog_interval = 0;
 int g_trunk_compress_binlog_min_interval = 0;
+int g_trunk_binlog_max_backups = 0;
+int g_trunk_alloc_alignment_size = 0;
 int64_t g_trunk_create_file_space_threshold = 0;
 
 time_t g_up_time = 0;
@@ -74,5 +81,6 @@ char g_exe_name[256] = {0};
 #endif
 
 int g_log_file_keep_days = 0;
+int g_compress_error_log_days_before = 0;
 FDFSConnectionStat g_connection_stat = {0, 0};
 

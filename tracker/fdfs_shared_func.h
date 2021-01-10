@@ -3,7 +3,7 @@
 *
 * FastDFS may be copied only under the terms of the GNU General
 * Public License V3, which may be found in the FastDFS source kit.
-* Please visit the FastDFS Home Page http://www.csource.org/ for more detail.
+* Please visit the FastDFS Home Page http://www.fastken.com/ for more detail.
 **/
 
 //fdfs_shared_func.h
@@ -16,6 +16,17 @@
 #include "fastcommon/logger.h"
 #include "tracker_types.h"
 #include "fdfs_server_id_func.h"
+
+#define FDFS_IP_TYPE_UNKNOWN      0
+#define FDFS_IP_TYPE_PRIVATE_10   1
+#define FDFS_IP_TYPE_PRIVATE_172  2
+#define FDFS_IP_TYPE_PRIVATE_192  3
+#define FDFS_IP_TYPE_OUTER        4
+
+#define FDFS_IS_AVAILABLE_STATUS(status) \
+    (status == FDFS_STORAGE_STATUS_OFFLINE || \
+     status == FDFS_STORAGE_STATUS_ONLINE  || \
+     status == FDFS_STORAGE_STATUS_ACTIVE)
 
 #ifdef __cplusplus
 extern "C" {
@@ -68,6 +79,9 @@ bool fdfs_server_contain_ex(TrackerServerInfo *pServer1,
 
 bool fdfs_server_equal(TrackerServerInfo *pServer1,
         TrackerServerInfo *pServer2);
+
+bool fdfs_server_contain_local_service(TrackerServerInfo *pServerInfo,
+        const int target_port);
 
 /**
 * tracker group get server
@@ -124,6 +138,8 @@ static inline int fdfs_parse_multi_ips(char *ip_str, FDFSMultiIP *ip_addrs,
             error_info, error_size, resolve);
 }
 
+int fdfs_get_ip_type(const char* ip);
+
 int fdfs_check_server_ips(const TrackerServerInfo *pServer,
         char *error_info, const int error_size);
 
@@ -134,6 +150,16 @@ const char *fdfs_get_ipaddr_by_peer_ip(const FDFSMultiIP *ip_addrs,
         const char *client_ip);
 
 void fdfs_set_multi_ip_index(FDFSMultiIP *multi_ip, const char *target_ip);
+
+void fdfs_set_server_info_index(TrackerServerInfo *pServer,
+        const char *target_ip, const int target_port);
+
+static inline void fdfs_set_server_info_index1(TrackerServerInfo *pServer,
+        const ConnectionInfo *target)
+{
+    return fdfs_set_server_info_index(pServer,
+            target->ip_addr, target->port);
+}
 
 void fdfs_set_server_info(TrackerServerInfo *pServer,
         const char *ip_addr, const int port);

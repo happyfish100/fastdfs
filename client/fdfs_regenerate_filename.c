@@ -19,15 +19,17 @@
 int main(int argc, char *argv[])
 {
 	char *conf_filename;
-	char *local_filename;
 	ConnectionInfo *pTrackerServer;
 	int result;
 	char appender_file_id[128];
+	char new_file_id[128];
 	
-	if (argc < 4)
+	if (argc < 3)
 	{
-		printf("Usage: %s <config_file> <appender_file_id> " \
-			"<local_filename>\n", argv[0]);
+		fprintf(stderr, "regenerate filename for the appender file.\n"
+                "NOTE: the regenerated file will be a normal file!\n"
+                "Usage: %s <config_file> <appender_file_id>\n",
+                argv[0]);
 		return 1;
 	}
 
@@ -48,19 +50,19 @@ int main(int argc, char *argv[])
 	}
 
 	snprintf(appender_file_id, sizeof(appender_file_id), "%s", argv[2]);
-	local_filename = argv[3];
-	if ((result=storage_append_by_filename1(pTrackerServer, \
-		NULL, local_filename, appender_file_id)) != 0)
+	if ((result=storage_regenerate_appender_filename1(pTrackerServer,
+		NULL, appender_file_id, new_file_id)) != 0)
 	{
-		printf("append file fail, " \
-			"error no: %d, error info: %s\n", \
-			result, STRERROR(result));
+		fprintf(stderr, "regenerate file %s fail, "
+			"error no: %d, error info: %s\n",
+			appender_file_id, result, STRERROR(result));
 		return result;
 	}
+
+    printf("%s\n", new_file_id);
 
 	tracker_close_connection_ex(pTrackerServer, true);
 	fdfs_client_destroy();
 
 	return result;
 }
-

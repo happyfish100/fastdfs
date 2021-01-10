@@ -1,7 +1,6 @@
 ENABLE_STATIC_LIB=0
 ENABLE_SHARED_LIB=1
-DESTDIR=/usr
-TARGET_PREFIX=$DESTDIR
+TARGET_PREFIX=$DESTDIR/usr
 TARGET_CONF_PATH=$DESTDIR/etc/fdfs
 TARGET_INIT_PATH=$DESTDIR/etc/init.d
 
@@ -24,15 +23,21 @@ else
   OS_BITS=64
 fi
 
+uname=$(uname)
+
 if [ "$OS_BITS" -eq 64 ]; then
-  LIB_VERSION=lib64
+  if [ "$uname" = "Darwin" ]; then
+    LIB_VERSION=lib
+  else
+    LIB_VERSION=lib64
+  fi
 else
   LIB_VERSION=lib
 fi
 
 LIBS=''
 
-uname=$(uname)
+
 if [ "$uname" = "Linux" ]; then
   if [ "$OS_BITS" -eq 64 ]; then
     LIBS="$LIBS -L/usr/lib64"
@@ -45,6 +50,7 @@ elif [ "$uname" = "FreeBSD" ] || [ "$uname" = "Darwin" ]; then
   CFLAGS="$CFLAGS"
   if [ "$uname" = "Darwin" ]; then
     CFLAGS="$CFLAGS -DDARWIN"
+    TARGET_PREFIX=$TARGET_PREFIX/local
   fi
 elif [ "$uname" = "SunOS" ]; then
   LIBS="$LIBS -L/usr/lib"
@@ -132,6 +138,7 @@ cp Makefile.in Makefile
 perl -pi -e "s#\\\$\(CFLAGS\)#$CFLAGS#g" Makefile
 perl -pi -e "s#\\\$\(LIBS\)#$LIBS#g" Makefile
 perl -pi -e "s#\\\$\(TARGET_PREFIX\)#$TARGET_PREFIX#g" Makefile
+perl -pi -e "s#\\\$\(LIB_VERSION\)#$LIB_VERSION#g" Makefile
 perl -pi -e "s#\\\$\(TARGET_CONF_PATH\)#$TARGET_CONF_PATH#g" Makefile
 perl -pi -e "s#\\\$\(ENABLE_STATIC_LIB\)#$ENABLE_STATIC_LIB#g" Makefile
 perl -pi -e "s#\\\$\(ENABLE_SHARED_LIB\)#$ENABLE_SHARED_LIB#g" Makefile

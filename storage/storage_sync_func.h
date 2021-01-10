@@ -3,7 +3,7 @@
 *
 * FastDFS may be copied only under the terms of the GNU General
 * Public License V3, which may be found in the FastDFS source kit.
-* Please visit the FastDFS Home Page http://www.csource.org/ for more detail.
+* Please visit the FastDFS Home Page http://www.fastken.com/ for more detail.
 **/
 
 //storage_sync_func.h
@@ -17,11 +17,11 @@
 extern "C" {
 #endif
 
-void storage_sync_connect_storage_server_ex(FDFSStorageBrief *pStorage,
+void storage_sync_connect_storage_server_ex(const FDFSStorageBrief *pStorage,
         ConnectionInfo *conn, bool *check_flag);
 
 static inline void storage_sync_connect_storage_server(
-        FDFSStorageBrief *pStorage, ConnectionInfo *conn)
+        const FDFSStorageBrief *pStorage, ConnectionInfo *conn)
 {
     bool check_flag = true;
     storage_sync_connect_storage_server_ex(pStorage,

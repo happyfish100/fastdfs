@@ -3,7 +3,7 @@
 *
 * FastDFS may be copied only under the terms of the GNU General
 * Public License V3, which may be found in the FastDFS source kit.
-* Please visit the FastDFS Home Page http://www.csource.org/ for more detail.
+* Please visit the FastDFS Home Page http://www.fastken.com/ for more detail.
 **/
 
 
@@ -1429,8 +1429,8 @@ int tracker_set_trunk_server(TrackerServerGroup *pTrackerGroup, \
 	return result;
 }
 
-int tracker_get_storage_status(ConnectionInfo *pTrackerServer, \
-		const char *group_name, const char *ip_addr, \
+int tracker_get_storage_status(ConnectionInfo *pTrackerServer,
+		const char *group_name, const char *ip_addr,
 		FDFSStorageBrief *pDestBuff)
 {
 	TrackerHeader *pHeader;

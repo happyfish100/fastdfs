@@ -3,7 +3,7 @@
 *
 * FastDFS may be copied only under the terms of the GNU General
 * Public License V3, which may be found in the FastDFS source kit.
-* Please visit the FastDFS Home Page http://www.csource.org/ for more detail.
+* Please visit the FastDFS Home Page http://www.fastken.com/ for more detail.
 **/
 
 #include <stdio.h>
@@ -70,13 +70,16 @@ static void sigDumpHandler(int sig);
 
 static void usage(const char *program)
 {
-	fprintf(stderr, "Usage: %s <config_file> [start | stop | restart]\n",
-		program);
+	fprintf(stderr, "FastDFS server v%d.%02d\n"
+            "Usage: %s <config_file> [start | stop | restart]\n",
+            g_fdfs_version.major, g_fdfs_version.minor,
+            program);
 }
 
 int main(int argc, char *argv[])
 {
 	char *conf_filename;
+    char *action;
 	int result;
 	int wait_count;
 	int sock;
@@ -100,6 +103,14 @@ int main(int argc, char *argv[])
 	log_init2();
 
 	conf_filename = argv[1];
+    if (!fileExists(conf_filename))
+    {
+        if (starts_with(conf_filename, "-"))
+        {
+            usage(argv[0]);
+            return 0;
+        }
+    }
 	if ((result=get_base_path_from_conf_file(conf_filename,
 		g_fdfs_base_path, sizeof(g_fdfs_base_path))) != 0)
 	{
@@ -109,7 +120,8 @@ int main(int argc, char *argv[])
 
 	snprintf(pidFilename, sizeof(pidFilename),
 		"%s/data/fdfs_trackerd.pid", g_fdfs_base_path);
-	if ((result=process_action(pidFilename, argv[2], &stop)) != 0)
+    action = argc >= 3 ? argv[2] : "start";
+	if ((result=process_action(pidFilename, action, &stop)) != 0)
 	{
 		if (result == EINVAL)
 		{
@@ -441,6 +453,7 @@ static void sigQuitHandler(int sig)
 {
 	if (!bTerminateFlag)
 	{
+        tcp_set_try_again_when_interrupt(false);
 		set_timer(1, 1, sigAlarmHandler);
 
 		bTerminateFlag = true;

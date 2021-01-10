@@ -6,7 +6,7 @@ ENABLE_SHARED_LIB = $(ENABLE_SHARED_LIB)
 INC_PATH = -I../common -I../tracker -I/usr/include/fastcommon
 LIB_PATH = $(LIBS) -lfastcommon
 TARGET_PATH = $(TARGET_PREFIX)/bin
-TARGET_LIB = $(TARGET_PREFIX)/lib64
+TARGET_LIB = $(TARGET_PREFIX)/$(LIB_VERSION)
 TARGET_INC = $(TARGET_PREFIX)/include
 CONFIG_PATH = $(TARGET_CONF_PATH)
 
@@ -39,7 +39,7 @@ ALL_OBJS = $(STATIC_OBJS) $(FDFS_SHARED_OBJS)
 ALL_PRGS = fdfs_monitor fdfs_test fdfs_test1 fdfs_crc32 fdfs_upload_file \
            fdfs_download_file fdfs_delete_file fdfs_file_info \
            fdfs_appender_test fdfs_appender_test1 fdfs_append_file \
-           fdfs_upload_appender
+           fdfs_upload_appender fdfs_regenerate_filename
 
 STATIC_LIBS = libfdfsclient.a
 

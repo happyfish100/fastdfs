@@ -3,7 +3,7 @@
 *
 * FastDFS may be copied only under the terms of the GNU General
 * Public License V3, which may be found in the FastDFS source kit.
-* Please visit the FastDFS Home Page http://www.csource.org/ for more detail.
+* Please visit the FastDFS Home Page http://www.fastken.com/ for more detail.
 **/
 
 //client_func.h
@@ -16,6 +16,8 @@
 #define _CLIENT_FUNC_H_
 
 typedef struct {
+    short file_type;
+    bool get_from_server;
 	time_t create_timestamp;
 	int crc32;
 	int source_id;   //source storage id

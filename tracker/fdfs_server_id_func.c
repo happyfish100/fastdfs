@@ -3,7 +3,7 @@
 *
 * FastDFS may be copied only under the terms of the GNU General
 * Public License V3, which may be found in the FastDFS source kit.
-* Please visit the FastDFS Home Page http://www.csource.org/ for more detail.
+* Please visit the FastDFS Home Page http://www.fastken.com/ for more detail.
 **/
 
 #include <stdlib.h>
@@ -177,7 +177,7 @@ static int fdfs_init_ip_array(FDFSStorageIdMapArray *mapArray,
         {
             idMap->idInfo = idInfo;
             idMap->group_name = idInfo->group_name;
-            idMap->ip_addr = idInfo->ip_addrs.ips[i];
+            idMap->ip_addr = idInfo->ip_addrs.ips[i].address;
             idMap->port = idInfo->port;
             idMap++;
         }

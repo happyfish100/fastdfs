@@ -3,7 +3,7 @@
 *
 * FastDFS may be copied only under the terms of the GNU General
 * Public License V3, which may be found in the FastDFS source kit.
-* Please visit the FastDFS Home Page http://www.csource.org/ for more detail.
+* Please visit the FastDFS Home Page http://www.fastken.com/ for more detail.
 **/
 
 #ifndef STORAGE_CLIENT1_H
@@ -524,6 +524,22 @@ int fdfs_get_file_info_ex1(const char *file_id, const bool get_from_server, \
 int storage_file_exist1(ConnectionInfo *pTrackerServer, \
 			ConnectionInfo *pStorageServer,  \
 			const char *file_id);
+
+/**
+* regenerate normal filename for appender file
+* Note: the appender file will change to normal file
+* params:
+*       pTrackerServer: the tracker server
+*       pStorageServer: the storage server
+*	    group_name: the group name 
+*	    appender_file_id: the appender file id
+*       file_id: regenerated file id return by storage server
+* return: 0 success, !=0 fail, return the error code
+**/
+int storage_regenerate_appender_filename1(ConnectionInfo *pTrackerServer,
+		ConnectionInfo *pStorageServer, const char *appender_file_id,
+        char *new_file_id);
+
 #ifdef __cplusplus
 }
 #endif

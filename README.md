@@ -3,8 +3,7 @@ Copyright (C) 2008 Happy Fish / YuQing
 FastDFS may be copied only under the terms of the GNU General
 Public License V3, which may be found in the FastDFS source kit.
 Please visit the FastDFS Home Page for more detail.
-English language: http://english.csource.org/
-Chinese language: http://www.csource.org/
+Chinese language: http://www.fastken.com/
 
 
 FastDFS is an open source high performance distributed file system. It's major 
@@ -42,3 +41,6 @@ The identification of a file is composed of two parts: the volume name and
 the file name.
 
 Client test code use client library please refer to the directory: client/test.
+
+For more FastDFS related articles, please subscribe the Wechat/Weixin public account
+(Chinese Language): fastdfs

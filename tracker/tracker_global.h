@@ -3,7 +3,7 @@
 *
 * FastDFS may be copied only under the terms of the GNU General
 * Public License V3, which may be found in the FastDFS source kit.
-* Please visit the FastDFS Home Page http://www.csource.org/ for more detail.
+* Please visit the FastDFS Home Page http://www.fastken.com/ for more detail.
 **/
 
 //tracker_global.h
@@ -62,8 +62,9 @@ extern char g_run_by_user[32];
 extern bool g_storage_ip_changed_auto_adjust;
 extern bool g_use_storage_id;  //identify storage by ID instead of IP address
 extern byte g_id_type_in_filename; //id type of the storage server in the filename
-extern bool g_rotate_error_log;  //if rotate the error log every day
-extern TimeInfo g_error_log_rotate_time;  //rotate error log time base
+extern bool g_rotate_error_log;    //if rotate the error log every day
+extern bool g_compress_old_error_log;    //if compress the old error log
+extern TimeInfo g_error_log_rotate_time; //rotate error log time base
 
 extern int g_thread_stack_size;
 extern int g_storage_sync_file_max_delay;
@@ -74,12 +75,18 @@ extern bool g_if_use_trunk_file;   //if use trunk file
 extern bool g_trunk_create_file_advance;
 extern bool g_trunk_init_check_occupying;
 extern bool g_trunk_init_reload_from_binlog;
+extern bool g_trunk_free_space_merge;
+extern bool g_delete_unused_trunk_files;
 extern int g_slot_min_size;    //slot min size, such as 256 bytes
 extern int g_slot_max_size;    //slot max size, such as 16MB
 extern int g_trunk_file_size;  //the trunk file size, such as 64MB
 extern TimeInfo g_trunk_create_file_time_base;
+extern TimeInfo g_trunk_compress_binlog_time_base;
 extern int g_trunk_create_file_interval;
+extern int g_trunk_compress_binlog_interval;
 extern int g_trunk_compress_binlog_min_interval;
+extern int g_trunk_binlog_max_backups;
+extern int g_trunk_alloc_alignment_size;
 extern int64_t g_trunk_create_file_space_threshold;
 
 extern time_t g_up_time;
@@ -98,6 +105,7 @@ extern char g_exe_name[256];
 #endif
 
 extern int g_log_file_keep_days;
+extern int g_compress_error_log_days_before;
 extern FDFSConnectionStat g_connection_stat;
 
 #ifdef __cplusplus

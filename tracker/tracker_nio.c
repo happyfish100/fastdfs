@@ -3,7 +3,7 @@
 *
 * FastDFS may be copied only under the terms of the GNU General
 * Public License V3, which may be found in the FastDFS source kit.
-* Please visit the FastDFS Home Page http://www.csource.org/ for more detail.
+* Please visit the FastDFS Home Page http://www.fastken.com/ for more detail.
 **/
 
 #include <stdio.h>
@@ -134,10 +134,11 @@ void recv_notify_read(int sock, short event, void *arg)
 		pTask = free_queue_pop();
 		if (pTask == NULL)
 		{
-			logError("file: "__FILE__", line: %d, " \
-				"malloc task buff failed, you should " \
-				"increase the parameter: max_connections", \
-				__LINE__);
+			logError("file: "__FILE__", line: %d, "
+				"malloc task buff fail, you should "
+				"increase the parameter \"max_connections\" "
+                "in tracker.conf, or check your applications "
+                "for connection leaks", __LINE__);
 			close(incomesock);
 			continue;
 		}
@@ -198,21 +199,33 @@ static void client_sock_read(int sock, short event, void *arg)
 
 	if (event & IOEVENT_TIMEOUT)
 	{
-		if (pTask->offset == 0 && pTask->req_count > 0)
+		if (pTask->offset == 0)
 		{
-			pTask->event.timer.expires = g_current_time +
-				g_fdfs_network_timeout;
-			fast_timer_add(&pTask->thread_data->timer,
-				&pTask->event.timer);
+            if (pTask->req_count > 0)
+            {
+                pTask->event.timer.expires = g_current_time +
+                    g_fdfs_network_timeout;
+                fast_timer_add(&pTask->thread_data->timer,
+                        &pTask->event.timer);
+            }
+            else
+            {
+                logWarning("file: "__FILE__", line: %d, "
+                        "client ip: %s, recv timeout. "
+                        "after the connection is established, "
+                        "you must send a request before %ds timeout, "
+                        "maybe connections leak in you application.",
+                        __LINE__, pTask->client_ip, g_fdfs_network_timeout);
+                task_finish_clean_up(pTask);
+            }
 		}
 		else
 		{
-			logError("file: "__FILE__", line: %d, " \
-				"client ip: %s, recv timeout, " \
-				"recv offset: %d, expect length: %d", \
-				__LINE__, pTask->client_ip, \
-				pTask->offset, pTask->length);
-
+			logError("file: "__FILE__", line: %d, "
+				"client ip: %s, recv timeout, "
+				"recv offset: %d, expect length: %d, "
+                "req_count: %"PRId64, __LINE__, pTask->client_ip,
+				pTask->offset, pTask->length, pTask->req_count);
 			task_finish_clean_up(pTask);
 		}
 

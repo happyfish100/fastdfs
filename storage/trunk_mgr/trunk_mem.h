@@ -3,7 +3,7 @@
 *
 * FastDFS may be copied only under the terms of the GNU General
 * Public License V3, which may be found in the FastDFS source kit.
-* Please visit the FastDFS Home Page http://www.csource.org/ for more detail.
+* Please visit the FastDFS Home Page http://www.fastken.com/ for more detail.
 **/
 
 //trunk_mem.h
@@ -22,29 +22,47 @@
 #include "trunk_shared.h"
 #include "fdfs_shared_func.h"
 
+#define STORAGE_TRUNK_COMPRESS_STAGE_NONE                0
+#define STORAGE_TRUNK_COMPRESS_STAGE_COMPRESS_BEGIN      1
+#define STORAGE_TRUNK_COMPRESS_STAGE_APPLY_DONE          2
+#define STORAGE_TRUNK_COMPRESS_STAGE_SAVE_DONE           3
+#define STORAGE_TRUNK_COMPRESS_STAGE_COMMIT_MERGING      4
+#define STORAGE_TRUNK_COMPRESS_STAGE_COMMIT_MERGE_DONE   5
+#define STORAGE_TRUNK_COMPRESS_STAGE_COMPRESS_SUCCESS    6
+#define STORAGE_TRUNK_COMPRESS_STAGE_ROLLBACK_MERGING    7
+#define STORAGE_TRUNK_COMPRESS_STAGE_ROLLBACK_MERGE_DONE 8
+#define STORAGE_TRUNK_COMPRESS_STAGE_FINISHED            9
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 extern int g_slot_min_size;    //slot min size, such as 256 bytes
 extern int g_slot_max_size;    //slot max size
+extern int g_trunk_alloc_alignment_size;  //the alignment size for trunk alloc
 extern int g_trunk_file_size;  //the trunk file size, such as 64MB
 extern int g_store_path_mode;  //store which path mode, fetch from tracker
 extern FDFSStorageReservedSpace g_storage_reserved_space;  //fetch from tracker
 extern int g_avg_storage_reserved_mb;  //calc by above var: g_storage_reserved_mb
 extern int g_store_path_index;  //store to which path
-extern int g_current_trunk_file_id;  //current trunk file id
+extern volatile int g_current_trunk_file_id;  //current trunk file id
 extern TimeInfo g_trunk_create_file_time_base;
+extern TimeInfo g_trunk_compress_binlog_time_base;
 extern int g_trunk_create_file_interval;
 extern int g_trunk_compress_binlog_min_interval;
+extern int g_trunk_compress_binlog_interval;
+extern int g_trunk_binlog_max_backups;
 extern TrackerServerInfo g_trunk_server;  //the trunk server
 extern bool g_if_use_trunk_file;   //if use trunk file
 extern bool g_trunk_create_file_advance;
 extern bool g_trunk_init_check_occupying;
 extern bool g_trunk_init_reload_from_binlog;
+extern bool g_trunk_free_space_merge;
+extern bool g_delete_unused_trunk_files;
+extern int g_trunk_binlog_compress_stage;
 extern bool g_if_trunker_self;   //if am i trunk server
 extern int64_t g_trunk_create_file_space_threshold;
-extern int64_t g_trunk_total_free_space;  //trunk total free space in bytes
+extern volatile int64_t g_trunk_total_free_space;  //trunk total free space in bytes
 extern time_t g_trunk_last_compress_time;
 
 typedef struct tagFDFSTrunkNode {
@@ -60,9 +78,10 @@ typedef struct {
 } FDFSTrunkSlot;
 
 int storage_trunk_init();
-int storage_trunk_destroy_ex(const bool bNeedSleep);
+int storage_trunk_destroy_ex(const bool bNeedSleep,
+        const bool bSaveData);
 
-#define storage_trunk_destroy() storage_trunk_destroy_ex(false)
+#define storage_trunk_destroy() storage_trunk_destroy_ex(false, true)
 
 int trunk_alloc_space(const int size, FDFSTrunkFullInfo *pResult);
 int trunk_alloc_confirm(const FDFSTrunkFullInfo *pTrunkInfo, const int status);
@@ -87,7 +106,9 @@ int trunk_file_delete(const char *trunk_filename, \
 
 int trunk_create_trunk_file_advance(void *args);
 
-int storage_delete_trunk_data_file();
+int trunk_binlog_compress_func(void *args);
+
+int storage_trunk_binlog_compress_check_recovery();
 
 char *storage_trunk_get_data_filename(char *full_filename);
 

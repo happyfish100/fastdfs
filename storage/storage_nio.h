@@ -3,7 +3,7 @@
 *
 * FastDFS may be copied only under the terms of the GNU General
 * Public License V3, which may be found in the FastDFS source kit.
-* Please visit the FastDFS Home Page http://www.csource.org/ for more detail.
+* Please visit the FastDFS Home Page http://www.fastken.com/ for more detail.
 **/
 
 //tracker_nio.h
@@ -45,6 +45,8 @@ typedef void (*DeleteFileLogCallback)(struct fast_task_info *pTask, \
 
 typedef void (*FileDealDoneCallback)(struct fast_task_info *pTask, \
 		const int err_no);
+
+typedef int (*FileDealContinueCallback)(struct fast_task_info *pTask);
 
 typedef int (*FileBeforeOpenCallback)(struct fast_task_info *pTask);
 typedef int (*FileBeforeCloseCallback)(struct fast_task_info *pTask);
@@ -109,6 +111,7 @@ typedef struct
 	int64_t start;  //the start offset of file
 	int64_t end;    //the end offset of file
 	int64_t offset; //the current offset of file
+    FileDealContinueCallback continue_callback;
 	FileDealDoneCallback done_callback;
 	DeleteFileLogCallback log_callback;
 
@@ -118,7 +121,6 @@ typedef struct
 typedef struct
 {
 	int nio_thread_index;  //nio thread index
-	bool canceled;
 	char stage;  //nio stage, send or recv
 	char storage_server_id[FDFS_STORAGE_ID_MAX_SIZE];
 
@@ -149,7 +151,6 @@ void storage_recv_notify_read(int sock, short event, void *arg);
 int storage_send_add_event(struct fast_task_info *pTask);
 
 void task_finish_clean_up(struct fast_task_info *pTask);
-void add_to_deleted_list(struct fast_task_info *pTask);
 
 #ifdef __cplusplus
 }

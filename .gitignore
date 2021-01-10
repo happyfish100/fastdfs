@@ -1,0 +1,106 @@
+# Makefile.in
+storage/Makefile
+tracker/Makefile
+client/test/Makefile
+client/Makefile
+
+# client/fdfs_link_library.sh.in 
+client/fdfs_link_library.sh
+
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dSYM
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+client/fdfs_append_file
+client/fdfs_appender_test
+client/fdfs_appender_test1
+client/fdfs_crc32
+client/fdfs_delete_file
+client/fdfs_download_file
+client/fdfs_file_info
+client/fdfs_monitor
+client/fdfs_test
+client/fdfs_test1
+client/fdfs_upload_appender
+client/fdfs_upload_file
+client/fdfs_regenerate_filename
+client/test/fdfs_monitor
+client/test/fdfs_test
+client/test/fdfs_test1
+storage/fdfs_storaged
+tracker/fdfs_trackerd
+test/combine_result
+test/100M
+test/10M
+test/1M
+test/200K
+test/50K
+test/5K
+test/gen_files
+test/test_delete
+test/test_download
+test/test_upload
+test/upload/
+test/download/
+test/delete/
+
+# other
+php_client/.deps
+php_client/.libs/
+
+php_client/Makefile
+php_client/Makefile.fragments
+php_client/Makefile.global
+php_client/Makefile.objects
+php_client/acinclude.m4
+php_client/aclocal.m4
+php_client/autom4te.cache/
+php_client/build/
+php_client/config.guess
+php_client/config.h
+php_client/config.h.in
+php_client/config.log
+php_client/config.nice
+php_client/config.status
+php_client/config.sub
+php_client/configure
+php_client/configure.ac
+php_client/install-sh
+php_client/libtool
+php_client/ltmain.sh
+php_client/missing
+php_client/mkinstalldirs
+php_client/run-tests.php
+
+# fastdfs runtime paths
+data/
+logs/

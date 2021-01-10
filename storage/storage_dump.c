@@ -3,7 +3,7 @@
 *
 * FastDFS may be copied only under the terms of the GNU General
 * Public License V3, which may be found in the FastDFS source kit.
-* Please visit the FastDFS Home Page http://www.csource.org/ for more detail.
+* Please visit the FastDFS Home Page http://www.fastken.com/ for more detail.
 **/
 
 #include <stdio.h>
@@ -246,9 +246,9 @@ static int fdfs_dump_global_vars(char *buff, const int buffSize)
 		total_len += snprintf(buff + total_len, buffSize - total_len,
 				"\tg_fdfs_store_paths.paths[%d]=%s, " \
 				"total=%d MB, free=%d MB\n", i, \
-				g_fdfs_store_paths.paths[i], \
-				g_path_space_list[i].total_mb, \
-				g_path_space_list[i].free_mb);
+				g_fdfs_store_paths.paths[i].path, \
+				g_fdfs_store_paths.paths[i].total_mb, \
+				g_fdfs_store_paths.paths[i].free_mb);
 	}
 
     if (total_len < buffSize - 1)

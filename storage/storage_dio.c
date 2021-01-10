@@ -3,7 +3,7 @@
 *
 * FastDFS may be copied only under the terms of the GNU General
 * Public License V3, which may be found in the FastDFS source kit.
-* Please visit the FastDFS Home Page http://www.csource.org/ for more detail.
+* Please visit the FastDFS Home Page http://www.fastken.com/ for more detail.
 **/
 
 #include <stdio.h>
@@ -24,6 +24,7 @@
 #include "fastcommon/pthread_func.h"
 #include "fastcommon/logger.h"
 #include "fastcommon/sockopt.h"
+#include "fastcommon/ioevent_loop.h"
 #include "storage_dio.h"
 #include "storage_nio.h"
 #include "storage_service.h"
@@ -144,19 +145,19 @@ void storage_dio_terminate()
 
 int storage_dio_queue_push(struct fast_task_info *pTask)
 {
-        StorageClientInfo *pClientInfo;
+    StorageClientInfo *pClientInfo;
 	StorageFileContext *pFileContext;
 	struct storage_dio_context *pContext;
 	int result;
 
-        pClientInfo = (StorageClientInfo *)pTask->arg;
+    pClientInfo = (StorageClientInfo *)pTask->arg;
 	pFileContext = &(pClientInfo->file_context);
 	pContext = g_dio_contexts + pFileContext->dio_thread_index;
 
 	pClientInfo->stage |= FDFS_STORAGE_STAGE_DIO_THREAD;
 	if ((result=blocked_queue_push(&(pContext->queue), pTask)) != 0)
 	{
-		add_to_deleted_list(pTask);
+		ioevent_add_to_deleted_list(pTask);
 		return result;
 	}
 
@@ -222,7 +223,7 @@ int dio_delete_trunk_file(struct fast_task_info *pTask)
 
 	pFileContext = &(((StorageClientInfo *)pTask->arg)->file_context);
 
-	if ((result=trunk_file_delete(pFileContext->filename, \
+	if ((result=trunk_file_delete(pFileContext->filename,
 		&(pFileContext->extra_info.upload.trunk_info))) != 0)
 	{
 		pFileContext->log_callback(pTask, result);
@@ -245,7 +246,7 @@ int dio_discard_file(struct fast_task_info *pTask)
 	else
 	{
 		pFileContext->buff_offset = 0;
-		storage_nio_notify(pTask);  //notify nio to deal
+        pFileContext->continue_callback(pTask);
 	}
 
 	return 0;
@@ -353,6 +354,12 @@ int dio_read_file(struct fast_task_info *pTask)
 		break;
 	}
 
+	if (pFileContext->calc_crc32)
+	{
+		pFileContext->crc32 = CRC32_ex(pTask->data + pTask->length,
+                read_bytes, pFileContext->crc32);
+	}
+
 	pTask->length += read_bytes;
 	pFileContext->offset += read_bytes;
 
@@ -363,7 +370,7 @@ int dio_read_file(struct fast_task_info *pTask)
 
 	if (pFileContext->offset < pFileContext->end)
 	{
-		storage_nio_notify(pTask);  //notify nio to deal
+        pFileContext->continue_callback(pTask);
 	}
 	else
 	{
@@ -371,6 +378,11 @@ int dio_read_file(struct fast_task_info *pTask)
 		close(pFileContext->fd);
 		pFileContext->fd = -1;
 
+		if (pFileContext->calc_crc32)
+		{
+			pFileContext->crc32 = CRC32_FINAL( \
+						pFileContext->crc32);
+		}
 		pFileContext->done_callback(pTask, result);
 	}
 
@@ -475,7 +487,7 @@ int dio_write_file(struct fast_task_info *pTask)
 	if (pFileContext->offset < pFileContext->end)
 	{
 		pFileContext->buff_offset = 0;
-		storage_nio_notify(pTask);  //notify nio to deal
+        pFileContext->continue_callback(pTask);
 	}
 	else
 	{
@@ -803,35 +815,34 @@ int dio_check_trunk_file_ex(int fd, const char *filename, const int64_t offset)
 {
 	int result;
 	char old_header[FDFS_TRUNK_FILE_HEADER_SIZE];
-	char expect_header[FDFS_TRUNK_FILE_HEADER_SIZE];
+	static char expect_header[FDFS_TRUNK_FILE_HEADER_SIZE] = {'\0'};
 
 	if (fc_safe_read(fd, old_header, FDFS_TRUNK_FILE_HEADER_SIZE) !=
 		FDFS_TRUNK_FILE_HEADER_SIZE)
 	{
 		result = errno != 0 ? errno : EIO;
-		logError("file: "__FILE__", line: %d, " \
-			"read trunk header of file: %s fail, " \
-			"errno: %d, error info: %s", \
-			__LINE__, filename, \
+		logError("file: "__FILE__", line: %d, "
+			"read trunk header of file: %s fail, "
+			"errno: %d, error info: %s",
+			__LINE__, filename,
 			result, STRERROR(result));
 		return result;
 	}
 
-	memset(expect_header, 0, sizeof(expect_header));
-	if (memcmp(old_header, expect_header, \
+	if (memcmp(old_header, expect_header,
 		FDFS_TRUNK_FILE_HEADER_SIZE) != 0)
 	{
 		FDFSTrunkHeader srcOldTrunkHeader;
 		FDFSTrunkHeader newOldTrunkHeader;
 
 		trunk_unpack_header(old_header, &srcOldTrunkHeader);
-		memcpy(&newOldTrunkHeader, &srcOldTrunkHeader, \
+		memcpy(&newOldTrunkHeader, &srcOldTrunkHeader,
 			sizeof(FDFSTrunkHeader));
 		newOldTrunkHeader.alloc_size = 0;
 		newOldTrunkHeader.file_size = 0;
 		newOldTrunkHeader.file_type = 0;
 		trunk_pack_header(&newOldTrunkHeader, old_header);
-		if (memcmp(old_header, expect_header, \
+		if (memcmp(old_header, expect_header,
 			FDFS_TRUNK_FILE_HEADER_SIZE) != 0)
 		{
 			char buff[256];

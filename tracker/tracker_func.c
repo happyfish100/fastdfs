@@ -3,7 +3,7 @@
 *
 * FastDFS may be copied only under the terms of the GNU General
 * Public License V3, which may be found in the FastDFS source kit.
-* Please visit the FastDFS Home Page http://www.csource.org/ for more detail.
+* Please visit the FastDFS Home Page http://www.fastken.com/ for more detail.
 **/
 
 //tracker_func.c
@@ -504,19 +504,19 @@ int tracker_load_from_conf_file(const char *filename, \
 		g_trunk_file_size = (int)trunk_file_size;
 		if (g_trunk_file_size < 4 * 1024 * 1024)
 		{
-			logWarning("file: "__FILE__", line: %d, " \
-				"item \"trunk_file_size\" %d is too small, " \
+			logWarning("file: "__FILE__", line: %d, "
+				"item \"trunk_file_size\" %d is too small, "
 				"change to 4MB", __LINE__, g_trunk_file_size);
 			g_trunk_file_size = 4 * 1024 * 1024;
 		}
 
-		pSlotMaxSize = iniGetStrValue(NULL, \
+		pSlotMaxSize = iniGetStrValue(NULL,
 			"slot_max_size", &iniContext);
 		if (pSlotMaxSize == NULL)
 		{
-			slot_max_size = g_trunk_file_size / 2;
+			slot_max_size = g_trunk_file_size / 8;
 		}
-		else if ((result=parse_bytes(pSlotMaxSize, 1, \
+		else if ((result=parse_bytes(pSlotMaxSize, 1,
 				&slot_max_size)) != 0)
 		{
 			return result;
@@ -524,26 +524,26 @@ int tracker_load_from_conf_file(const char *filename, \
 		g_slot_max_size = (int)slot_max_size;
 		if (g_slot_max_size <= g_slot_min_size)
 		{
-			logError("file: "__FILE__", line: %d, " \
-				"item \"slot_max_size\" %d is invalid, " \
-				"which <= slot_min_size: %d", \
+			logError("file: "__FILE__", line: %d, "
+				"item \"slot_max_size\" %d is invalid, "
+				"which <= slot_min_size: %d",
 				__LINE__, g_slot_max_size, g_slot_min_size);
 			result = EINVAL;
 			break;
 		}
 		if (g_slot_max_size > g_trunk_file_size / 2)
 		{
-			logWarning("file: "__FILE__", line: %d, " \
-				"item \"slot_max_size\": %d is too large, " \
-				"change to %d", __LINE__, g_slot_max_size, \
+			logWarning("file: "__FILE__", line: %d, "
+				"item \"slot_max_size\": %d is too large, "
+				"change to %d", __LINE__, g_slot_max_size,
 				g_trunk_file_size / 2);
 			g_slot_max_size = g_trunk_file_size / 2;
 		}
 
-		g_trunk_create_file_advance = iniGetBoolValue(NULL, \
+		g_trunk_create_file_advance = iniGetBoolValue(NULL,
 			"trunk_create_file_advance", &iniContext, false);
-		if ((result=get_time_item_from_conf(&iniContext, \
-                	"trunk_create_file_time_base", \
+		if ((result=get_time_item_from_conf(&iniContext,
+                        "trunk_create_file_time_base",
 			&g_trunk_create_file_time_base, 2, 0)) != 0)
 		{
 			return result;
@@ -563,58 +563,100 @@ int tracker_load_from_conf_file(const char *filename, \
 		{
 			return result;
 		}
-		g_trunk_compress_binlog_min_interval = iniGetIntValue(NULL, \
-				"trunk_compress_binlog_min_interval", \
+		g_trunk_compress_binlog_min_interval = iniGetIntValue(NULL,
+				"trunk_compress_binlog_min_interval",
 				&iniContext, 0);
+		g_trunk_compress_binlog_interval = iniGetIntValue(NULL,
+				"trunk_compress_binlog_interval",
+                &iniContext, 0);
+		if ((result=get_time_item_from_conf(&iniContext,
+                	"trunk_compress_binlog_time_base",
+                    &g_trunk_compress_binlog_time_base, 3, 0)) != 0)
+		{
+			return result;
+		}
 
-		g_trunk_init_check_occupying = iniGetBoolValue(NULL, \
+        g_trunk_binlog_max_backups = iniGetIntValue(NULL,
+				"trunk_binlog_max_backups", &iniContext, 0);
+
+        g_trunk_alloc_alignment_size = iniGetIntValue(NULL,
+				"trunk_alloc_alignment_size", &iniContext, 0);
+        if (g_slot_min_size < g_trunk_alloc_alignment_size)
+        {
+            logWarning("file: "__FILE__", line: %d, "
+                    "item \"slot_min_size\": %d < "
+                    "\"trunk_alloc_alignment_size\": %d, "
+                    "change to %d", __LINE__, g_slot_min_size,
+                    g_trunk_alloc_alignment_size,
+                    g_trunk_alloc_alignment_size);
+            g_slot_min_size = g_trunk_alloc_alignment_size;
+        }
+
+		g_trunk_init_check_occupying = iniGetBoolValue(NULL,
 			"trunk_init_check_occupying", &iniContext, false);
 
-		g_trunk_init_reload_from_binlog = iniGetBoolValue(NULL, \
+		g_trunk_init_reload_from_binlog = iniGetBoolValue(NULL,
 			"trunk_init_reload_from_binlog", &iniContext, false);
 
-		if ((result=tracker_load_storage_id_info( \
+		g_trunk_free_space_merge = iniGetBoolValue(NULL,
+			"trunk_free_space_merge", &iniContext, false);
+
+		g_delete_unused_trunk_files = iniGetBoolValue(NULL,
+			"delete_unused_trunk_files", &iniContext, false);
+
+		if ((result=tracker_load_storage_id_info(
 				filename, &iniContext)) != 0)
 		{
 			return result;
 		}
 
-		g_rotate_error_log = iniGetBoolValue(NULL, "rotate_error_log",\
+		g_rotate_error_log = iniGetBoolValue(NULL, "rotate_error_log",
 					&iniContext, false);
-		if ((result=get_time_item_from_conf(&iniContext, \
-			"error_log_rotate_time", &g_error_log_rotate_time, \
+        g_compress_old_error_log = iniGetBoolValue(NULL, "compress_old_error_log",
+                &iniContext, false);
+		g_compress_error_log_days_before = iniGetIntValue(NULL,
+				"compress_error_log_days_before", &iniContext, 1);
+        if (g_compress_old_error_log)
+        {
+            log_set_compress_log_flags(LOG_COMPRESS_FLAGS_ENABLED |
+                    LOG_COMPRESS_FLAGS_NEW_THREAD);
+            log_set_compress_log_days_before(g_compress_error_log_days_before);
+        }
+
+		if ((result=get_time_item_from_conf(&iniContext,
+			"error_log_rotate_time", &g_error_log_rotate_time,
 			0, 0)) != 0)
 		{
 			break;
 		}
 
-		pRotateErrorLogSize = iniGetStrValue(NULL, \
+		pRotateErrorLogSize = iniGetStrValue(NULL,
 			"rotate_error_log_size", &iniContext);
 		if (pRotateErrorLogSize == NULL)
 		{
 			rotate_error_log_size = 0;
 		}
-		else if ((result=parse_bytes(pRotateErrorLogSize, 1, \
+		else if ((result=parse_bytes(pRotateErrorLogSize, 1,
 				&rotate_error_log_size)) != 0)
 		{
 			break;
 		}
-		if (rotate_error_log_size > 0 && \
+		if (rotate_error_log_size > 0 &&
 			rotate_error_log_size < FDFS_ONE_MB)
 		{
-			logWarning("file: "__FILE__", line: %d, " \
-				"item \"rotate_error_log_size\": " \
-				"%"PRId64" is too small, " \
-				"change to 1 MB", __LINE__, \
+			logWarning("file: "__FILE__", line: %d, "
+				"item \"rotate_error_log_size\": "
+				"%"PRId64" is too small, "
+				"change to 1 MB", __LINE__,
 				rotate_error_log_size);
 			rotate_error_log_size = FDFS_ONE_MB;
 		}
 		fdfs_set_log_rotate_size(&g_log_context, rotate_error_log_size);
 
-		g_log_file_keep_days = iniGetIntValue(NULL, \
+		g_log_file_keep_days = iniGetIntValue(NULL,
 				"log_file_keep_days", &iniContext, 0);
 
-		g_store_slave_file_use_link = iniGetBoolValue(NULL, \
+		g_store_slave_file_use_link = iniGetBoolValue(NULL,
 			"store_slave_file_use_link", &iniContext, false);
 
 		if ((result=fdfs_connection_pool_init(filename, &iniContext)) != 0)
@@ -708,81 +750,97 @@ int tracker_load_from_conf_file(const char *filename, \
         int_to_comma_str(g_min_buff_size, sz_min_buff_size);
         int_to_comma_str(g_max_buff_size, sz_max_buff_size);
 
-		logInfo("FastDFS v%d.%02d, base_path=%s, " \
-			"run_by_group=%s, run_by_user=%s, " \
-			"connect_timeout=%ds, "    \
-			"network_timeout=%ds, "    \
-			"port=%d, bind_addr=%s, " \
-			"max_connections=%d, "    \
-			"accept_threads=%d, "    \
-			"work_threads=%d, "    \
-            "min_buff_size=%s, " \
-            "max_buff_size=%s, " \
-			"store_lookup=%d, store_group=%s, " \
-			"store_server=%d, store_path=%d, " \
-			"reserved_storage_space=%s, " \
-			"download_server=%d, " \
-			"allow_ip_count=%d, sync_log_buff_interval=%ds, " \
-			"check_active_interval=%ds, " \
-			"thread_stack_size=%d KB, " \
-			"storage_ip_changed_auto_adjust=%d, "  \
-			"storage_sync_file_max_delay=%ds, " \
-			"storage_sync_file_max_time=%ds, "  \
-			"use_trunk_file=%d, " \
-			"slot_min_size=%d, " \
-			"slot_max_size=%d MB, " \
-			"trunk_file_size=%d MB, " \
-			"trunk_create_file_advance=%d, " \
-			"trunk_create_file_time_base=%02d:%02d, " \
-			"trunk_create_file_interval=%d, " \
-			"trunk_create_file_space_threshold=%d GB, " \
-			"trunk_init_check_occupying=%d, " \
-			"trunk_init_reload_from_binlog=%d, " \
-			"trunk_compress_binlog_min_interval=%d, " \
-			"use_storage_id=%d, " \
-			"id_type_in_filename=%s, " \
-			"storage_id/ip_count=%d / %d, " \
-			"rotate_error_log=%d, " \
-			"error_log_rotate_time=%02d:%02d, " \
-			"rotate_error_log_size=%"PRId64", " \
-			"log_file_keep_days=%d, " \
-			"store_slave_file_use_link=%d, " \
-			"use_connection_pool=%d, " \
-			"g_connection_pool_max_idle_time=%ds", \
-			g_fdfs_version.major, g_fdfs_version.minor,  \
-			g_fdfs_base_path, g_run_by_group, g_run_by_user, \
-			g_fdfs_connect_timeout, \
-			g_fdfs_network_timeout, g_server_port, bind_addr, \
-			g_max_connections, g_accept_threads, g_work_threads, \
-            sz_min_buff_size, sz_max_buff_size, \
-			g_groups.store_lookup, g_groups.store_group, \
-			g_groups.store_server, g_groups.store_path, \
-			fdfs_storage_reserved_space_to_string( \
-			    &g_storage_reserved_space, reserved_space_str), \
-			g_groups.download_server, \
-			g_allow_ip_count, g_sync_log_buff_interval, \
-			g_check_active_interval, g_thread_stack_size / 1024, \
-			g_storage_ip_changed_auto_adjust, \
-			g_storage_sync_file_max_delay, \
-			g_storage_sync_file_max_time, \
-			g_if_use_trunk_file, g_slot_min_size, \
-			g_slot_max_size / FDFS_ONE_MB, \
-			g_trunk_file_size / FDFS_ONE_MB, \
-			g_trunk_create_file_advance, \
-			g_trunk_create_file_time_base.hour, \
-			g_trunk_create_file_time_base.minute, \
-			g_trunk_create_file_interval, \
-			(int)(g_trunk_create_file_space_threshold / \
-			(FDFS_ONE_MB * 1024)), g_trunk_init_check_occupying, \
-			g_trunk_init_reload_from_binlog, \
-			g_trunk_compress_binlog_min_interval, \
-			g_use_storage_id, g_id_type_in_filename == \
-			FDFS_ID_TYPE_SERVER_ID ? "id" : "ip", \
-            g_storage_ids_by_id.count, g_storage_ids_by_ip.count, \
-			g_rotate_error_log, g_error_log_rotate_time.hour, \
-			g_error_log_rotate_time.minute, \
+		logInfo("FastDFS v%d.%02d, base_path=%s, "
+			"run_by_group=%s, run_by_user=%s, "
+			"connect_timeout=%ds, "
+			"network_timeout=%ds, "
+			"port=%d, bind_addr=%s, "
+			"max_connections=%d, "
+			"accept_threads=%d, "
+			"work_threads=%d, "
+            "min_buff_size=%s, "
+            "max_buff_size=%s, "
+			"store_lookup=%d, store_group=%s, "
+			"store_server=%d, store_path=%d, "
+			"reserved_storage_space=%s, "
+			"download_server=%d, "
+			"allow_ip_count=%d, sync_log_buff_interval=%ds, "
+			"check_active_interval=%ds, "
+			"thread_stack_size=%d KB, "
+			"storage_ip_changed_auto_adjust=%d, "
+			"storage_sync_file_max_delay=%ds, "
+			"storage_sync_file_max_time=%ds, "
+			"use_trunk_file=%d, "
+			"slot_min_size=%d, "
+			"slot_max_size=%d KB, "
+			"trunk_alloc_alignment_size=%d, "
+			"trunk_file_size=%d MB, "
+			"trunk_create_file_advance=%d, "
+			"trunk_create_file_time_base=%02d:%02d, "
+			"trunk_create_file_interval=%d, "
+			"trunk_create_file_space_threshold=%d GB, "
+			"trunk_init_check_occupying=%d, "
+			"trunk_init_reload_from_binlog=%d, "
+			"trunk_free_space_merge=%d, "
+			"delete_unused_trunk_files=%d, "
+			"trunk_compress_binlog_min_interval=%d, "
+			"trunk_compress_binlog_interval=%d, "
+			"trunk_compress_binlog_time_base=%02d:%02d, "
+			"trunk_binlog_max_backups=%d, "
+			"use_storage_id=%d, "
+			"id_type_in_filename=%s, "
+			"storage_id/ip_count=%d / %d, "
+			"rotate_error_log=%d, "
+			"error_log_rotate_time=%02d:%02d, "
+            "compress_old_error_log=%d, "
+            "compress_error_log_days_before=%d, "
+			"rotate_error_log_size=%"PRId64", "
+			"log_file_keep_days=%d, "
+			"store_slave_file_use_link=%d, "
+			"use_connection_pool=%d, "
+			"g_connection_pool_max_idle_time=%ds",
+			g_fdfs_version.major, g_fdfs_version.minor,
+			g_fdfs_base_path, g_run_by_group, g_run_by_user,
+			g_fdfs_connect_timeout,
+			g_fdfs_network_timeout, g_server_port, bind_addr,
+			g_max_connections, g_accept_threads, g_work_threads,
+            sz_min_buff_size, sz_max_buff_size,
+			g_groups.store_lookup, g_groups.store_group,
+			g_groups.store_server, g_groups.store_path,
+			fdfs_storage_reserved_space_to_string(
+			    &g_storage_reserved_space, reserved_space_str),
+			g_groups.download_server,
+			g_allow_ip_count, g_sync_log_buff_interval,
+			g_check_active_interval, g_thread_stack_size / 1024,
+			g_storage_ip_changed_auto_adjust,
+			g_storage_sync_file_max_delay,
+			g_storage_sync_file_max_time,
+			g_if_use_trunk_file, g_slot_min_size,
+			g_slot_max_size / 1024,
+            g_trunk_alloc_alignment_size,
+			g_trunk_file_size / FDFS_ONE_MB,
+			g_trunk_create_file_advance,
+			g_trunk_create_file_time_base.hour,
+			g_trunk_create_file_time_base.minute,
+			g_trunk_create_file_interval,
+			(int)(g_trunk_create_file_space_threshold /
+			(FDFS_ONE_MB * 1024)), g_trunk_init_check_occupying,
+			g_trunk_init_reload_from_binlog,
+            g_trunk_free_space_merge,
+            g_delete_unused_trunk_files,
+			g_trunk_compress_binlog_min_interval,
+			g_trunk_compress_binlog_interval,
+            g_trunk_compress_binlog_time_base.hour,
+            g_trunk_compress_binlog_time_base.minute,
+            g_trunk_binlog_max_backups,
+			g_use_storage_id, g_id_type_in_filename ==
+			FDFS_ID_TYPE_SERVER_ID ? "id" : "ip",
+            g_storage_ids_by_id.count, g_storage_ids_by_ip.count,
+			g_rotate_error_log, g_error_log_rotate_time.hour,
+			g_error_log_rotate_time.minute, g_compress_old_error_log,
+            g_compress_error_log_days_before,
 			g_log_context.rotate_size, g_log_file_keep_days,
-			g_store_slave_file_use_link, \
+			g_store_slave_file_use_link,
 			g_use_connection_pool, g_connection_pool_max_idle_time);
 
 #ifdef WITH_HTTPD

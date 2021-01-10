@@ -3,7 +3,7 @@
 *
 * FastDFS may be copied only under the terms of the GNU General
 * Public License V3, which may be found in the FastDFS source kit.
-* Please visit the FastDFS Home Page http://www.csource.org/ for more detail.
+* Please visit the FastDFS Home Page http://www.fastken.com/ for more detail.
 **/
 
 #include <stdlib.h>
@@ -13,9 +13,11 @@
 #include "fastcommon/logger.h"
 #include "fastcommon/sockopt.h"
 #include "fastcommon/shared_func.h"
+#include "fastcommon/local_ip_func.h"
 #include "tracker_proto.h"
 #include "fdfs_global.h"
 #include "fdfs_shared_func.h"
+
 
 bool fdfs_server_contain(TrackerServerInfo *pServerInfo,
         const char *target_ip, const int target_port)
@@ -108,6 +110,24 @@ bool fdfs_server_equal(TrackerServerInfo *pServer1,
     return true;
 }
 
+bool fdfs_server_contain_local_service(TrackerServerInfo *pServerInfo,
+        const int target_port)
+{
+    const char *current_ip;
+    
+    current_ip = get_first_local_ip();
+    while (current_ip != NULL)
+    {
+        if (fdfs_server_contain(pServerInfo, current_ip, target_port))
+        {
+            return true;
+        }
+        current_ip = get_next_local_ip(current_ip);
+    }
+
+    return false;
+}
+
 TrackerServerInfo *fdfs_tracker_group_get_server(TrackerServerGroup *pGroup,
         const char *target_ip, const int target_port)
 {
@@ -150,7 +170,7 @@ void fdfs_server_sock_reset(TrackerServerInfo *pServerInfo)
     }
 }
 
-int fdfs_get_tracker_leader_index_ex(TrackerServerGroup *pServerGroup, \
+int fdfs_get_tracker_leader_index_ex(TrackerServerGroup *pServerGroup,
 		const char *leaderIp, const int leaderPort)
 {
 	TrackerServerInfo *pServer;
@@ -173,7 +193,7 @@ int fdfs_get_tracker_leader_index_ex(TrackerServerGroup *pServerGroup, \
 	return -1;
 }
 
-int fdfs_parse_storage_reserved_space(IniContext *pIniContext, \
+int fdfs_parse_storage_reserved_space(IniContext *pIniContext,
 		FDFSStorageReservedSpace *pStorageReservedSpace)
 {
 	int result;
@@ -495,11 +515,40 @@ int fdfs_server_info_to_string_ex(const TrackerServerInfo *pServer,
     return len;
 }
 
+int fdfs_get_ip_type(const char* ip)
+{
+    if (ip == NULL || (int)strlen(ip) < 8)
+    {
+        return FDFS_IP_TYPE_UNKNOWN;
+    }
+
+    if (memcmp(ip, "10.", 3) == 0)
+    {
+        return FDFS_IP_TYPE_PRIVATE_10;
+    }
+    if (memcmp(ip, "192.168.", 8) == 0)
+    {
+        return FDFS_IP_TYPE_PRIVATE_192;
+    }
+
+    if (memcmp(ip, "172.", 4) == 0)
+    {
+        int b;
+        b = atoi(ip + 4);
+        if (b >= 16 && b < 32)
+        {
+            return FDFS_IP_TYPE_PRIVATE_172;
+        }
+    }
+
+    return FDFS_IP_TYPE_OUTER;
+}
+
 int fdfs_check_server_ips(const TrackerServerInfo *pServer,
         char *error_info, const int error_size)
 {
-    int private0;
-    int private1;
+    int type0;
+    int type1;
     if (pServer->count == 1)
     {
         *error_info = '\0';
@@ -521,13 +570,14 @@ int fdfs_check_server_ips(const TrackerServerInfo *pServer,
         return EINVAL;
     }
 
-    private0 = is_private_ip(pServer->connections[0].ip_addr) ? 1 : 0;
-    private1 = is_private_ip(pServer->connections[1].ip_addr) ? 1 : 0;
-    if ((private0 ^ private1) == 0)
+    type0 = fdfs_get_ip_type(pServer->connections[0].ip_addr);
+    type1 = fdfs_get_ip_type(pServer->connections[1].ip_addr);
+    if (type0 == type1)
     {
         snprintf(error_info, error_size,
                 "invalid ip addresses %s and %s, "
-                "one MUST be an inner IP and another is a outer IP",
+                "one MUST be an inner IP and another is a outer IP, "
+                "or two different types of inner IP addresses",
                 pServer->connections[0].ip_addr,
                 pServer->connections[1].ip_addr);
         return EINVAL;
@@ -549,8 +599,8 @@ int fdfs_parse_multi_ips_ex(char *ip_str, FDFSMultiIP *ip_addrs,
     {
         if (resolve)
         {
-            if (getIpaddrByName(hosts[i], ip_addrs->ips[i],
-                        sizeof(ip_addrs->ips[i])) == INADDR_NONE)
+            if (getIpaddrByName(hosts[i], ip_addrs->ips[i].address,
+                        sizeof(ip_addrs->ips[i].address)) == INADDR_NONE)
             {
                 snprintf(error_info, error_size,
                         "host \"%s\" is invalid, error info: %s",
@@ -560,7 +610,17 @@ int fdfs_parse_multi_ips_ex(char *ip_str, FDFSMultiIP *ip_addrs,
         }
         else
         {
-            snprintf(ip_addrs->ips[i], sizeof(ip_addrs->ips[i]), "%s", hosts[i]);
+            snprintf(ip_addrs->ips[i].address,
+                    sizeof(ip_addrs->ips[i].address), "%s", hosts[i]);
+        }
+
+        ip_addrs->ips[i].type = fdfs_get_ip_type(ip_addrs->ips[i].address);
+        if (ip_addrs->ips[i].type == FDFS_IP_TYPE_UNKNOWN)
+        {
+            snprintf(error_info, error_size,
+                    "ip address \"%s\" is invalid",
+                    ip_addrs->ips[i].address);
+            return EINVAL;
         }
     }
 
@@ -582,14 +642,14 @@ int fdfs_multi_ips_to_string_ex(const FDFSMultiIP *ip_addrs,
     if (ip_addrs->count == 1)
     {
         return snprintf(buff, buffSize, "%s",
-                ip_addrs->ips[0]);
+                ip_addrs->ips[0].address);
     }
 
-    len = snprintf(buff, buffSize, "%s", ip_addrs->ips[0]);
+    len = snprintf(buff, buffSize, "%s", ip_addrs->ips[0].address);
 	for (i=1; i<ip_addrs->count; i++)
     {
         len += snprintf(buff + len, buffSize - len, "%c%s",
-                seperator, ip_addrs->ips[i]);
+                seperator, ip_addrs->ips[i].address);
     }
     return len;
 }
@@ -597,10 +657,11 @@ int fdfs_multi_ips_to_string_ex(const FDFSMultiIP *ip_addrs,
 const char *fdfs_get_ipaddr_by_peer_ip(const FDFSMultiIP *ip_addrs,
         const char *client_ip)
 {
+    int ip_type;
     int index;
     if (ip_addrs->count == 1)
     {
-        return ip_addrs->ips[0];
+        return ip_addrs->ips[0].address;
     }
 
     if (ip_addrs->count <= 0)
@@ -608,15 +669,16 @@ const char *fdfs_get_ipaddr_by_peer_ip(const FDFSMultiIP *ip_addrs,
         return "";
     }
 
-    index = is_private_ip(client_ip) ? FDFS_MULTI_IP_INDEX_INNER : FDFS_MULTI_IP_INDEX_OUTER;
-    return ip_addrs->ips[index];
+    ip_type = fdfs_get_ip_type(client_ip);
+    index = ip_addrs->ips[FDFS_MULTI_IP_INDEX_OUTER].type == ip_type ?
+        FDFS_MULTI_IP_INDEX_OUTER : FDFS_MULTI_IP_INDEX_INNER;
+    return ip_addrs->ips[index].address;
 }
 
 int fdfs_check_and_format_ips(FDFSMultiIP *ip_addrs,
         char *error_info, const int error_size)
 {
-    int privates[FDFS_MULTI_IP_MAX_COUNT];
-    char swap_ip[IP_ADDRESS_SIZE];
+    FDFSIPInfo swap_ip;
     if (ip_addrs->count == 1)
     {
         *error_info = '\0';
@@ -638,23 +700,23 @@ int fdfs_check_and_format_ips(FDFSMultiIP *ip_addrs,
         return EINVAL;
     }
 
-    privates[0] = is_private_ip(ip_addrs->ips[0]) ? 1 : 0;
-    privates[1] = is_private_ip(ip_addrs->ips[1]) ? 1 : 0;
-    if ((privates[0] ^ privates[1]) == 0)
+    if (ip_addrs->ips[FDFS_MULTI_IP_INDEX_INNER].type ==
+            ip_addrs->ips[FDFS_MULTI_IP_INDEX_OUTER].type)
     {
         snprintf(error_info, error_size,
                 "invalid ip addresses %s and %s, "
-                "one MUST be an inner IP and another is a outer IP",
-                ip_addrs->ips[0], ip_addrs->ips[1]);
+                "one MUST be an inner IP and another is a outer IP, "
+                "or two different types of inner IP addresses",
+                ip_addrs->ips[0].address, ip_addrs->ips[1].address);
         return EINVAL;
     }
 
-    if (!privates[FDFS_MULTI_IP_INDEX_INNER])
+    if (ip_addrs->ips[FDFS_MULTI_IP_INDEX_INNER].type == FDFS_IP_TYPE_OUTER)
     {
-        strcpy(swap_ip, ip_addrs->ips[FDFS_MULTI_IP_INDEX_INNER]);
-        strcpy(ip_addrs->ips[FDFS_MULTI_IP_INDEX_INNER],
-                ip_addrs->ips[FDFS_MULTI_IP_INDEX_OUTER]);
-        strcpy(ip_addrs->ips[FDFS_MULTI_IP_INDEX_OUTER], swap_ip);
+        swap_ip = ip_addrs->ips[FDFS_MULTI_IP_INDEX_INNER];
+        ip_addrs->ips[FDFS_MULTI_IP_INDEX_INNER] =
+            ip_addrs->ips[FDFS_MULTI_IP_INDEX_OUTER];
+        ip_addrs->ips[FDFS_MULTI_IP_INDEX_OUTER] = swap_ip;
     }
 
     *error_info = '\0';
@@ -664,16 +726,36 @@ int fdfs_check_and_format_ips(FDFSMultiIP *ip_addrs,
 void fdfs_set_multi_ip_index(FDFSMultiIP *multi_ip, const char *target_ip)
 {
     int i;
-    if (multi_ip->count == 1)
+    if (multi_ip->count <= 1)
     {
         return;
     }
 
     for (i=0; i<multi_ip->count; i++)
     {
-        if (strcmp(multi_ip->ips[i], target_ip) == 0)
+        if (strcmp(multi_ip->ips[i].address, target_ip) == 0)
         {
             multi_ip->index = i;
+            break;
+        }
+    }
+}
+
+void fdfs_set_server_info_index(TrackerServerInfo *pServer,
+        const char *target_ip, const int target_port)
+{
+    int i;
+    if (pServer->count <= 1)
+    {
+        return;
+    }
+
+    for (i=0; i<pServer->count; i++)
+    {
+        if (FC_CONNECTION_SERVER_EQUAL(pServer->connections[i],
+                    target_ip, target_port))
+        {
+            pServer->index = i;
             break;
         }
     }
@@ -697,6 +779,7 @@ void fdfs_set_server_info_ex(TrackerServerInfo *pServer,
     for (i=0; i<ip_addrs->count; i++)
     {
         conn_pool_set_server_info(pServer->connections + i,
-                ip_addrs->ips[i], port);
+                ip_addrs->ips[i].address, port);
     }
 }
+

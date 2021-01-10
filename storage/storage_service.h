@@ -3,7 +3,7 @@
 *
 * FastDFS may be copied only under the terms of the GNU General
 * Public License V3, which may be found in the FastDFS source kit.
-* Please visit the FastDFS Home Page http://www.csource.org/ for more detail.
+* Please visit the FastDFS Home Page http://www.fastken.com/ for more detail.
 **/
 
 //storage_service.h
@@ -36,7 +36,7 @@ void storage_service_destroy();
 int fdfs_stat_file_sync_func(void *args);
 int storage_deal_task(struct fast_task_info *pTask);
 
-void storage_nio_notify(struct fast_task_info *pTask);
+int storage_nio_notify(struct fast_task_info *pTask);
 void storage_accept_loop(int server_sock);
 int storage_terminate_threads();
 
