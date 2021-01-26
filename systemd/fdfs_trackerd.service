@@ -1,11 +1,11 @@
 [Unit]
-Description=FastDFS storaged service
+Description=FastDFS trackerd service
 After=network.target
 
 [Service]
 Type=forking
-PIDFile=/opt/fastcfs/data/fdfs_storaged.pid
-ExecStart=/usr/bin/fdfs_storaged /etc/fdfs/storage.conf restart
+PIDFile=/opt/fastcfs/data/fdfs_trackerd.pid
+ExecStart=/usr/bin/fdfs_trackerd /etc/fdfs/tracker.conf restart
 
 # No artificial start/stop timeout
 TimeoutSec=0
