@@ -44,3 +44,8 @@ Client test code use client library please refer to the directory: client/test.
 
 For more FastDFS related articles, please subscribe the Wechat/Weixin public account
 (Chinese Language): fastdfs
+
+FastDFS is a lightweight object storage solution. If you need a general distributed
+file system for databases, K8s and virtual machines (such as KVM), you can learn about
+[FastCFS](https://github.com/happyfish100/FastCFS) which achieves strong data consistency
+and high performance.

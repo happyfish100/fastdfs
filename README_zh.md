@@ -7,7 +7,8 @@
   FastDFS的架构比较简单，如下图所示：
   ![architect](images/architect.png)
 
-  FastDFS特点如下：
+```
+  FastDFS特点：
     1）分组存储，简单灵活；
     2）对等结构，不存在单点；
     3）文件ID由FastDFS生成，作为文件访问凭证。FastDFS不需要传统的name server或meta server；
@@ -16,5 +17,8 @@
     6）提供了nginx扩展模块，可以和nginx无缝衔接；
     7）支持多线程方式上传和下载文件，支持断点续传；
     8）存储服务器上可以保存文件附加属性。
+```
 
   FastDFS更多更详细的功能和特性介绍，请参阅FastDFS微信公众号的其他文章，搜索公众号：fastdfs。
+
+  FastDFS是轻量级的对象存储解决方案，如果你在数据库、K8s和虚拟机（如KVM）等场景，需要使用通用分布式文件系统，可以了解一下保证数据强一致性且高性能的[FastCFS](https://gitee.com/fastdfs100/FastCFS)。
