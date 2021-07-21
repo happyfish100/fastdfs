@@ -4,7 +4,7 @@ After=network.target
 
 [Service]
 Type=forking
-PIDFile=/opt/fastcfs/data/fdfs_storaged.pid
+PIDFile=/opt/fastdfs/data/fdfs_storaged.pid
 ExecStart=/usr/bin/fdfs_storaged /etc/fdfs/storage.conf restart
 
 # No artificial start/stop timeout
