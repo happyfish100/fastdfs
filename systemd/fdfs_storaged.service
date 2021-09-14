@@ -1,11 +1,12 @@
 [Unit]
 Description=FastDFS storaged service
-After=network.target
+After=network-online.target
 
 [Service]
 Type=forking
 PIDFile=/opt/fastcfs/data/fdfs_storaged.pid
-ExecStart=/usr/bin/fdfs_storaged /etc/fdfs/storage.conf restart
+ExecStart=/usr/bin/fdfs_storaged /etc/fdfs/storage.conf start
+ExecStop=/usr/bin/fdfs_storaged /etc/fdfs/storage.conf stop
 
 # No artificial start/stop timeout
 TimeoutSec=0
