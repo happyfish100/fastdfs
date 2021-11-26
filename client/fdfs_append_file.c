@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
 	int result;
 	char appender_file_id[128];
 	
-	if (argc < 4)
+	if (argc < 4 || argc < 0)
 	{
 		printf("Usage: %s <config_file> <appender_file_id> " \
 			"<local_filename>\n", argv[0]);
