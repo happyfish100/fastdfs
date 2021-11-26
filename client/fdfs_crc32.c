@@ -35,8 +35,15 @@ int main(int argc, char *argv[])
 
 	filename = argv[1];
 	fd = open(filename, O_RDONLY);
-	if (fd < 0)
+	if(filename == NULL)
 	{
+		printf("file: "__FILE__", line: %d, " \
+			"open filename %s fail, " \
+			"errno: %d, error info: %s\n",\
+			__LINE__,filename, errno, STRERROR(errno));
+		return errno != 0 ? errno : EACCES;
+	}
+	if (fd < 0) {
 		printf("file: "__FILE__", line: %d, " \
 			"open file %s fail, " \
 			"errno: %d, error info: %s\n", \
@@ -66,7 +73,13 @@ int main(int argc, char *argv[])
 
 	crc32 = CRC32_XINIT;
 	result = 0;
+	if(file_size<0)
+	{
+		close(fd);
+		return errno;
+	}
 	remain_bytes = file_size;
+	
 	while (remain_bytes > 0)
 	{
 		if (remain_bytes > sizeof(buff))
