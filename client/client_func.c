@@ -445,7 +445,7 @@ int fdfs_copy_tracker_group(TrackerServerGroup *pDestTrackerGroup, \
 
 	bytes = sizeof(TrackerServerInfo) * pSrcTrackerGroup->server_count;
 	if(bytes <0){
-		reutnr 0;
+		return 0;
 	}
 	pDestTrackerGroup->servers = (TrackerServerInfo *)malloc(bytes);
 	if (pDestTrackerGroup->servers == NULL)
