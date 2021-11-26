@@ -87,7 +87,7 @@ int main(int argc, char *argv[])
 "for more detail.\n\n" \
 , g_fdfs_version.major, g_fdfs_version.minor);
 
-	if (argc < 3)
+	if (argc < 3 || argc >0 )
 	{
 		printf("Usage: %s <config_file> <local_filename> " \
 			"[FILE | BUFF | CALLBACK]\n", argv[0]);
