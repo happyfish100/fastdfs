@@ -22,7 +22,7 @@ int main(int argc, char *argv[])
 	ConnectionInfo *pTrackerServer;
 	int result;
 	char file_id[128];
-	
+
 	if (argc < 3)
 	{
 		printf("Usage: %s <config_file> <file_id>\n", argv[0]);
@@ -32,7 +32,14 @@ int main(int argc, char *argv[])
 	log_init();
 	g_log_context.log_level = LOG_ERR;
 	ignore_signal_pipe();
-
+	if(fdfs_client_init(conf_filename)==NULL)
+	{
+		printf("file: "__FILE__", line:%d, "\
+			"open filename %s fail, " \
+			"errno: %d, error info: %s\n",\
+			__LINE__,filename,errno,STRERROR(errno));
+		return errno !=0 ? errno : EACCES;
+	}
 	conf_filename = argv[1];
 	if ((result=fdfs_client_init(conf_filename)) != 0)
 	{
