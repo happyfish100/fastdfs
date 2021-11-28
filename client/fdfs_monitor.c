@@ -41,7 +41,11 @@ int main(int argc, char *argv[])
 	char *tracker_server;
 	int arg_index;
 	char *group_name;
-
+	
+	if(argc <0)
+	{
+		return NULL;
+	}
 	if (argc < 2)
 	{
 		usage(argv);
