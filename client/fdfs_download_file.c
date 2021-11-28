@@ -27,6 +27,10 @@ int main(int argc, char *argv[])
 	int64_t file_offset;
 	int64_t download_bytes;
 	
+	if(argc<0)
+	{
+		return NULL;
+	}
 	if (argc < 3)
 	{
 		printf("Usage: %s <config_file> <file_id> " \
