@@ -72,7 +72,7 @@ int fdfs_http_get_content_type_by_extname(FDFSHTTPParams *pParams, \
 		return 0;
 	}
 
-	pHashData = hash_find_ex(&pParams->content_type_hash, \
+	pHashData = fc_hash_find_ex(&pParams->content_type_hash, \
 				ext_name, ext_len + 1);
 	if (pHashData == NULL)
 	{
@@ -282,7 +282,7 @@ int fdfs_http_params_load(IniContext *pIniContext, \
 
 	if (!(pParams->need_find_content_type || pParams->support_multi_range))
 	{
-		hash_destroy(&pParams->content_type_hash);
+		fc_hash_destroy(&pParams->content_type_hash);
 	}
 
 	if ((result=getFileContent(token_check_fail_filename, \
@@ -301,7 +301,7 @@ void fdfs_http_params_destroy(FDFSHTTPParams *pParams)
 {
 	if (!(pParams->need_find_content_type || pParams->support_multi_range))
 	{
-		hash_destroy(&pParams->content_type_hash);
+		fc_hash_destroy(&pParams->content_type_hash);
 	}
 }
 

@@ -495,7 +495,7 @@ static int tracker_load_groups_old(FDFSGroups *pGroups, const char *data_path)
 	
 		memset(&clientInfo, 0, sizeof(TrackerClientInfo));
 		snprintf(group_name, sizeof(group_name),\
-				"%s", trim(fields[0]));
+				"%s", fc_trim(fields[0]));
 		if ((result=tracker_mem_add_group_ex(pGroups, &clientInfo, \
 				group_name, false, &bInserted)) != 0)
 		{
@@ -514,7 +514,7 @@ static int tracker_load_groups_old(FDFSGroups *pGroups, const char *data_path)
 			break;
 		}
 
-		clientInfo.pGroup->storage_port = atoi(trim(fields[1]));
+		clientInfo.pGroup->storage_port = atoi(fc_trim(fields[1]));
 		if (col_count == STORAGE_DATA_GROUP_FIELDS - 2)
 		{  //version < V1.12
 			clientInfo.pGroup->store_path_count = 0;
@@ -523,9 +523,9 @@ static int tracker_load_groups_old(FDFSGroups *pGroups, const char *data_path)
 		else
 		{
 			clientInfo.pGroup->store_path_count = \
-				atoi(trim(fields[2]));
+				atoi(fc_trim(fields[2]));
 			clientInfo.pGroup->subdir_count_per_path = \
-				atoi(trim(fields[3]));
+				atoi(fc_trim(fields[3]));
 		}
 	}
 
@@ -907,8 +907,8 @@ static int tracker_load_storages_old(FDFSGroups *pGroups, const char *data_path)
 		}
 	
 		memset(&clientInfo, 0, sizeof(TrackerClientInfo));
-		snprintf(group_name, sizeof(group_name), "%s", trim(fields[0]));
-		snprintf(ip_addr, sizeof(ip_addr), "%s", trim(fields[1]));
+		snprintf(group_name, sizeof(group_name), "%s", fc_trim(fields[0]));
+		snprintf(ip_addr, sizeof(ip_addr), "%s", fc_trim(fields[1]));
 		if ((clientInfo.pGroup=tracker_mem_get_group_ex(pGroups, \
 						group_name)) == NULL)
 		{
@@ -952,7 +952,7 @@ static int tracker_load_storages_old(FDFSGroups *pGroups, const char *data_path)
 				FDFS_STORAGE_STATUS_OFFLINE;
 		}
 
-		psync_src_id = trim(fields[3]);
+		psync_src_id = fc_trim(fields[3]);
 		pStorage->sync_until_timestamp = atoi( \
 					trim_left(fields[4]));
 		pStorage->stat.total_upload_count = strtoll( \
@@ -1007,7 +1007,7 @@ static int tracker_load_storages_old(FDFSGroups *pGroups, const char *data_path)
 
 					snprintf(pStorage->version, \
 					sizeof(pStorage->version), 
-					 "%s", trim(fields[21]));
+					 "%s", fc_trim(fields[21]));
 				}
 			}
 		}
@@ -1420,9 +1420,9 @@ static int tracker_load_sync_timestamps(FDFSGroups *pGroups, const char *data_pa
 		}
 	
 		snprintf(group_name, sizeof(group_name), \
-				"%s", trim(fields[0]));
+				"%s", fc_trim(fields[0]));
 		snprintf(src_storage_id, sizeof(src_storage_id), \
-				"%s", trim(fields[1]));
+				"%s", fc_trim(fields[1]));
 		if (strcmp(group_name, previous_group_name) != 0 || \
 			pGroup == NULL)
 		{

@@ -69,11 +69,11 @@ int load_mime_types_from_file(HashArray *pHash, const char *mime_filename)
 		}
 	}
 
-	if ((result=hash_init_ex(pHash, PJWHash, 2 * 1024, 0.75, 0, true)) != 0)
+	if ((result=fc_hash_init_ex(pHash, PJWHash, 2 * 1024, 0.75, 0, true)) != 0)
 	{
 		free(content);
 		logError("file: "__FILE__", line: %d, " \
-			"hash_init_ex fail, errno: %d, error info: %s", \
+			"fc_hash_init_ex fail, errno: %d, error info: %s", \
 			__LINE__, result, STRERROR(result));
 		return result;
 	}
@@ -108,14 +108,14 @@ int load_mime_types_from_file(HashArray *pHash, const char *mime_filename)
 				continue;
 			}
 
-			if ((result=hash_insert_ex(pHash, ext_name, \
+			if ((result=fc_hash_insert_ex(pHash, ext_name, \
 				strlen(ext_name)+1, content_type, \
 				strlen(content_type)+1, true)) < 0)
 			{
 				free(content);
 				result *= -1;
 				logError("file: "__FILE__", line: %d, " \
-					"hash_insert_ex fail, errno: %d, " \
+					"fc_hash_insert_ex fail, errno: %d, " \
 					"error info: %s", __LINE__, \
 					result, STRERROR(result));
 				return result;
@@ -125,7 +125,7 @@ int load_mime_types_from_file(HashArray *pHash, const char *mime_filename)
 
 	free(content);
 
-	//hash_stat_print(pHash);
+	//fc_hash_stat_print(pHash);
 	return 0;
 }
 

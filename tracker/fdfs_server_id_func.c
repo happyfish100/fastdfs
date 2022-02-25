@@ -338,7 +338,7 @@ int fdfs_load_storage_ids(char *content, const char *pStorageIdsFilename)
 		g_storage_ids_by_id.count = 0;
 		for (i=0; i<line_count; i++)
 		{
-			trim(lines[i]);
+			fc_trim(lines[i]);
 			if (*lines[i] == '\0' || *lines[i] == '#')
 			{
 				continue;

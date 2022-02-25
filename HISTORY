@@ -1,4 +1,8 @@
 
+Version 6.08  2022-02-25
+ * use libfastcommon V1.56
+   NOTE: you MUST upgrade libfastcommon to V1.56 or later
+
 Version 6.07  2020-12-31
  * use libfastcommon V1.44
    NOTE: you MUST upgrade libfastcommon to V1.44 or later
