@@ -4,7 +4,7 @@
 %define FDFSClientDevel libfdfsclient-devel
 %define FDFSTool   fastdfs-tool
 %define FDFSConfig fastdfs-config
-%define FDFSVersion 6.0.7
+%define FDFSVersion 6.0.8
 %define CommitVersion %(echo $COMMIT_VERSION)
 
 Name: %{FastDFS}
@@ -19,14 +19,14 @@ Source: http://perso.orange.fr/sebastien.godard/%{name}-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n) 
 
 Requires: %__cp %__mv %__chmod %__grep %__mkdir %__install %__id
-BuildRequires: libfastcommon-devel >= 1.0.47
+BuildRequires: libfastcommon-devel >= 1.0.56
 
 %description
 This package provides tracker & storage of fastdfs
 commit version: %{CommitVersion}
 
 %package -n %{FDFSServer}
-Requires: libfastcommon >= 1.0.47
+Requires: libfastcommon >= 1.0.56
 Requires: %{FDFSConfig}
 Summary: fastdfs tracker & storage
 
