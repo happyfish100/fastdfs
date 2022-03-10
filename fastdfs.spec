@@ -4,11 +4,10 @@
 %define FDFSClientDevel libfdfsclient-devel
 %define FDFSTool   fastdfs-tool
 %define FDFSConfig fastdfs-config
-%define FDFSVersion 6.0.8
 %define CommitVersion %(echo $COMMIT_VERSION)
 
 Name: %{FastDFS}
-Version: %{FDFSVersion}
+Version: 6.0.8
 Release: 1%{?dist}
 Summary: FastDFS server and client
 License: GPL
