@@ -18,7 +18,7 @@ CFLAGS="$CFLAGS -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE"
 if [ "$DEBUG_FLAG" = "1" ]; then
   CFLAGS="$CFLAGS -g -O1 -DDEBUG_FLAG"
 else
-  CFLAGS="$CFLAGS -O3"
+  CFLAGS="$CFLAGS -g -O3"
 fi
 
 if [ -f /usr/include/fastcommon/_os_define.h ]; then
