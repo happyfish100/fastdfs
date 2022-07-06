@@ -267,7 +267,7 @@ const char *fdfs_storage_reserved_space_to_string(FDFSStorageReservedSpace \
 	if (pStorageReservedSpace->flag == \
 			TRACKER_STORAGE_RESERVED_SPACE_FLAG_MB)
 	{
-		sprintf(buff, "%d MB", pStorageReservedSpace->rs.mb);
+		sprintf(buff, "%dMB", pStorageReservedSpace->rs.mb);
 	}
 	else
 	{
