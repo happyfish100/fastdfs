@@ -4,7 +4,7 @@ After=network-online.target
 
 [Service]
 Type=forking
-PIDFile=/opt/fastcfs/data/fdfs_storaged.pid
+PIDFile=/opt/fastdfs/data/fdfs_storaged.pid
 ExecStart=/usr/bin/fdfs_storaged /etc/fdfs/storage.conf start
 ExecStop=/usr/bin/fdfs_storaged /etc/fdfs/storage.conf stop
 

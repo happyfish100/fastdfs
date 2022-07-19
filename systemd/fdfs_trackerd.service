@@ -4,7 +4,7 @@ After=network-online.target
 
 [Service]
 Type=forking
-PIDFile=/opt/fastcfs/data/fdfs_trackerd.pid
+PIDFile=/opt/fastdfs/data/fdfs_trackerd.pid
 ExecStart=/usr/bin/fdfs_trackerd /etc/fdfs/tracker.conf start
 ExecStop=/usr/bin/fdfs_trackerd /etc/fdfs/tracker.conf stop
 
