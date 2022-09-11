@@ -1,4 +1,7 @@
 
+Version 6.09  2022-09-11
+ * use libfastcommon V1.60 and libserverframe 1.1.18
+
 Version 6.08  2022-06-21
  * use libfastcommon V1.56
    NOTE: you MUST upgrade libfastcommon to V1.56 or later

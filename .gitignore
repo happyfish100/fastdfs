@@ -104,3 +104,8 @@ php_client/run-tests.php
 # fastdfs runtime paths
 data/
 logs/
+
+# others
+*.pid
+*.swp
+*.swo

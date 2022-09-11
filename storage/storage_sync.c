@@ -1216,7 +1216,7 @@ static int write_to_binlog_index(const int binlog_index)
 	int len;
 
 	snprintf(full_filename, sizeof(full_filename),
-			"%s/data/"SYNC_DIR_NAME"/%s", g_fdfs_base_path,
+			"%s/data/"SYNC_DIR_NAME"/%s", SF_G_BASE_PATH_STR,
 			SYNC_BINLOG_INDEX_FILENAME);
 	if ((fd=open(full_filename, O_WRONLY | O_CREAT | O_TRUNC, 0644)) < 0)
 	{
@@ -1258,7 +1258,7 @@ static int get_binlog_index_from_file_old()
 	int bytes;
 
 	snprintf(full_filename, sizeof(full_filename),
-			"%s/data/"SYNC_DIR_NAME"/%s", g_fdfs_base_path,
+			"%s/data/"SYNC_DIR_NAME"/%s", SF_G_BASE_PATH_STR,
 			SYNC_BINLOG_INDEX_FILENAME_OLD);
 	if ((fd=open(full_filename, O_RDONLY)) >= 0)
 	{
@@ -1297,7 +1297,7 @@ static int get_binlog_index_from_file()
     int result;
 
     snprintf(full_filename, sizeof(full_filename),
-            "%s/data/"SYNC_DIR_NAME"/%s", g_fdfs_base_path,
+            "%s/data/"SYNC_DIR_NAME"/%s", SF_G_BASE_PATH_STR,
             SYNC_BINLOG_INDEX_FILENAME);
     if (access(full_filename, F_OK) != 0)
     {
@@ -1348,7 +1348,7 @@ static char *get_writable_binlog_filename(char *full_filename)
 	snprintf(full_filename, MAX_PATH_SIZE, \
 			"%s/data/"SYNC_DIR_NAME"/"SYNC_BINLOG_FILE_PREFIX"" \
 			SYNC_BINLOG_FILE_EXT_FMT, \
-			g_fdfs_base_path, g_binlog_index);
+			SF_G_BASE_PATH_STR, g_binlog_index);
 	return full_filename;
 }
 
@@ -1358,7 +1358,7 @@ static char *get_writable_binlog_filename1(char *full_filename, \
 	snprintf(full_filename, MAX_PATH_SIZE, \
 			"%s/data/"SYNC_DIR_NAME"/"SYNC_BINLOG_FILE_PREFIX"" \
 			SYNC_BINLOG_FILE_EXT_FMT, \
-			g_fdfs_base_path, binlog_index);
+			SF_G_BASE_PATH_STR, binlog_index);
 	return full_filename;
 }
 
@@ -1413,7 +1413,7 @@ int storage_sync_init()
 	char full_filename[MAX_PATH_SIZE];
 	int result;
 
-	snprintf(data_path, sizeof(data_path), "%s/data", g_fdfs_base_path);
+	snprintf(data_path, sizeof(data_path), "%s/data", SF_G_BASE_PATH_STR);
 	if (!fileExists(data_path))
 	{
 		if (mkdir(data_path, 0755) != 0)
@@ -1720,7 +1720,7 @@ static char *get_binlog_readable_filename_ex(
 	snprintf(full_filename, MAX_PATH_SIZE,
 			"%s/data/"SYNC_DIR_NAME"/"SYNC_BINLOG_FILE_PREFIX""
 			SYNC_BINLOG_FILE_EXT_FMT,
-			g_fdfs_base_path, binlog_index);
+			SF_G_BASE_PATH_STR, binlog_index);
 	return full_filename;
 }
 
@@ -1952,13 +1952,13 @@ static char *get_mark_filename_by_id_and_port(const char *storage_id,
 	if (g_use_storage_id)
 	{
 		snprintf(full_filename, filename_size,
-			"%s/data/"SYNC_DIR_NAME"/%s%s", g_fdfs_base_path,
+			"%s/data/"SYNC_DIR_NAME"/%s%s", SF_G_BASE_PATH_STR,
 			storage_id, SYNC_MARK_FILE_EXT);
 	}
 	else
 	{
 		snprintf(full_filename, filename_size,
-			"%s/data/"SYNC_DIR_NAME"/%s_%d%s", g_fdfs_base_path,
+			"%s/data/"SYNC_DIR_NAME"/%s_%d%s", SF_G_BASE_PATH_STR,
 			storage_id, port, SYNC_MARK_FILE_EXT);
 	}
 	return full_filename;
@@ -1968,7 +1968,7 @@ static char *get_mark_filename_by_ip_and_port(const char *ip_addr,
 		const int port, char *full_filename, const int filename_size)
 {
 	snprintf(full_filename, filename_size,
-		"%s/data/"SYNC_DIR_NAME"/%s_%d%s", g_fdfs_base_path,
+		"%s/data/"SYNC_DIR_NAME"/%s_%d%s", SF_G_BASE_PATH_STR,
 		ip_addr, port, SYNC_MARK_FILE_EXT);
 	return full_filename;
 }

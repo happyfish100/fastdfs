@@ -285,7 +285,7 @@ static char *get_storage_stat_filename(const void *pArg, char *full_filename)
 	}
 
 	snprintf(full_filename, MAX_PATH_SIZE, \
-			"%s/data/%s", g_fdfs_base_path, STORAGE_STAT_FILENAME);
+			"%s/data/%s", SF_G_BASE_PATH_STR, STORAGE_STAT_FILENAME);
 	return full_filename;
 }
 
@@ -648,7 +648,7 @@ int storage_write_to_sync_ini_file()
     int i;
 
 	snprintf(full_filename, sizeof(full_filename),
-		"%s/data/%s", g_fdfs_base_path, DATA_DIR_INITED_FILENAME);
+		"%s/data/%s", SF_G_BASE_PATH_STR, DATA_DIR_INITED_FILENAME);
 
     fdfs_multi_ips_to_string(&g_tracker_client_ip,
             ip_str, sizeof(ip_str));
@@ -702,7 +702,7 @@ int storage_check_and_make_global_data_path()
 {
     char data_path[MAX_PATH_SIZE];
     snprintf(data_path, sizeof(data_path), "%s/data",
-            g_fdfs_base_path);
+            SF_G_BASE_PATH_STR);
     if (!fileExists(data_path))
     {
         if (mkdir(data_path, 0755) != 0)
@@ -982,7 +982,7 @@ static int storage_check_and_make_data_dirs()
 	bool pathCreated;
 
 	snprintf(data_path, sizeof(data_path), "%s/data",
-			g_fdfs_base_path);
+			SF_G_BASE_PATH_STR);
 	snprintf(full_filename, sizeof(full_filename), "%s/%s",
 			data_path, DATA_DIR_INITED_FILENAME);
 	if (fileExists(full_filename))
@@ -1460,7 +1460,7 @@ int storage_func_init(const char *filename, \
 		}
 
 		load_log_level(&iniContext);
-		if ((result=log_set_prefix(g_fdfs_base_path, \
+		if ((result=log_set_prefix(SF_G_BASE_PATH_STR, \
 				STORAGE_ERROR_LOG_FILENAME)) != 0)
 		{
 			break;
@@ -1926,7 +1926,7 @@ int storage_func_init(const char *filename, \
 					STORAGE_FILE_SIGNATURE_METHOD_HASH;
 			}
 
-			strcpy(g_fdht_base_path, g_fdfs_base_path);
+			strcpy(g_fdht_base_path, SF_G_BASE_PATH_STR);
 			g_fdht_connect_timeout = g_fdfs_connect_timeout;
 			g_fdht_network_timeout = g_fdfs_network_timeout;
 
@@ -1996,7 +1996,7 @@ int storage_func_init(const char *filename, \
 				LOG_TIME_PRECISION_MSECOND);
 			log_set_cache_ex(&g_access_log_context, true);
 			result = log_set_prefix_ex(&g_access_log_context, \
-				g_fdfs_base_path, "storage_access");
+				SF_G_BASE_PATH_STR, "storage_access");
 			if (result != 0)
 			{
 				break;
@@ -2185,7 +2185,7 @@ int storage_func_init(const char *filename, \
 			"compress_binlog_time=%02d:%02d, " \
             "check_store_path_mark=%d",  \
 			g_fdfs_version.major, g_fdfs_version.minor, \
-			g_fdfs_base_path, g_fdfs_store_paths.count, \
+			SF_G_BASE_PATH_STR, g_fdfs_store_paths.count, \
 			g_subdir_count_per_path, \
 			g_group_name, g_run_by_group, g_run_by_user, \
 			g_fdfs_connect_timeout, g_fdfs_network_timeout, \

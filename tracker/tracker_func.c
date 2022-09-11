@@ -188,27 +188,27 @@ int tracker_load_from_conf_file(const char *filename, \
 			break;
 		}
 
-		snprintf(g_fdfs_base_path, sizeof(g_fdfs_base_path), "%s", pBasePath);
-		chopPath(g_fdfs_base_path);
-		if (!fileExists(g_fdfs_base_path))
+		snprintf(SF_G_BASE_PATH_STR, sizeof(SF_G_BASE_PATH_STR), "%s", pBasePath);
+		chopPath(SF_G_BASE_PATH_STR);
+		if (!fileExists(SF_G_BASE_PATH_STR))
 		{
 			logError("file: "__FILE__", line: %d, " \
 				"\"%s\" can't be accessed, error info: %s", \
-				__LINE__, g_fdfs_base_path, STRERROR(errno));
+				__LINE__, SF_G_BASE_PATH_STR, STRERROR(errno));
 			result = errno != 0 ? errno : ENOENT;
 			break;
 		}
-		if (!isDir(g_fdfs_base_path))
+		if (!isDir(SF_G_BASE_PATH_STR))
 		{
 			logError("file: "__FILE__", line: %d, " \
 				"\"%s\" is not a directory!", \
-				__LINE__, g_fdfs_base_path);
+				__LINE__, SF_G_BASE_PATH_STR);
 			result = ENOTDIR;
 			break;
 		}
 
 		load_log_level(&iniContext);
-		if ((result=log_set_prefix(g_fdfs_base_path, \
+		if ((result=log_set_prefix(SF_G_BASE_PATH_STR, \
 				TRACKER_ERROR_LOG_FILENAME)) != 0)
 		{
 			break;
@@ -800,7 +800,7 @@ int tracker_load_from_conf_file(const char *filename, \
 			"use_connection_pool=%d, "
 			"g_connection_pool_max_idle_time=%ds",
 			g_fdfs_version.major, g_fdfs_version.minor,
-			g_fdfs_base_path, g_run_by_group, g_run_by_user,
+			SF_G_BASE_PATH_STR, g_run_by_group, g_run_by_user,
 			g_fdfs_connect_timeout,
 			g_fdfs_network_timeout, g_server_port, bind_addr,
 			g_max_connections, g_accept_threads, g_work_threads,

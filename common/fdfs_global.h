@@ -12,6 +12,7 @@
 #define _FDFS_GLOBAL_H
 
 #include "fastcommon/common_define.h"
+#include "sf/sf_global.h"
 #include "fdfs_define.h"
 #include "fastcommon/connection_pool.h"
 
@@ -23,7 +24,6 @@ extern "C" {
 
 extern int g_fdfs_connect_timeout;
 extern int g_fdfs_network_timeout;
-extern char g_fdfs_base_path[MAX_PATH_SIZE];
 extern Version g_fdfs_version;
 extern bool g_use_connection_pool;
 extern ConnectionPool g_connection_pool;

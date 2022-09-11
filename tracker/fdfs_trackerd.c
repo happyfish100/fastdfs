@@ -28,6 +28,8 @@
 #include "fastcommon/base64.h"
 #include "fastcommon/sockopt.h"
 #include "fastcommon/sched_thread.h"
+#include "sf/sf_service.h"
+#include "sf/sf_util.h"
 #include "tracker_types.h"
 #include "tracker_mem.h"
 #include "tracker_service.h"
@@ -46,6 +48,7 @@
 #include "tracker_dump.h"
 #endif
 
+static bool daemon_mode = true;
 static bool bTerminateFlag = false;
 static bool bAcceptEndFlag = false;
 
@@ -68,17 +71,9 @@ static void sigDumpHandler(int sig);
 
 #define SCHEDULE_ENTRIES_COUNT 5
 
-static void usage(const char *program)
-{
-	fprintf(stderr, "FastDFS server v%d.%02d\n"
-            "Usage: %s <config_file> [start | stop | restart]\n",
-            g_fdfs_version.major, g_fdfs_version.minor,
-            program);
-}
-
 int main(int argc, char *argv[])
 {
-	char *conf_filename;
+	const char *conf_filename;
     char *action;
 	int result;
 	int wait_count;
@@ -92,40 +87,35 @@ int main(int argc, char *argv[])
 
 	if (argc < 2)
 	{
-		usage(argv[0]);
+		sf_usage(argv[0]);
 		return 1;
 	}
+
+    conf_filename = sf_parse_daemon_mode_and_action(argc, argv,
+            &g_fdfs_version, &daemon_mode, &action);
+    if (conf_filename == NULL)
+    {
+        return 0;
+    }
 
 	g_current_time = time(NULL);
 	g_up_time = g_current_time;
 	srand(g_up_time);
-
 	log_init2();
 
-	conf_filename = argv[1];
-    if (!fileExists(conf_filename))
-    {
-        if (starts_with(conf_filename, "-"))
-        {
-            usage(argv[0]);
-            return 0;
-        }
-    }
-	if ((result=get_base_path_from_conf_file(conf_filename,
-		g_fdfs_base_path, sizeof(g_fdfs_base_path))) != 0)
+	if ((result=sf_get_base_path_from_conf_file(conf_filename)) != 0)
 	{
 		log_destroy();
 		return result;
 	}
 
 	snprintf(pidFilename, sizeof(pidFilename),
-		"%s/data/fdfs_trackerd.pid", g_fdfs_base_path);
-    action = argc >= 3 ? argv[2] : "start";
+		"%s/data/fdfs_trackerd.pid", SF_G_BASE_PATH_STR);
 	if ((result=process_action(pidFilename, action, &stop)) != 0)
 	{
 		if (result == EINVAL)
 		{
-			usage(argv[0]);
+			sf_usage(argv[0]);
 		}
 		log_destroy();
 		return result;
@@ -192,7 +182,10 @@ int main(int argc, char *argv[])
 		return result;
 	}
 
-	daemon_init(false);
+    if (daemon_mode)
+    {
+        daemon_init(false);
+    }
 	umask(0);
 	
 	if ((result=write_to_pid_file(pidFilename)) != 0)
@@ -441,7 +434,7 @@ static void sigDumpHandler(int sig)
 	bDumpFlag = true;
 
 	snprintf(filename, sizeof(filename), 
-		"%s/logs/tracker_dump.log", g_fdfs_base_path);
+		"%s/logs/tracker_dump.log", SF_G_BASE_PATH_STR);
 	fdfs_dump_tracker_global_vars_to_file(filename);
 
 	bDumpFlag = false;

@@ -486,7 +486,7 @@ static int tracker_changelog_response(struct fast_task_info *pTask, \
 		chg_len = TRACKER_MAX_PACKAGE_SIZE - sizeof(TrackerHeader);
 	}
 
-	snprintf(filename, sizeof(filename), "%s/data/%s", g_fdfs_base_path,\
+	snprintf(filename, sizeof(filename), "%s/data/%s", SF_G_BASE_PATH_STR,\
 		 STORAGE_SERVERS_CHANGELOG_FILENAME);
 	fd = open(filename, O_RDONLY);
 	if (fd < 0)
@@ -2098,7 +2098,7 @@ static int tracker_deal_get_one_sys_file(struct fast_task_info *pTask)
 	}
 
 	snprintf(full_filename, sizeof(full_filename), "%s/data/%s", \
-		g_fdfs_base_path, g_tracker_sys_filenames[index]);
+		SF_G_BASE_PATH_STR, g_tracker_sys_filenames[index]);
 	if (stat(full_filename, &file_stat) != 0)
 	{
 		result = errno != 0 ? errno : ENOENT;

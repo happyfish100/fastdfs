@@ -28,6 +28,8 @@
 #include "fdfs_global.h"
 #include "fastcommon/ini_file_reader.h"
 #include "fastcommon/sockopt.h"
+#include "sf/sf_service.h"
+#include "sf/sf_util.h"
 #include "tracker_types.h"
 #include "tracker_proto.h"
 #include "tracker_client_thread.h"
@@ -53,6 +55,7 @@
 #define ACCEPT_STAGE_DOING   1
 #define ACCEPT_STAGE_DONE    2
 
+static bool daemon_mode = true;
 static bool bTerminateFlag = false;
 static char accept_stage = ACCEPT_STAGE_NONE;
 
@@ -75,17 +78,9 @@ static void sigSegvHandler(int signum, siginfo_t *info, void *ptr);
 static void sigDumpHandler(int sig);
 #endif
 
-static void usage(const char *program)
-{
-	fprintf(stderr, "FastDFS server v%d.%02d\n"
-            "Usage: %s <config_file> [start | stop | restart]\n",
-            g_fdfs_version.major, g_fdfs_version.minor,
-            program);
-}
-
 int main(int argc, char *argv[])
 {
-	char *conf_filename;
+	const char *conf_filename;
     char *action;
 	int result;
 	int sock;
@@ -96,13 +91,19 @@ int main(int argc, char *argv[])
 
 	if (argc < 2)
 	{
-		usage(argv[0]);
+        sf_usage(argv[0]);
 		return 1;
 	}
 
+    conf_filename = sf_parse_daemon_mode_and_action(argc, argv,
+            &g_fdfs_version, &daemon_mode, &action);
+    if (conf_filename == NULL)
+    {
+        return 0;
+    }
+
 	g_current_time = time(NULL);
 	g_up_time = g_current_time;
-
 	log_init2();
 	if ((result=trunk_shared_init()) != 0)
     {
@@ -110,17 +111,7 @@ int main(int argc, char *argv[])
 		return result;
     }
 
-	conf_filename = argv[1];
-    if (!fileExists(conf_filename))
-    {
-        if (starts_with(conf_filename, "-"))
-        {
-            usage(argv[0]);
-            return 0;
-        }
-    }
-	if ((result=get_base_path_from_conf_file(conf_filename,
-		g_fdfs_base_path, sizeof(g_fdfs_base_path))) != 0)
+	if ((result=sf_get_base_path_from_conf_file(conf_filename)) != 0)
 	{
 		log_destroy();
 		return result;
@@ -131,14 +122,14 @@ int main(int argc, char *argv[])
 		log_destroy();
         return result;
     }
+
 	snprintf(pidFilename, sizeof(pidFilename),
-		"%s/data/fdfs_storaged.pid", g_fdfs_base_path);
-    action = argc >= 3 ? argv[2] : "start";
+		"%s/data/fdfs_storaged.pid", SF_G_BASE_PATH_STR);
 	if ((result=process_action(pidFilename, action, &stop)) != 0)
 	{
 		if (result == EINVAL)
 		{
-			usage(argv[0]);
+			sf_usage(argv[0]);
 		}
 		log_destroy();
 		return result;
@@ -159,7 +150,9 @@ int main(int argc, char *argv[])
 	}
 #endif
 
-	daemon_init(false);
+    if (daemon_mode) {
+        daemon_init(false);
+    }
 	umask(0);
 
 	if ((result=write_to_pid_file(pidFilename)) != 0)
@@ -429,7 +422,7 @@ static void sigDumpHandler(int sig)
 	bDumpFlag = true;
 
 	snprintf(filename, sizeof(filename), 
-		"%s/logs/storage_dump.log", g_fdfs_base_path);
+		"%s/logs/storage_dump.log", SF_G_BASE_PATH_STR);
 	fdfs_dump_storage_global_vars_to_file(filename);
 
 	bDumpFlag = false;

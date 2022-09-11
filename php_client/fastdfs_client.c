@@ -7541,28 +7541,28 @@ static int load_config_files()
 	if (zend_get_configuration_directive_wrapper(ITEM_NAME_BASE_PATH, \
 			sizeof(ITEM_NAME_BASE_PATH), &base_path) != SUCCESS)
 	{
-		strcpy(g_fdfs_base_path, "/tmp");
+		strcpy(SF_G_BASE_PATH_STR, "/tmp");
 		fprintf(stderr, "file: "__FILE__", line: %d, " \
 			"fastdfs_client.ini does not have item " \
 			"\"%s\", set to %s!", __LINE__, 
-			ITEM_NAME_BASE_PATH, g_fdfs_base_path);
+			ITEM_NAME_BASE_PATH, SF_G_BASE_PATH_STR);
 	}
 	else
 	{
-		snprintf(g_fdfs_base_path, sizeof(g_fdfs_base_path), "%s", \
+		snprintf(SF_G_BASE_PATH_STR, sizeof(SF_G_BASE_PATH_STR), "%s", \
 			Z_STRVAL_P(base_path));
-		chopPath(g_fdfs_base_path);
+		chopPath(SF_G_BASE_PATH_STR);
 	}
 
-	if (!fileExists(g_fdfs_base_path))
+	if (!fileExists(SF_G_BASE_PATH_STR))
 	{
 		logError("\"%s\" can't be accessed, error info: %s", \
-			g_fdfs_base_path, STRERROR(errno));
+			SF_G_BASE_PATH_STR, STRERROR(errno));
 		return errno != 0 ? errno : ENOENT;
 	}
-	if (!isDir(g_fdfs_base_path))
+	if (!isDir(SF_G_BASE_PATH_STR))
 	{
-		logError("\"%s\" is not a directory!", g_fdfs_base_path);
+		logError("\"%s\" is not a directory!", SF_G_BASE_PATH_STR);
 		return ENOTDIR;
 	}
 
@@ -7737,7 +7737,7 @@ static int load_config_files()
 		"anti_steal_secret_key length=%d, " \
 		"tracker_group_count=%d, first tracker group server_count=%d, "\
 		"use_connection_pool=%d, connection_pool_max_idle_time: %d", \
-		g_fdfs_base_path, g_fdfs_connect_timeout, \
+		SF_G_BASE_PATH_STR, g_fdfs_connect_timeout, \
 		g_fdfs_network_timeout, (int)strlen(pAntiStealSecretKey), \
 		config_count, g_tracker_group.server_count, \
 		g_use_connection_pool, g_connection_pool_max_idle_time);

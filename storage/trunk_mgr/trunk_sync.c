@@ -84,7 +84,7 @@ char *get_trunk_binlog_filename(char *full_filename)
 {
 	snprintf(full_filename, MAX_PATH_SIZE, \
 		"%s/data/"TRUNK_DIR_NAME"/"TRUNK_SYNC_BINLOG_FILENAME_STR, \
-		g_fdfs_base_path);
+		SF_G_BASE_PATH_STR);
 	return full_filename;
 }
 
@@ -171,7 +171,7 @@ int trunk_sync_init()
 	char binlog_filename[MAX_PATH_SIZE];
 	int result;
 
-	snprintf(data_path, sizeof(data_path), "%s/data", g_fdfs_base_path);
+	snprintf(data_path, sizeof(data_path), "%s/data", SF_G_BASE_PATH_STR);
 	if (!fileExists(data_path))
 	{
 		if (mkdir(data_path, 0755) != 0)
@@ -487,7 +487,7 @@ static int trunk_binlog_delete_overflow_backups()
     TrunkBinlogBackupFileArray file_array;
 
 	snprintf(file_path, sizeof(file_path),
-		"%s/data/%s", g_fdfs_base_path, TRUNK_DIR_NAME);
+		"%s/data/%s", SF_G_BASE_PATH_STR, TRUNK_DIR_NAME);
     if ((dir=opendir(file_path)) == NULL)
     {
         result = errno != 0 ? errno : EPERM;
@@ -1435,7 +1435,7 @@ static char *get_binlog_readable_filename(const void *pArg,
 
 	snprintf(full_filename, MAX_PATH_SIZE, 
 		"%s/data/"TRUNK_DIR_NAME"/"TRUNK_SYNC_BINLOG_FILENAME_STR,
-		g_fdfs_base_path);
+		SF_G_BASE_PATH_STR);
 	return full_filename;
 }
 
@@ -1505,13 +1505,13 @@ static char *trunk_get_mark_filename_by_id_and_port(const char *storage_id, \
 	if (g_use_storage_id)
 	{
 		snprintf(full_filename, filename_size, \
-			"%s/data/"TRUNK_DIR_NAME"/%s%s", g_fdfs_base_path, \
+			"%s/data/"TRUNK_DIR_NAME"/%s%s", SF_G_BASE_PATH_STR, \
 			storage_id, TRUNK_SYNC_MARK_FILE_EXT_STR);
 	}
 	else
 	{
 		snprintf(full_filename, filename_size, \
-			"%s/data/"TRUNK_DIR_NAME"/%s_%d%s", g_fdfs_base_path, \
+			"%s/data/"TRUNK_DIR_NAME"/%s_%d%s", SF_G_BASE_PATH_STR, \
 			storage_id, port, TRUNK_SYNC_MARK_FILE_EXT_STR);
 	}
 
@@ -1522,7 +1522,7 @@ static char *trunk_get_mark_filename_by_ip_and_port(const char *ip_addr, \
 		const int port, char *full_filename, const int filename_size)
 {
 	snprintf(full_filename, filename_size, \
-		"%s/data/"TRUNK_DIR_NAME"/%s_%d%s", g_fdfs_base_path, \
+		"%s/data/"TRUNK_DIR_NAME"/%s_%d%s", SF_G_BASE_PATH_STR, \
 		ip_addr, port, TRUNK_SYNC_MARK_FILE_EXT_STR);
 
 	return full_filename;
@@ -2486,7 +2486,7 @@ int trunk_unlink_all_mark_files()
 	localtime_r(&t, &tm);
 
 	snprintf(file_path, sizeof(file_path),
-		"%s/data/%s", g_fdfs_base_path, TRUNK_DIR_NAME);
+		"%s/data/%s", SF_G_BASE_PATH_STR, TRUNK_DIR_NAME);
 
     if ((dir=opendir(file_path)) == NULL)
     {
