@@ -369,7 +369,7 @@ static int load_file_contents()
 
 		files[i].file_buff = mmap(NULL, file_size, PROT_READ, \
 					MAP_SHARED, files[i].fd, 0);
-		if (files[i].file_buff == NULL)
+		if (files[i].file_buff == MAP_FAILED)
 		{
 			fprintf(stderr, "file: "__FILE__", line: %d, " \
 				"mmap file %s fail, " \
