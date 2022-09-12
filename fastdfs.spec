@@ -7,7 +7,7 @@
 %define CommitVersion %(echo $COMMIT_VERSION)
 
 Name: %{FastDFS}
-Version: 6.0.8
+Version: 6.0.9
 Release: 2%{?dist}
 Summary: FastDFS server and client
 License: GPL
@@ -18,24 +18,26 @@ Source: http://perso.orange.fr/sebastien.godard/%{name}-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n) 
 
 Requires: %__cp %__mv %__chmod %__grep %__mkdir %__install %__id
-BuildRequires: libfastcommon-devel >= 1.0.58
+BuildRequires: libfastcommon-devel >= 1.0.60
+BuildRequires: libserverframe-devel >= 1.1.18
 
 %description
 This package provides tracker & storage of fastdfs
 commit version: %{CommitVersion}
 
 %package -n %{FDFSServer}
-Requires: libfastcommon >= 1.0.58
+Requires: libfastcommon >= 1.0.60
+Requires: libserverframe >= 1.1.18
 Requires: %{FDFSConfig}
 Summary: fastdfs tracker & storage
 
 %package -n %{FDFSTool}
-Requires: libfastcommon
-Requires: %{FDFSConfig}
+Requires: %{FDFSClient}
 Summary: fastdfs tools
 
 %package -n %{FDFSClient}
-Requires: libfastcommon
+Requires: libfastcommon >= 1.0.60
+Requires: libserverframe >= 1.1.18
 Requires: %{FDFSConfig}
 Summary: The client dynamic library of fastdfs
 

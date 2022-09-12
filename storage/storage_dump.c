@@ -46,9 +46,9 @@ static int fdfs_dump_global_vars(char *buff, const int buffSize)
 		"g_fdfs_network_timeout=%ds\n"
 		"SF_G_BASE_PATH_STR=%s\n"
 		"g_fdfs_version=%d.%02d\n"
-		"g_continue_flag=%d\n"
+		"SF_G_CONTINUE_FLAG=%d\n"
 		"g_schedule_flag=%d\n"
-		"g_server_port=%d\n"
+		"SF_G_INNER_PORT=%d\n"
 		"g_max_connections=%d\n"
 		"g_storage_thread_count=%d\n"
 		"g_group_name=%s\n"
@@ -94,11 +94,11 @@ static int fdfs_dump_global_vars(char *buff, const int buffSize)
 		"g_check_file_duplicate=%d\n"
 		"g_key_namespace=%s\n"
 		"g_namespace_len=%d\n"
-		"g_bind_addr=%s\n"
+		"SF_G_INNER_BIND_ADDR=%s\n"
 		"g_client_bind_addr=%d\n"
 		"g_storage_ip_changed_auto_adjust=%d\n"
 		"g_thread_kill_done=%d\n"
-		"g_thread_stack_size=%d\n"
+		"SF_G_THREAD_STACK_SIZE=%d\n"
 		"g_upload_priority=%d\n"
 		"g_up_time=%s\n"
 		"g_if_alias_prefix=%s\n"
@@ -140,9 +140,9 @@ static int fdfs_dump_global_vars(char *buff, const int buffSize)
 		, g_fdfs_network_timeout
 		, SF_G_BASE_PATH_STR
 		, g_fdfs_version.major, g_fdfs_version.minor
-		, g_continue_flag
+		, SF_G_CONTINUE_FLAG
 		, g_schedule_flag
-		, g_server_port
+		, SF_G_INNER_PORT
 		, g_max_connections
 		, g_storage_thread_count
 		, g_group_name
@@ -190,11 +190,11 @@ static int fdfs_dump_global_vars(char *buff, const int buffSize)
 		, g_check_file_duplicate
 		, g_key_namespace
 		, g_namespace_len
-		, g_bind_addr
+		, SF_G_INNER_BIND_ADDR
 		, g_client_bind_addr
 		, g_storage_ip_changed_auto_adjust
 		, g_thread_kill_done
-		, g_thread_stack_size
+		, SF_G_THREAD_STACK_SIZE
 		, g_upload_priority
 		, formatDatetime(g_up_time, "%Y-%m-%d %H:%M:%S", 
 			szUptime, sizeof(szUptime))

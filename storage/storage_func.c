@@ -148,7 +148,7 @@ static int storage_do_get_group_name(ConnectionInfo *pTrackerServer)
 	pHeader = (TrackerHeader *)out_buff;
 	memset(out_buff, 0, sizeof(out_buff));
 	long2buff(4, pHeader->pkg_len);
-    int2buff(g_server_port, out_buff + sizeof(TrackerHeader));
+    int2buff(SF_G_INNER_PORT, out_buff + sizeof(TrackerHeader));
 	pHeader->cmd = TRACKER_PROTO_CMD_STORAGE_GET_GROUP_NAME;
 	if ((result=tcpsenddata_nb(pTrackerServer->sock, out_buff, \
 			sizeof(out_buff), g_fdfs_network_timeout)) != 0)
@@ -472,7 +472,7 @@ static int storage_open_stat_file()
 		return result;
 	}
 
-	STORAGE_FCHOWN(storage_stat_fd, full_filename, geteuid(), getegid())
+	SF_FCHOWN_TO_RUNBY_RETURN_ON_ERROR(storage_stat_fd, full_filename);
 	return 0;
 }
 
@@ -693,7 +693,7 @@ int storage_write_to_sync_ini_file()
         return result;
     }
 
-	STORAGE_CHOWN(full_filename, geteuid(), getegid())
+	SF_CHOWN_TO_RUNBY_RETURN_ON_ERROR(full_filename);
 
 	return 0;
 }
@@ -715,7 +715,7 @@ int storage_check_and_make_global_data_path()
             return errno != 0 ? errno : EPERM;
         }
 
-        STORAGE_CHOWN(data_path, geteuid(), getegid())
+        SF_CHOWN_TO_RUNBY_RETURN_ON_ERROR(data_path);
     }
 
     return 0;
@@ -775,7 +775,7 @@ static int storage_generate_store_path_mark(const int store_path_index)
 
     memset(&mark_info, 0, sizeof(FDFSStorePathMarkInfo));
     strcpy(mark_info.ip_addr, g_tracker_client_ip.ips[0].address);
-    mark_info.port = g_server_port;
+    mark_info.port = SF_G_INNER_PORT;
     mark_info.store_path_index = store_path_index;
     mark_info.create_time = g_current_time;
 
@@ -1086,7 +1086,7 @@ static int storage_check_and_make_data_dirs()
 		{
 			if (g_last_server_port == 0)
 			{
-				g_last_server_port = g_server_port;
+				g_last_server_port = SF_G_INNER_PORT;
 			}
 
 			if (g_last_http_port == 0)
@@ -1121,7 +1121,7 @@ static int storage_check_and_make_data_dirs()
         {
 			return result;
         }
-		g_last_server_port = g_server_port;
+		g_last_server_port = SF_G_INNER_PORT;
 		g_last_http_port = g_http_port;
 		g_storage_join_time = g_current_time;
 		if ((result=storage_write_to_sync_ini_file()) != 0)
@@ -1200,7 +1200,7 @@ static int storage_make_data_dirs(const char *pBasePath, bool *pathCreated)
 			return errno != 0 ? errno : EPERM;
 		}
 
-		STORAGE_CHOWN(data_path, current_uid, current_gid)
+		SF_CHOWN_RETURN_ON_ERROR(data_path, current_uid, current_gid);
 	}
 
 	if (chdir(data_path) != 0)
@@ -1241,7 +1241,7 @@ static int storage_make_data_dirs(const char *pBasePath, bool *pathCreated)
 			}
 		}
 
-		STORAGE_CHOWN(dir_name, current_uid, current_gid)
+		SF_CHOWN_RETURN_ON_ERROR(dir_name, current_uid, current_gid);
 
 		if (chdir(dir_name) != 0)
 		{
@@ -1270,7 +1270,7 @@ static int storage_make_data_dirs(const char *pBasePath, bool *pathCreated)
 				}
 			}
 
-			STORAGE_CHOWN(sub_name, current_uid, current_gid)
+			SF_CHOWN_RETURN_ON_ERROR(sub_name, current_uid, current_gid);
 		}
 
 		if (chdir("..") != 0)
@@ -1480,11 +1480,11 @@ int storage_func_init(const char *filename, \
 			g_fdfs_network_timeout = DEFAULT_NETWORK_TIMEOUT;
 		}
 
-		g_server_port = iniGetIntValue(NULL, "port", &iniContext, \
+		SF_G_INNER_PORT = iniGetIntValue(NULL, "port", &iniContext, \
 					FDFS_STORAGE_SERVER_DEF_PORT);
-		if (g_server_port <= 0)
+		if (SF_G_INNER_PORT <= 0)
 		{
-			g_server_port = FDFS_STORAGE_SERVER_DEF_PORT;
+			SF_G_INNER_PORT = FDFS_STORAGE_SERVER_DEF_PORT;
 		}
 
 		g_heart_beat_interval = iniGetIntValue(NULL, \
@@ -1877,13 +1877,13 @@ int storage_func_init(const char *filename, \
 		{
 			break;
 		}
-		g_thread_stack_size = (int)thread_stack_size;
+		SF_G_THREAD_STACK_SIZE = (int)thread_stack_size;
 
-		if (g_thread_stack_size < FAST_WRITE_BUFF_SIZE + 64 * 1024)
+		if (SF_G_THREAD_STACK_SIZE < FAST_WRITE_BUFF_SIZE + 64 * 1024)
 		{
 			logError("file: "__FILE__", line: %d, " \
 				"item \"thread_stack_size\" %d is invalid, " \
-				"which < %d", __LINE__, g_thread_stack_size, \
+				"which < %d", __LINE__, SF_G_THREAD_STACK_SIZE, \
 				FAST_WRITE_BUFF_SIZE + 64 * 1024);
 			result = EINVAL;
 			break;
@@ -2189,7 +2189,7 @@ int storage_func_init(const char *filename, \
 			g_subdir_count_per_path, \
 			g_group_name, g_run_by_group, g_run_by_user, \
 			g_fdfs_connect_timeout, g_fdfs_network_timeout, \
-			g_server_port, bind_addr, \
+			SF_G_INNER_PORT, bind_addr, \
 			g_client_bind_addr, g_max_connections, \
 			g_accept_threads, g_work_threads, g_disk_rw_separated, \
 			g_disk_reader_threads, g_disk_writer_threads, \
@@ -2204,7 +2204,7 @@ int storage_func_init(const char *filename, \
 			g_file_distribute_rotate_count, \
 			g_fsync_after_written_bytes, g_sync_log_buff_interval, \
 			g_sync_binlog_buff_interval, g_sync_stat_file_interval, \
-			g_thread_stack_size/1024, g_upload_priority, \
+			SF_G_THREAD_STACK_SIZE/1024, g_upload_priority, \
 			g_if_alias_prefix, g_check_file_duplicate, \
 			g_file_signature_method == STORAGE_FILE_SIGNATURE_METHOD_HASH \
 				? "hash" : "md5", 

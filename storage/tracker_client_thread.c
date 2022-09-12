@@ -219,7 +219,7 @@ static void *tracker_report_thread_entrance(void *arg)
 	bool bServerPortChanged;
 
 	bServerPortChanged = (g_last_server_port != 0) && \
-				(g_server_port != g_last_server_port);
+				(SF_G_INNER_PORT != g_last_server_port);
 
 	pTrackerServer = (TrackerServerInfo *)arg;
     fdfs_server_sock_reset(pTrackerServer);
@@ -231,7 +231,7 @@ static void *tracker_report_thread_entrance(void *arg)
         pTrackerServer->connections[0].port);
 
 	sync_old_done = g_sync_old_done;
-	while (g_continue_flag &&  \
+	while (SF_G_CONTINUE_FLAG &&  \
 		g_tracker_reporter_count < g_tracker_group.server_count)
 	{
 		sleep(1); //waiting for all thread started
@@ -241,7 +241,7 @@ static void *tracker_report_thread_entrance(void *arg)
 	previousCode = 0;
 	nContinuousFail = 0;
     conn = NULL;
-	while (g_continue_flag)
+	while (SF_G_CONTINUE_FLAG)
 	{
         if (conn != NULL)
         {
@@ -249,7 +249,8 @@ static void *tracker_report_thread_entrance(void *arg)
         }
 
         conn = tracker_connect_server_no_pool_ex(pTrackerServer,
-                g_client_bind_addr ? g_bind_addr : NULL, &result, false);
+                g_client_bind_addr ? SF_G_INNER_BIND_ADDR : NULL,
+                &result, false);
 		if (conn == NULL)
 		{
 			if (previousCode != result)
@@ -264,7 +265,7 @@ static void *tracker_report_thread_entrance(void *arg)
 			}
 
 			nContinuousFail++;
-			if (g_continue_flag)
+			if (SF_G_CONTINUE_FLAG)
 			{
 				sleep(g_heart_beat_interval);
 				continue;
@@ -277,7 +278,7 @@ static void *tracker_report_thread_entrance(void *arg)
 
         if ((result=storage_set_tracker_client_ips(conn, tracker_index)) != 0)
         {
-            g_continue_flag = false;
+            SF_G_CONTINUE_FLAG = false;
             break;
         }
 
@@ -355,7 +356,7 @@ static void *tracker_report_thread_entrance(void *arg)
 						"  fail, program exit!", \
 						__LINE__);
 
-						g_continue_flag = false;
+						SF_G_CONTINUE_FLAG = false;
 						pthread_mutex_unlock( \
 							&reporter_thread_lock);
 						break;
@@ -442,7 +443,7 @@ static void *tracker_report_thread_entrance(void *arg)
 		last_trunk_file_id = 0;
 		last_trunk_total_free_space = -1;
 
-		while (g_continue_flag)
+		while (SF_G_CONTINUE_FLAG)
 		{
 			current_time = g_current_time;
 			if (current_time - last_beat_time >=
@@ -532,7 +533,7 @@ static void *tracker_report_thread_entrance(void *arg)
 		}
 
         conn_pool_disconnect_server(conn);
-		if (g_continue_flag)
+		if (SF_G_CONTINUE_FLAG)
 		{
 			sleep(1);
 		}
@@ -881,7 +882,7 @@ static int tracker_merge_servers(ConnectionInfo *pTrackerServer,
                 *(pServer->ip_addr + IP_ADDRESS_SIZE - 1) = '\0';
 				if ((strcmp(pServer->id, g_my_server_id_str) == 0) ||
                         (is_local_host_ip(pServer->ip_addr) &&
-                         buff2int(pServer->port) == g_server_port))
+                         buff2int(pServer->port) == SF_G_INNER_PORT))
 				{
 					need_rejoin_tracker = true;
 					logWarning("file: "__FILE__", line: %d, " \
@@ -1461,7 +1462,7 @@ static int tracker_check_response(ConnectionInfo *pTrackerServer,
         set_trunk_server(pBriefServers->ip_addr, port);
         if ((strcmp(pBriefServers->id, g_my_server_id_str) == 0) ||
             (is_local_host_ip(pBriefServers->ip_addr) &&
-             port == g_server_port))
+             port == SF_G_INNER_PORT))
 		{
 			if (g_if_trunker_self)
 			{
@@ -1542,13 +1543,13 @@ static int tracker_check_response(ConnectionInfo *pTrackerServer,
 
 				tracker_rename_mark_files(pStorage->ip_addr, \
 					g_last_server_port, pStorage->ip_addr, \
-					g_server_port);
+					SF_G_INNER_PORT);
 			}
 		}
 
-		if (g_server_port != g_last_server_port)
+		if (SF_G_INNER_PORT != g_last_server_port)
 		{
-			g_last_server_port = g_server_port;
+			g_last_server_port = SF_G_INNER_PORT;
 			if ((result=storage_write_to_sync_ini_file()) != 0)
 			{
 				return result;
@@ -2009,13 +2010,13 @@ int tracker_report_join(ConnectionInfo *pTrackerServer, \
 	strcpy(pReqBody->domain_name, g_http_domain);
 	snprintf(pReqBody->version, sizeof(pReqBody->version), "%d.%02d", \
 		g_fdfs_version.major, g_fdfs_version.minor);
-	long2buff(g_server_port, pReqBody->storage_port);
+	long2buff(SF_G_INNER_PORT, pReqBody->storage_port);
 	long2buff(g_http_port, pReqBody->storage_http_port);
 	long2buff(g_fdfs_store_paths.count, pReqBody->store_path_count);
 	long2buff(g_subdir_count_per_path, pReqBody->subdir_count_per_path);
 	long2buff(g_upload_priority, pReqBody->upload_priority);
 	long2buff(g_storage_join_time, pReqBody->join_time);
-	long2buff(g_up_time, pReqBody->up_time);
+	long2buff(g_sf_global_vars.up_time, pReqBody->up_time);
 	pReqBody->init_flag = sync_old_done ? 0 : 1;
 	strcpy(pReqBody->current_tracker_ip, pTrackerServer->ip_addr);
 
@@ -2614,7 +2615,7 @@ int tracker_deal_changelog_response(ConnectionInfo *pTrackerServer)
 				if (!g_use_storage_id)
 				{
 					tracker_rename_mark_files(pOldStorageId, \
-					g_server_port, pNewStorageId, g_server_port);
+					SF_G_INNER_PORT, pNewStorageId, SF_G_INNER_PORT);
 					if (strcmp(g_sync_src_id, pOldStorageId) == 0)
 					{
 						snprintf(g_sync_src_id, \
@@ -2655,7 +2656,7 @@ int tracker_report_thread_start()
     int bytes;
 	int result;
 
-	if ((result=init_pthread_attr(&pattr, g_thread_stack_size)) != 0)
+	if ((result=init_pthread_attr(&pattr, SF_G_THREAD_STACK_SIZE)) != 0)
 	{
 		return result;
 	}

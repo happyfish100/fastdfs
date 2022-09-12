@@ -28,6 +28,7 @@
 #include "fastcommon/shared_func.h"
 #include "fastcommon/ini_file_reader.h"
 #include "fastcommon/connection_pool.h"
+#include "sf/sf_service.h"
 #include "tracker_types.h"
 #include "tracker_proto.h"
 #include "tracker_global.h"
@@ -123,37 +124,25 @@ static int tracker_load_storage_id_info(const char *config_filename, \
 	return fdfs_load_storage_ids_from_file(config_filename, pItemContext);
 }
 
-int tracker_load_from_conf_file(const char *filename, \
-		char *bind_addr, const int addr_size)
+int tracker_load_from_conf_file(const char *filename)
 {
-	char *pBasePath;
-	char *pBindAddr;
-	char *pRunByGroup;
-	char *pRunByUser;
-	char *pThreadStackSize;
+    const int task_buffer_extra_size = 0;
 	char *pSlotMinSize;
 	char *pSlotMaxSize;
 	char *pSpaceThreshold;
 	char *pTrunkFileSize;
-	char *pRotateErrorLogSize;
-    char *pMinBuffSize;
-    char *pMaxBuffSize;
 #ifdef WITH_HTTPD
 	char *pHttpCheckUri;
 	char *pHttpCheckType;
 #endif
 	IniContext iniContext;
 	int result;
-	int64_t thread_stack_size;
 	int64_t trunk_file_size;
 	int64_t slot_min_size;
 	int64_t slot_max_size;
-	int64_t rotate_error_log_size;
-    int64_t min_buff_size;
-    int64_t max_buff_size;
-    char sz_min_buff_size[32];
-    char sz_max_buff_size[32];
 	char reserved_space_str[32];
+    char sz_global_config[512];
+    char sz_service_config[128];
 
 	memset(&g_groups, 0, sizeof(FDFSGroups));
 	memset(&iniContext, 0, sizeof(IniContext));
@@ -178,72 +167,14 @@ int tracker_load_from_conf_file(const char *filename, \
 			break;
 		}
 
-		pBasePath = iniGetStrValue(NULL, "base_path", &iniContext);
-		if (pBasePath == NULL)
-		{
-			logError("file: "__FILE__", line: %d, " \
-				"conf file \"%s\" must have item " \
-				"\"base_path\"!", __LINE__, filename);
-			result = ENOENT;
-			break;
-		}
-
-		snprintf(SF_G_BASE_PATH_STR, sizeof(SF_G_BASE_PATH_STR), "%s", pBasePath);
-		chopPath(SF_G_BASE_PATH_STR);
-		if (!fileExists(SF_G_BASE_PATH_STR))
-		{
-			logError("file: "__FILE__", line: %d, " \
-				"\"%s\" can't be accessed, error info: %s", \
-				__LINE__, SF_G_BASE_PATH_STR, STRERROR(errno));
-			result = errno != 0 ? errno : ENOENT;
-			break;
-		}
-		if (!isDir(SF_G_BASE_PATH_STR))
-		{
-			logError("file: "__FILE__", line: %d, " \
-				"\"%s\" is not a directory!", \
-				__LINE__, SF_G_BASE_PATH_STR);
-			result = ENOTDIR;
-			break;
-		}
-
-		load_log_level(&iniContext);
-		if ((result=log_set_prefix(SF_G_BASE_PATH_STR, \
-				TRACKER_ERROR_LOG_FILENAME)) != 0)
-		{
-			break;
-		}
-
-		g_fdfs_connect_timeout = iniGetIntValue(NULL, "connect_timeout", \
-				&iniContext, DEFAULT_CONNECT_TIMEOUT);
-		if (g_fdfs_connect_timeout <= 0)
-		{
-			g_fdfs_connect_timeout = DEFAULT_CONNECT_TIMEOUT;
-		}
-
-		g_fdfs_network_timeout = iniGetIntValue(NULL, "network_timeout", \
-				&iniContext, DEFAULT_NETWORK_TIMEOUT);
-		if (g_fdfs_network_timeout <= 0)
-		{
-			g_fdfs_network_timeout = DEFAULT_NETWORK_TIMEOUT;
-		}
-
-		g_server_port = iniGetIntValue(NULL, "port", &iniContext, \
-				FDFS_TRACKER_SERVER_DEF_PORT);
-		if (g_server_port <= 0)
-		{
-			g_server_port = FDFS_TRACKER_SERVER_DEF_PORT;
-		}
-
-		pBindAddr = iniGetStrValue(NULL, "bind_addr", &iniContext);
-		if (pBindAddr == NULL)
-		{
-			bind_addr[0] = '\0';
-		}
-		else
-		{
-			snprintf(bind_addr, addr_size, "%s", pBindAddr);
-		}
+        sf_set_current_time();
+        if ((result=sf_load_config("trackerd", filename, &iniContext,
+                        "service", FDFS_TRACKER_SERVER_DEF_PORT,
+                        FDFS_TRACKER_SERVER_DEF_PORT,
+                        task_buffer_extra_size)) != 0)
+        {
+            return result;
+        }
 
 		if ((result=tracker_load_store_lookup(filename, \
 			&iniContext)) != 0)
@@ -303,117 +234,10 @@ int tracker_load_from_conf_file(const char *filename, \
 			break;
 		}
 
-		g_max_connections = iniGetIntValue(NULL, "max_connections", \
-				&iniContext, DEFAULT_MAX_CONNECTONS);
-		if (g_max_connections <= 0)
-		{
-			g_max_connections = DEFAULT_MAX_CONNECTONS;
-		}
-	
-		g_accept_threads = iniGetIntValue(NULL, "accept_threads", \
-				&iniContext, 1);
-		if (g_accept_threads <= 0)
-		{
-			logError("file: "__FILE__", line: %d, " \
-				"item \"accept_threads\" is invalid, " \
-				"value: %d <= 0!", __LINE__, g_accept_threads);
-			result = EINVAL;
-                        break;
-		}
-
-		g_work_threads = iniGetIntValue(NULL, "work_threads", \
-				&iniContext, DEFAULT_WORK_THREADS);
-		if (g_work_threads <= 0)
-		{
-			logError("file: "__FILE__", line: %d, " \
-				"item \"work_threads\" is invalid, " \
-				"value: %d <= 0!", __LINE__, g_work_threads);
-			result = EINVAL;
-                        break;
-		}
-
-		if ((result=set_rlimit(RLIMIT_NOFILE, g_max_connections)) != 0)
-		{
-			break;
-		}
-	
-		pRunByGroup = iniGetStrValue(NULL, "run_by_group", &iniContext);
-		pRunByUser = iniGetStrValue(NULL, "run_by_user", &iniContext);
-		if (pRunByGroup == NULL)
-		{
-			*g_run_by_group = '\0';
-		}
-		else
-		{
-			snprintf(g_run_by_group, sizeof(g_run_by_group), \
-				"%s", pRunByGroup);
-		}
-		if (*g_run_by_group == '\0')
-		{
-			g_run_by_gid = getegid();
-		}
-		else
-		{
-			struct group *pGroup;
-
-     			pGroup = getgrnam(g_run_by_group);
-			if (pGroup == NULL)
-			{
-				result = errno != 0 ? errno : ENOENT;
-				logError("file: "__FILE__", line: %d, " \
-					"getgrnam fail, errno: %d, " \
-					"error info: %s", __LINE__, \
-					result, STRERROR(result));
-				return result;
-			}
-
-			g_run_by_gid = pGroup->gr_gid;
-		}
-
-
-		if (pRunByUser == NULL)
-		{
-			*g_run_by_user = '\0';
-		}
-		else
-		{
-			snprintf(g_run_by_user, sizeof(g_run_by_user), \
-				"%s", pRunByUser);
-		}
-		if (*g_run_by_user == '\0')
-		{
-			g_run_by_uid = geteuid();
-		}
-		else
-		{
-			struct passwd *pUser;
-
-     			pUser = getpwnam(g_run_by_user);
-			if (pUser == NULL)
-			{
-				result = errno != 0 ? errno : ENOENT;
-				logError("file: "__FILE__", line: %d, " \
-					"getpwnam fail, errno: %d, " \
-					"error info: %s", __LINE__, \
-					result, STRERROR(result));
-				return result;
-			}
-
-			g_run_by_uid = pUser->pw_uid;
-		}
-
 		if ((result=load_allow_hosts(&iniContext, \
                 	 &g_allow_ip_addrs, &g_allow_ip_count)) != 0)
 		{
 			return result;
-		}
-
-		g_sync_log_buff_interval = iniGetIntValue(NULL, \
-				"sync_log_buff_interval", &iniContext, \
-				SYNC_LOG_BUFF_DEF_INTERVAL);
-		if (g_sync_log_buff_interval <= 0)
-		{
-			g_sync_log_buff_interval = SYNC_LOG_BUFF_DEF_INTERVAL;
 		}
 
 		g_check_active_interval = iniGetIntValue(NULL, \
@@ -423,19 +247,6 @@ int tracker_load_from_conf_file(const char *filename, \
 		{
 			g_check_active_interval = CHECK_ACTIVE_DEF_INTERVAL;
 		}
-
-		pThreadStackSize = iniGetStrValue(NULL, \
-			"thread_stack_size", &iniContext);
-		if (pThreadStackSize == NULL)
-		{
-			thread_stack_size = 64 * 1024;
-		}
-		else if ((result=parse_bytes(pThreadStackSize, 1, \
-				&thread_stack_size)) != 0)
-		{
-			return result;
-		}
-		g_thread_stack_size = (int)thread_stack_size;
 
 		g_storage_ip_changed_auto_adjust = iniGetBoolValue(NULL, \
 				"storage_ip_changed_auto_adjust", \
@@ -610,52 +421,6 @@ int tracker_load_from_conf_file(const char *filename, \
 			return result;
 		}
 
-		g_rotate_error_log = iniGetBoolValue(NULL, "rotate_error_log",
-					&iniContext, false);
-        g_compress_old_error_log = iniGetBoolValue(NULL, "compress_old_error_log",
-                &iniContext, false);
-		g_compress_error_log_days_before = iniGetIntValue(NULL,
-				"compress_error_log_days_before", &iniContext, 1);
-        if (g_compress_old_error_log)
-        {
-            log_set_compress_log_flags(LOG_COMPRESS_FLAGS_ENABLED |
-                    LOG_COMPRESS_FLAGS_NEW_THREAD);
-            log_set_compress_log_days_before(g_compress_error_log_days_before);
-        }
-
-		if ((result=get_time_item_from_conf(&iniContext,
-			"error_log_rotate_time", &g_error_log_rotate_time,
-			0, 0)) != 0)
-		{
-			break;
-		}
-
-		pRotateErrorLogSize = iniGetStrValue(NULL,
-			"rotate_error_log_size", &iniContext);
-		if (pRotateErrorLogSize == NULL)
-		{
-			rotate_error_log_size = 0;
-		}
-		else if ((result=parse_bytes(pRotateErrorLogSize, 1,
-				&rotate_error_log_size)) != 0)
-		{
-			break;
-		}
-		if (rotate_error_log_size > 0 &&
-			rotate_error_log_size < FDFS_ONE_MB)
-		{
-			logWarning("file: "__FILE__", line: %d, "
-				"item \"rotate_error_log_size\": "
-				"%"PRId64" is too small, "
-				"change to 1 MB", __LINE__,
-				rotate_error_log_size);
-			rotate_error_log_size = FDFS_ONE_MB;
-		}
-		fdfs_set_log_rotate_size(&g_log_context, rotate_error_log_size);
-
-		g_log_file_keep_days = iniGetIntValue(NULL,
-				"log_file_keep_days", &iniContext, 0);
-
 		g_store_slave_file_use_link = iniGetBoolValue(NULL,
 			"store_slave_file_use_link", &iniContext, false);
 
@@ -663,38 +428,6 @@ int tracker_load_from_conf_file(const char *filename, \
 		{
 			break;
 		}
-
-
-        pMinBuffSize = iniGetStrValue(NULL,
-                "min_buff_size", &iniContext);
-        if (pMinBuffSize == NULL) {
-            min_buff_size = TRACKER_MAX_PACKAGE_SIZE;
-        }
-        else if ((result=parse_bytes(pMinBuffSize, 1,
-                        &min_buff_size)) != 0)
-        {
-            return result;
-        }
-        g_min_buff_size = (int)min_buff_size;
-
-        pMaxBuffSize = iniGetStrValue(NULL,
-                "max_buff_size", &iniContext);
-        if (pMaxBuffSize == NULL) {
-            max_buff_size = 16 * TRACKER_MAX_PACKAGE_SIZE;
-        }
-        else if ((result=parse_bytes(pMaxBuffSize, 1,
-                        &max_buff_size)) != 0)
-        {
-            return result;
-        }
-        g_max_buff_size = (int)max_buff_size;
-
-        if (g_min_buff_size < TRACKER_MAX_PACKAGE_SIZE) {
-            g_min_buff_size = TRACKER_MAX_PACKAGE_SIZE;
-        }
-        if (g_max_buff_size < g_min_buff_size) {
-            g_max_buff_size = g_min_buff_size;
-        }
 
 #ifdef WITH_HTTPD
 		if ((result=fdfs_http_params_load(&iniContext, \
@@ -747,26 +480,17 @@ int tracker_load_from_conf_file(const char *filename, \
             g_groups.store_server = FDFS_STORE_SERVER_FIRST_BY_IP;
         }
 
-        int_to_comma_str(g_min_buff_size, sz_min_buff_size);
-        int_to_comma_str(g_max_buff_size, sz_max_buff_size);
+        sf_global_config_to_string(sz_global_config, sizeof(sz_global_config));
+        sf_context_config_to_string(&g_sf_context,
+            sz_service_config, sizeof(sz_service_config));
 
-		logInfo("FastDFS v%d.%02d, base_path=%s, "
-			"run_by_group=%s, run_by_user=%s, "
-			"connect_timeout=%ds, "
-			"network_timeout=%ds, "
-			"port=%d, bind_addr=%s, "
-			"max_connections=%d, "
-			"accept_threads=%d, "
-			"work_threads=%d, "
-            "min_buff_size=%s, "
-            "max_buff_size=%s, "
+		logInfo("FastDFS v%d.%02d, %s, %s, "
 			"store_lookup=%d, store_group=%s, "
 			"store_server=%d, store_path=%d, "
 			"reserved_storage_space=%s, "
 			"download_server=%d, "
-			"allow_ip_count=%d, sync_log_buff_interval=%ds, "
+			"allow_ip_count=%d, "
 			"check_active_interval=%ds, "
-			"thread_stack_size=%d KB, "
 			"storage_ip_changed_auto_adjust=%d, "
 			"storage_sync_file_max_delay=%ds, "
 			"storage_sync_file_max_time=%ds, "
@@ -790,28 +514,17 @@ int tracker_load_from_conf_file(const char *filename, \
 			"use_storage_id=%d, "
 			"id_type_in_filename=%s, "
 			"storage_id/ip_count=%d / %d, "
-			"rotate_error_log=%d, "
-			"error_log_rotate_time=%02d:%02d, "
-            "compress_old_error_log=%d, "
-            "compress_error_log_days_before=%d, "
-			"rotate_error_log_size=%"PRId64", "
-			"log_file_keep_days=%d, "
 			"store_slave_file_use_link=%d, "
 			"use_connection_pool=%d, "
 			"g_connection_pool_max_idle_time=%ds",
 			g_fdfs_version.major, g_fdfs_version.minor,
-			SF_G_BASE_PATH_STR, g_run_by_group, g_run_by_user,
-			g_fdfs_connect_timeout,
-			g_fdfs_network_timeout, g_server_port, bind_addr,
-			g_max_connections, g_accept_threads, g_work_threads,
-            sz_min_buff_size, sz_max_buff_size,
+            sz_global_config, sz_service_config,
 			g_groups.store_lookup, g_groups.store_group,
 			g_groups.store_server, g_groups.store_path,
 			fdfs_storage_reserved_space_to_string(
 			    &g_storage_reserved_space, reserved_space_str),
-			g_groups.download_server,
-			g_allow_ip_count, g_sync_log_buff_interval,
-			g_check_active_interval, g_thread_stack_size / 1024,
+			g_groups.download_server, g_allow_ip_count,
+			g_check_active_interval,
 			g_storage_ip_changed_auto_adjust,
 			g_storage_sync_file_max_delay,
 			g_storage_sync_file_max_time,
@@ -836,10 +549,6 @@ int tracker_load_from_conf_file(const char *filename, \
 			g_use_storage_id, g_id_type_in_filename ==
 			FDFS_ID_TYPE_SERVER_ID ? "id" : "ip",
             g_storage_ids_by_id.count, g_storage_ids_by_ip.count,
-			g_rotate_error_log, g_error_log_rotate_time.hour,
-			g_error_log_rotate_time.minute, g_compress_old_error_log,
-            g_compress_error_log_days_before,
-			g_log_context.rotate_size, g_log_file_keep_days,
 			g_store_slave_file_use_link,
 			g_use_connection_pool, g_connection_pool_max_idle_time);
 

@@ -222,6 +222,8 @@ extern "C" {
 #define tracker_make_connection(conn, err_no) \
 	tracker_make_connection_ex(conn, g_fdfs_connect_timeout, err_no)
 
+int fdfs_set_body_length(struct fast_task_info *pTask);
+
 /**
 * connect to the tracker server
 * params:

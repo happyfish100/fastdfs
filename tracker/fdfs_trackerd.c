@@ -52,8 +52,6 @@ static bool daemon_mode = true;
 static bool bTerminateFlag = false;
 static bool bAcceptEndFlag = false;
 
-static char bind_addr[IP_ADDRESS_SIZE];
-
 static void sigQuitHandler(int sig);
 static void sigHupHandler(int sig);
 static void sigUsrHandler(int sig);
@@ -71,17 +69,37 @@ static void sigDumpHandler(int sig);
 
 #define SCHEDULE_ENTRIES_COUNT 5
 
+static int setup_schedule_tasks()
+{
+    ScheduleEntry scheduleEntries[SCHEDULE_ENTRIES_COUNT];
+    ScheduleArray scheduleArray;
+
+    scheduleArray.entries = scheduleEntries;
+    scheduleArray.count = 0;
+    memset(scheduleEntries, 0, sizeof(scheduleEntries));
+
+    INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
+            scheduleArray.count + 1, TIME_NONE, TIME_NONE, TIME_NONE,
+            g_check_active_interval, tracker_mem_check_alive, NULL);
+    scheduleArray.count++;
+
+    INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
+            scheduleArray.count + 1, 0, 0, 0,
+            TRACKER_SYNC_STATUS_FILE_INTERVAL,
+            tracker_write_status_to_file, NULL);
+    scheduleArray.count++;
+
+    return sched_add_entries(&scheduleArray);
+}
+
 int main(int argc, char *argv[])
 {
 	const char *conf_filename;
     char *action;
 	int result;
 	int wait_count;
-	int sock;
 	pthread_t schedule_tid;
 	struct sigaction act;
-	ScheduleEntry scheduleEntries[SCHEDULE_ENTRIES_COUNT];
-	ScheduleArray scheduleArray;
 	char pidFilename[MAX_PATH_SIZE];
 	bool stop;
 
@@ -99,8 +117,6 @@ int main(int argc, char *argv[])
     }
 
 	g_current_time = time(NULL);
-	g_up_time = g_current_time;
-	srand(g_up_time);
 	log_init2();
 
 	if ((result=sf_get_base_path_from_conf_file(conf_filename)) != 0)
@@ -136,9 +152,7 @@ int main(int argc, char *argv[])
 	}
 #endif
 
-	memset(bind_addr, 0, sizeof(bind_addr));
-	if ((result=tracker_load_from_conf_file(conf_filename, \
-			bind_addr, sizeof(bind_addr))) != 0)
+	if ((result=tracker_load_from_conf_file(conf_filename)) != 0)
 	{
 		logCrit("exit abnormally!\n");
 		log_destroy();
@@ -167,20 +181,11 @@ int main(int argc, char *argv[])
 		return result;
 	}
 
-	sock = socketServer(bind_addr, g_server_port, &result);
-	if (sock < 0)
-	{
-		logCrit("exit abnormally!\n");
+    if ((result=sf_socket_server()) != 0)
+    {
 		log_destroy();
 		return result;
-	}
-
-	if ((result=tcpsetserveropt(sock, g_fdfs_network_timeout)) != 0)
-	{
-		logCrit("exit abnormally!\n");
-		log_destroy();
-		return result;
-	}
+    }
 
     if (daemon_mode)
     {
@@ -283,7 +288,7 @@ int main(int argc, char *argv[])
 #ifdef WITH_HTTPD
 	if (!g_http_params.disabled)
 	{
-		if ((result=tracker_httpd_start(bind_addr)) != 0)
+		if ((result=tracker_httpd_start(g_sf_context.inner_bind_addr)) != 0)
 		{
 			logCrit("file: "__FILE__", line: %d, " \
 				"tracker_httpd_start fail, program exit!", \
@@ -302,58 +307,25 @@ int main(int argc, char *argv[])
 	}
 #endif
 
-	if ((result=set_run_by(g_run_by_group, g_run_by_user)) != 0)
+	if ((result=set_run_by(g_sf_global_vars.run_by_group,
+                    g_sf_global_vars.run_by_user)) != 0)
 	{
 		logCrit("exit abnormally!\n");
 		log_destroy();
 		return result;
 	}
 
-	scheduleArray.entries = scheduleEntries;
-	scheduleArray.count = 0;
-	memset(scheduleEntries, 0, sizeof(scheduleEntries));
+    if ((result=sf_startup_schedule(&schedule_tid)) != 0)
+    {
+        log_destroy();
+        return result;
+    }
 
-	INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
-		scheduleArray.count + 1, TIME_NONE, TIME_NONE, TIME_NONE,
-		g_sync_log_buff_interval, log_sync_func, &g_log_context);
-	scheduleArray.count++;
-
-	INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
-		scheduleArray.count + 1, TIME_NONE, TIME_NONE, TIME_NONE,
-		g_check_active_interval, tracker_mem_check_alive, NULL);
-	scheduleArray.count++;
-
-	INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
-		scheduleArray.count + 1, 0, 0, 0,
-		TRACKER_SYNC_STATUS_FILE_INTERVAL,
-		tracker_write_status_to_file, NULL);
-	scheduleArray.count++;
-
-	if (g_rotate_error_log)
-	{
-		INIT_SCHEDULE_ENTRY_EX(scheduleEntries[scheduleArray.count],
-			scheduleArray.count + 1, g_error_log_rotate_time,
-			24 * 3600, log_notify_rotate, &g_log_context);
-		scheduleArray.count++;
-
-		if (g_log_file_keep_days > 0)
-		{
-			log_set_keep_days(&g_log_context, g_log_file_keep_days);
-
-			INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
-				scheduleArray.count + 1, 1, 0, 0, 24 * 3600,
-				log_delete_old_files, &g_log_context);
-			scheduleArray.count++;
-		}
-	}
-
-	if ((result=sched_start(&scheduleArray, &schedule_tid, \
-		g_thread_stack_size, (bool * volatile)&g_continue_flag)) != 0)
-	{
-		logCrit("exit abnormally!\n");
-		log_destroy();
-		return result;
-	}
+    if ((result=setup_schedule_tasks()) != 0)
+    {
+        log_destroy();
+        return result;
+    }
 
 	if ((result=tracker_relationship_init()) != 0)
 	{
@@ -367,13 +339,13 @@ int main(int argc, char *argv[])
 	bTerminateFlag = false;
 	bAcceptEndFlag = false;
 
-	tracker_accept_loop(sock);
+    sf_accept_loop();
+
 	bAcceptEndFlag = true;
 	if (g_schedule_flag)
 	{
 		pthread_kill(schedule_tid, SIGINT);
 	}
-	tracker_terminate_threads();
 
 #ifdef WITH_HTTPD
 	if (g_http_check_flag)
@@ -388,7 +360,7 @@ int main(int argc, char *argv[])
 #endif
 
 	wait_count = 0;
-	while ((g_tracker_thread_count != 0) || g_schedule_flag)
+	while ((SF_G_ALIVE_THREAD_COUNT != 0) || g_schedule_flag)
 	{
 
 /*
@@ -450,7 +422,7 @@ static void sigQuitHandler(int sig)
 		set_timer(1, 1, sigAlarmHandler);
 
 		bTerminateFlag = true;
-		g_continue_flag = false;
+		SF_G_CONTINUE_FLAG = false;
 		logCrit("file: "__FILE__", line: %d, " \
 			"catch signal %d, program exiting...", \
 			__LINE__, sig);
@@ -459,12 +431,12 @@ static void sigQuitHandler(int sig)
 
 static void sigHupHandler(int sig)
 {
-	if (g_rotate_error_log)
+	if (g_sf_global_vars.error_log.rotate_everyday)
 	{
 		g_log_context.rotate_immediately = true;
 	}
 
-	logInfo("file: "__FILE__", line: %d, " \
+	logInfo("file: "__FILE__", line: %d, "
 		"catch signal %d, rotate log", __LINE__, sig);
 }
 
@@ -480,15 +452,15 @@ static void sigAlarmHandler(int sig)
 	logDebug("file: "__FILE__", line: %d, " \
 		"signal server to quit...", __LINE__);
 
-	if (*bind_addr != '\0')
+	if (*g_sf_context.inner_bind_addr != '\0')
 	{
-		strcpy(server.ip_addr, bind_addr);
+		strcpy(server.ip_addr, g_sf_context.inner_bind_addr);
 	}
 	else
 	{
 		strcpy(server.ip_addr, "127.0.0.1");
 	}
-	server.port = g_server_port;
+	server.port = SF_G_INNER_PORT;
 	server.sock = -1;
 
 	if (conn_pool_connect_server(&server, g_fdfs_connect_timeout) != 0)

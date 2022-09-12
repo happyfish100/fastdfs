@@ -295,9 +295,9 @@ static int fdfs_dump_global_vars(char *buff, const int buffSize)
 		"g_fdfs_network_timeout=%ds\n"
 		"SF_G_BASE_PATH_STR=%s\n"
 		"g_fdfs_version=%d.%02d\n"
-		"g_continue_flag=%d\n"
+		"SF_G_CONTINUE_FLAG=%d\n"
 		"g_schedule_flag=%d\n"
-		"g_server_port=%d\n"
+		"SF_G_INNER_PORT=%d\n"
 		"g_max_connections=%d\n"
 		"g_tracker_thread_count=%d\n"
 		"g_sync_log_buff_interval=%ds\n"
@@ -309,7 +309,7 @@ static int fdfs_dump_global_vars(char *buff, const int buffSize)
 		"g_run_by_group=%s\n"
 		"g_run_by_user=%s\n"
 		"g_storage_ip_changed_auto_adjust=%d\n"
-		"g_thread_stack_size=%d\n"
+		"SF_G_THREAD_STACK_SIZE=%d\n"
 		"if_use_trunk_file=%d\n"
 		"slot_min_size=%d\n"
 		"slot_max_size=%d MB\n"
@@ -349,22 +349,22 @@ static int fdfs_dump_global_vars(char *buff, const int buffSize)
 		, g_fdfs_network_timeout
 		, SF_G_BASE_PATH_STR
 		, g_fdfs_version.major, g_fdfs_version.minor
-		, g_continue_flag
+		, SF_G_CONTINUE_FLAG
 		, g_schedule_flag
-		, g_server_port
-		, g_max_connections
-		, g_tracker_thread_count
-		, g_sync_log_buff_interval
+		, SF_G_INNER_PORT
+		, g_sf_global_vars.max_connections
+		, g_sf_context.thread_count
+		, g_sf_global_vars.error_log.sync_log_buff_interval
 		, g_check_active_interval
 		, g_storage_stat_chg_count
 		, g_storage_sync_time_chg_count
 		, fdfs_storage_reserved_space_to_string( \
 		    &g_storage_reserved_space, reserved_space_str) \
 		, g_allow_ip_count
-		, g_run_by_group
-		, g_run_by_user
+		, g_sf_global_vars.run_by_group
+		, g_sf_global_vars.run_by_user
 		, g_storage_ip_changed_auto_adjust
-		, g_thread_stack_size
+		, SF_G_THREAD_STACK_SIZE
 		, g_if_use_trunk_file
 		, g_slot_min_size
 		, g_slot_max_size / FDFS_ONE_MB
@@ -372,7 +372,7 @@ static int fdfs_dump_global_vars(char *buff, const int buffSize)
 		, g_changelog_fsize
 		, g_storage_sync_file_max_delay
 		, g_storage_sync_file_max_time
-		, (int)g_up_time
+		, (int)g_sf_global_vars.up_time
 		, (int)g_tracker_last_status.up_time
 		, (int)g_tracker_last_status.last_check_time
 		, g_if_leader_self

@@ -24,6 +24,20 @@
 #include "tracker_proto.h"
 #include "fdfs_shared_func.h"
 
+int fdfs_set_body_length(struct fast_task_info *pTask)
+{
+    pTask->length = buff2long(((TrackerHeader *)pTask->data)->pkg_len);
+    if (pTask->length < 0)
+    {
+        logError("file: "__FILE__", line: %d, "
+                "client ip: %s, pkg length: %d < 0",
+                __LINE__, pTask->client_ip, pTask->length);
+        return EINVAL;
+    }
+
+    return 0;
+}
+
 int fdfs_recv_header_ex(ConnectionInfo *pTrackerServer,
         const int network_timeout, int64_t *in_bytes)
 {

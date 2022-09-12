@@ -1598,7 +1598,7 @@ int storage_service_init()
 		return result;
 	}
 
-	if ((result=init_pthread_attr(&thread_attr, g_thread_stack_size)) != 0)
+	if ((result=init_pthread_attr(&thread_attr, SF_G_THREAD_STACK_SIZE)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"init_pthread_attr fail, program exit!", __LINE__);
@@ -1790,7 +1790,7 @@ static void *accept_thread_entrance(void* arg)
 	struct storage_nio_thread_data *pThreadData;
 
 	server_sock = (long)arg;
-	while (g_continue_flag)
+	while (SF_G_CONTINUE_FLAG)
 	{
 		sockaddr_len = sizeof(inaddr);
 		incomesock = accept(server_sock, (struct sockaddr*)&inaddr, \
@@ -1886,7 +1886,7 @@ void storage_accept_loop(int server_sock)
 		int result;
 		int i;
 
-		if ((result=init_pthread_attr(&thread_attr, g_thread_stack_size)) != 0)
+		if ((result=init_pthread_attr(&thread_attr, SF_G_THREAD_STACK_SIZE)) != 0)
 		{
 			logWarning("file: "__FILE__", line: %d, " \
 				"init_pthread_attr fail!", __LINE__);
@@ -1958,7 +1958,7 @@ static void *work_thread_entrance(void* arg)
 	}
 	
 	ioevent_loop(&pThreadData->thread_data, storage_recv_notify_read,
-		task_finish_clean_up, &g_continue_flag);
+		task_finish_clean_up, &SF_G_CONTINUE_FLAG);
 	ioevent_destroy(&pThreadData->thread_data.ev_puller);
 
 	if (g_check_file_duplicate)
@@ -4359,9 +4359,9 @@ static int storage_server_fetch_one_path_binlog_dealer(
 		{
 			break;
 		}
-	} while (g_continue_flag);
+	} while (SF_G_CONTINUE_FLAG);
 
-    if (!g_continue_flag)
+    if (!SF_G_CONTINUE_FLAG)
     {
         if (result == 0)
         {

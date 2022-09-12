@@ -204,7 +204,7 @@ static int recovery_get_src_storage_server(ConnectionInfo *pSrcStorage)
 	logDebug("file: "__FILE__", line: %d, " \
 		"disk recovery: get source storage server", \
 		__LINE__);
-	while (g_continue_flag)
+	while (SF_G_CONTINUE_FLAG)
 	{
 		result = tracker_get_storage_max_status(&g_tracker_group,
                 g_group_name, g_tracker_client_ip.ips[0].address,
@@ -248,7 +248,7 @@ static int recovery_get_src_storage_server(ConnectionInfo *pSrcStorage)
 	}
 
     found = false;
-	while (g_continue_flag)
+	while (SF_G_CONTINUE_FLAG)
 	{
 		if ((pTrackerConn=tracker_get_connection_r(&trackerServer, \
 				&result)) == NULL)
@@ -351,7 +351,7 @@ static int recovery_get_src_storage_server(ConnectionInfo *pSrcStorage)
 		sleep(5);
 	}
 
-	if (!g_continue_flag)
+	if (!SF_G_CONTINUE_FLAG)
 	{
 		return EINTR;
 	}
@@ -757,7 +757,7 @@ static int storage_do_recovery(RecoveryThreadData *pThreadData,
             continue;
         }
 
-        while (g_continue_flag)
+        while (SF_G_CONTINUE_FLAG)
         {
             result = storage_binlog_read(pReader, &record, &record_length);
             if (result != 0)
@@ -893,7 +893,7 @@ static int storage_do_recovery(RecoveryThreadData *pThreadData,
         tracker_close_connection_ex(pStorageConn, result != 0);
         recovery_write_to_mark_file(pReader);
 
-        if (!g_continue_flag)
+        if (!SF_G_CONTINUE_FLAG)
         {
             bContinueFlag = false;
         }
@@ -931,7 +931,7 @@ static int storage_do_recovery(RecoveryThreadData *pThreadData,
             pSrcStorage->port, pThreadData->base_path);
 	}
 
-	return g_continue_flag ? result :EINTR;
+	return SF_G_CONTINUE_FLAG ? result :EINTR;
 }
 
 static void *storage_disk_recovery_restore_entrance(void *arg)
@@ -1111,7 +1111,7 @@ static int do_dispatch_binlog_for_threads(const char *pBasePath)
             break;
         }
 
-        while (g_continue_flag)
+        while (SF_G_CONTINUE_FLAG)
         {
             result = storage_binlog_read(&reader, &record, &record_length);
             if (result != 0)
@@ -1326,7 +1326,7 @@ static int storage_disk_recovery_do_restore(const char *pBasePath)
     thread_count = g_disk_recovery_threads;
     if ((result=create_work_threads(&thread_count,
                     storage_disk_recovery_restore_entrance,
-                    args, recovery_tids, g_thread_stack_size)) != 0)
+                    args, recovery_tids, SF_G_THREAD_STACK_SIZE)) != 0)
     {
         return result;
     }
@@ -1334,7 +1334,7 @@ static int storage_disk_recovery_do_restore(const char *pBasePath)
     do
     {
         sleep(5);
-    } while (g_continue_flag && __sync_fetch_and_add(
+    } while (SF_G_CONTINUE_FLAG && __sync_fetch_and_add(
                 &current_recovery_thread_count, 0) > 0);
 
     if (__sync_fetch_and_add(&current_recovery_thread_count, 0) > 0)
@@ -1376,12 +1376,12 @@ static int storage_disk_recovery_do_restore(const char *pBasePath)
     free(args);
     free(recovery_tids);
 
-    if (!g_continue_flag)
+    if (!SF_G_CONTINUE_FLAG)
     {
         return EINTR;
     }
 
-    while (g_continue_flag)
+    while (SF_G_CONTINUE_FLAG)
     {
         if (storage_report_storage_status(g_my_server_id_str,
                     g_tracker_client_ip.ips[0].address,
@@ -1393,7 +1393,7 @@ static int storage_disk_recovery_do_restore(const char *pBasePath)
         sleep(5);
     }
 
-    if (!g_continue_flag)
+    if (!SF_G_CONTINUE_FLAG)
     {
         return EINTR;
     }
@@ -1562,7 +1562,7 @@ static int storage_do_split_trunk_binlog(const int store_path_index,
 	memset(&trunk_info, 0, sizeof(trunk_info));
 	memset(&trunkFileId, 0, sizeof(trunkFileId));
 	result = 0;
-	while (g_continue_flag)
+	while (SF_G_CONTINUE_FLAG)
 	{
 		result=storage_binlog_read(pReader, &record, &record_length);
 		if (result != 0)
@@ -1646,7 +1646,7 @@ static int storage_do_split_trunk_binlog(const int store_path_index,
 
 	avl_tree_destroy(&tree_unique_trunks);
 	fclose(fp);
-	if (!g_continue_flag)
+	if (!SF_G_CONTINUE_FLAG)
 	{
 		return EINTR;
 	}
@@ -1728,7 +1728,7 @@ int storage_disk_recovery_prepare(const int store_path_index)
 		}
 	}
 
-	while (g_continue_flag)
+	while (SF_G_CONTINUE_FLAG)
 	{
 		if (storage_report_storage_status(g_my_server_id_str, \
 			g_tracker_client_ip.ips[0].address,
@@ -1738,7 +1738,7 @@ int storage_disk_recovery_prepare(const int store_path_index)
 		}
 	}
 
-	if (!g_continue_flag)
+	if (!SF_G_CONTINUE_FLAG)
 	{
 		return EINTR;
 	}

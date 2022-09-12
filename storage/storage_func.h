@@ -43,36 +43,6 @@ int storage_logic_to_local_full_filename(const char *logic_filename,
         const int logic_filename_len, int *store_path_index,
         char *full_filename, const int filename_size);
 
-#define STORAGE_CHOWN(path, current_uid, current_gid) \
-	if (!(g_run_by_gid == current_gid && g_run_by_uid == current_uid)) \
-	{ \
-		if (chown(path, g_run_by_uid, g_run_by_gid) != 0) \
-		{ \
-			logError("file: "__FILE__", line: %d, " \
-				"chown \"%s\" fail, " \
-				"errno: %d, error info: %s", \
-				__LINE__, path, \
-				errno, STRERROR(errno)); \
-			return errno != 0 ? errno : EPERM; \
-		} \
-	}
-
-
-#define STORAGE_FCHOWN(fd, path, current_uid, current_gid) \
-	if (!(g_run_by_gid == current_gid && g_run_by_uid == current_uid)) \
-	{ \
-		if (fchown(fd, g_run_by_uid, g_run_by_gid) != 0) \
-		{ \
-			logError("file: "__FILE__", line: %d, " \
-				"chown \"%s\" fail, " \
-				"errno: %d, error info: %s", \
-				__LINE__, path, \
-				errno, STRERROR(errno)); \
-			return errno != 0 ? errno : EPERM; \
-		} \
-	}
-
-
 /*
 int write_serialized(int fd, const char *buff, size_t count, const bool bSync);
 int fsync_serialized(int fd);

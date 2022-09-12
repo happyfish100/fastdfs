@@ -180,7 +180,7 @@ static int relationship_cmp_tracker_status(const void *p1, const void *p2)
 static int relationship_get_tracker_status(TrackerRunningStatus *pStatus)
 {
     if (fdfs_server_contain_local_service(pStatus->pTrackerServer,
-                g_server_port))
+                SF_G_INNER_PORT))
     {
         tracker_calc_running_times(pStatus);
         pStatus->if_leader = g_if_leader_self;
@@ -314,7 +314,7 @@ static int do_notify_leader_changed(TrackerServerInfo *pTrackerServer, \
 	}
 	} while (0);
 
-	if (conn->port == g_server_port &&
+	if (conn->port == SF_G_INNER_PORT &&
 		is_local_host_ip(conn->ip_addr))
 	{
 		tracker_close_connection_ex(conn, true);
@@ -474,7 +474,7 @@ static int relationship_select_leader()
 
     conn = trackerStatus.pTrackerServer->connections;
     if (fdfs_server_contain_local_service(trackerStatus.
-                pTrackerServer, g_server_port))
+                pTrackerServer, SF_G_INNER_PORT))
 	{
 		if ((result=relationship_notify_leader_changed(
                         &trackerStatus)) != 0)
@@ -563,7 +563,7 @@ static void *relationship_thread_entrance(void* arg)
 
 	fail_count = 0;
     sleep_seconds = 1;
-	while (g_continue_flag)
+	while (SF_G_CONTINUE_FLAG)
 	{
 		if (g_tracker_servers.servers != NULL)
 		{
@@ -643,7 +643,7 @@ int tracker_relationship_init()
 	pthread_t tid;
 	pthread_attr_t thread_attr;
 
-	if ((result=init_pthread_attr(&thread_attr, g_thread_stack_size)) != 0)
+	if ((result=init_pthread_attr(&thread_attr, SF_G_THREAD_STACK_SIZE)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"init_pthread_attr fail, program exit!", __LINE__);

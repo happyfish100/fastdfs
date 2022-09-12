@@ -55,7 +55,7 @@ int storage_dio_init()
 		return result;
 	}
 
-	if ((result=init_pthread_attr(&thread_attr, g_thread_stack_size)) != 0)
+	if ((result=init_pthread_attr(&thread_attr, SF_G_THREAD_STACK_SIZE)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"init_pthread_attr fail, program exit!", __LINE__);
@@ -741,7 +741,7 @@ static void *dio_thread_entrance(void* arg)
 	struct fast_task_info *pTask;
 
 	pContext = (struct storage_dio_context *)arg; 
-	while (g_continue_flag)
+	while (SF_G_CONTINUE_FLAG)
 	{
 		while ((pTask=blocked_queue_pop(&(pContext->queue))) != NULL)
 		{

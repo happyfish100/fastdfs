@@ -136,7 +136,7 @@ int storage_get_my_tracker_client_ip()
 	pTServer = &trackerServer;
 	pTServerEnd = g_tracker_group.servers + g_tracker_group.server_count;
 
-	while (success_count == 0 && g_continue_flag)
+	while (success_count == 0 && SF_G_CONTINUE_FLAG)
 	{
 	for (pGlobalServer=g_tracker_group.servers; pGlobalServer<pTServerEnd;
 			pGlobalServer++)
@@ -146,7 +146,7 @@ int storage_get_my_tracker_client_ip()
 		for (i=0; i < 3; i++)
 		{
             conn = tracker_connect_server_no_pool_ex(pTServer,
-                    g_client_bind_addr ? g_bind_addr : NULL, &result, false);
+                    g_client_bind_addr ? SF_G_INNER_BIND_ADDR : NULL, &result, false);
             if (conn != NULL)
             {
 				break;
@@ -183,7 +183,7 @@ int storage_get_my_tracker_client_ip()
 	}
 	}
 
-	if (!g_continue_flag)
+	if (!SF_G_CONTINUE_FLAG)
 	{
 		return EINTR;
 	}
@@ -223,7 +223,7 @@ static int storage_report_storage_ip_addr()
 	}
 
 	success_count = 0;
-	while (success_count == 0 && g_continue_flag)
+	while (success_count == 0 && SF_G_CONTINUE_FLAG)
 	{
 	for (pGlobalServer=g_tracker_group.servers; pGlobalServer<pTServerEnd; \
 			pGlobalServer++)
@@ -233,7 +233,7 @@ static int storage_report_storage_ip_addr()
 		for (i=0; i < 3; i++)
 		{
             conn = tracker_connect_server_no_pool_ex(pTServer,
-                    g_client_bind_addr ? g_bind_addr : NULL, &result, false);
+                    g_client_bind_addr ? SF_G_INNER_BIND_ADDR : NULL, &result, false);
             if (conn != NULL)
             {
 				break;
@@ -268,7 +268,7 @@ static int storage_report_storage_ip_addr()
 	}
 	}
 
-	if (!g_continue_flag)
+	if (!SF_G_CONTINUE_FLAG)
 	{
 		return EINTR;
 	}
@@ -292,7 +292,7 @@ int storage_changelog_req()
 	pTServer = &trackerServer;
 	pTServerEnd = g_tracker_group.servers + g_tracker_group.server_count;
 
-	while (success_count == 0 && g_continue_flag)
+	while (success_count == 0 && SF_G_CONTINUE_FLAG)
 	{
 	for (pGlobalServer=g_tracker_group.servers; pGlobalServer<pTServerEnd; \
 			pGlobalServer++)
@@ -302,7 +302,7 @@ int storage_changelog_req()
 		for (i=0; i < 3; i++)
 		{
             conn = tracker_connect_server_no_pool_ex(pTServer,
-                    g_client_bind_addr ? g_bind_addr : NULL, &result, false);
+                    g_client_bind_addr ? SF_G_INNER_BIND_ADDR : NULL, &result, false);
             if (conn != NULL)
             {
 				break;
@@ -338,7 +338,7 @@ int storage_changelog_req()
 	}
 	}
 
-	if (!g_continue_flag)
+	if (!SF_G_CONTINUE_FLAG)
 	{
 		return EINTR;
 	}

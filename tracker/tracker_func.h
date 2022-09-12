@@ -17,8 +17,7 @@
 extern "C" {
 #endif
 
-int tracker_load_from_conf_file(const char *filename, \
-		char *bind_addr, const int addr_size);
+int tracker_load_from_conf_file(const char *filename);
 
 #ifdef __cplusplus
 }

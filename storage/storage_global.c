@@ -14,17 +14,12 @@
 #include "fastcommon/shared_func.h"
 #include "storage_global.h"
 
-volatile bool g_continue_flag = true;
 int g_subdir_count_per_path = DEFAULT_DATA_DIR_COUNT_PER_PATH;
 
-int g_server_port = FDFS_STORAGE_SERVER_DEF_PORT;
 char g_http_domain[FDFS_DOMAIN_NAME_MAX_SIZE] = {0};
 int g_http_port = 80;
 int g_last_server_port = 0;
 int g_last_http_port = 0;
-int g_max_connections = DEFAULT_MAX_CONNECTONS;
-int g_accept_threads = 1;
-int g_work_threads = DEFAULT_WORK_THREADS;
 int g_buff_size = STORAGE_DEFAULT_BUFF_SIZE;
 
 bool g_disk_rw_direct = false;
@@ -55,7 +50,6 @@ int g_sync_interval = 0; //unit: milliseconds
 TimeInfo g_sync_start_time = {0, 0};
 TimeInfo g_sync_end_time = {23, 59};
 bool g_sync_part_time = false;
-int g_sync_log_buff_interval = SYNC_LOG_BUFF_DEF_INTERVAL;
 int g_sync_binlog_buff_interval = SYNC_BINLOG_BUFF_DEF_INTERVAL;
 int g_write_mark_file_freq = FDFS_DEFAULT_SYNC_MARK_FILE_FREQ;
 int g_sync_stat_file_interval = DEFAULT_SYNC_STAT_FILE_INTERVAL;
@@ -79,9 +73,7 @@ LogContext g_access_log_context = {LOG_INFO, STDERR_FILENO, NULL};
 in_addr_t g_server_id_in_filename = 0;
 bool g_use_access_log = false;    //if log to access log
 bool g_rotate_access_log = false; //if rotate the access log every day
-bool g_rotate_error_log = false;  //if rotate the error log every day
 bool g_compress_old_access_log = false; //if compress the old access log
-bool g_compress_old_error_log = false;  //if compress the old error log
 bool g_use_storage_id = false;    //identify storage by ID instead of IP address
 byte g_id_type_in_filename = FDFS_ID_TYPE_IP_ADDRESS; //id type of the storage server in the filename
 bool g_store_slave_file_use_link = false; //if store slave file use symbol link
@@ -95,15 +87,8 @@ in_addr_t *g_allow_ip_addrs = NULL;
 StorageStatusPerTracker *g_my_report_status = NULL;  //returned by tracker server
 
 TimeInfo g_access_log_rotate_time = {0, 0}; //rotate access log time base
-TimeInfo g_error_log_rotate_time  = {0, 0}; //rotate error log time base
 
-gid_t g_run_by_gid;
-uid_t g_run_by_uid;
-
-char g_run_by_group[32] = {0};
-char g_run_by_user[32] = {0};
-
-char g_bind_addr[IP_ADDRESS_SIZE] = {0};
+char SF_G_INNER_BIND_ADDR[IP_ADDRESS_SIZE] = {0};
 bool g_client_bind_addr = true;
 bool g_storage_ip_changed_auto_adjust = false;
 bool g_thread_kill_done = false;
@@ -113,9 +98,7 @@ bool g_check_store_path_mark = true;
 bool g_compress_binlog = false;
 TimeInfo g_compress_binlog_time = {0, 0};
 
-int g_thread_stack_size = 512 * 1024;
 int g_upload_priority = DEFAULT_UPLOAD_PRIORITY;
-time_t g_up_time = 0;
 
 #ifdef WITH_HTTPD
 FDFSHTTPParams g_http_params;
@@ -126,9 +109,7 @@ int g_http_trunk_size = 64 * 1024;
 char g_exe_name[256] = {0};
 #endif
 
-int g_log_file_keep_days = 0;
 int g_compress_access_log_days_before = 0;
-int g_compress_error_log_days_before = 0;
 struct storage_nio_thread_data *g_nio_thread_data = NULL;
 struct storage_dio_thread_data *g_dio_thread_data = NULL;
 

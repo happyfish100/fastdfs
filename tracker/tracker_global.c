@@ -8,15 +8,7 @@
 
 #include "tracker_global.h"
 
-volatile bool g_continue_flag = true;
-int g_server_port = FDFS_TRACKER_SERVER_DEF_PORT;
-int g_max_connections = DEFAULT_MAX_CONNECTONS;
-int g_accept_threads = 1;
-int g_work_threads = DEFAULT_WORK_THREADS;
-int g_sync_log_buff_interval = SYNC_LOG_BUFF_DEF_INTERVAL;
 int g_check_active_interval = CHECK_ACTIVE_DEF_INTERVAL;
-int g_min_buff_size = TRACKER_MAX_PACKAGE_SIZE;
-int g_max_buff_size = 16 * TRACKER_MAX_PACKAGE_SIZE;
 
 FDFSGroups g_groups;
 int g_storage_stat_chg_count = 0;
@@ -29,20 +21,10 @@ in_addr_t *g_allow_ip_addrs = NULL;
 
 struct base64_context g_base64_context;
 
-gid_t g_run_by_gid;
-uid_t g_run_by_uid;
-
-char g_run_by_group[32] = {0};
-char g_run_by_user[32] = {0};
-
 bool g_storage_ip_changed_auto_adjust = true;
 bool g_use_storage_id = false;  //if use storage ID instead of IP address
 byte g_id_type_in_filename = FDFS_ID_TYPE_IP_ADDRESS; //id type of the storage server in the filename
-bool g_rotate_error_log = false;  //if rotate the error log every day
-bool g_compress_old_error_log = false;  //if compress the old error log
-TimeInfo g_error_log_rotate_time  = {0, 0, 0}; //rotate error log time base
 
-int g_thread_stack_size = 64 * 1024;
 int g_storage_sync_file_max_delay = DEFAULT_STORAGE_SYNC_FILE_MAX_DELAY;
 int g_storage_sync_file_max_time = DEFAULT_STORAGE_SYNC_FILE_MAX_TIME;
 
@@ -65,7 +47,6 @@ int g_trunk_binlog_max_backups = 0;
 int g_trunk_alloc_alignment_size = 0;
 int64_t g_trunk_create_file_space_threshold = 0;
 
-time_t g_up_time = 0;
 TrackerStatus g_tracker_last_status = {0, 0};
 
 #ifdef WITH_HTTPD
@@ -80,7 +61,4 @@ bool g_http_servers_dirty = false;
 char g_exe_name[256] = {0};
 #endif
 
-int g_log_file_keep_days = 0;
-int g_compress_error_log_days_before = 0;
 FDFSConnectionStat g_connection_stat = {0, 0};
-

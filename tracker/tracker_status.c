@@ -42,7 +42,7 @@ int tracker_write_status_to_file(void *args)
 
 	len = sprintf(buff, "%s=%d\n" \
 		      "%s=%d\n",
-		TRACKER_STATUS_ITEM_UP_TIME, (int)g_up_time,
+		TRACKER_STATUS_ITEM_UP_TIME, (int)g_sf_global_vars.up_time,
 		TRACKER_STATUS_ITEM_LAST_CHECK_TIME, (int)g_current_time
 	);
 

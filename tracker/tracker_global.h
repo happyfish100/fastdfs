@@ -35,38 +35,21 @@
 extern "C" {
 #endif
 
-extern volatile bool g_continue_flag;
-extern int g_server_port;
 extern FDFSGroups g_groups;
 extern int g_storage_stat_chg_count;
 extern int g_storage_sync_time_chg_count; //sync timestamp
-extern int g_max_connections;
-extern int g_min_buff_size;
-extern int g_max_buff_size;
-extern int g_accept_threads;
-extern int g_work_threads;
+
 extern FDFSStorageReservedSpace g_storage_reserved_space;
-extern int g_sync_log_buff_interval; //sync log buff to disk every interval seconds
 extern int g_check_active_interval; //check storage server alive every interval seconds
 
 extern int g_allow_ip_count;  /* -1 means match any ip address */
 extern in_addr_t *g_allow_ip_addrs;  /* sorted array, asc order */
 extern struct base64_context g_base64_context;
 
-extern gid_t g_run_by_gid;
-extern uid_t g_run_by_uid;
-
-extern char g_run_by_group[32];
-extern char g_run_by_user[32];
-
 extern bool g_storage_ip_changed_auto_adjust;
 extern bool g_use_storage_id;  //identify storage by ID instead of IP address
 extern byte g_id_type_in_filename; //id type of the storage server in the filename
-extern bool g_rotate_error_log;    //if rotate the error log every day
-extern bool g_compress_old_error_log;    //if compress the old error log
-extern TimeInfo g_error_log_rotate_time; //rotate error log time base
 
-extern int g_thread_stack_size;
 extern int g_storage_sync_file_max_delay;
 extern int g_storage_sync_file_max_time;
 
@@ -89,7 +72,6 @@ extern int g_trunk_binlog_max_backups;
 extern int g_trunk_alloc_alignment_size;
 extern int64_t g_trunk_create_file_space_threshold;
 
-extern time_t g_up_time;
 extern TrackerStatus g_tracker_last_status;  //the status of last running
 
 #ifdef WITH_HTTPD
@@ -104,8 +86,6 @@ extern bool g_http_servers_dirty;
 extern char g_exe_name[256];
 #endif
 
-extern int g_log_file_keep_days;
-extern int g_compress_error_log_days_before;
 extern FDFSConnectionStat g_connection_stat;
 
 #ifdef __cplusplus

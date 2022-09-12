@@ -150,35 +150,6 @@ char *g_tracker_sys_filenames[TRACKER_SYS_FILE_COUNT] = {
 	STORAGE_SERVERS_CHANGELOG_FILENAME
 };      
    
-#define TRACKER_CHOWN(path, current_uid, current_gid) \
-	if (!(g_run_by_gid == current_gid && g_run_by_uid == current_uid)) \
-	{ \
-		if (chown(path, g_run_by_uid, g_run_by_gid) != 0) \
-		{ \
-			logError("file: "__FILE__", line: %d, " \
-				"chown \"%s\" fail, " \
-				"errno: %d, error info: %s", \
-				__LINE__, path, \
-				errno, STRERROR(errno)); \
-			return errno != 0 ? errno : EPERM; \
-		} \
-	}
-
-#define TRACKER_FCHOWN(fd, path, current_uid, current_gid) \
-	if (!(g_run_by_gid == current_gid && g_run_by_uid == current_uid)) \
-	{ \
-		if (fchown(fd, g_run_by_uid, g_run_by_gid) != 0) \
-		{ \
-			logError("file: "__FILE__", line: %d, " \
-				"chown \"%s\" fail, " \
-				"errno: %d, error info: %s", \
-				__LINE__, path, \
-				errno, STRERROR(errno)); \
-			return errno != 0 ? errno : EPERM; \
-		} \
-	}
-
-
 int tracker_mem_pthread_lock()
 {
 	int result;
@@ -1611,7 +1582,7 @@ static int tracker_load_data(FDFSGroups *pGroups)
 				__LINE__, data_path, errno, STRERROR(errno));
 			return errno != 0 ? errno : ENOENT;
 		}
-		TRACKER_CHOWN(data_path, geteuid(), getegid())
+		SF_CHOWN_TO_RUNBY_RETURN_ON_ERROR(data_path);
 	}
 
 	if (chdir(data_path) != 0)
@@ -1788,7 +1759,7 @@ int tracker_save_groups()
 			result = errno != 0 ? errno : EIO;
 		}
 
-		TRACKER_CHOWN(trueFilename, geteuid(), getegid())
+		SF_CHOWN_TO_RUNBY_RETURN_ON_ERROR(trueFilename);
 	}
 
 	if (result != 0)
@@ -2078,7 +2049,7 @@ int tracker_save_storages()
 			result = errno != 0 ? errno : EIO;
 		}
 
-		TRACKER_CHOWN(trueFilename, geteuid(), getegid())
+		SF_CHOWN_TO_RUNBY_RETURN_ON_ERROR(trueFilename);
 	}
 
 	if (result != 0)
@@ -2197,7 +2168,7 @@ int tracker_save_sync_timestamps()
 			result = errno != 0 ? errno : EIO;
 		}
 
-		TRACKER_CHOWN(trueFilename, geteuid(), getegid())
+		SF_CHOWN_TO_RUNBY_RETURN_ON_ERROR(trueFilename);
 	}
 
 	if (result != 0)
@@ -2243,7 +2214,7 @@ static int tracker_open_changlog_file()
 				__LINE__, data_path, errno, STRERROR(errno));
 			return errno != 0 ? errno : ENOENT;
 		}
-		TRACKER_CHOWN(data_path, geteuid(), getegid())
+		SF_CHOWN_TO_RUNBY_RETURN_ON_ERROR(data_path);
 	}
 
 	snprintf(filename, sizeof(filename), "%s/data/%s", \
@@ -2268,7 +2239,7 @@ static int tracker_open_changlog_file()
 		return errno != 0 ? errno : EIO;
 	}
 
-	TRACKER_FCHOWN(changelog_fd, filename, geteuid(), getegid())
+	SF_FCHOWN_TO_RUNBY_RETURN_ON_ERROR(changelog_fd, filename);
 
 	return 0;
 }
@@ -3810,7 +3781,7 @@ static int _tracker_mem_add_storage(FDFSGroupInfo *pGroup,
 
 void tracker_calc_running_times(TrackerRunningStatus *pStatus)
 {
-	pStatus->running_time = g_current_time - g_up_time;
+	pStatus->running_time = g_current_time - g_sf_global_vars.up_time;
 
 	if (g_tracker_last_status.last_check_time == 0)
 	{
@@ -3818,7 +3789,7 @@ void tracker_calc_running_times(TrackerRunningStatus *pStatus)
 	}
 	else
 	{
-		pStatus->restart_interval = g_up_time - \
+		pStatus->restart_interval = g_sf_global_vars.up_time -
 				g_tracker_last_status.last_check_time;
 	}
 
@@ -3946,7 +3917,7 @@ static int tracker_mem_get_one_sys_file(ConnectionInfo *pTrackerServer, \
 		return errno != 0 ? errno : EACCES;
 	}
 
-	TRACKER_FCHOWN(fd, full_filename, geteuid(), getegid())
+	SF_FCHOWN_TO_RUNBY_RETURN_ON_ERROR(fd, full_filename);
 
 	offset = 0;
 	file_size = 0;
@@ -4040,7 +4011,7 @@ static int find_my_ip_in_tracker_list()
     while ((current_ip=get_next_local_ip(previous_ip)) != NULL)
     {
         pServer = fdfs_tracker_group_get_server(&g_tracker_servers,
-                current_ip, g_server_port);
+                current_ip, SF_G_INNER_PORT);
         if (pServer != NULL)
         {
             if (pServer->count > 1)
@@ -4275,7 +4246,7 @@ static int tracker_mem_get_tracker_server(FDFSStorageJoinBody *pJoinBody, \
     for (pTrackerServer=pJoinBody->tracker_servers;
             pTrackerServer<pTrackerEnd; pTrackerServer++)
 	{
-		if (fdfs_server_contain_local_service(pTrackerServer, g_server_port))
+		if (fdfs_server_contain_local_service(pTrackerServer, SF_G_INNER_PORT))
 		{
 			continue;
 		}
@@ -4420,8 +4391,8 @@ int tracker_mem_add_group_and_storage(TrackerClientInfo *pClientInfo, \
 
 	if (need_get_sys_files)
 	{
-		if (g_tracker_last_status.last_check_time > 0 && \
-			g_up_time - g_tracker_last_status.last_check_time > \
+		if (g_tracker_last_status.last_check_time > 0 && g_sf_global_vars.
+                up_time - g_tracker_last_status.last_check_time >
 				2 * TRACKER_SYNC_STATUS_FILE_INTERVAL)
 		{ /* stop time exceeds 2 * interval */
 			TrackerRunningStatus runningStatus;

@@ -59,19 +59,13 @@ typedef struct
     bool report_my_status;
 } StorageStatusPerTracker;
 
-extern volatile bool g_continue_flag;
-
 /* subdirs under store path, g_subdir_count * g_subdir_count 2 level subdirs */
 extern int g_subdir_count_per_path;
 
-extern int g_server_port;
 extern int g_http_port;  //http server port
 extern int g_last_server_port;
 extern int g_last_http_port;  //last http server port
 extern char g_http_domain[FDFS_DOMAIN_NAME_MAX_SIZE];  //http server domain name
-extern int g_max_connections;
-extern int g_accept_threads;
-extern int g_work_threads;
 extern int g_buff_size;
  
 extern bool g_disk_rw_direct;     //if file read / write directly
@@ -101,7 +95,6 @@ extern int g_sync_interval; //unit: milliseconds
 extern TimeInfo g_sync_start_time;
 extern TimeInfo g_sync_end_time;
 extern bool g_sync_part_time; //true for part time, false for all time of a day
-extern int g_sync_log_buff_interval; //sync log buff to disk every interval seconds
 extern int g_sync_binlog_buff_interval; //sync binlog buff to disk every interval seconds
 extern int g_write_mark_file_freq;      //write to mark file after sync N files
 extern int g_sync_stat_file_interval;   //sync storage stat info to disk interval
@@ -128,12 +121,9 @@ extern bool g_use_storage_id;  //identify storage by ID instead of IP address
 extern byte g_id_type_in_filename; //id type of the storage server in the filename
 extern bool g_use_access_log;  //if log to access log
 extern bool g_rotate_access_log;  //if rotate the access log every day
-extern bool g_rotate_error_log;  //if rotate the error log every day
 extern bool g_compress_old_access_log; //if compress the old access log
-extern bool g_compress_old_error_log;  //if compress the old error log
 
 extern TimeInfo g_access_log_rotate_time; //rotate access log time base
-extern TimeInfo g_error_log_rotate_time;  //rotate error log time base
 
 extern bool g_check_file_duplicate;  //if check file content duplicate
 extern byte g_file_signature_method; //file signature method
@@ -145,13 +135,6 @@ extern in_addr_t *g_allow_ip_addrs;  /* sorted array, asc order */
 
 extern StorageStatusPerTracker *g_my_report_status;  //returned by tracker server
 
-extern gid_t g_run_by_gid;
-extern uid_t g_run_by_uid;
-
-extern char g_run_by_group[32];
-extern char g_run_by_user[32];
-
-extern char g_bind_addr[IP_ADDRESS_SIZE];
 extern bool g_client_bind_addr;
 extern bool g_storage_ip_changed_auto_adjust;
 extern bool g_thread_kill_done;
@@ -162,9 +145,7 @@ extern bool g_check_store_path_mark;
 extern bool g_compress_binlog;
 extern TimeInfo g_compress_binlog_time;  //compress binlog time base
 
-extern int g_thread_stack_size;
 extern int g_upload_priority;
-extern time_t g_up_time;
 
 #ifdef WITH_HTTPD
 extern FDFSHTTPParams g_http_params;
@@ -175,9 +156,7 @@ extern int g_http_trunk_size;
 extern char g_exe_name[256];
 #endif
 
-extern int g_log_file_keep_days;
 extern int g_compress_access_log_days_before;
-extern int g_compress_error_log_days_before;
 
 extern struct storage_nio_thread_data *g_nio_thread_data;  //network io thread data
 extern struct storage_dio_thread_data *g_dio_thread_data;  //disk io thread data

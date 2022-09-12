@@ -168,9 +168,9 @@ int main(int argc, char *argv[])
 		return result;
     }
 
-	memset(g_bind_addr, 0, sizeof(g_bind_addr));
+	memset(SF_G_INNER_BIND_ADDR, 0, sizeof(SF_G_INNER_BIND_ADDR));
 	if ((result=storage_func_init(conf_filename, \
-			g_bind_addr, sizeof(g_bind_addr))) != 0)
+			SF_G_INNER_BIND_ADDR, sizeof(SF_G_INNER_BIND_ADDR))) != 0)
 	{
 		logCrit("exit abnormally!\n");
         delete_pid_file(pidFilename);
@@ -178,7 +178,7 @@ int main(int argc, char *argv[])
 		return result;
 	}
 
-	sock = socketServer(g_bind_addr, g_server_port, &result);
+	sock = socketServer(SF_G_INNER_BIND_ADDR, SF_G_INNER_PORT, &result);
 	if (sock < 0)
 	{
 		logCrit("exit abnormally!\n");
@@ -199,7 +199,7 @@ int main(int argc, char *argv[])
 	{
 		logCrit("file: "__FILE__", line: %d, " \
 			"storage_sync_init fail, program exit!", __LINE__);
-		g_continue_flag = false;
+		SF_G_CONTINUE_FLAG = false;
 		return result;
 	}
 
@@ -207,7 +207,7 @@ int main(int argc, char *argv[])
 	{
 		logCrit("file: "__FILE__", line: %d, " \
 			"tracker_report_init fail, program exit!", __LINE__);
-		g_continue_flag = false;
+		SF_G_CONTINUE_FLAG = false;
 		return result;
 	}
 
@@ -215,7 +215,7 @@ int main(int argc, char *argv[])
 	{
 		logCrit("file: "__FILE__", line: %d, " \
 			"storage_service_init fail, program exit!", __LINE__);
-		g_continue_flag = false;
+		SF_G_CONTINUE_FLAG = false;
 		return result;
 	}
 
@@ -223,7 +223,7 @@ int main(int argc, char *argv[])
 	{
 		logCrit("file: "__FILE__", line: %d, " \
 			"set_rand_seed fail, program exit!", __LINE__);
-		g_continue_flag = false;
+		SF_G_CONTINUE_FLAG = false;
 		return result;
 	}
 
@@ -231,7 +231,7 @@ int main(int argc, char *argv[])
 #ifdef WITH_HTTPD
 	if (!g_http_params.disabled)
 	{
-		if ((result=storage_httpd_start(g_bind_addr)) != 0)
+		if ((result=storage_httpd_start(SF_G_INNER_BIND_ADDR)) != 0)
 		{
 			logCrit("file: "__FILE__", line: %d, " \
 				"storage_httpd_start fail, " \
@@ -246,7 +246,7 @@ int main(int argc, char *argv[])
 		logCrit("file: "__FILE__", line: %d, " \
 			"tracker_report_thread_start fail, " \
 			"program exit!", __LINE__);
-		g_continue_flag = false;
+		SF_G_CONTINUE_FLAG = false;
 		storage_func_destroy();
 		log_destroy();
 		return result;
@@ -343,7 +343,7 @@ static void sigQuitHandler(int sig)
 		set_timer(1, 1, sigAlarmHandler);
 
 		bTerminateFlag = true;
-		g_continue_flag = false;
+		SF_G_CONTINUE_FLAG = false;
 
 		logCrit("file: "__FILE__", line: %d, " \
 			"catch signal %d, program exiting...", \
@@ -363,15 +363,15 @@ static void sigAlarmHandler(int sig)
 	logDebug("file: "__FILE__", line: %d, " \
 		"signal server to quit...", __LINE__);
 
-	if (*g_bind_addr != '\0')
+	if (*SF_G_INNER_BIND_ADDR != '\0')
 	{
-		strcpy(server.ip_addr, g_bind_addr);
+		strcpy(server.ip_addr, SF_G_INNER_BIND_ADDR);
 	}
 	else
 	{
 		strcpy(server.ip_addr, "127.0.0.1");
 	}
-	server.port = g_server_port;
+	server.port = SF_G_INNER_PORT;
 	server.sock = -1;
 
 	if (conn_pool_connect_server(&server, g_fdfs_connect_timeout) != 0)
@@ -518,7 +518,7 @@ static int setupSchedules(pthread_t *schedule_tid)
     }
 
 	if ((result=sched_start(&scheduleArray, schedule_tid,
-		g_thread_stack_size, (bool * volatile)&g_continue_flag)) != 0)
+		SF_G_THREAD_STACK_SIZE, (bool * volatile)&SF_G_CONTINUE_FLAG)) != 0)
 	{
 		return result;
 	}
