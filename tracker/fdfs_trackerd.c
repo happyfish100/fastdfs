@@ -58,19 +58,74 @@ static void sigUsrHandler(int sig);
 static void sigAlarmHandler(int sig);
 
 #if defined(DEBUG_FLAG)
-/*
-#if defined(OS_LINUX)
-static void sigSegvHandler(int signum, siginfo_t *info, void *ptr);
-#endif
-*/
-
 static void sigDumpHandler(int sig);
 #endif
 
-#define SCHEDULE_ENTRIES_COUNT 5
+static int setup_signal_handlers()
+{
+	struct sigaction act;
+
+	memset(&act, 0, sizeof(act));
+	sigemptyset(&act.sa_mask);
+	act.sa_handler = sigUsrHandler;
+	if(sigaction(SIGUSR1, &act, NULL) < 0 || \
+		sigaction(SIGUSR2, &act, NULL) < 0)
+	{
+		logCrit("file: "__FILE__", line: %d, " \
+			"call sigaction fail, errno: %d, error info: %s", \
+			__LINE__, errno, STRERROR(errno));
+		return errno;
+	}
+
+	act.sa_handler = sigHupHandler;
+	if(sigaction(SIGHUP, &act, NULL) < 0)
+	{
+		logCrit("file: "__FILE__", line: %d, " \
+			"call sigaction fail, errno: %d, error info: %s", \
+			__LINE__, errno, STRERROR(errno));
+		return errno;
+	}
+
+	act.sa_handler = SIG_IGN;
+	if(sigaction(SIGPIPE, &act, NULL) < 0)
+	{
+		logCrit("file: "__FILE__", line: %d, " \
+			"call sigaction fail, errno: %d, error info: %s", \
+			__LINE__, errno, STRERROR(errno));
+		return errno;
+	}
+
+	act.sa_handler = sigQuitHandler;
+	if(sigaction(SIGINT, &act, NULL) < 0 || \
+		sigaction(SIGTERM, &act, NULL) < 0 || \
+		sigaction(SIGQUIT, &act, NULL) < 0)
+	{
+		logCrit("file: "__FILE__", line: %d, " \
+			"call sigaction fail, errno: %d, error info: %s", \
+			__LINE__, errno, STRERROR(errno));
+		return errno;
+	}
+
+#if defined(DEBUG_FLAG)
+	memset(&act, 0, sizeof(act));
+	sigemptyset(&act.sa_mask);
+	act.sa_handler = sigDumpHandler;
+	if(sigaction(SIGUSR1, &act, NULL) < 0 || \
+		sigaction(SIGUSR2, &act, NULL) < 0)
+	{
+		logCrit("file: "__FILE__", line: %d, " \
+			"call sigaction fail, errno: %d, error info: %s", \
+			__LINE__, errno, STRERROR(errno));
+		return errno;
+	}
+#endif
+
+    return 0;
+}
 
 static int setup_schedule_tasks()
 {
+#define SCHEDULE_ENTRIES_COUNT 5
     ScheduleEntry scheduleEntries[SCHEDULE_ENTRIES_COUNT];
     ScheduleArray scheduleArray;
 
@@ -99,7 +154,6 @@ int main(int argc, char *argv[])
 	int result;
 	int wait_count;
 	pthread_t schedule_tid;
-	struct sigaction act;
 	char pidFilename[MAX_PATH_SIZE];
 	bool stop;
 
@@ -206,84 +260,12 @@ int main(int argc, char *argv[])
 		return result;
 	}
 	
-	memset(&act, 0, sizeof(act));
-	sigemptyset(&act.sa_mask);
-
-	act.sa_handler = sigUsrHandler;
-	if(sigaction(SIGUSR1, &act, NULL) < 0 || \
-		sigaction(SIGUSR2, &act, NULL) < 0)
+	if ((result=setup_signal_handlers()) != 0)
 	{
-		logCrit("file: "__FILE__", line: %d, " \
-			"call sigaction fail, errno: %d, error info: %s", \
-			__LINE__, errno, STRERROR(errno));
 		logCrit("exit abnormally!\n");
-		return errno;
+		log_destroy();
+		return result;
 	}
-
-	act.sa_handler = sigHupHandler;
-	if(sigaction(SIGHUP, &act, NULL) < 0)
-	{
-		logCrit("file: "__FILE__", line: %d, " \
-			"call sigaction fail, errno: %d, error info: %s", \
-			__LINE__, errno, STRERROR(errno));
-		logCrit("exit abnormally!\n");
-		return errno;
-	}
-	
-	act.sa_handler = SIG_IGN;
-	if(sigaction(SIGPIPE, &act, NULL) < 0)
-	{
-		logCrit("file: "__FILE__", line: %d, " \
-			"call sigaction fail, errno: %d, error info: %s", \
-			__LINE__, errno, STRERROR(errno));
-		logCrit("exit abnormally!\n");
-		return errno;
-	}
-
-	act.sa_handler = sigQuitHandler;
-	if(sigaction(SIGINT, &act, NULL) < 0 || \
-		sigaction(SIGTERM, &act, NULL) < 0 || \
-		sigaction(SIGQUIT, &act, NULL) < 0)
-	{
-		logCrit("file: "__FILE__", line: %d, " \
-			"call sigaction fail, errno: %d, error info: %s", \
-			__LINE__, errno, STRERROR(errno));
-		logCrit("exit abnormally!\n");
-		return errno;
-	}
-
-#if defined(DEBUG_FLAG)
-/*
-#if defined(OS_LINUX)
-	memset(&act, 0, sizeof(act));
-	sigemptyset(&act.sa_mask);
-        act.sa_sigaction = sigSegvHandler;
-        act.sa_flags = SA_SIGINFO;
-        if (sigaction(SIGSEGV, &act, NULL) < 0 || \
-        	sigaction(SIGABRT, &act, NULL) < 0)
-	{
-		logCrit("file: "__FILE__", line: %d, " \
-			"call sigaction fail, errno: %d, error info: %s", \
-			__LINE__, errno, STRERROR(errno));
-		logCrit("exit abnormally!\n");
-		return errno;
-	}
-#endif
-*/
-
-	memset(&act, 0, sizeof(act));
-	sigemptyset(&act.sa_mask);
-	act.sa_handler = sigDumpHandler;
-	if(sigaction(SIGUSR1, &act, NULL) < 0 || \
-		sigaction(SIGUSR2, &act, NULL) < 0)
-	{
-		logCrit("file: "__FILE__", line: %d, " \
-			"call sigaction fail, errno: %d, error info: %s", \
-			__LINE__, errno, STRERROR(errno));
-		logCrit("exit abnormally!\n");
-		return errno;
-	}
-#endif
 
 #ifdef WITH_HTTPD
 	if (!g_http_params.disabled)
@@ -362,18 +344,7 @@ int main(int argc, char *argv[])
 	wait_count = 0;
 	while ((SF_G_ALIVE_THREAD_COUNT != 0) || g_schedule_flag)
 	{
-
-/*
-#if defined(DEBUG_FLAG) && defined(OS_LINUX)
-		if (bSegmentFault)
-		{
-			sleep(5);
-			break;
-		}
-#endif
-*/
-
-		usleep(10000);
+		fc_sleep_ms(10);
 		if (++wait_count > 3000)
 		{
 			logWarning("waiting timeout, exit!");

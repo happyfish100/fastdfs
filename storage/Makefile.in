@@ -26,6 +26,9 @@ ALL_OBJS = $(SHARED_OBJS)
 ALL_PRGS = fdfs_storaged 
 
 all: $(ALL_OBJS) $(ALL_PRGS)
+
+$(ALL_PRGS): $(ALL_OBJS)
+
 .o:
 	$(COMPILE) -o $@ $<  $(SHARED_OBJS) $(LIB_PATH) $(INC_PATH)
 .c:

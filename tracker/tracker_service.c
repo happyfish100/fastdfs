@@ -66,6 +66,12 @@ static void task_finish_clean_up(struct fast_task_info *pTask)
 int tracker_service_init()
 {
     int result;
+
+    if ((result=init_pthread_lock(&lb_thread_lock)) != 0)
+    {
+        return result;
+    }
+
     result = sf_service_init("fdfs_trackerd", NULL, NULL, NULL,
             fdfs_set_body_length, tracker_deal_task, task_finish_clean_up,
             NULL, 1000, sizeof(TrackerHeader), sizeof(TrackerClientInfo));
