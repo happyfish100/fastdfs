@@ -125,7 +125,7 @@ static int setup_signal_handlers()
 
 static int setup_schedule_tasks()
 {
-#define SCHEDULE_ENTRIES_COUNT 5
+#define SCHEDULE_ENTRIES_COUNT 4
     ScheduleEntry scheduleEntries[SCHEDULE_ENTRIES_COUNT];
     ScheduleArray scheduleArray;
 
@@ -134,12 +134,12 @@ static int setup_schedule_tasks()
     memset(scheduleEntries, 0, sizeof(scheduleEntries));
 
     INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
-            scheduleArray.count + 1, TIME_NONE, TIME_NONE, TIME_NONE,
+            sched_generate_next_id(), TIME_NONE, TIME_NONE, TIME_NONE,
             g_check_active_interval, tracker_mem_check_alive, NULL);
     scheduleArray.count++;
 
     INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
-            scheduleArray.count + 1, 0, 0, 0,
+            sched_generate_next_id(), 0, 0, 0,
             TRACKER_SYNC_STATUS_FILE_INTERVAL,
             tracker_write_status_to_file, NULL);
     scheduleArray.count++;

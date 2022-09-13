@@ -242,7 +242,6 @@ int main(int argc, char *argv[])
         return result;
     }
 
-
     if ((result=setup_schedule_tasks()) != 0)
     {
 		logCrit("exit abnormally!\n");
@@ -430,19 +429,19 @@ static int setup_schedule_tasks()
 	memset(scheduleEntries, 0, sizeof(scheduleEntries));
 
 	INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
-		scheduleArray.count + 1, TIME_NONE, TIME_NONE, TIME_NONE,
+		sched_generate_next_id(), TIME_NONE, TIME_NONE, TIME_NONE,
 		g_sync_binlog_buff_interval, fdfs_binlog_sync_func, NULL);
 	scheduleArray.count++;
 
 	INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
-		scheduleArray.count + 1, TIME_NONE, TIME_NONE, TIME_NONE,
+		sched_generate_next_id(), TIME_NONE, TIME_NONE, TIME_NONE,
 		g_sync_stat_file_interval, fdfs_stat_file_sync_func, NULL);
 	scheduleArray.count++;
 
 	if (g_if_use_trunk_file)
 	{
 		INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
-			scheduleArray.count + 1, TIME_NONE, TIME_NONE, TIME_NONE,
+			sched_generate_next_id(), TIME_NONE, TIME_NONE, TIME_NONE,
 			1, trunk_binlog_sync_func, NULL);
 		scheduleArray.count++;
 	}
@@ -450,7 +449,7 @@ static int setup_schedule_tasks()
 	if (g_use_access_log)
 	{
 		INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
-			scheduleArray.count + 1, TIME_NONE, TIME_NONE, TIME_NONE,
+			sched_generate_next_id(), TIME_NONE, TIME_NONE, TIME_NONE,
 			g_sf_global_vars.error_log.sync_log_buff_interval,
             log_sync_func, &g_access_log_context);
 		scheduleArray.count++;
@@ -458,7 +457,7 @@ static int setup_schedule_tasks()
 		if (g_rotate_access_log)
 		{
 			INIT_SCHEDULE_ENTRY_EX(scheduleEntries[scheduleArray.count],
-				scheduleArray.count + 1, g_access_log_rotate_time,
+				sched_generate_next_id(), g_access_log_rotate_time,
 				24 * 3600, log_notify_rotate, &g_access_log_context);
 			scheduleArray.count++;
 
@@ -468,7 +467,7 @@ static int setup_schedule_tasks()
 					g_sf_global_vars.error_log.keep_days);
 
 				INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
-					scheduleArray.count + 1, 1, 0, 0, 24 * 3600,
+					sched_generate_next_id(), 1, 0, 0, 24 * 3600,
 					log_delete_old_files, &g_access_log_context);
 				scheduleArray.count++;
 			}
@@ -478,7 +477,7 @@ static int setup_schedule_tasks()
 	if (g_compress_binlog)
 	{
 		INIT_SCHEDULE_ENTRY_EX(scheduleEntries[scheduleArray.count],
-			scheduleArray.count + 1, g_compress_binlog_time,
+			sched_generate_next_id(), g_compress_binlog_time,
 			24 * 3600, fdfs_binlog_compress_func, NULL);
 		scheduleArray.count++;
     }
