@@ -20,7 +20,6 @@ char g_http_domain[FDFS_DOMAIN_NAME_MAX_SIZE] = {0};
 int g_http_port = 80;
 int g_last_server_port = 0;
 int g_last_http_port = 0;
-int g_buff_size = STORAGE_DEFAULT_BUFF_SIZE;
 
 bool g_disk_rw_direct = false;
 bool g_disk_rw_separated = true;
@@ -88,7 +87,6 @@ StorageStatusPerTracker *g_my_report_status = NULL;  //returned by tracker serve
 
 TimeInfo g_access_log_rotate_time = {0, 0}; //rotate access log time base
 
-char SF_G_INNER_BIND_ADDR[IP_ADDRESS_SIZE] = {0};
 bool g_client_bind_addr = true;
 bool g_storage_ip_changed_auto_adjust = false;
 bool g_thread_kill_done = false;
@@ -110,7 +108,6 @@ char g_exe_name[256] = {0};
 #endif
 
 int g_compress_access_log_days_before = 0;
-struct storage_nio_thread_data *g_nio_thread_data = NULL;
 struct storage_dio_thread_data *g_dio_thread_data = NULL;
 
 int storage_cmp_by_server_id(const void *p1, const void *p2)

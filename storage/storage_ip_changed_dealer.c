@@ -45,7 +45,7 @@ static int storage_do_changelog_req(ConnectionInfo *pTrackerServer)
 	strcpy(out_buff + sizeof(TrackerHeader) + FDFS_GROUP_NAME_MAX_LEN,
 		g_my_server_id_str);
 	if((result=tcpsenddata_nb(pTrackerServer->sock, out_buff, \
-		sizeof(out_buff), g_fdfs_network_timeout)) != 0)
+		sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"tracker server %s:%d, send data fail, " \
@@ -81,7 +81,7 @@ static int storage_report_ip_changed(ConnectionInfo *pTrackerServer)
 		IP_ADDRESS_SIZE, g_tracker_client_ip.ips[0].address);
 
 	if((result=tcpsenddata_nb(pTrackerServer->sock, out_buff, \
-		sizeof(out_buff), g_fdfs_network_timeout)) != 0)
+		sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"tracker server %s:%d, send data fail, " \

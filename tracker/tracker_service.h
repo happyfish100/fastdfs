@@ -25,9 +25,6 @@ extern "C" {
 int tracker_service_init();
 void tracker_service_destroy();
 
-void tracker_accept_loop(int server_sock);
-int tracker_deal_task(struct fast_task_info *pTask, const int stage);
-
 #ifdef __cplusplus
 }
 #endif

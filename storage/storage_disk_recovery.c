@@ -140,7 +140,7 @@ static int storage_do_fetch_binlog(ConnectionInfo *pSrcStorage, \
 			store_path_index;
 
 	if((result=tcpsenddata_nb(pSrcStorage->sock, out_buff,
-		sizeof(out_buff), g_fdfs_network_timeout)) != 0)
+		sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, "
 			"storage server %s:%d, send data fail, "
@@ -150,9 +150,9 @@ static int storage_do_fetch_binlog(ConnectionInfo *pSrcStorage, \
 		return result;
 	}
 
-    if (g_fdfs_network_timeout >= 600)
+    if (SF_G_NETWORK_TIMEOUT >= 600)
     {
-        network_timeout = g_fdfs_network_timeout;
+        network_timeout = SF_G_NETWORK_TIMEOUT;
     }
     else
     {

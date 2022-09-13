@@ -227,7 +227,7 @@ static int storage_sync_copy_file(ConnectionInfo *pStorageServer, \
 		p += pRecord->filename_len;
 
 		if((result=tcpsenddata_nb(pStorageServer->sock, out_buff, \
-			p - out_buff, g_fdfs_network_timeout)) != 0)
+			p - out_buff, SF_G_NETWORK_TIMEOUT)) != 0)
 		{
 			logError("file: "__FILE__", line: %d, " \
 				"sync data to storage server %s:%d fail, " \
@@ -242,7 +242,7 @@ static int storage_sync_copy_file(ConnectionInfo *pStorageServer, \
 		if (need_sync_file && (stat_buf.st_size > 0) && \
 			((result=tcpsendfile_ex(pStorageServer->sock, \
 			full_filename, file_offset, stat_buf.st_size, \
-			g_fdfs_network_timeout, &total_send_bytes)) != 0))
+			SF_G_NETWORK_TIMEOUT, &total_send_bytes)) != 0))
 		{
 			logError("file: "__FILE__", line: %d, " \
 				"sync data to storage server %s:%d fail, " \
@@ -424,7 +424,7 @@ static int storage_sync_modify_file(ConnectionInfo *pStorageServer, \
 		p += pRecord->filename_len;
 
 		if((result=tcpsenddata_nb(pStorageServer->sock, out_buff, \
-			p - out_buff, g_fdfs_network_timeout)) != 0)
+			p - out_buff, SF_G_NETWORK_TIMEOUT)) != 0)
 		{
 			logError("file: "__FILE__", line: %d, " \
 				"sync data to storage server %s:%d fail, " \
@@ -438,7 +438,7 @@ static int storage_sync_modify_file(ConnectionInfo *pStorageServer, \
 
 		if ((result=tcpsendfile_ex(pStorageServer->sock, \
 			full_filename, start_offset, modify_length, \
-			g_fdfs_network_timeout, &total_send_bytes)) != 0)
+			SF_G_NETWORK_TIMEOUT, &total_send_bytes)) != 0)
 		{
 			logError("file: "__FILE__", line: %d, " \
 				"sync data to storage server %s:%d fail, " \
@@ -589,7 +589,7 @@ static int storage_sync_truncate_file(ConnectionInfo *pStorageServer, \
 		p += pRecord->filename_len;
 
 		if((result=tcpsenddata_nb(pStorageServer->sock, out_buff, \
-			p - out_buff, g_fdfs_network_timeout)) != 0)
+			p - out_buff, SF_G_NETWORK_TIMEOUT)) != 0)
 		{
 			logError("file: "__FILE__", line: %d, " \
 				"sync data to storage server %s:%d fail, " \
@@ -663,7 +663,7 @@ static int storage_sync_delete_file(ConnectionInfo *pStorageServer, \
 
 	if ((result=tcpsenddata_nb(pStorageServer->sock, out_buff, \
 		sizeof(TrackerHeader) + 4 + FDFS_GROUP_NAME_MAX_LEN + \
-		pRecord->filename_len, g_fdfs_network_timeout)) != 0)
+		pRecord->filename_len, SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("FILE: "__FILE__", line: %d, " \
 			"send data to storage server %s:%d fail, " \
@@ -713,7 +713,7 @@ static int storage_report_my_server_id(ConnectionInfo *pStorageServer)
 	strcpy(out_buff + sizeof(TrackerHeader), g_my_server_id_str);
 	if ((result=tcpsenddata_nb(pStorageServer->sock, out_buff, \
 		sizeof(TrackerHeader) + FDFS_STORAGE_ID_MAX_SIZE, \
-		g_fdfs_network_timeout)) != 0)
+		SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("FILE: "__FILE__", line: %d, " \
 			"send data to storage server %s:%d fail, " \
@@ -938,7 +938,7 @@ static int storage_sync_link_file(ConnectionInfo *pStorageServer, \
 
 	if ((result=tcpsenddata_nb(pStorageServer->sock, out_buff, \
 		sizeof(TrackerHeader) + out_body_len, \
-		g_fdfs_network_timeout)) != 0)
+		SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("FILE: "__FILE__", line: %d, " \
 			"send data to storage server %s:%d fail, " \
@@ -1046,7 +1046,7 @@ static int storage_sync_rename_file(ConnectionInfo *pStorageServer,
 
 	if ((result=tcpsenddata_nb(pStorageServer->sock, out_buff,
 		sizeof(TrackerHeader) + out_body_len,
-		g_fdfs_network_timeout)) != 0)
+		SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("FILE: "__FILE__", line: %d, "
 			"send data to storage server %s:%d fail, "
@@ -1245,7 +1245,7 @@ static int write_to_binlog_index(const int binlog_index)
 
 	close(fd);
 
-	STORAGE_CHOWN(full_filename, geteuid(), getegid())
+	SF_CHOWN_TO_RUNBY_RETURN_ON_ERROR(full_filename);
 
 	return 0;
 }
@@ -1400,7 +1400,7 @@ static int open_next_writable_binlog()
 			errno, STRERROR(errno));
 		return errno != 0 ? errno : EACCES;
 	}
-	STORAGE_FCHOWN(g_binlog_fd, full_filename, geteuid(), getegid())
+	SF_FCHOWN_TO_RUNBY_RETURN_ON_ERROR(g_binlog_fd, full_filename);
 
 	g_binlog_index++;
 	return 0;
@@ -1426,7 +1426,7 @@ int storage_sync_init()
 			return errno != 0 ? errno : ENOENT;
 		}
 
-		STORAGE_CHOWN(data_path, geteuid(), getegid())
+		SF_CHOWN_TO_RUNBY_RETURN_ON_ERROR(data_path);
 	}
 
 	snprintf(sync_path, sizeof(sync_path), \
@@ -1443,7 +1443,7 @@ int storage_sync_init()
 			return errno != 0 ? errno : ENOENT;
 		}
 
-		STORAGE_CHOWN(sync_path, geteuid(), getegid())
+		SF_CHOWN_TO_RUNBY_RETURN_ON_ERROR(sync_path);
 	}
 
 	binlog_write_cache_buff = (char *)malloc(SYNC_BINLOG_WRITE_BUFF_SIZE);
@@ -1486,7 +1486,7 @@ int storage_sync_init()
 		return errno != 0 ? errno : EIO;
 	}
 
-	STORAGE_FCHOWN(g_binlog_fd, full_filename, geteuid(), getegid())
+	SF_FCHOWN_TO_RUNBY_RETURN_ON_ERROR(g_binlog_fd, full_filename);
 
 	/*
 	//printf("full_filename=%s, binlog_file_size=%d\n", \
@@ -2437,7 +2437,7 @@ static int storage_write_to_mark_file(StorageBinLogReader *pReader)
 
 	if ((result=safeWriteToFile(pReader->mark_filename, buff, len)) == 0)
 	{
-        STORAGE_CHOWN(pReader->mark_filename, geteuid(), getegid())
+        SF_CHOWN_TO_RUNBY_RETURN_ON_ERROR(pReader->mark_filename);
 		pReader->last_scan_rows = pReader->scan_row_count;
 		pReader->last_sync_rows = pReader->sync_row_count;
 	}

@@ -29,6 +29,8 @@
 #include "fastcommon/pthread_func.h"
 #include "fastcommon/sched_thread.h"
 #include "fastcommon/fast_mblock.h"
+#include "sf/sf_service.h"
+#include "sf/sf_nio.h"
 #include "tracker_types.h"
 #include "tracker_proto.h"
 #include "storage_service.h"
@@ -41,7 +43,6 @@
 #include "fdfs_global.h"
 #include "tracker_client.h"
 #include "storage_client.h"
-#include "storage_nio.h"
 #include "storage_dio.h"
 #include "storage_sync.h"
 #include "trunk_mem.h"
@@ -68,18 +69,13 @@ typedef struct
     int64_t fsize;
 } StorageFileInfoForCRC32;
 
-pthread_mutex_t g_storage_thread_lock;
-int g_storage_thread_count = 0;
-
 static int last_stat_change_count = 1;  //for sync to stat file
-static int64_t temp_file_sequence = 0;
+static volatile int64_t temp_file_sequence = 0;
 
 static pthread_mutex_t path_index_thread_lock;
 static pthread_mutex_t stat_count_thread_lock;
 
 static struct fast_mblock_man finfo_for_crc32_allocator;
-
-static void *work_thread_entrance(void* arg);
 
 extern int storage_client_create_link(ConnectionInfo *pTrackerServer, \
 		ConnectionInfo *pStorageServer, const char *master_filename,\
@@ -88,6 +84,8 @@ extern int storage_client_create_link(ConnectionInfo *pTrackerServer, \
 		const char *group_name, const char *prefix_name, \
 		const char *file_ext_name, \
 		char *remote_filename, int *filename_len);
+
+static int storage_deal_task(struct fast_task_info *pTask, const int stage);
 
 static int storage_do_delete_file(struct fast_task_info *pTask, \
 		DeleteFileLogCallback log_callback, \
@@ -107,7 +105,7 @@ static int storage_read_from_file(struct fast_task_info *pTask, \
 
 static int storage_service_upload_file_done(struct fast_task_info *pTask);
 
-#define STORAGE_STATUE_DEAL_FILE	 123456   //status for read or write file
+#define TASK_STATUS_CONTINUE          12345
 
 #define FDHT_KEY_NAME_FILE_ID	"fid"
 #define FDHT_KEY_NAME_REF_COUNT	"ref"
@@ -315,7 +313,7 @@ static void storage_log_access_log(struct fast_task_info *pTask, \
 #define STORAGE_ACCESS_LOG(pTask, action, status) \
 	do \
 	{ \
-		if (g_use_access_log && (status != STORAGE_STATUE_DEAL_FILE)) \
+		if (g_use_access_log && (status != TASK_STATUS_CONTINUE)) \
 		{ \
 			storage_log_access_log(pTask, action, status); \
 		} \
@@ -446,7 +444,7 @@ static void storage_sync_delete_file_done_callback( \
 	long2buff(pClientInfo->total_length - sizeof(TrackerHeader), \
 			pHeader->pkg_len);
 
-	storage_nio_notify(pTask);
+	sf_nio_notify(pTask, SF_NIO_STAGE_SEND);
 }
 
 static void storage_sync_truncate_file_done_callback( \
@@ -486,7 +484,7 @@ static void storage_sync_truncate_file_done_callback( \
 	long2buff(pClientInfo->total_length - sizeof(TrackerHeader), \
 			pHeader->pkg_len);
 
-	storage_nio_notify(pTask);
+	sf_nio_notify(pTask, SF_NIO_STAGE_SEND);
 }
 
 static int storage_sync_copy_file_rename_filename(
@@ -594,7 +592,7 @@ static void storage_sync_copy_file_done_callback(struct fast_task_info *pTask, \
 	long2buff(pClientInfo->total_length - sizeof(TrackerHeader), \
 			pHeader->pkg_len);
 
-	storage_nio_notify(pTask);
+	sf_nio_notify(pTask, SF_NIO_STAGE_SEND);
 }
 
 static void storage_sync_modify_file_done_callback( \
@@ -672,14 +670,8 @@ static void storage_sync_modify_file_done_callback( \
 	long2buff(pClientInfo->total_length - sizeof(TrackerHeader), \
 			pHeader->pkg_len);
 
-	storage_nio_notify(pTask);
+	sf_nio_notify(pTask, SF_NIO_STAGE_SEND);
 }
-
-#define STORAGE_NIO_NOTIFY_CLOSE(pTask) \
-do { \
-	((StorageClientInfo *)pTask->arg)->stage = FDFS_STORAGE_STAGE_NIO_CLOSE; \
-	storage_nio_notify(pTask); \
-   } while (0)
 
 static void storage_get_metadata_done_callback(struct fast_task_info *pTask, \
 			const int err_no)
@@ -699,11 +691,11 @@ static void storage_get_metadata_done_callback(struct fast_task_info *pTask, \
 		{
 			pHeader = (TrackerHeader *)pTask->data;
 			pHeader->status = err_no;
-			storage_nio_notify(pTask);
+			sf_nio_notify(pTask, SF_NIO_STAGE_SEND);
 		}
 		else
 		{
-			STORAGE_NIO_NOTIFY_CLOSE(pTask);
+			sf_nio_notify(pTask, SF_NIO_STAGE_CLOSE);
 		}
 	}
 	else
@@ -712,7 +704,7 @@ static void storage_get_metadata_done_callback(struct fast_task_info *pTask, \
 			g_storage_stat.total_get_meta_count, \
 			g_storage_stat.success_get_meta_count)
 
-		storage_nio_notify(pTask);
+		sf_nio_notify(pTask, SF_NIO_STAGE_SEND);
 	}
 }
 
@@ -738,11 +730,11 @@ static void storage_download_file_done_callback( \
 		{
 			pHeader = (TrackerHeader *)pTask->data;
 			pHeader->status = err_no;
-			storage_nio_notify(pTask);
+			sf_nio_notify(pTask, SF_NIO_STAGE_SEND);
 		}
 		else
 		{
-			STORAGE_NIO_NOTIFY_CLOSE(pTask);
+			sf_nio_notify(pTask, SF_NIO_STAGE_CLOSE);
 		}
 	}
 	else
@@ -754,7 +746,7 @@ static void storage_download_file_done_callback( \
 			g_storage_stat.success_download_bytes, \
 			pFileContext->end - pFileContext->start)
 
-		storage_nio_notify(pTask);
+		sf_nio_notify(pTask, SF_NIO_STAGE_SEND);
 	}
 }
 
@@ -827,8 +819,7 @@ static int storage_do_delete_meta_file(struct fast_task_info *pTask)
 	src_file_nlink = -1;
 	if (g_check_file_duplicate)
 	{
-		pGroupArray=&((g_nio_thread_data+pClientInfo->nio_thread_index)\
-				->group_array);
+		pGroupArray = pTask->thread_data->arg;
 		memset(&key_info_sig, 0, sizeof(key_info_sig));
 		key_info_sig.namespace_len = g_namespace_len;
 		memcpy(key_info_sig.szNameSpace, g_key_namespace, \
@@ -927,8 +918,7 @@ static int storage_do_delete_meta_file(struct fast_task_info *pTask)
 		struct stat stat_buf;
 		FDFSTrunkHeader trunkHeader;
 
-		pGroupArray=&((g_nio_thread_data+pClientInfo->nio_thread_index)\
-				->group_array);
+		pGroupArray = pTask->thread_data->arg;
 		if ((result=fdht_delete_ex(pGroupArray, g_keep_alive, \
 						&key_info_sig)) != 0)
 		{
@@ -1123,7 +1113,7 @@ static void storage_delete_fdfs_file_done_callback( \
 
 	STORAGE_ACCESS_LOG(pTask, ACCESS_LOG_ACTION_DELETE_FILE, result);
 
-	storage_nio_notify(pTask);
+	sf_nio_notify(pTask, SF_NIO_STAGE_SEND);
 }
 
 static void storage_upload_file_done_callback(struct fast_task_info *pTask, \
@@ -1216,7 +1206,7 @@ static void storage_upload_file_done_callback(struct fast_task_info *pTask, \
 	long2buff(pClientInfo->total_length - sizeof(TrackerHeader), \
 			pHeader->pkg_len);
 
-	storage_nio_notify(pTask);
+	sf_nio_notify(pTask, SF_NIO_STAGE_SEND);
 }
 
 static void storage_trunk_create_link_file_done_callback( \
@@ -1306,7 +1296,7 @@ static void storage_trunk_create_link_file_done_callback( \
 		long2buff(pClientInfo->total_length - sizeof(TrackerHeader), \
 				pHeader->pkg_len);
 
-		storage_nio_notify(pTask);
+		sf_nio_notify(pTask, SF_NIO_STAGE_SEND);
 	}
 }
 
@@ -1377,7 +1367,7 @@ static void storage_append_file_done_callback(struct fast_task_info *pTask, \
 
 	STORAGE_ACCESS_LOG(pTask, ACCESS_LOG_ACTION_APPEND_FILE, result);
 
-	storage_nio_notify(pTask);
+	sf_nio_notify(pTask, SF_NIO_STAGE_SEND);
 }
 
 static void storage_modify_file_done_callback(struct fast_task_info *pTask, \
@@ -1447,7 +1437,7 @@ static void storage_modify_file_done_callback(struct fast_task_info *pTask, \
 
 	STORAGE_ACCESS_LOG(pTask, ACCESS_LOG_ACTION_MODIFY_FILE, result);
 
-	storage_nio_notify(pTask);
+	sf_nio_notify(pTask, SF_NIO_STAGE_SEND);
 }
 
 static void storage_do_truncate_file_done_callback(struct fast_task_info *pTask, \
@@ -1512,7 +1502,7 @@ static void storage_do_truncate_file_done_callback(struct fast_task_info *pTask,
 
 	STORAGE_ACCESS_LOG(pTask, ACCESS_LOG_ACTION_TRUNCATE_FILE, result);
 
-	storage_nio_notify(pTask);
+	sf_nio_notify(pTask, SF_NIO_STAGE_SEND);
 }
 
 static void storage_set_metadata_done_callback( \
@@ -1568,25 +1558,66 @@ static void storage_set_metadata_done_callback( \
 
 	STORAGE_ACCESS_LOG(pTask, ACCESS_LOG_ACTION_SET_METADATA, result);
 
-	storage_nio_notify(pTask);
+	sf_nio_notify(pTask, SF_NIO_STAGE_SEND);
+}
+
+void task_finish_clean_up(struct fast_task_info *pTask)
+{
+    StorageClientInfo *pClientInfo;
+
+    pClientInfo = (StorageClientInfo *)pTask->arg;
+    if (pClientInfo->clean_func != NULL)
+    {
+        pClientInfo->clean_func(pTask);
+    }
+    memset(pTask->arg, 0, sizeof(StorageClientInfo));
+
+    ++g_stat_change_count;
+    sf_task_finish_clean_up(pTask);
+}
+
+static int sock_accept_done_callback(struct fast_task_info *task,
+        const in_addr_t client_addr, const bool bInnerPort)
+{
+    if (g_allow_ip_count >= 0)
+    {
+        if (bsearch(&client_addr, g_allow_ip_addrs,
+                    g_allow_ip_count, sizeof(in_addr_t),
+                    cmp_by_ip_addr_t) == NULL)
+        {
+            logError("file: "__FILE__", line: %d, "
+                    "ip addr %s is not allowed to access",
+                    __LINE__, task->client_ip);
+            return EPERM;
+        }
+    }
+
+    return 0;
+}
+
+static void *alloc_thread_extra_data_func(const int thread_index)
+{
+    int result;
+    GroupArray *group_array;  //FastDHT group array
+
+    if (g_check_file_duplicate)
+    {
+        group_array = fc_malloc(sizeof(GroupArray));
+        if ((result=fdht_copy_group_array(group_array, &g_group_array)) != 0)
+        {
+            return NULL;
+        }
+        return group_array;
+    }
+    else
+    {
+        return NULL;
+    }
 }
 
 int storage_service_init()
 {
-#define ALLOC_CONNECTIONS_ONCE 256
-
 	int result;
-	int bytes;
-    int init_connections;
-	struct storage_nio_thread_data *pThreadData;
-	struct storage_nio_thread_data *pDataEnd;
-	pthread_t tid;
-	pthread_attr_t thread_attr;
-
-	if ((result=init_pthread_lock(&g_storage_thread_lock)) != 0)
-	{
-		return result;
-	}
 
 	if ((result=init_pthread_lock(&path_index_thread_lock)) != 0)
 	{
@@ -1598,400 +1629,27 @@ int storage_service_init()
 		return result;
 	}
 
-	if ((result=init_pthread_attr(&thread_attr, SF_G_THREAD_STACK_SIZE)) != 0)
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"init_pthread_attr fail, program exit!", __LINE__);
-		return result;
-	}
-
-    init_connections = g_max_connections < ALLOC_CONNECTIONS_ONCE ?
-        g_max_connections : ALLOC_CONNECTIONS_ONCE;
-	if ((result=free_queue_init_ex(g_max_connections, init_connections,
-                    ALLOC_CONNECTIONS_ONCE, g_buff_size,
-                    g_buff_size, sizeof(StorageClientInfo))) != 0)
-	{
-		return result;
-	}
-
-	bytes = sizeof(struct storage_nio_thread_data) * g_work_threads;
-	g_nio_thread_data = (struct storage_nio_thread_data *)malloc(bytes);
-	if (g_nio_thread_data == NULL)
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"malloc %d bytes fail, errno: %d, error info: %s", \
-			__LINE__, bytes, errno, STRERROR(errno));
-		return errno != 0 ? errno : ENOMEM;
-	}
-	memset(g_nio_thread_data, 0, bytes);
-
-	g_storage_thread_count = 0;
-	pDataEnd = g_nio_thread_data + g_work_threads;
-	for (pThreadData=g_nio_thread_data; pThreadData<pDataEnd; pThreadData++)
-	{
-		if (ioevent_init(&pThreadData->thread_data.ev_puller,
-			g_max_connections + 2, 1000, 0) != 0)
-		{
-			result  = errno != 0 ? errno : ENOMEM;
-			logError("file: "__FILE__", line: %d, " \
-				"ioevent_init fail, " \
-				"errno: %d, error info: %s", \
-				__LINE__, result, STRERROR(result));
-			return result;
-		}
-		result = fast_timer_init(&pThreadData->thread_data.timer,
-				2 * g_fdfs_network_timeout, g_current_time);
-		if (result != 0)
-		{
-			logError("file: "__FILE__", line: %d, " \
-				"fast_timer_init fail, " \
-				"errno: %d, error info: %s", \
-				__LINE__, result, STRERROR(result));
-			return result;
-		}
-
-		if (pipe(pThreadData->thread_data.pipe_fds) != 0)
-		{
-			result = errno != 0 ? errno : EPERM;
-			logError("file: "__FILE__", line: %d, " \
-				"call pipe fail, " \
-				"errno: %d, error info: %s", \
-				__LINE__, result, STRERROR(result));
-			break;
-		}
-
-#if defined(OS_LINUX)
-		if ((result=fd_add_flags(pThreadData->thread_data.pipe_fds[0], \
-				O_NONBLOCK | O_NOATIME)) != 0)
-		{
-			break;
-		}
-#else
-		if ((result=fd_add_flags(pThreadData->thread_data.pipe_fds[0], \
-				O_NONBLOCK)) != 0)
-		{
-			break;
-		}
-#endif
-
-		if ((result=pthread_create(&tid, &thread_attr, \
-			work_thread_entrance, pThreadData)) != 0)
-		{
-			logError("file: "__FILE__", line: %d, " \
-				"create thread failed, startup threads: %d, " \
-				"errno: %d, error info: %s", \
-				__LINE__, g_storage_thread_count, \
-				result, STRERROR(result));
-			break;
-		}
-		else
-		{
-			if ((result=pthread_mutex_lock(&g_storage_thread_lock)) != 0)
-			{
-				logError("file: "__FILE__", line: %d, " \
-					"call pthread_mutex_lock fail, " \
-					"errno: %d, error info: %s", \
-					__LINE__, result, STRERROR(result));
-			}
-			g_storage_thread_count++;
-			if ((result=pthread_mutex_unlock(&g_storage_thread_lock)) != 0)
-			{
-				logError("file: "__FILE__", line: %d, " \
-					"call pthread_mutex_lock fail, " \
-					"errno: %d, error info: %s", \
-					__LINE__, result, STRERROR(result));
-			}
-		}
-	}
-
-	pthread_attr_destroy(&thread_attr);
-
 	last_stat_change_count = g_stat_change_count;
+    if ((result=fast_mblock_init(&finfo_for_crc32_allocator,
+                    sizeof(StorageFileInfoForCRC32), 1024)) != 0)
+    {
+        return result;
+    }
 
-	//DO NOT support direct IO !!!
-	//g_extra_open_file_flags = g_disk_rw_direct ? O_DIRECT : 0;
-	
-	if (result != 0)
-	{
-		return result;
-	}
-
-    result = fast_mblock_init(&finfo_for_crc32_allocator,
-            sizeof(StorageFileInfoForCRC32), 1024);
+    result = sf_service_init("fdfs_storaged", alloc_thread_extra_data_func,
+            NULL, sock_accept_done_callback, fdfs_set_body_length,
+            storage_deal_task, task_finish_clean_up, NULL, 1000,
+            sizeof(TrackerHeader), sizeof(StorageClientInfo));
+    sf_enable_thread_notify(false);
+    sf_set_remove_from_ready_list(false);
 
 	return result;
 }
 
 void storage_service_destroy()
 {
-	pthread_mutex_destroy(&g_storage_thread_lock);
 	pthread_mutex_destroy(&path_index_thread_lock);
 	pthread_mutex_destroy(&stat_count_thread_lock);
-}
-
-int storage_terminate_threads()
-{
-        struct storage_nio_thread_data *pThreadData;
-        struct storage_nio_thread_data *pDataEnd;
-	struct fast_task_info *pTask;
-	StorageClientInfo *pClientInfo;
-	long task_addr;
-        int quit_sock;
-
-	if (g_nio_thread_data != NULL)
-	{
-		pDataEnd = g_nio_thread_data + g_work_threads;
-		quit_sock = 0;
-
-		for (pThreadData=g_nio_thread_data; pThreadData<pDataEnd; \
-				pThreadData++)
-		{
-			quit_sock--;
-			pTask = free_queue_pop();
-			if (pTask == NULL)
-			{
-			logError("file: "__FILE__", line: %d, " \
-				"malloc task buff failed, you should " \
-				"increase the parameter: max_connections",
-				__LINE__);
-				continue;
-			}
-
-			pClientInfo = (StorageClientInfo *)pTask->arg;
-			pTask->event.fd = quit_sock;
-			pClientInfo->nio_thread_index = pThreadData - g_nio_thread_data;
-
-			task_addr = (long)pTask;
-			if (write(pThreadData->thread_data.pipe_fds[1], &task_addr, \
-					sizeof(task_addr)) != sizeof(task_addr))
-			{
-				logError("file: "__FILE__", line: %d, " \
-					"call write failed, " \
-					"errno: %d, error info: %s", \
-					__LINE__, errno, STRERROR(errno));
-			}
-		}
-	}
-
-        return 0;
-}
-
-static void *accept_thread_entrance(void* arg)
-{
-	int server_sock;
-	int incomesock;
-	struct sockaddr_in inaddr;
-	socklen_t sockaddr_len;
-	in_addr_t client_addr;
-	char szClientIp[IP_ADDRESS_SIZE];
-	long task_addr;
-	struct fast_task_info *pTask;
-	StorageClientInfo *pClientInfo;
-	struct storage_nio_thread_data *pThreadData;
-
-	server_sock = (long)arg;
-	while (SF_G_CONTINUE_FLAG)
-	{
-		sockaddr_len = sizeof(inaddr);
-		incomesock = accept(server_sock, (struct sockaddr*)&inaddr, \
-					&sockaddr_len);
-		if (incomesock < 0) //error
-		{
-			if (!(errno == EINTR || errno == EAGAIN))
-			{
-				logError("file: "__FILE__", line: %d, " \
-					"accept failed, " \
-					"errno: %d, error info: %s", \
-					__LINE__, errno, STRERROR(errno));
-			}
-
-			continue;
-		}
-
-		client_addr = getPeerIpaddr(incomesock, \
-				szClientIp, IP_ADDRESS_SIZE);
-		if (g_allow_ip_count >= 0)
-		{
-			if (bsearch(&client_addr, g_allow_ip_addrs, \
-					g_allow_ip_count, sizeof(in_addr_t), \
-					cmp_by_ip_addr_t) == NULL)
-			{
-				logError("file: "__FILE__", line: %d, " \
-					"ip addr %s is not allowed to access", \
-					__LINE__, szClientIp);
-
-				close(incomesock);
-				continue;
-			}
-		}
-
-		if (tcpsetnonblockopt(incomesock) != 0)
-		{
-			close(incomesock);
-			continue;
-		}
-
-		pTask = free_queue_pop();
-		if (pTask == NULL)
-		{
-			logError("file: "__FILE__", line: %d, "
-				"malloc task buff fail, you should "
-				"increase the parameter \"max_connections\" "
-                "in storage.conf, or check your applications "
-                "for connection leaks", __LINE__);
-			close(incomesock);
-			continue;
-		}
-
-		pClientInfo = (StorageClientInfo *)pTask->arg;
-		pTask->event.fd = incomesock;
-		pClientInfo->stage = FDFS_STORAGE_STAGE_NIO_INIT;
-		pClientInfo->nio_thread_index = pTask->event.fd % g_work_threads;
-		pThreadData = g_nio_thread_data + pClientInfo->nio_thread_index;
-
-		strcpy(pTask->client_ip, szClientIp);
-
-		task_addr = (long)pTask;
-		if (write(pThreadData->thread_data.pipe_fds[1], &task_addr, \
-			sizeof(task_addr)) != sizeof(task_addr))
-		{
-			close(incomesock);
-			free_queue_push(pTask);
-			logError("file: "__FILE__", line: %d, " \
-				"call write failed, " \
-				"errno: %d, error info: %s", \
-				__LINE__, errno, STRERROR(errno));
-		}
-        else
-        {
-            int current_connections;
-            current_connections = __sync_add_and_fetch(&g_storage_stat.connection.
-                    current_count, 1);
-            if (current_connections > g_storage_stat.connection.max_count) {
-                g_storage_stat.connection.max_count = current_connections;
-            }
-            ++g_stat_change_count;
-        }
-	}
-
-	return NULL;
-}
-
-void storage_accept_loop(int server_sock)
-{
-	if (g_accept_threads > 1)
-	{
-		pthread_t tid;
-		pthread_attr_t thread_attr;
-		int result;
-		int i;
-
-		if ((result=init_pthread_attr(&thread_attr, SF_G_THREAD_STACK_SIZE)) != 0)
-		{
-			logWarning("file: "__FILE__", line: %d, " \
-				"init_pthread_attr fail!", __LINE__);
-		}
-		else
-		{
-			for (i=1; i<g_accept_threads; i++)
-			{
-			if ((result=pthread_create(&tid, &thread_attr, \
-				accept_thread_entrance, \
-				(void *)(long)server_sock)) != 0)
-			{
-				logError("file: "__FILE__", line: %d, " \
-				"create thread failed, startup threads: %d, " \
-				"errno: %d, error info: %s", \
-				__LINE__, i, result, STRERROR(result));
-				break;
-			}
-			}
-
-			pthread_attr_destroy(&thread_attr);
-		}
-	}
-
-	accept_thread_entrance((void *)(long)server_sock);
-}
-
-int storage_nio_notify(struct fast_task_info *pTask)
-{
-	StorageClientInfo *pClientInfo;
-	struct storage_nio_thread_data *pThreadData;
-	long task_addr;
-
-	pClientInfo = (StorageClientInfo *)pTask->arg;
-	pThreadData = g_nio_thread_data + pClientInfo->nio_thread_index;
-
-	task_addr = (long)pTask;
-	if (write(pThreadData->thread_data.pipe_fds[1], &task_addr, \
-		sizeof(task_addr)) != sizeof(task_addr))
-	{
-		int result;
-		result = errno != 0 ? errno : EIO;
-		logCrit("file: "__FILE__", line: %d, " \
-			"call write failed, " \
-			"errno: %d, error info: %s", \
-			__LINE__, result, STRERROR(result));
-		abort();
-	}
-
-    return 0;
-}
-
-static void *work_thread_entrance(void* arg)
-{
-	int result;
-	struct storage_nio_thread_data *pThreadData;
-
-	pThreadData = (struct storage_nio_thread_data *)arg;
-	if (g_check_file_duplicate)
-	{
-		if ((result=fdht_copy_group_array(&(pThreadData->group_array),\
-				&g_group_array)) != 0)
-		{
-			pthread_mutex_lock(&g_storage_thread_lock);
-			g_storage_thread_count--;
-			pthread_mutex_unlock(&g_storage_thread_lock);
-			return NULL;
-		}
-	}
-	
-	ioevent_loop(&pThreadData->thread_data, storage_recv_notify_read,
-		task_finish_clean_up, &SF_G_CONTINUE_FLAG);
-	ioevent_destroy(&pThreadData->thread_data.ev_puller);
-
-	if (g_check_file_duplicate)
-	{
-		if (g_keep_alive)
-		{
-			fdht_disconnect_all_servers(&(pThreadData->group_array));
-		}
-
-		fdht_free_group_array(&(pThreadData->group_array));
-	}
-
-	if ((result=pthread_mutex_lock(&g_storage_thread_lock)) != 0)
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"call pthread_mutex_lock fail, " \
-			"errno: %d, error info: %s", \
-			__LINE__, result, STRERROR(result));
-	}
-	g_storage_thread_count--;
-	if ((result=pthread_mutex_unlock(&g_storage_thread_lock)) != 0)
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"call pthread_mutex_lock fail, " \
-			"errno: %d, error info: %s", \
-			__LINE__, result, STRERROR(result));
-	}
-
-	logDebug("file: "__FILE__", line: %d, " \
-		"nio thread exited, thread count: %d", \
-		__LINE__, g_storage_thread_count);
-
-	return NULL;
 }
 
 int storage_get_storage_path_index(int *store_path_index)
@@ -2352,7 +2010,7 @@ static int storage_client_create_link_wrapper(struct fast_task_info *pTask, \
 			master_filename, strlen(master_filename), \
 			prefix_name, file_ext_name, \
 			remote_filename, filename_len, false);
-		if (result == STORAGE_STATUE_DEAL_FILE)
+		if (result == TASK_STATUS_CONTINUE)
 		{
 			result = 0;
 		}
@@ -2592,9 +2250,7 @@ static int storage_service_upload_file_done(struct fast_task_info *pTask)
 		key_info.namespace_len = g_namespace_len;
 		memcpy(key_info.szNameSpace, g_key_namespace, g_namespace_len);
 
-		pGroupArray=&((g_nio_thread_data+pClientInfo->nio_thread_index)\
-				->group_array);
-
+		pGroupArray = pTask->thread_data->arg;
 		STORAGE_GEN_FILE_SIGNATURE(file_size, \
 				pFileContext->file_hash_codes, szFileSig)
 		/*
@@ -2759,6 +2415,37 @@ static int storage_service_upload_file_done(struct fast_task_info *pTask)
 	return 0;
 }
 
+static int storage_nio_notify(struct fast_task_info *pTask, const int stage)
+{
+    StorageClientInfo *pClientInfo;
+    int64_t remain_bytes;
+
+    pClientInfo = (StorageClientInfo *)pTask->arg;
+    if (stage == SF_NIO_STAGE_RECV)
+    {
+        pTask->offset = 0;
+        remain_bytes = pClientInfo->total_length -
+            pClientInfo->total_offset;
+        if (remain_bytes > pTask->size)
+        {
+            pTask->length = pTask->size;
+        }
+        else
+        {
+            pTask->length = remain_bytes;
+        }
+    }
+
+    return sf_nio_notify(pTask, stage);
+}
+
+static int calc_crc32_continue_callback(struct fast_task_info *pTask,
+        const int stage)
+{
+    pTask->length = 0;
+    return storage_dio_queue_push(pTask);
+}
+
 static int storage_trunk_do_create_link(struct fast_task_info *pTask, \
 		const int64_t file_bytes, const int buff_offset, \
 		FileBeforeOpenCallback before_open_callback,
@@ -2843,7 +2530,7 @@ static int storage_trunk_create_link(struct fast_task_info *pTask, \
 	storage_trunk_do_create_link(pTask, file_bytes, p - pTask->data, \
 			dio_check_trunk_file_when_upload, \
 			storage_trunk_create_link_file_done_callback);
-	return STORAGE_STATUE_DEAL_FILE;
+	return TASK_STATUS_CONTINUE;
 }
 
 static int storage_service_do_create_link(struct fast_task_info *pTask, \
@@ -2932,9 +2619,7 @@ static int storage_set_link_file_meta(struct fast_task_info *pTask, \
 	key_info.namespace_len = g_namespace_len;
 	memcpy(key_info.szNameSpace, g_key_namespace, g_namespace_len);
 
-	pGroupArray=&((g_nio_thread_data + pClientInfo->nio_thread_index) \
-				->group_array);
-
+    pGroupArray = pTask->thread_data->arg;
 	key_info.obj_id_len = snprintf(key_info.szObjectId, \
 		sizeof(key_info.szObjectId), \
 		"%s/%c"FDFS_STORAGE_DATA_DIR_FORMAT"/%s", \
@@ -3356,7 +3041,7 @@ static int storage_server_set_metadata(struct fast_task_info *pTask)
 		return result;
 	}
 
-	return STORAGE_STATUE_DEAL_FILE;
+	return TASK_STATUS_CONTINUE;
 }
 
 /**
@@ -3527,13 +3212,7 @@ static void calc_crc32_done_callback_for_query_finfo(
 	long2buff(pTask->length - sizeof(TrackerHeader), pHeader->pkg_len);
 
     STORAGE_ACCESS_LOG(pTask, ACCESS_LOG_ACTION_QUERY_FILE, result);
-	storage_nio_notify(pTask);
-}
-
-static int calc_crc32_continue_callback(struct fast_task_info *pTask)
-{
-    pTask->length = 0;
-    return storage_dio_queue_push(pTask);
+	sf_nio_notify(pTask, SF_NIO_STAGE_SEND);
 }
 
 static int push_calc_crc32_to_dio_queue(struct fast_task_info *pTask,
@@ -4172,7 +3851,7 @@ static int storage_server_fetch_one_path_binlog_dealer(
 	if (pClientInfo->total_length - pClientInfo->total_offset <=
 		STORAGE_LAST_AHEAD_BYTES)  //finished, close the connection
 	{
-		STORAGE_NIO_NOTIFY_CLOSE(pTask);
+		sf_nio_notify(pTask, SF_NIO_STAGE_CLOSE);
 		return 0;
 	}
 
@@ -4371,7 +4050,7 @@ static int storage_server_fetch_one_path_binlog_dealer(
 
 	if (result != 0) //error occurs
 	{
-		STORAGE_NIO_NOTIFY_CLOSE(pTask);
+		sf_nio_notify(pTask, SF_NIO_STAGE_CLOSE);
 		return result;
 	}
 
@@ -4387,7 +4066,7 @@ static int storage_server_fetch_one_path_binlog_dealer(
 						+ STORAGE_LAST_AHEAD_BYTES;
 	}
 
-	storage_nio_notify(pTask);
+	sf_nio_notify(pTask, SF_NIO_STAGE_SEND);
 	return 0;
 }
 
@@ -4478,9 +4157,8 @@ static int storage_server_do_fetch_one_path_binlog(
 	long2buff(pClientInfo->total_length - sizeof(TrackerHeader),
 			pHeader->pkg_len);
 
-	storage_nio_notify(pTask);
-
-	return STORAGE_STATUE_DEAL_FILE;
+	sf_nio_notify(pTask, SF_NIO_STAGE_SEND);
+	return TASK_STATUS_CONTINUE;
 }
 
 /**
@@ -4718,7 +4396,7 @@ static int storage_upload_file(struct fast_task_info *pTask, bool bAppenderFile)
 
 		clean_func = dio_write_finish_clean_up;
 		file_offset = 0;
-    pFileContext->extra_info.upload.if_gen_filename = true;
+        pFileContext->extra_info.upload.if_gen_filename = true;
 		pFileContext->extra_info.upload.before_open_callback = NULL;
 		pFileContext->extra_info.upload.before_close_callback = NULL;
 		pFileContext->open_flags = O_WRONLY | O_CREAT | O_TRUNC \
@@ -4944,7 +4622,7 @@ static void calc_crc32_done_callback_for_regenerate(
 	long2buff(pTask->length - sizeof(TrackerHeader), pHeader->pkg_len);
 
     STORAGE_ACCESS_LOG(pTask, ACCESS_LOG_ACTION_RENAME_FILE, result);
-	storage_nio_notify(pTask);
+	sf_nio_notify(pTask, SF_NIO_STAGE_SEND);
 }
 
 /**
@@ -5887,15 +5565,9 @@ static int storage_sync_copy_file(struct fast_task_info *pTask, \
 
 		for (i=0; i < MKTEMP_MAX_COUNT; i++)
 		{
-			pthread_mutex_lock(&g_storage_thread_lock);
-
-			sprintf(pFileContext->filename, "%s/data/.cp" \
-				"%"PRId64".tmp", \
-				g_fdfs_store_paths.paths[store_path_index].path, \
-				temp_file_sequence++);
-
-			pthread_mutex_unlock(&g_storage_thread_lock);
-
+			sprintf(pFileContext->filename, "%s/data/.cp%"PRId64".tmp",
+				g_fdfs_store_paths.paths[store_path_index].path,
+                __sync_add_and_fetch(&temp_file_sequence, 1));
 			if (stat(pFileContext->filename, &stat_buf) == 0)
 			{
 				if (g_current_time - stat_buf.st_mtime > 600)
@@ -5966,10 +5638,10 @@ static int storage_sync_copy_file(struct fast_task_info *pTask, \
 			clean_func, store_path_index);
 	}
 	else
-	{
-		storage_sync_copy_file_done_callback(pTask, 0);
-		return STORAGE_STATUE_DEAL_FILE;
-	}
+    {
+        storage_sync_copy_file_done_callback(pTask, 0);
+        return TASK_STATUS_CONTINUE;
+    }
 }
 
 /**
@@ -6801,8 +6473,7 @@ static int storage_do_sync_link_file(struct fast_task_info *pTask)
 	long2buff(pClientInfo->total_length - sizeof(TrackerHeader), \
 			pHeader->pkg_len);
 
-	storage_nio_notify(pTask);
-
+	sf_nio_notify(pTask, SF_NIO_STAGE_SEND);
 	return result;
 }
 
@@ -6901,7 +6572,7 @@ static int storage_sync_link_file(struct fast_task_info *pTask)
 		return result;
 	}
 
-	return STORAGE_STATUE_DEAL_FILE;
+	return TASK_STATUS_CONTINUE;
 }
 
 static int storage_sync_rename_file(struct fast_task_info *pTask)
@@ -7361,7 +7032,7 @@ static int storage_do_delete_file(struct fast_task_info *pTask, \
 		return result;
 	}
 
-	return STORAGE_STATUE_DEAL_FILE;
+	return TASK_STATUS_CONTINUE;
 }
 
 static int storage_read_from_file(struct fast_task_info *pTask, \
@@ -7411,7 +7082,7 @@ static int storage_read_from_file(struct fast_task_info *pTask, \
 		return result;
 	}
 
-	return STORAGE_STATUE_DEAL_FILE;
+	return TASK_STATUS_CONTINUE;
 }
 
 static int storage_write_to_file(struct fast_task_info *pTask, \
@@ -7461,7 +7132,7 @@ static int storage_write_to_file(struct fast_task_info *pTask, \
 		return result;
 	}
 
-	return STORAGE_STATUE_DEAL_FILE;
+	return TASK_STATUS_CONTINUE;
 }
 
 /**
@@ -7855,8 +7526,7 @@ static int storage_create_link_core(struct fast_task_info *pTask, \
 				src_filename, result, STRERROR(result));
 		if (g_check_file_duplicate)
 		{
-			pGroupArray=&((g_nio_thread_data+pClientInfo->nio_thread_index)\
-					->group_array);
+            pGroupArray = pTask->thread_data->arg;
 			//clean invalid entry
 			memset(&key_info, 0, sizeof(key_info));
 			key_info.namespace_len = g_namespace_len;
@@ -8185,7 +7855,7 @@ static int storage_do_create_link(struct fast_task_info *pTask)
 			master_filename, master_filename_len, \
 			prefix_name, file_ext_name, \
 			filename, &filename_len, true);
-	if (result == STORAGE_STATUE_DEAL_FILE)
+	if (result == TASK_STATUS_CONTINUE)
 	{
 		return 0;
 	}
@@ -8207,8 +7877,7 @@ static int storage_do_create_link(struct fast_task_info *pTask)
 	long2buff(pClientInfo->total_length - sizeof(TrackerHeader), \
 			pHeader->pkg_len);
 
-	storage_nio_notify(pTask);
-
+	sf_nio_notify(pTask, SF_NIO_STAGE_SEND);
 	return result;
 }
 
@@ -8279,7 +7948,7 @@ static int storage_create_link(struct fast_task_info *pTask)
 		return result;
 	}
 
-	return STORAGE_STATUE_DEAL_FILE;
+	return TASK_STATUS_CONTINUE;
 }
 
 int fdfs_stat_file_sync_func(void *args)
@@ -8315,7 +7984,7 @@ int fdfs_stat_file_sync_func(void *args)
 		} \
 	} while (0)
 
-int storage_deal_task(struct fast_task_info *pTask)
+static int storage_deal_task(struct fast_task_info *pTask, const int stage)
 {
 	TrackerHeader *pHeader;
 	StorageClientInfo *pClientInfo;
@@ -8479,23 +8148,24 @@ int storage_deal_task(struct fast_task_info *pTask)
 			break;
 	}
 
-	if (result != STORAGE_STATUE_DEAL_FILE)
-	{
-		pClientInfo->total_offset = 0;
+    if (result == TASK_STATUS_CONTINUE) {
+        return 0;
+    }
+    else
+    {
+        pClientInfo->total_offset = 0;
         if (result != 0)
         {
             pClientInfo->total_length = sizeof(TrackerHeader);
         }
-		pTask->length = pClientInfo->total_length;
+        pTask->length = pClientInfo->total_length;
 
-		pHeader = (TrackerHeader *)pTask->data;
-		pHeader->status = result;
-		pHeader->cmd = STORAGE_PROTO_CMD_RESP;
-		long2buff(pClientInfo->total_length - sizeof(TrackerHeader), \
-				pHeader->pkg_len);
-		storage_send_add_event(pTask);
-	}
-
-	return result;
+        pHeader = (TrackerHeader *)pTask->data;
+        pHeader->status = result;
+        pHeader->cmd = STORAGE_PROTO_CMD_RESP;
+        long2buff(pClientInfo->total_length - sizeof(TrackerHeader), \
+                pHeader->pkg_len);
+        sf_send_add_event(pTask);
+        return result;
+    }
 }
-

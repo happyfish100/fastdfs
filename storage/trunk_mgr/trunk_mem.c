@@ -301,7 +301,7 @@ int storage_trunk_destroy_ex(const bool bNeedSleep,
 		"storage trunk destroy", __LINE__);
     if (bSaveData)
     {
-        if (g_current_time - g_up_time >= 3600 &&
+        if (g_current_time - g_sf_global_vars.up_time >= 3600 &&
                 g_trunk_compress_binlog_interval == 0)
         {
             result = storage_trunk_save();
@@ -958,12 +958,12 @@ static int storage_trunk_compress()
         return EAGAIN;
     }
 
-    if (g_current_time - g_up_time < 600)
+    if (g_current_time - g_sf_global_vars.up_time < 600)
     {
         logWarning("file: "__FILE__", line: %d, "
                 "too little time lapse: %ds afer startup, "
                 "skip trunk binlog compress", __LINE__,
-                (int)(g_current_time - g_up_time));
+                (int)(g_current_time - g_sf_global_vars.up_time));
         return EAGAIN;
     }
 

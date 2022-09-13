@@ -291,8 +291,8 @@ static int fdfs_dump_global_vars(char *buff, const int buffSize)
     char *p;
 	
 	total_len = snprintf(buff, buffSize,
-		"g_fdfs_connect_timeout=%ds\n"
-		"g_fdfs_network_timeout=%ds\n"
+		"SF_G_CONNECT_TIMEOUT=%ds\n"
+		"SF_G_NETWORK_TIMEOUT=%ds\n"
 		"SF_G_BASE_PATH_STR=%s\n"
 		"g_fdfs_version=%d.%02d\n"
 		"SF_G_CONTINUE_FLAG=%d\n"
@@ -345,8 +345,8 @@ static int fdfs_dump_global_vars(char *buff, const int buffSize)
 	#if defined(DEBUG_FLAG) && defined(OS_LINUX)
 		"g_exe_name=%s\n"
 	#endif
-		, g_fdfs_connect_timeout
-		, g_fdfs_network_timeout
+		, SF_G_CONNECT_TIMEOUT
+		, SF_G_NETWORK_TIMEOUT
 		, SF_G_BASE_PATH_STR
 		, g_fdfs_version.major, g_fdfs_version.minor
 		, SF_G_CONTINUE_FLAG

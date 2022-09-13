@@ -16,11 +16,12 @@
 #include <string.h>
 #include <time.h>
 #include "fastcommon/common_define.h"
+#include "fastcommon/local_ip_func.h"
 #include "fdfs_define.h"
 #include "tracker_types.h"
 #include "client_global.h"
 #include "fdht_types.h"
-#include "fastcommon/local_ip_func.h"
+#include "storage_types.h"
 
 #ifdef WITH_HTTPD
 #include "fdfs_http_shared.h"
@@ -44,21 +45,6 @@
 extern "C" {
 #endif
 
-typedef struct
-{
-	FDFSStorageBrief server;
-	int last_sync_src_timestamp;
-} FDFSStorageServer;
-
-typedef struct
-{
-    signed char my_status;   //my status from tracker server
-    signed char my_result;   //my report result
-    signed char src_storage_result; //src storage report result
-    bool get_my_ip_done;
-    bool report_my_status;
-} StorageStatusPerTracker;
-
 /* subdirs under store path, g_subdir_count * g_subdir_count 2 level subdirs */
 extern int g_subdir_count_per_path;
 
@@ -66,7 +52,6 @@ extern int g_http_port;  //http server port
 extern int g_last_server_port;
 extern int g_last_http_port;  //last http server port
 extern char g_http_domain[FDFS_DOMAIN_NAME_MAX_SIZE];  //http server domain name
-extern int g_buff_size;
  
 extern bool g_disk_rw_direct;     //if file read / write directly
 extern bool g_disk_rw_separated;  //if disk read / write separated
@@ -95,7 +80,7 @@ extern int g_sync_interval; //unit: milliseconds
 extern TimeInfo g_sync_start_time;
 extern TimeInfo g_sync_end_time;
 extern bool g_sync_part_time; //true for part time, false for all time of a day
-extern int g_sync_binlog_buff_interval; //sync binlog buff to disk every interval seconds
+extern int g_sync_binlog_buff_interval;
 extern int g_write_mark_file_freq;      //write to mark file after sync N files
 extern int g_sync_stat_file_interval;   //sync storage stat info to disk interval
 
@@ -158,7 +143,6 @@ extern char g_exe_name[256];
 
 extern int g_compress_access_log_days_before;
 
-extern struct storage_nio_thread_data *g_nio_thread_data;  //network io thread data
 extern struct storage_dio_thread_data *g_dio_thread_data;  //disk io thread data
 
 int storage_cmp_by_server_id(const void *p1, const void *p2);

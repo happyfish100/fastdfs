@@ -413,7 +413,7 @@ int fdfs_connection_pool_init(const char *config_filename, \
 		return EINVAL;
 	}
 
-	return conn_pool_init(&g_connection_pool, g_fdfs_connect_timeout, \
+	return conn_pool_init(&g_connection_pool, SF_G_CONNECT_TIMEOUT, \
         		0, g_connection_pool_max_idle_time);
 }
 

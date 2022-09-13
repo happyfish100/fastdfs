@@ -20,8 +20,6 @@
 #include "fastcommon/logger.h"
 #include "fdfs_global.h"
 
-int g_fdfs_connect_timeout = DEFAULT_CONNECT_TIMEOUT;
-int g_fdfs_network_timeout = DEFAULT_NETWORK_TIMEOUT;
 Version g_fdfs_version = {6, 9, 0};
 bool g_use_connection_pool = false;
 ConnectionPool g_connection_pool;

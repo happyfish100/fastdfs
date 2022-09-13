@@ -64,7 +64,7 @@ static void sigHupHandler(int sig);
 static void sigUsrHandler(int sig);
 static void sigAlarmHandler(int sig);
 
-static int setupSchedules(pthread_t *schedule_tid);
+static int setup_schedule_tasks();
 static int setupSignalHandlers();
 
 #if defined(DEBUG_FLAG)
@@ -83,7 +83,6 @@ int main(int argc, char *argv[])
 	const char *conf_filename;
     char *action;
 	int result;
-	int sock;
 	int wait_count;
 	pthread_t schedule_tid;
 	char pidFilename[MAX_PATH_SIZE];
@@ -103,7 +102,6 @@ int main(int argc, char *argv[])
     }
 
 	g_current_time = time(NULL);
-	g_up_time = g_current_time;
 	log_init2();
 	if ((result=trunk_shared_init()) != 0)
     {
@@ -155,12 +153,6 @@ int main(int argc, char *argv[])
     }
 	umask(0);
 
-	if ((result=write_to_pid_file(pidFilename)) != 0)
-	{
-		log_destroy();
-		return result;
-	}
-
     if ((result=setupSignalHandlers()) != 0)
     {
 		logCrit("exit abnormally!\n");
@@ -168,29 +160,21 @@ int main(int argc, char *argv[])
 		return result;
     }
 
-	memset(SF_G_INNER_BIND_ADDR, 0, sizeof(SF_G_INNER_BIND_ADDR));
-	if ((result=storage_func_init(conf_filename, \
-			SF_G_INNER_BIND_ADDR, sizeof(SF_G_INNER_BIND_ADDR))) != 0)
+	if ((result=storage_func_init(conf_filename)) != 0)
 	{
 		logCrit("exit abnormally!\n");
-        delete_pid_file(pidFilename);
 		log_destroy();
 		return result;
 	}
 
-	sock = socketServer(SF_G_INNER_BIND_ADDR, SF_G_INNER_PORT, &result);
-	if (sock < 0)
-	{
-		logCrit("exit abnormally!\n");
-        delete_pid_file(pidFilename);
-		log_destroy();
-		return result;
-	}
+    if ((result=sf_socket_server()) != 0)
+    {
+        log_destroy();
+        return result;
+    }
 
-	if ((result=tcpsetserveropt(sock, g_fdfs_network_timeout)) != 0)
+	if ((result=write_to_pid_file(pidFilename)) != 0)
 	{
-		logCrit("exit abnormally!\n");
-        delete_pid_file(pidFilename);
 		log_destroy();
 		return result;
 	}
@@ -252,14 +236,22 @@ int main(int argc, char *argv[])
 		return result;
 	}
 
-    if ((result=setupSchedules(&schedule_tid)) != 0)
+    if ((result=sf_startup_schedule(&schedule_tid)) != 0)
+    {
+        log_destroy();
+        return result;
+    }
+
+
+    if ((result=setup_schedule_tasks()) != 0)
     {
 		logCrit("exit abnormally!\n");
 		log_destroy();
 		return result;
     }
 
-	if ((result=set_run_by(g_run_by_group, g_run_by_user)) != 0)
+	if ((result=set_run_by(g_sf_global_vars.run_by_group,
+                    g_sf_global_vars.run_by_user)) != 0)
 	{
 		logCrit("exit abnormally!\n");
 		log_destroy();
@@ -277,7 +269,7 @@ int main(int argc, char *argv[])
 	bTerminateFlag = false;
 	accept_stage = ACCEPT_STAGE_DOING;
 	
-	storage_accept_loop(sock);
+    sf_accept_loop();
 	accept_stage = ACCEPT_STAGE_DONE;
 
 	fdfs_binlog_sync_func(NULL);  //binlog fsync
@@ -287,17 +279,14 @@ int main(int argc, char *argv[])
 		pthread_kill(schedule_tid, SIGINT);
 	}
 
-	storage_terminate_threads();
 	storage_dio_terminate();
 
 	kill_tracker_report_threads();
 	kill_storage_sync_threads();
 
 	wait_count = 0;
-	while (g_storage_thread_count != 0 || \
-		g_dio_thread_count != 0 || \
-		g_tracker_reporter_count > 0 || \
-		g_schedule_flag)
+	while (SF_G_ALIVE_THREAD_COUNT != 0 || g_dio_thread_count != 0 ||
+		g_tracker_reporter_count > 0 || g_schedule_flag)
 	{
 /*
 #if defined(DEBUG_FLAG) && defined(OS_LINUX)
@@ -374,7 +363,7 @@ static void sigAlarmHandler(int sig)
 	server.port = SF_G_INNER_PORT;
 	server.sock = -1;
 
-	if (conn_pool_connect_server(&server, g_fdfs_connect_timeout) != 0)
+	if (conn_pool_connect_server(&server, SF_G_CONNECT_TIMEOUT) != 0)
 	{
 		return;
 	}
@@ -388,7 +377,7 @@ static void sigAlarmHandler(int sig)
 
 static void sigHupHandler(int sig)
 {
-	if (g_rotate_error_log)
+	if (g_sf_global_vars.error_log.rotate_everyday)
 	{
 		g_log_context.rotate_immediately = true;
 	}
@@ -429,22 +418,16 @@ static void sigDumpHandler(int sig)
 }
 #endif
 
-static int setupSchedules(pthread_t *schedule_tid)
+static int setup_schedule_tasks()
 {
-#define SCHEDULE_ENTRIES_MAX_COUNT 10
+#define SCHEDULE_ENTRIES_MAX_COUNT 8
 
 	ScheduleEntry scheduleEntries[SCHEDULE_ENTRIES_MAX_COUNT];
 	ScheduleArray scheduleArray;
-    int result;
 
 	scheduleArray.entries = scheduleEntries;
 	scheduleArray.count = 0;
 	memset(scheduleEntries, 0, sizeof(scheduleEntries));
-
-	INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
-		scheduleArray.count + 1, TIME_NONE, TIME_NONE, TIME_NONE,
-		g_sync_log_buff_interval, log_sync_func, &g_log_context);
-	scheduleArray.count++;
 
 	INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
 		scheduleArray.count + 1, TIME_NONE, TIME_NONE, TIME_NONE,
@@ -468,7 +451,8 @@ static int setupSchedules(pthread_t *schedule_tid)
 	{
 		INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
 			scheduleArray.count + 1, TIME_NONE, TIME_NONE, TIME_NONE,
-			g_sync_log_buff_interval, log_sync_func, &g_access_log_context);
+			g_sf_global_vars.error_log.sync_log_buff_interval,
+            log_sync_func, &g_access_log_context);
 		scheduleArray.count++;
 
 		if (g_rotate_access_log)
@@ -478,34 +462,16 @@ static int setupSchedules(pthread_t *schedule_tid)
 				24 * 3600, log_notify_rotate, &g_access_log_context);
 			scheduleArray.count++;
 
-			if (g_log_file_keep_days > 0)
+			if (g_sf_global_vars.error_log.keep_days > 0)
 			{
 				log_set_keep_days(&g_access_log_context,
-					g_log_file_keep_days);
+					g_sf_global_vars.error_log.keep_days);
 
 				INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
 					scheduleArray.count + 1, 1, 0, 0, 24 * 3600,
 					log_delete_old_files, &g_access_log_context);
 				scheduleArray.count++;
 			}
-		}
-	}
-
-	if (g_rotate_error_log)
-	{
-		INIT_SCHEDULE_ENTRY_EX(scheduleEntries[scheduleArray.count],
-			scheduleArray.count + 1, g_error_log_rotate_time,
-			24 * 3600, log_notify_rotate, &g_log_context);
-		scheduleArray.count++;
-
-		if (g_log_file_keep_days > 0)
-		{
-			log_set_keep_days(&g_log_context, g_log_file_keep_days);
-
-			INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
-				scheduleArray.count + 1, 1, 0, 0, 24 * 3600,
-				log_delete_old_files, &g_log_context);
-			scheduleArray.count++;
 		}
 	}
 
@@ -517,13 +483,7 @@ static int setupSchedules(pthread_t *schedule_tid)
 		scheduleArray.count++;
     }
 
-	if ((result=sched_start(&scheduleArray, schedule_tid,
-		SF_G_THREAD_STACK_SIZE, (bool * volatile)&SF_G_CONTINUE_FLAG)) != 0)
-	{
-		return result;
-	}
-
-    return 0;
+    return sched_add_entries(&scheduleArray);
 }
 
 static int setupSignalHandlers()

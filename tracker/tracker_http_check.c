@@ -66,7 +66,7 @@ static void *http_check_entrance(void *arg)
 		{
             sock = socketClientAuto((*ppServer)->ip_addr,
                     (*ppGroup)->storage_http_port,
-                    g_fdfs_connect_timeout, O_NONBLOCK, &result);
+                    SF_G_CONNECT_TIMEOUT, O_NONBLOCK, &result);
             if (sock >= 0)
             {
                 close(sock);
@@ -135,8 +135,8 @@ static void *http_check_entrance(void *arg)
 		sprintf(url, "http://%s:%d%s", (*ppServer)->ip_addr, \
 			(*ppGroup)->storage_http_port, g_http_check_uri);
 
-		result = get_url_content(url, g_fdfs_connect_timeout, \
-				g_fdfs_network_timeout, &http_status, \
+		result = get_url_content(url, SF_G_CONNECT_TIMEOUT, \
+				SF_G_NETWORK_TIMEOUT, &http_status, \
         			&content, &content_len, error_info);
 
 		if (g_http_servers_dirty)

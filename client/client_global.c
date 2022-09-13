@@ -15,4 +15,3 @@ TrackerServerGroup g_tracker_group = {0, 0, -1, NULL};
 
 bool g_anti_steal_token = false;
 BufferInfo g_anti_steal_secret_key = {0};
-

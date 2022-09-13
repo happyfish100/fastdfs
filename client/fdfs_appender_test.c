@@ -48,7 +48,7 @@ int uploadFileCallback(void *arg, const int64_t file_size, int sock)
 
 	filename = (char *)arg;
 	return tcpsendfile(sock, filename, file_size, \
-		g_fdfs_network_timeout, &total_send_bytes);
+		SF_G_NETWORK_TIMEOUT, &total_send_bytes);
 }
 
 int main(int argc, char *argv[])

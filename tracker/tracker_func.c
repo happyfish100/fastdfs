@@ -171,9 +171,10 @@ int tracker_load_from_conf_file(const char *filename)
 
         sf_set_current_time();
 
-        SF_SET_CONTEXT_INI_CONFIG(config, filename, &iniContext,
+        SF_SET_CONTEXT_INI_CONFIG_EX(config, filename, &iniContext,
                 NULL, FDFS_TRACKER_SERVER_DEF_PORT,
-                FDFS_TRACKER_SERVER_DEF_PORT, DEFAULT_WORK_THREADS);
+                FDFS_TRACKER_SERVER_DEF_PORT, DEFAULT_WORK_THREADS,
+                "buff_size");
         if ((result=sf_load_config_ex("trackerd", &config,
                         task_buffer_extra_size, need_set_run_by)) != 0)
         {
@@ -475,7 +476,8 @@ int tracker_load_from_conf_file(const char *filename)
 
 #endif
 
-        if (g_if_use_trunk_file && g_groups.store_server == FDFS_STORE_SERVER_ROUND_ROBIN)
+        if (g_if_use_trunk_file && g_groups.store_server ==
+                FDFS_STORE_SERVER_ROUND_ROBIN)
         {
             logInfo("file: "__FILE__", line: %d, "
                     "set store_server to %d because use_trunk_file is true",
@@ -483,7 +485,8 @@ int tracker_load_from_conf_file(const char *filename)
             g_groups.store_server = FDFS_STORE_SERVER_FIRST_BY_IP;
         }
 
-        sf_global_config_to_string(sz_global_config, sizeof(sz_global_config));
+        sf_global_config_to_string(sz_global_config,
+                sizeof(sz_global_config));
         sf_context_config_to_string(&g_sf_context,
             sz_service_config, sizeof(sz_service_config));
 

@@ -282,7 +282,7 @@ static void *tracker_report_thread_entrance(void *arg)
             break;
         }
 
-        tcpsetserveropt(conn->sock, g_fdfs_network_timeout);
+        tcpsetserveropt(conn->sock, SF_G_NETWORK_TIMEOUT);
 		getSockIpaddr(conn->sock, tracker_client_ip, IP_ADDRESS_SIZE);
 
 		if (nContinuousFail == 0)
@@ -611,7 +611,7 @@ int tracker_sync_diff_servers(ConnectionInfo *pTrackerServer, \
 	out_len = sizeof(FDFSStorageBrief) * server_count;
 	long2buff(out_len, resp.pkg_len);
 	if ((result=tcpsenddata_nb(pTrackerServer->sock, &resp, sizeof(resp), \
-			g_fdfs_network_timeout)) != 0)
+			SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"trackert server %s:%d, send data fail, " \
@@ -622,7 +622,7 @@ int tracker_sync_diff_servers(ConnectionInfo *pTrackerServer, \
 	}
 
 	if ((result=tcpsenddata_nb(pTrackerServer->sock, \
-		briefServers, out_len, g_fdfs_network_timeout)) != 0)
+		briefServers, out_len, SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"trackert server %s:%d, send data fail, " \
@@ -634,7 +634,7 @@ int tracker_sync_diff_servers(ConnectionInfo *pTrackerServer, \
 
 
 	if ((result=tcprecvdata_nb(pTrackerServer->sock, &resp, \
-			sizeof(resp), g_fdfs_network_timeout)) != 0)
+			sizeof(resp), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"tracker server %s:%d, recv data fail, " \
@@ -678,7 +678,7 @@ int tracker_report_storage_status(ConnectionInfo *pTrackerServer, \
 			briefServer, sizeof(FDFSStorageBrief));
 	if ((result=tcpsenddata_nb(pTrackerServer->sock, out_buff, \
 			sizeof(TrackerHeader) + FDFS_GROUP_NAME_MAX_LEN + \
-			sizeof(FDFSStorageBrief), g_fdfs_network_timeout)) != 0)
+			sizeof(FDFSStorageBrief), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"trackert server %s:%d, send data fail, " \
@@ -689,7 +689,7 @@ int tracker_report_storage_status(ConnectionInfo *pTrackerServer, \
 	}
 
 	if ((result=tcprecvdata_nb(pTrackerServer->sock, &resp, \
-			sizeof(resp), g_fdfs_network_timeout)) != 0)
+			sizeof(resp), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"tracker server %s:%d, recv data fail, " \
@@ -1050,7 +1050,7 @@ static int _notify_reselect_tleader(ConnectionInfo *conn)
 	memset(out_buff, 0, sizeof(out_buff));
 	pHeader->cmd = TRACKER_PROTO_CMD_TRACKER_NOTIFY_RESELECT_LEADER;
 	if ((result=tcpsenddata_nb(conn->sock, out_buff, \
-			sizeof(out_buff), g_fdfs_network_timeout)) != 0)
+			sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, "
 			"tracker server %s:%d, send data fail, "
@@ -1289,7 +1289,7 @@ static int tracker_check_response(ConnectionInfo *pTrackerServer,
 	char *pFlags;
 
 	if ((result=tcprecvdata_nb(pTrackerServer->sock, &resp, \
-			sizeof(resp), g_fdfs_network_timeout)) != 0)
+			sizeof(resp), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"tracker server %s:%d, recv data fail, " \
@@ -1336,7 +1336,7 @@ static int tracker_check_response(ConnectionInfo *pTrackerServer,
 	}
 
 	if ((result=tcprecvdata_nb(pTrackerServer->sock, in_buff, \
-			nInPackLen, g_fdfs_network_timeout)) != 0)
+			nInPackLen, SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"tracker server %s:%d, recv data fail, " \
@@ -1582,7 +1582,7 @@ int tracker_sync_src_req(ConnectionInfo *pTrackerServer, \
 	strcpy(out_buff + sizeof(TrackerHeader) + FDFS_GROUP_NAME_MAX_LEN, \
 		pReader->storage_id);
 	if ((result=tcpsenddata_nb(pTrackerServer->sock, out_buff, \
-			sizeof(out_buff), g_fdfs_network_timeout)) != 0)
+			sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"tracker server %s:%d, send data fail, " \
@@ -1644,7 +1644,7 @@ static int tracker_sync_dest_req(ConnectionInfo *pTrackerServer)
 	memset(&header, 0, sizeof(header));
 	header.cmd = TRACKER_PROTO_CMD_STORAGE_SYNC_DEST_REQ;
 	if ((result=tcpsenddata_nb(pTrackerServer->sock, &header, \
-			sizeof(header), g_fdfs_network_timeout)) != 0)
+			sizeof(header), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"tracker server %s:%d, send data fail, " \
@@ -1701,7 +1701,7 @@ static int tracker_sync_dest_query(ConnectionInfo *pTrackerServer)
 	memset(&header, 0, sizeof(header));
 	header.cmd = TRACKER_PROTO_CMD_STORAGE_SYNC_DEST_QUERY;
 	if ((result=tcpsenddata_nb(pTrackerServer->sock, &header, \
-			sizeof(header), g_fdfs_network_timeout)) != 0)
+			sizeof(header), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"tracker server %s:%d, send data fail, " \
@@ -1763,7 +1763,7 @@ static int tracker_report_trunk_fid(ConnectionInfo *pTrackerServer)
 	int2buff(g_current_trunk_file_id, out_buff + sizeof(TrackerHeader));
 
 	if ((result=tcpsenddata_nb(pTrackerServer->sock, out_buff, \
-			sizeof(out_buff), g_fdfs_network_timeout)) != 0)
+			sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"tracker server %s:%d, send data fail, " \
@@ -1809,7 +1809,7 @@ static int tracker_report_trunk_free_space(ConnectionInfo *pTrackerServer)
 	long2buff(g_trunk_total_free_space / FDFS_ONE_MB, \
 		out_buff + sizeof(TrackerHeader));
 	if ((result=tcpsenddata_nb(pTrackerServer->sock, out_buff, \
-			sizeof(out_buff), g_fdfs_network_timeout)) != 0)
+			sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"tracker server %s:%d, send data fail, " \
@@ -1855,7 +1855,7 @@ static int tracker_fetch_trunk_fid(ConnectionInfo *pTrackerServer)
 	memset(out_buff, 0, sizeof(out_buff));
 	pHeader->cmd = TRACKER_PROTO_CMD_STORAGE_FETCH_TRUNK_FID;
 	if ((result=tcpsenddata_nb(pTrackerServer->sock, out_buff, \
-			sizeof(out_buff), g_fdfs_network_timeout)) != 0)
+			sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"tracker server %s:%d, send data fail, " \
@@ -1929,7 +1929,7 @@ static int tracker_sync_notify(ConnectionInfo *pTrackerServer, const int tracker
 	long2buff(g_sync_until_timestamp, pReqBody->until_timestamp);
 
 	if ((result=tcpsenddata_nb(pTrackerServer->sock, out_buff, \
-			sizeof(out_buff), g_fdfs_network_timeout)) != 0)
+			sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"tracker server %s:%d, send data fail, " \
@@ -2079,7 +2079,7 @@ int tracker_report_join(ConnectionInfo *pTrackerServer, \
 	long2buff(out_len - (int)sizeof(TrackerHeader), pHeader->pkg_len);
 
 	if ((result=tcpsenddata_nb(pTrackerServer->sock, out_buff, \
-			out_len, g_fdfs_network_timeout)) != 0)
+			out_len, SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"tracker server %s:%d, send data fail, " \
@@ -2163,7 +2163,7 @@ static int tracker_report_sync_timestamp(ConnectionInfo *pTrackerServer,
 	}
 
 	if((result=tcpsenddata_nb(pTrackerServer->sock, out_buff, \
-		sizeof(TrackerHeader) + body_len, g_fdfs_network_timeout)) != 0)
+		sizeof(TrackerHeader) + body_len, SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"tracker server %s:%d, send data fail, " \
@@ -2269,7 +2269,7 @@ static int tracker_report_df_stat(ConnectionInfo *pTrackerServer,
 	}
 
 	result = tcpsenddata_nb(pTrackerServer->sock, pBuff, \
-			total_len, g_fdfs_network_timeout);
+			total_len, SF_G_NETWORK_TIMEOUT);
 	if (pBuff != out_buff)
 	{
 		free(pBuff);
@@ -2406,7 +2406,7 @@ static int tracker_heart_beat(ConnectionInfo *pTrackerServer,
 	pHeader->cmd = TRACKER_PROTO_CMD_STORAGE_BEAT;
 
 	if((result=tcpsenddata_nb(pTrackerServer->sock, out_buff, \
-		sizeof(TrackerHeader) + body_len, g_fdfs_network_timeout)) != 0)
+		sizeof(TrackerHeader) + body_len, SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"tracker server %s:%d, send data fail, " \
@@ -2463,7 +2463,7 @@ static int tracker_storage_change_status(ConnectionInfo *pTrackerServer,
     *(out_buff + sizeof(TrackerHeader)) = new_status;
 
 	if((result=tcpsenddata_nb(pTrackerServer->sock, out_buff,
-		sizeof(TrackerHeader) + body_len, g_fdfs_network_timeout)) != 0)
+		sizeof(TrackerHeader) + body_len, SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, "
 			"tracker server %s:%d, send data fail, "
@@ -2510,7 +2510,7 @@ static int tracker_storage_changelog_req(ConnectionInfo *pTrackerServer)
 	pHeader->cmd = TRACKER_PROTO_CMD_STORAGE_CHANGELOG_REQ;
 
 	if((result=tcpsenddata_nb(pTrackerServer->sock, out_buff, \
-		sizeof(TrackerHeader), g_fdfs_network_timeout)) != 0)
+		sizeof(TrackerHeader), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"tracker server %s:%d, send data fail, " \

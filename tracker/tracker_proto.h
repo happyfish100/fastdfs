@@ -217,10 +217,10 @@ extern "C" {
 #endif
 
 #define tracker_connect_server(pServerInfo, err_no) \
-	tracker_connect_server_ex(pServerInfo, g_fdfs_connect_timeout, err_no)
+	tracker_connect_server_ex(pServerInfo, SF_G_CONNECT_TIMEOUT, err_no)
 
 #define tracker_make_connection(conn, err_no) \
-	tracker_make_connection_ex(conn, g_fdfs_connect_timeout, err_no)
+	tracker_make_connection_ex(conn, SF_G_CONNECT_TIMEOUT, err_no)
 
 int fdfs_set_body_length(struct fast_task_info *pTask);
 
@@ -297,7 +297,7 @@ static inline int fdfs_recv_header(ConnectionInfo *pTrackerServer,
         int64_t *in_bytes)
 {
     return fdfs_recv_header_ex(pTrackerServer,
-        g_fdfs_network_timeout, in_bytes);
+        SF_G_NETWORK_TIMEOUT, in_bytes);
 }
 
 int fdfs_recv_response(ConnectionInfo *pTrackerServer, \

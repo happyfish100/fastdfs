@@ -3823,7 +3823,7 @@ static int tracker_mem_get_sys_file_piece(ConnectionInfo *pTrackerServer, \
 	*p++ = file_index;
 	long2buff(*offset, p);
 	if ((result=tcpsenddata_nb(pTrackerServer->sock, out_buff, \
-			sizeof(out_buff), g_fdfs_network_timeout)) != 0)
+			sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"send data to tracker server %s:%d fail, " \
@@ -4989,7 +4989,7 @@ static int _storage_get_trunk_binlog_size(
 	memset(out_buff, 0, sizeof(out_buff));
 	pHeader->cmd = STORAGE_PROTO_CMD_TRUNK_GET_BINLOG_SIZE;
 	if ((result=tcpsenddata_nb(pStorageServer->sock, out_buff, \
-			sizeof(out_buff), g_fdfs_network_timeout)) != 0)
+			sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"storage server %s:%d, send data fail, " \

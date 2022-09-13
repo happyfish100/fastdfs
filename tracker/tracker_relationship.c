@@ -50,7 +50,7 @@ static int fdfs_ping_leader(ConnectionInfo *pTrackerServer)
 	memset(&header, 0, sizeof(header));
 	header.cmd = TRACKER_PROTO_CMD_TRACKER_PING_LEADER;
 	result = tcpsenddata_nb(pTrackerServer->sock, &header, \
-			sizeof(header), g_fdfs_network_timeout);
+			sizeof(header), SF_G_NETWORK_TIMEOUT);
 	if(result != 0)
 	{
 		logError("file: "__FILE__", line: %d, "
@@ -280,7 +280,7 @@ static int do_notify_leader_changed(TrackerServerInfo *pTrackerServer, \
 			pLeader->ip_addr, pLeader->port);
 	long2buff(FDFS_PROTO_IP_PORT_SIZE, pHeader->pkg_len);
 	if ((result=tcpsenddata_nb(conn->sock, out_buff, \
-			sizeof(out_buff), g_fdfs_network_timeout)) != 0)
+			sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, "
 			"send data to tracker server %s:%d fail, "

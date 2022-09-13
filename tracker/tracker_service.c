@@ -45,6 +45,8 @@ static int lock_by_client_count = 0;
 
 static void tracker_find_max_free_space_group();
 
+static int tracker_deal_task(struct fast_task_info *pTask, const int stage);
+
 static void task_finish_clean_up(struct fast_task_info *pTask)
 {
 	TrackerClientInfo *pClientInfo;
@@ -63,6 +65,25 @@ static void task_finish_clean_up(struct fast_task_info *pTask)
     sf_task_finish_clean_up(pTask);
 }
 
+static int sock_accept_done_callback(struct fast_task_info *task,
+        const in_addr_t client_addr, const bool bInnerPort)
+{
+    if (g_allow_ip_count >= 0)
+    {
+        if (bsearch(&client_addr, g_allow_ip_addrs,
+                    g_allow_ip_count, sizeof(in_addr_t),
+                    cmp_by_ip_addr_t) == NULL)
+        {
+            logError("file: "__FILE__", line: %d, "
+                    "ip addr %s is not allowed to access",
+                    __LINE__, task->client_ip);
+            return EPERM;
+        }
+    }
+
+    return 0;
+}
+
 int tracker_service_init()
 {
     int result;
@@ -72,9 +93,10 @@ int tracker_service_init()
         return result;
     }
 
-    result = sf_service_init("fdfs_trackerd", NULL, NULL, NULL,
-            fdfs_set_body_length, tracker_deal_task, task_finish_clean_up,
-            NULL, 1000, sizeof(TrackerHeader), sizeof(TrackerClientInfo));
+    result = sf_service_init("fdfs_trackerd", NULL, NULL,
+            sock_accept_done_callback, fdfs_set_body_length,
+            tracker_deal_task, task_finish_clean_up, NULL, 1000,
+            sizeof(TrackerHeader), sizeof(TrackerClientInfo));
     sf_enable_thread_notify(false);
     sf_set_remove_from_ready_list(false);
     return result;
@@ -3651,7 +3673,7 @@ static int tracker_deal_storage_beat(struct fast_task_info *pTask)
 	} \
 
 
-int tracker_deal_task(struct fast_task_info *pTask, const int stage)
+static int tracker_deal_task(struct fast_task_info *pTask, const int stage)
 {
 	TrackerHeader *pHeader;
 	int result;

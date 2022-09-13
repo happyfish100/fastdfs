@@ -96,7 +96,7 @@ void storage_sync_connect_storage_server_ex(const FDFSStorageBrief *pStorage,
 
             if ((conn_results[i]=connectserverbyip_nb(conn->sock,
                             conn->ip_addr, SF_G_INNER_PORT,
-                            g_fdfs_connect_timeout)) == 0)
+                            SF_G_CONNECT_TIMEOUT)) == 0)
             {
                 char szFailPrompt[64];
                 if (nContinuousFail == 0)

@@ -22,8 +22,6 @@
 extern "C" {
 #endif
 
-extern int g_fdfs_connect_timeout;
-extern int g_fdfs_network_timeout;
 extern Version g_fdfs_version;
 extern bool g_use_connection_pool;
 extern ConnectionPool g_connection_pool;

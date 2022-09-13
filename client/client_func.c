@@ -293,18 +293,18 @@ static int fdfs_client_do_init_ex(TrackerServerGroup *pTrackerGroup, \
 		}
 	}
 
-	g_fdfs_connect_timeout = iniGetIntValue(NULL, "connect_timeout", \
+	SF_G_CONNECT_TIMEOUT = iniGetIntValue(NULL, "connect_timeout", \
 				iniContext, DEFAULT_CONNECT_TIMEOUT);
-	if (g_fdfs_connect_timeout <= 0)
+	if (SF_G_CONNECT_TIMEOUT <= 0)
 	{
-		g_fdfs_connect_timeout = DEFAULT_CONNECT_TIMEOUT;
+		SF_G_CONNECT_TIMEOUT = DEFAULT_CONNECT_TIMEOUT;
 	}
 
-	g_fdfs_network_timeout = iniGetIntValue(NULL, "network_timeout", \
+	SF_G_NETWORK_TIMEOUT = iniGetIntValue(NULL, "network_timeout", \
 				iniContext, DEFAULT_NETWORK_TIMEOUT);
-	if (g_fdfs_network_timeout <= 0)
+	if (SF_G_NETWORK_TIMEOUT <= 0)
 	{
-		g_fdfs_network_timeout = DEFAULT_NETWORK_TIMEOUT;
+		SF_G_NETWORK_TIMEOUT = DEFAULT_NETWORK_TIMEOUT;
 	}
 
 	if ((result=fdfs_load_tracker_group_ex(pTrackerGroup, \
@@ -376,8 +376,8 @@ static int fdfs_client_do_init_ex(TrackerServerGroup *pTrackerGroup, \
 		"use_connection_pool=%d, " \
 		"g_connection_pool_max_idle_time=%ds, " \
 		"use_storage_id=%d, storage server id count: %d\n", \
-		SF_G_BASE_PATH_STR, g_fdfs_connect_timeout, \
-		g_fdfs_network_timeout, pTrackerGroup->server_count, \
+		SF_G_BASE_PATH_STR, SF_G_CONNECT_TIMEOUT, \
+		SF_G_NETWORK_TIMEOUT, pTrackerGroup->server_count, \
 		g_anti_steal_token, g_anti_steal_secret_key.length, \
 		g_use_connection_pool, g_connection_pool_max_idle_time, \
 		use_storage_id, g_storage_ids_by_id.count);

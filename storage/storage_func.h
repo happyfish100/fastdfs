@@ -22,8 +22,7 @@ typedef char * (*get_filename_func)(const void *pArg, \
 
 int storage_write_to_fd(int fd, get_filename_func filename_func, \
 		const void *pArg, const char *buff, const int len);
-int storage_func_init(const char *filename, \
-		char *bind_addr, const int addr_size);
+int storage_func_init(const char *filename);
 int storage_func_destroy();
 
 int storage_write_to_stat_file();

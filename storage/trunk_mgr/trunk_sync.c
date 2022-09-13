@@ -184,7 +184,7 @@ int trunk_sync_init()
 			return errno != 0 ? errno : ENOENT;
 		}
 
-		STORAGE_CHOWN(data_path, geteuid(), getegid())
+		SF_CHOWN_TO_RUNBY_RETURN_ON_ERROR(data_path);
 	}
 
 	snprintf(sync_path, sizeof(sync_path), \
@@ -201,7 +201,7 @@ int trunk_sync_init()
 			return errno != 0 ? errno : ENOENT;
 		}
 
-		STORAGE_CHOWN(sync_path, geteuid(), getegid())
+		SF_CHOWN_TO_RUNBY_RETURN_ON_ERROR(sync_path);
 	}
 
 	trunk_binlog_write_cache_buff = (char *)malloc( \
@@ -227,7 +227,7 @@ int trunk_sync_init()
 		return result;
 	}
 
-	STORAGE_FCHOWN(trunk_binlog_fd, binlog_filename, geteuid(), getegid())
+	SF_FCHOWN_TO_RUNBY_RETURN_ON_ERROR(trunk_binlog_fd, binlog_filename);
 
 	return 0;
 }
@@ -1717,7 +1717,7 @@ static int trunk_write_to_mark_file(TrunkBinLogReader *pReader)
 
     if ((result=safeWriteToFile(pReader->mark_filename, buff, len)) == 0)
     {
-        STORAGE_CHOWN(pReader->mark_filename, geteuid(), getegid())
+        SF_CHOWN_TO_RUNBY_RETURN_ON_ERROR(pReader->mark_filename);
 		pReader->last_binlog_offset = pReader->binlog_offset;
     }
 
@@ -2008,7 +2008,7 @@ static int trunk_sync_data(TrunkBinLogReader *pReader, \
 	long2buff(length, header.pkg_len);
 	header.cmd = STORAGE_PROTO_CMD_TRUNK_SYNC_BINLOG;
 	if ((result=tcpsenddata_nb(pStorage->sock, &header, \
-		sizeof(TrackerHeader), g_fdfs_network_timeout)) != 0)
+		sizeof(TrackerHeader), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("FILE: "__FILE__", line: %d, " \
 			"send data to storage server %s:%d fail, " \
@@ -2019,7 +2019,7 @@ static int trunk_sync_data(TrunkBinLogReader *pReader, \
 	}
 
 	if ((result=tcpsenddata_nb(pStorage->sock, pReader->binlog_buff.buffer,\
-		length, g_fdfs_network_timeout)) != 0)
+		length, SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("FILE: "__FILE__", line: %d, " \
 			"send data to storage server %s:%d fail, " \
