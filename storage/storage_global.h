@@ -155,4 +155,3 @@ int storage_insert_ip_addr_to_multi_ips(FDFSMultiIP *multi_ip,
 #endif
 
 #endif
-

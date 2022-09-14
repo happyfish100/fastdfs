@@ -25,6 +25,7 @@
 #include "fastcommon/logger.h"
 #include "fastcommon/sockopt.h"
 #include "fastcommon/ioevent_loop.h"
+#include "sf/sf_service.h"
 #include "storage_global.h"
 #include "storage_service.h"
 #include "trunk_mem.h"
@@ -153,8 +154,10 @@ int storage_dio_queue_push(struct fast_task_info *pTask)
     pClientInfo = (StorageClientInfo *)pTask->arg;
 	pFileContext = &(pClientInfo->file_context);
 	pContext = g_dio_contexts + pFileContext->dio_thread_index;
+    sf_hold_task(pTask);
 	if ((result=blocked_queue_push(&(pContext->queue), pTask)) != 0)
 	{
+        sf_release_task(pTask);
 		ioevent_add_to_deleted_list(pTask);
 		return result;
 	}
@@ -476,10 +479,11 @@ int dio_write_file(struct fast_task_info *pTask)
 		}
 	}
 
-	/*
-	logInfo("###dio write bytes: %d, pTask->length=%d, buff_offset=%d", \
-		write_bytes, pTask->length, pFileContext->buff_offset);
-	*/
+    /*
+	logInfo("###dio fd: %d, write bytes: %d, pTask->length=%d, "
+            "buff_offset=%d", pFileContext->fd, write_bytes,
+            pTask->length, pFileContext->buff_offset);
+            */
 
 	pFileContext->offset += write_bytes;
 	if (pFileContext->offset < pFileContext->end)
@@ -742,9 +746,10 @@ static void *dio_thread_entrance(void* arg)
 	while (SF_G_CONTINUE_FLAG)
 	{
 		while ((pTask=blocked_queue_pop(&(pContext->queue))) != NULL)
-		{
-			((StorageClientInfo *)pTask->arg)->deal_func(pTask);
-		}
+        {
+            ((StorageClientInfo *)pTask->arg)->deal_func(pTask);
+            sf_release_task(pTask);
+        }
 	}
 
 	if ((result=pthread_mutex_lock(&g_dio_thread_lock)) != 0)
