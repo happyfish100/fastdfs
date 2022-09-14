@@ -471,10 +471,5 @@ typedef struct {
 	bool if_leader;       //if leader
 } TrackerRunningStatus;
 
-typedef struct fdfs_connection_stat {
-    volatile int current_count;
-    int max_count;
-} FDFSConnectionStat;
-
 #endif
 

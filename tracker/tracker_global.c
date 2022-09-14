@@ -60,5 +60,3 @@ bool g_http_servers_dirty = false;
 #if defined(DEBUG_FLAG) && defined(OS_LINUX)
 char g_exe_name[256] = {0};
 #endif
-
-FDFSConnectionStat g_connection_stat = {0, 0};
