@@ -943,7 +943,7 @@ static void php_fdfs_connect_server_impl(INTERNAL_FUNCTION_PARAMETERS, \
 	server_info.sock = -1;
 
 	if ((pContext->err_no=conn_pool_connect_server(&server_info, \
-			g_fdfs_network_timeout)) == 0)
+			SF_G_NETWORK_TIMEOUT)) == 0)
 	{
 		array_init(return_value);
 		zend_add_assoc_stringl_ex(return_value, "ip_addr", \
@@ -5034,7 +5034,7 @@ static void php_fdfs_send_data_impl(INTERNAL_FUNCTION_PARAMETERS, \
 	}
 
 	if ((pContext->err_no=tcpsenddata_nb(sock, buff, \
-                        buff_len, g_fdfs_network_timeout)) != 0)
+                        buff_len, SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		RETURN_BOOL(false);
 	}
@@ -7570,30 +7570,30 @@ static int load_config_files()
 			sizeof(ITEM_NAME_CONNECT_TIMEOUT), \
 			&connect_timeout) == SUCCESS)
 	{
-		g_fdfs_connect_timeout = atoi(Z_STRVAL_P(connect_timeout));
-		if (g_fdfs_connect_timeout <= 0)
+		SF_G_CONNECT_TIMEOUT = atoi(Z_STRVAL_P(connect_timeout));
+		if (SF_G_CONNECT_TIMEOUT <= 0)
 		{
-			g_fdfs_connect_timeout = DEFAULT_CONNECT_TIMEOUT;
+			SF_G_CONNECT_TIMEOUT = DEFAULT_CONNECT_TIMEOUT;
 		}
 	}
 	else
 	{
-		g_fdfs_connect_timeout = DEFAULT_CONNECT_TIMEOUT;
+		SF_G_CONNECT_TIMEOUT = DEFAULT_CONNECT_TIMEOUT;
 	}
 
 	if (zend_get_configuration_directive_wrapper(ITEM_NAME_NETWORK_TIMEOUT, \
 			sizeof(ITEM_NAME_NETWORK_TIMEOUT), \
 			&network_timeout) == SUCCESS)
 	{
-		g_fdfs_network_timeout = atoi(Z_STRVAL_P(network_timeout));
-		if (g_fdfs_network_timeout <= 0)
+		SF_G_NETWORK_TIMEOUT = atoi(Z_STRVAL_P(network_timeout));
+		if (SF_G_NETWORK_TIMEOUT <= 0)
 		{
-			g_fdfs_network_timeout = DEFAULT_NETWORK_TIMEOUT;
+			SF_G_NETWORK_TIMEOUT = DEFAULT_NETWORK_TIMEOUT;
 		}
 	}
 	else
 	{
-		g_fdfs_network_timeout = DEFAULT_NETWORK_TIMEOUT;
+		SF_G_NETWORK_TIMEOUT = DEFAULT_NETWORK_TIMEOUT;
 	}
 
 	if (zend_get_configuration_directive_wrapper(ITEM_NAME_LOG_LEVEL, \
@@ -7724,7 +7724,7 @@ static int load_config_files()
 
 			g_use_connection_pool = true;
 			result = conn_pool_init(&g_connection_pool, \
-					g_fdfs_connect_timeout, \
+					SF_G_CONNECT_TIMEOUT, \
 					0, g_connection_pool_max_idle_time);
 			if (result != 0)
 			{
@@ -7737,8 +7737,8 @@ static int load_config_files()
 		"anti_steal_secret_key length=%d, " \
 		"tracker_group_count=%d, first tracker group server_count=%d, "\
 		"use_connection_pool=%d, connection_pool_max_idle_time: %d", \
-		SF_G_BASE_PATH_STR, g_fdfs_connect_timeout, \
-		g_fdfs_network_timeout, (int)strlen(pAntiStealSecretKey), \
+		SF_G_BASE_PATH_STR, SF_G_CONNECT_TIMEOUT, \
+		SF_G_NETWORK_TIMEOUT, (int)strlen(pAntiStealSecretKey), \
 		config_count, g_tracker_group.server_count, \
 		g_use_connection_pool, g_connection_pool_max_idle_time);
 
