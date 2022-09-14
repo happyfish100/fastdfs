@@ -39,7 +39,7 @@ struct storage_dio_thread_data
 extern "C" {
 #endif
 
-extern int g_dio_thread_count;
+extern volatile int g_dio_thread_count;
 
 int storage_dio_init();
 void storage_dio_terminate();

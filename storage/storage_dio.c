@@ -31,10 +31,9 @@
 #include "trunk_mem.h"
 #include "storage_dio.h"
 
-static pthread_mutex_t g_dio_thread_lock;
 static struct storage_dio_context *g_dio_contexts = NULL;
 
-int g_dio_thread_count = 0;
+volatile int g_dio_thread_count = 0;
 
 static void *dio_thread_entrance(void* arg);
  
@@ -50,11 +49,6 @@ int storage_dio_init()
 	struct storage_dio_context *pContextEnd;
 	pthread_t tid;
 	pthread_attr_t thread_attr;
-
-	if ((result=init_pthread_lock(&g_dio_thread_lock)) != 0)
-	{
-		return result;
-	}
 
 	if ((result=init_pthread_attr(&thread_attr, SF_G_THREAD_STACK_SIZE)) != 0)
 	{
@@ -120,9 +114,7 @@ int storage_dio_init()
 			}
 			else
 			{
-				pthread_mutex_lock(&g_dio_thread_lock);
-				g_dio_thread_count++;
-				pthread_mutex_unlock(&g_dio_thread_lock);
+                __sync_add_and_fetch(&g_dio_thread_count, 1);
 			}
 		}
 	}
@@ -275,13 +267,11 @@ int dio_open_file(StorageFileContext *pFileContext)
             result = 0;
         }
 
-        pthread_mutex_lock(&g_dio_thread_lock);
-        g_storage_stat.total_file_open_count++;
+        __sync_add_and_fetch(&g_storage_stat.total_file_open_count, 1);
         if (result == 0)
         {
-            g_storage_stat.success_file_open_count++;
+            __sync_add_and_fetch(&g_storage_stat.success_file_open_count, 1);
         }
-        pthread_mutex_unlock(&g_dio_thread_lock);
 
         if (result != 0)
         {
@@ -342,13 +332,11 @@ int dio_read_file(struct fast_task_info *pTask)
 			result, STRERROR(result));
 	}
 
-	pthread_mutex_lock(&g_dio_thread_lock);
-	g_storage_stat.total_file_read_count++;
+    __sync_add_and_fetch(&g_storage_stat.total_file_read_count, 1);
 	if (result == 0)
 	{
-		g_storage_stat.success_file_read_count++;
+        __sync_add_and_fetch(&g_storage_stat.success_file_read_count, 1);
 	}
-	pthread_mutex_unlock(&g_dio_thread_lock);
 
 	if (result != 0)
 	{
@@ -446,13 +434,11 @@ int dio_write_file(struct fast_task_info *pTask)
 			result, STRERROR(result));
 	}
 
-	pthread_mutex_lock(&g_dio_thread_lock);
-	g_storage_stat.total_file_write_count++;
+    __sync_add_and_fetch(&g_storage_stat.total_file_write_count, 1);
 	if (result == 0)
 	{
-		g_storage_stat.success_file_write_count++;
+        __sync_add_and_fetch(&g_storage_stat.success_file_write_count, 1);
 	}
-	pthread_mutex_unlock(&g_dio_thread_lock);
 
 	if (result != 0)
 	{
@@ -738,7 +724,6 @@ void dio_trunk_write_finish_clean_up(struct fast_task_info *pTask)
 
 static void *dio_thread_entrance(void* arg) 
 {
-	int result;
 	struct storage_dio_context *pContext; 
 	struct fast_task_info *pTask;
 
@@ -752,21 +737,7 @@ static void *dio_thread_entrance(void* arg)
         }
 	}
 
-	if ((result=pthread_mutex_lock(&g_dio_thread_lock)) != 0)
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"call pthread_mutex_lock fail, " \
-			"errno: %d, error info: %s", \
-			__LINE__, result, STRERROR(result));
-	}
-	g_dio_thread_count--;
-	if ((result=pthread_mutex_unlock(&g_dio_thread_lock)) != 0)
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"call pthread_mutex_lock fail, " \
-			"errno: %d, error info: %s", \
-			__LINE__, result, STRERROR(result));
-	}
+    __sync_sub_and_fetch(&g_dio_thread_count, 1);
 
 	logDebug("file: "__FILE__", line: %d, " \
 		"dio thread exited, thread count: %d", \

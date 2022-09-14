@@ -265,13 +265,13 @@ static int storage_sync_copy_file(ConnectionInfo *pStorageServer, \
 		}
 	} while (0);
 
-	pthread_mutex_lock(&sync_thread_lock);
-	g_storage_stat.total_sync_out_bytes += total_send_bytes;
+	__sync_add_and_fetch(&g_storage_stat.total_sync_out_bytes,
+            total_send_bytes);
 	if (result == 0)
-	{
-		g_storage_stat.success_sync_out_bytes += total_send_bytes;
-	}
-	pthread_mutex_unlock(&sync_thread_lock);
+    {
+        __sync_add_and_fetch(&g_storage_stat.success_sync_out_bytes,
+                total_send_bytes);
+    }
 
 	if (result == EEXIST)
 	{
@@ -461,13 +461,13 @@ static int storage_sync_modify_file(ConnectionInfo *pStorageServer, \
 		}
 	} while (0);
 
-	pthread_mutex_lock(&sync_thread_lock);
-	g_storage_stat.total_sync_out_bytes += total_send_bytes;
+	__sync_add_and_fetch(&g_storage_stat.total_sync_out_bytes,
+            total_send_bytes);
 	if (result == 0)
-	{
-		g_storage_stat.success_sync_out_bytes += total_send_bytes;
-	}
-	pthread_mutex_unlock(&sync_thread_lock);
+    {
+        __sync_add_and_fetch(&g_storage_stat.success_sync_out_bytes,
+                total_send_bytes);
+    }
 
 	return result == EEXIST ? 0 : result;
 }

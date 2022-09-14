@@ -29,6 +29,7 @@
 #include "fastcommon/pthread_func.h"
 #include "fastcommon/sched_thread.h"
 #include "fastcommon/fast_mblock.h"
+#include "fastcommon/fc_atomic.h"
 #include "sf/sf_service.h"
 #include "sf/sf_nio.h"
 #include "tracker_types.h"
@@ -71,9 +72,6 @@ typedef struct
 
 static int last_stat_change_count = 1;  //for sync to stat file
 static volatile int64_t temp_file_sequence = 0;
-
-static pthread_mutex_t path_index_thread_lock;
-static pthread_mutex_t stat_count_thread_lock;
 
 static struct fast_mblock_man finfo_for_crc32_allocator;
 
@@ -190,7 +188,6 @@ static FDFSStorageServer *get_storage_server(const char *storage_server_id)
 }
 
 #define CHECK_AND_WRITE_TO_STAT_FILE1  \
-		pthread_mutex_lock(&stat_count_thread_lock); \
 \
 		if (pClientInfo->pSrcStorage == NULL) \
 		{ \
@@ -206,11 +203,9 @@ static FDFSStorageServer *get_storage_server(const char *storage_server_id)
 \
 		g_storage_stat.last_sync_update = g_current_time; \
 		++g_stat_change_count; \
-		pthread_mutex_unlock(&stat_count_thread_lock);
 
 #define CHECK_AND_WRITE_TO_STAT_FILE1_WITH_BYTES( \
 		total_bytes, success_bytes, bytes)  \
-		pthread_mutex_lock(&stat_count_thread_lock); \
 \
 		if (pClientInfo->pSrcStorage == NULL) \
 		{ \
@@ -225,46 +220,37 @@ static FDFSStorageServer *get_storage_server(const char *storage_server_id)
 		} \
 \
 		g_storage_stat.last_sync_update = g_current_time; \
-		total_bytes += bytes; \
-		success_bytes += bytes; \
+        __sync_add_and_fetch(&total_bytes, bytes);   \
+		__sync_add_and_fetch(&success_bytes, bytes); \
 		++g_stat_change_count; \
-		pthread_mutex_unlock(&stat_count_thread_lock);
 
 #define CHECK_AND_WRITE_TO_STAT_FILE2(total_count, success_count)  \
-		pthread_mutex_lock(&stat_count_thread_lock); \
-		total_count++; \
-		success_count++; \
+		__sync_add_and_fetch(&total_count, 1);   \
+		__sync_add_and_fetch(&success_count, 1); \
 		++g_stat_change_count; \
-		pthread_mutex_unlock(&stat_count_thread_lock);
 
 #define CHECK_AND_WRITE_TO_STAT_FILE2_WITH_BYTES(total_count, success_count, \
 		total_bytes, success_bytes, bytes)  \
-		pthread_mutex_lock(&stat_count_thread_lock); \
-		total_count++; \
-		success_count++; \
-		total_bytes += bytes; \
-		success_bytes += bytes; \
+		__sync_add_and_fetch(&total_count, 1);      \
+		__sync_add_and_fetch(&success_count, 1);    \
+		__sync_add_and_fetch(&total_bytes, bytes);  \
+		__sync_add_and_fetch(&success_bytes, bytes);\
 		++g_stat_change_count; \
-		pthread_mutex_unlock(&stat_count_thread_lock);
 
 #define CHECK_AND_WRITE_TO_STAT_FILE3(total_count, success_count, timestamp)  \
-		pthread_mutex_lock(&stat_count_thread_lock); \
-		total_count++; \
-		success_count++; \
+		__sync_add_and_fetch(&total_count, 1); \
+		__sync_add_and_fetch(&success_count, 1); \
 		timestamp = g_current_time; \
 		++g_stat_change_count;  \
-		pthread_mutex_unlock(&stat_count_thread_lock);
 
 #define CHECK_AND_WRITE_TO_STAT_FILE3_WITH_BYTES(total_count, success_count, \
 		timestamp, total_bytes, success_bytes, bytes)  \
-		pthread_mutex_lock(&stat_count_thread_lock); \
-		total_count++; \
-		success_count++; \
+		__sync_add_and_fetch(&total_count, 1);   \
+		__sync_add_and_fetch(&success_count, 1); \
+		__sync_add_and_fetch(&total_bytes, bytes);   \
+		__sync_add_and_fetch(&success_bytes, bytes); \
 		timestamp = g_current_time; \
-		total_bytes += bytes; \
-		success_bytes += bytes; \
-		++g_stat_change_count;  \
-		pthread_mutex_unlock(&stat_count_thread_lock);
+		++g_stat_change_count;      \
 
 static void storage_log_access_log(struct fast_task_info *pTask, \
 		const char *action, const int status)
@@ -576,12 +562,10 @@ static void storage_sync_copy_file_done_callback(struct fast_task_info *pTask, \
 		result = EEXIST;
 	}
 	if (result != 0)
-	{
-		pthread_mutex_lock(&stat_count_thread_lock);
-		g_storage_stat.total_sync_in_bytes += \
-				pClientInfo->total_offset;
-		pthread_mutex_unlock(&stat_count_thread_lock);
-	}
+    {
+        __sync_add_and_fetch(&g_storage_stat.total_sync_in_bytes,
+                pClientInfo->total_offset);
+    }
 
 	pClientInfo->total_length = sizeof(TrackerHeader);
 	pClientInfo->total_offset = 0;
@@ -654,12 +638,10 @@ static void storage_sync_modify_file_done_callback( \
 	}
 
 	if (result != 0)
-	{
-		pthread_mutex_lock(&stat_count_thread_lock);
-		g_storage_stat.total_sync_in_bytes += \
-				pClientInfo->total_offset;
-		pthread_mutex_unlock(&stat_count_thread_lock);
-	}
+    {
+        __sync_add_and_fetch(&g_storage_stat.total_sync_in_bytes,
+                pClientInfo->total_offset);
+    }
 
 	pClientInfo->total_length = sizeof(TrackerHeader);
 	pClientInfo->total_offset = 0;
@@ -673,7 +655,7 @@ static void storage_sync_modify_file_done_callback( \
 	sf_nio_notify(pTask, SF_NIO_STAGE_SEND);
 }
 
-static void storage_get_metadata_done_callback(struct fast_task_info *pTask, \
+static void storage_get_metadata_done_callback(struct fast_task_info *pTask,
 			const int err_no)
 {
 	TrackerHeader *pHeader;
@@ -683,10 +665,7 @@ static void storage_get_metadata_done_callback(struct fast_task_info *pTask, \
 
 	if (err_no != 0)
 	{
-		pthread_mutex_lock(&stat_count_thread_lock);
-		g_storage_stat.total_get_meta_count++;
-		pthread_mutex_unlock(&stat_count_thread_lock);
-
+        __sync_add_and_fetch(&g_storage_stat.total_get_meta_count, 1);
 		if (pTask->length == sizeof(TrackerHeader)) //never response
 		{
 			pHeader = (TrackerHeader *)pTask->data;
@@ -720,11 +699,9 @@ static void storage_download_file_done_callback( \
 	pFileContext = &(((StorageClientInfo *)pTask->arg)->file_context);
 	if (err_no != 0)
 	{
-		pthread_mutex_lock(&stat_count_thread_lock);
-		g_storage_stat.total_download_count++;
-		g_storage_stat.total_download_bytes += \
-				pFileContext->offset - pFileContext->start;
-		pthread_mutex_unlock(&stat_count_thread_lock);
+        __sync_add_and_fetch(&g_storage_stat.total_download_count, 1);
+        __sync_add_and_fetch(&g_storage_stat.total_download_bytes,
+                pFileContext->offset - pFileContext->start);
 
 		if (pTask->length == sizeof(TrackerHeader)) //never response
 		{
@@ -1069,17 +1046,15 @@ static void storage_delete_fdfs_file_done_callback( \
 
 	if (result != 0)
 	{
-		pthread_mutex_lock(&stat_count_thread_lock);
-		if (pFileContext->delete_flag == STORAGE_DELETE_FLAG_NONE ||\
+		if (pFileContext->delete_flag == STORAGE_DELETE_FLAG_NONE ||
 				(pFileContext->delete_flag & STORAGE_DELETE_FLAG_FILE))
 		{
-			g_storage_stat.total_delete_count++;
+            __sync_add_and_fetch(&g_storage_stat.total_delete_count, 1);
 		}
 		if (pFileContext->delete_flag & STORAGE_DELETE_FLAG_LINK)
 		{
-			g_storage_stat.total_delete_link_count++;
+            __sync_add_and_fetch(&g_storage_stat.total_delete_link_count, 1);
 		}
-		pthread_mutex_unlock(&stat_count_thread_lock);
 	}
 	else
 	{
@@ -1182,14 +1157,12 @@ static void storage_upload_file_done_callback(struct fast_task_info *pTask, \
 	}
 	else
 	{
-		pthread_mutex_lock(&stat_count_thread_lock);
 		if (pFileContext->create_flag & STORAGE_CREATE_FLAG_FILE)
-		{
-			g_storage_stat.total_upload_count++;
- 			g_storage_stat.total_upload_bytes += \
-				pClientInfo->total_offset;
-		}
-		pthread_mutex_unlock(&stat_count_thread_lock);
+        {
+            __sync_add_and_fetch(&g_storage_stat.total_upload_count, 1);
+            __sync_add_and_fetch(&g_storage_stat.total_upload_bytes,
+                    pClientInfo->total_offset);
+        }
 
 		pClientInfo->total_length = sizeof(TrackerHeader);
 	}
@@ -1275,9 +1248,7 @@ static void storage_trunk_create_link_file_done_callback( \
 	}
 	else
 	{
-		pthread_mutex_lock(&stat_count_thread_lock);
-		g_storage_stat.total_create_link_count++;
-		pthread_mutex_unlock(&stat_count_thread_lock);
+        __sync_add_and_fetch(&g_storage_stat.total_create_link_count, 1);
 		pClientInfo->total_length = sizeof(TrackerHeader);
 	}
 
@@ -1348,12 +1319,11 @@ static void storage_append_file_done_callback(struct fast_task_info *pTask, \
 			pFileContext->end - pFileContext->start)
 	}
 	else
-	{
-		pthread_mutex_lock(&stat_count_thread_lock);
-		g_storage_stat.total_append_count++;
- 		g_storage_stat.total_append_bytes += pClientInfo->total_offset;
-		pthread_mutex_unlock(&stat_count_thread_lock);
-	}
+    {
+        __sync_add_and_fetch(&g_storage_stat.total_append_count, 1);
+        __sync_add_and_fetch(&g_storage_stat.total_append_bytes,
+                pClientInfo->total_offset);
+    }
 
 	pClientInfo->total_length = sizeof(TrackerHeader);
 	pClientInfo->total_offset = 0;
@@ -1419,10 +1389,9 @@ static void storage_modify_file_done_callback(struct fast_task_info *pTask, \
 	}
 	else
 	{
-		pthread_mutex_lock(&stat_count_thread_lock);
-		g_storage_stat.total_modify_count++;
- 		g_storage_stat.total_modify_bytes += pClientInfo->total_offset;
-		pthread_mutex_unlock(&stat_count_thread_lock);
+        __sync_add_and_fetch(&g_storage_stat.total_modify_count, 1);
+        __sync_add_and_fetch(&g_storage_stat.total_modify_bytes,
+                pClientInfo->total_offset);
 	}
 
 	pClientInfo->total_length = sizeof(TrackerHeader);
@@ -1485,9 +1454,7 @@ static void storage_do_truncate_file_done_callback(struct fast_task_info *pTask,
 	}
 	else
 	{
-		pthread_mutex_lock(&stat_count_thread_lock);
-		g_storage_stat.total_truncate_count++;
-		pthread_mutex_unlock(&stat_count_thread_lock);
+        __sync_add_and_fetch(&g_storage_stat.total_truncate_count, 1);
 	}
 
 	pClientInfo->total_length = sizeof(TrackerHeader);
@@ -1534,9 +1501,7 @@ static void storage_set_metadata_done_callback( \
 
 	if (result != 0)
 	{
-		pthread_mutex_lock(&stat_count_thread_lock);
-		g_storage_stat.total_set_meta_count++;
-		pthread_mutex_unlock(&stat_count_thread_lock);
+        __sync_add_and_fetch(&g_storage_stat.total_set_meta_count, 1);
 	}
 	else
 	{
@@ -1682,16 +1647,6 @@ int storage_service_init()
 {
 	int result;
 
-	if ((result=init_pthread_lock(&path_index_thread_lock)) != 0)
-	{
-		return result;
-	}
-
-	if ((result=init_pthread_lock(&stat_count_thread_lock)) != 0)
-	{
-		return result;
-	}
-
 	last_stat_change_count = g_stat_change_count;
     if ((result=fast_mblock_init(&finfo_for_crc32_allocator,
                     sizeof(StorageFileInfoForCRC32), 1024)) != 0)
@@ -1711,8 +1666,6 @@ int storage_service_init()
 
 void storage_service_destroy()
 {
-	pthread_mutex_destroy(&path_index_thread_lock);
-	pthread_mutex_destroy(&stat_count_thread_lock);
 }
 
 int storage_get_storage_path_index(int *store_path_index)
@@ -1772,51 +1725,41 @@ void storage_get_store_path(const char *filename, const int filename_len, \
 		int *sub_path_high, int *sub_path_low)
 {
 	int n;
-	int result;
+    int write_file_count;
+    int path_index_high;
 
 	if (g_file_distribute_path_mode == FDFS_FILE_DIST_PATH_ROUND_ROBIN)
 	{
-		*sub_path_high = g_dist_path_index_high;
-		*sub_path_low = g_dist_path_index_low;
+		*sub_path_high = FC_ATOMIC_GET(g_dist_path_index_high);
+		*sub_path_low = FC_ATOMIC_GET(g_dist_path_index_low);
+        while (1) {
+            write_file_count = __sync_add_and_fetch(
+                    &g_dist_write_file_count, 1);
+            if (write_file_count < g_file_distribute_rotate_count)
+            {
+                break;
+            }
+            if (write_file_count == g_file_distribute_rotate_count)
+            {
+                if (__sync_add_and_fetch(&g_dist_path_index_low, 1) >=
+                        g_subdir_count_per_path)
+                {  //rotate
+                    path_index_high = __sync_add_and_fetch(
+                            &g_dist_path_index_high, 1);
+                    if (path_index_high >= g_subdir_count_per_path) //rotate
+                    {
+                        FC_ATOMIC_SET(g_dist_path_index_high, 0);
+                    }
+                    FC_ATOMIC_SET(g_dist_path_index_low, 0);
+                }
 
-		if (++g_dist_write_file_count >= g_file_distribute_rotate_count)
-		{
-			g_dist_write_file_count = 0;
-	
-			if ((result=pthread_mutex_lock( \
-					&path_index_thread_lock)) != 0)
-			{
-				logError("file: "__FILE__", line: %d, " \
-					"call pthread_mutex_lock fail, " \
-					"errno: %d, error info: %s", \
-					__LINE__, result, STRERROR(result));
-			}
-
-			++g_dist_path_index_low;
-			if (g_dist_path_index_low >= g_subdir_count_per_path)
-			{  //rotate
-				g_dist_path_index_high++;
-				if (g_dist_path_index_high >= \
-					g_subdir_count_per_path)  //rotate
-				{
-					g_dist_path_index_high = 0;
-				}
-				g_dist_path_index_low = 0;
-			}
-
-			++g_stat_change_count;
-
-			if ((result=pthread_mutex_unlock( \
-					&path_index_thread_lock)) != 0)
-			{
-				logError("file: "__FILE__", line: %d, " \
-					"call pthread_mutex_unlock fail, " \
-					"errno: %d, error info: %s", \
-					__LINE__, result, STRERROR(result));
-			}
-		}
-	}  //random
-	else
+                FC_ATOMIC_SET(g_dist_write_file_count, 0);
+                ++g_stat_change_count;
+                break;
+            }
+        }
+	}
+	else //random
 	{
 		n = PJWHash(filename, filename_len) % (1 << 16);
 		*sub_path_high = ((n >> 8) & 0xFF) % g_subdir_count_per_path;
@@ -7002,9 +6945,7 @@ static int storage_server_download_file(struct fast_task_info *pTask)
 		&trunkInfo, &trunkHeader, &pFileContext->fd);
 	if (IS_TRUNK_FILE_BY_ID(trunkInfo))
 	{
-		pthread_mutex_lock(&stat_count_thread_lock);
-		g_storage_stat.total_file_open_count++;
-		pthread_mutex_unlock(&stat_count_thread_lock);
+        __sync_add_and_fetch(&g_storage_stat.total_file_open_count, 1);
 	}
 	if (result == 0)
 	{
@@ -7028,9 +6969,7 @@ static int storage_server_download_file(struct fast_task_info *pTask)
 
 	if (IS_TRUNK_FILE_BY_ID(trunkInfo))
 	{
-		pthread_mutex_lock(&stat_count_thread_lock);
-		g_storage_stat.success_file_open_count++;
-		pthread_mutex_unlock(&stat_count_thread_lock);
+        __sync_add_and_fetch(&g_storage_stat.success_file_open_count, 1);
 	}
 
 	if (download_bytes == 0)
@@ -7726,9 +7665,7 @@ static int storage_create_link_core(struct fast_task_info *pTask, \
 	}
 	else
 	{
-		pthread_mutex_lock(&stat_count_thread_lock);
-		g_storage_stat.total_create_link_count++;
-		pthread_mutex_unlock(&stat_count_thread_lock);
+        __sync_add_and_fetch(&g_storage_stat.total_create_link_count, 1);
 	}
 
 	return result;
@@ -8017,7 +7954,7 @@ int fdfs_stat_file_sync_func(void *args)
 {
 	int result;
 
-	if (last_stat_change_count !=  g_stat_change_count)
+	if (last_stat_change_count != g_stat_change_count)
 	{
 		if ((result=storage_write_to_stat_file()) == 0)
 		{

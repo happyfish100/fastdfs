@@ -64,9 +64,9 @@ extern int g_file_distribute_path_mode;
 extern int g_file_distribute_rotate_count;
 extern int g_fsync_after_written_bytes;
 
-extern int g_dist_path_index_high; //current write to high path
-extern int g_dist_path_index_low;  //current write to low path
-extern int g_dist_write_file_count; //current write file count
+extern volatile int g_dist_path_index_high; //current write to high path
+extern volatile int g_dist_path_index_low;  //current write to low path
+extern volatile int g_dist_write_file_count; //current write file count
 
 extern int g_storage_count;  //stoage server count in my group
 extern FDFSStorageServer g_storage_servers[FDFS_MAX_SERVERS_EACH_GROUP];

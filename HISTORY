@@ -1,6 +1,7 @@
 
-Version 6.09  2022-09-11
+Version 6.09  2022-09-14
  * use libfastcommon V1.60 and libserverframe 1.1.19
+ * use atomic counter instead of mutex lock
 
 Version 6.08  2022-06-21
  * use libfastcommon V1.56
