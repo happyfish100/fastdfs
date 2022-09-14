@@ -92,7 +92,7 @@ FDFSStorePathInfo *storage_load_paths_from_conf_file_ex(
 			return NULL;
 		}
 
-		pPath = g_fdfs_base_path;
+		pPath = SF_G_BASE_PATH_STR;
 	}
 
     store_paths[0].path_len = strlen(pPath);
@@ -185,20 +185,20 @@ int storage_load_paths_from_conf_file(IniContext *pItemContext)
 		return ENOENT;
 	}
 
-	snprintf(g_fdfs_base_path, sizeof(g_fdfs_base_path), "%s", pPath);
-	chopPath(g_fdfs_base_path);
-	if (!fileExists(g_fdfs_base_path))
+	snprintf(SF_G_BASE_PATH_STR, sizeof(SF_G_BASE_PATH_STR), "%s", pPath);
+	chopPath(SF_G_BASE_PATH_STR);
+	if (!fileExists(SF_G_BASE_PATH_STR))
 	{
 		logError("file: "__FILE__", line: %d, "
 			"\"%s\" can't be accessed, error info: %s",
-			__LINE__, STRERROR(errno), g_fdfs_base_path);
+			__LINE__, STRERROR(errno), SF_G_BASE_PATH_STR);
 		return errno != 0 ? errno : ENOENT;
 	}
-	if (!isDir(g_fdfs_base_path))
+	if (!isDir(SF_G_BASE_PATH_STR))
 	{
 		logError("file: "__FILE__", line: %d, "
 			"\"%s\" is not a directory!",
-			__LINE__, g_fdfs_base_path);
+			__LINE__, SF_G_BASE_PATH_STR);
 		return ENOTDIR;
 	}
 

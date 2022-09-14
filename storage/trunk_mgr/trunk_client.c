@@ -51,7 +51,7 @@ static int trunk_client_trunk_do_alloc_space(ConnectionInfo *pTrunkServer, \
 	pHeader->cmd = STORAGE_PROTO_CMD_TRUNK_ALLOC_SPACE;
 
 	if ((result=tcpsenddata_nb(pTrunkServer->sock, out_buff, \
-			sizeof(out_buff), g_fdfs_network_timeout)) != 0)
+			sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"send data to storage server %s:%d fail, " \
@@ -186,7 +186,7 @@ static int trunk_client_trunk_confirm_or_free(ConnectionInfo *pTrunkServer,\
 	int2buff(pTrunkInfo->file.size, pTrunkBuff->size);
 
 	if ((result=tcpsenddata_nb(pTrunkServer->sock, out_buff, \
-			sizeof(out_buff), g_fdfs_network_timeout)) != 0)
+			sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"send data to storage server %s:%d fail, " \

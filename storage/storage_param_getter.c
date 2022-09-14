@@ -75,8 +75,8 @@ int storage_get_params_from_tracker()
 	char *pIdType;
 
 	if ((result=fdfs_get_ini_context_from_tracker(&g_tracker_group,
-		&iniContext, (bool * volatile)&g_continue_flag,
-		g_client_bind_addr, g_bind_addr)) != 0)
+		&iniContext, (bool * volatile)&SF_G_CONTINUE_FLAG,
+		g_client_bind_addr, SF_G_INNER_BIND_ADDR)) != 0)
 	{
 		return result;
 	}

@@ -573,7 +573,7 @@ int fdfs_get_storage_ids_from_tracker_server(TrackerServerInfo *pTrackerServer)
 	{
 		int2buff(start_index, p);
 		if ((result=tcpsenddata_nb(conn->sock, out_buff,
-			sizeof(out_buff), g_fdfs_network_timeout)) != 0)
+			sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
 		{
 			logError("file: "__FILE__", line: %d, "
 				"send data to tracker server %s:%d fail, "

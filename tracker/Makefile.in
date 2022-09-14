@@ -2,14 +2,14 @@
 
 COMPILE = $(CC) $(CFLAGS)
 INC_PATH = -I../common -I/usr/local/include
-LIB_PATH = $(LIBS) -lfastcommon
+LIB_PATH = $(LIBS) -lfastcommon -lserverframe
 TARGET_PATH = $(TARGET_PREFIX)/bin
 CONFIG_PATH = $(TARGET_CONF_PATH)
 
 SHARED_OBJS = ../common/fdfs_global.o \
               tracker_proto.o tracker_mem.o tracker_service.o tracker_status.o \
               tracker_global.o tracker_func.o fdfs_server_id_func.o \
-              fdfs_shared_func.o tracker_nio.o tracker_relationship.o \
+              fdfs_shared_func.o tracker_relationship.o \
               $(TRACKER_EXTRA_OBJS)
 
 ALL_OBJS = $(SHARED_OBJS)
@@ -17,6 +17,9 @@ ALL_OBJS = $(SHARED_OBJS)
 ALL_PRGS = fdfs_trackerd
 
 all: $(ALL_OBJS) $(ALL_PRGS)
+
+$(ALL_PRGS): $(ALL_OBJS)
+
 .o:
 	$(COMPILE) -o $@ $<  $(SHARED_OBJS) $(LIB_PATH) $(INC_PATH)
 .c:

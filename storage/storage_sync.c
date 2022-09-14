@@ -227,7 +227,7 @@ static int storage_sync_copy_file(ConnectionInfo *pStorageServer, \
 		p += pRecord->filename_len;
 
 		if((result=tcpsenddata_nb(pStorageServer->sock, out_buff, \
-			p - out_buff, g_fdfs_network_timeout)) != 0)
+			p - out_buff, SF_G_NETWORK_TIMEOUT)) != 0)
 		{
 			logError("file: "__FILE__", line: %d, " \
 				"sync data to storage server %s:%d fail, " \
@@ -242,7 +242,7 @@ static int storage_sync_copy_file(ConnectionInfo *pStorageServer, \
 		if (need_sync_file && (stat_buf.st_size > 0) && \
 			((result=tcpsendfile_ex(pStorageServer->sock, \
 			full_filename, file_offset, stat_buf.st_size, \
-			g_fdfs_network_timeout, &total_send_bytes)) != 0))
+			SF_G_NETWORK_TIMEOUT, &total_send_bytes)) != 0))
 		{
 			logError("file: "__FILE__", line: %d, " \
 				"sync data to storage server %s:%d fail, " \
@@ -424,7 +424,7 @@ static int storage_sync_modify_file(ConnectionInfo *pStorageServer, \
 		p += pRecord->filename_len;
 
 		if((result=tcpsenddata_nb(pStorageServer->sock, out_buff, \
-			p - out_buff, g_fdfs_network_timeout)) != 0)
+			p - out_buff, SF_G_NETWORK_TIMEOUT)) != 0)
 		{
 			logError("file: "__FILE__", line: %d, " \
 				"sync data to storage server %s:%d fail, " \
@@ -438,7 +438,7 @@ static int storage_sync_modify_file(ConnectionInfo *pStorageServer, \
 
 		if ((result=tcpsendfile_ex(pStorageServer->sock, \
 			full_filename, start_offset, modify_length, \
-			g_fdfs_network_timeout, &total_send_bytes)) != 0)
+			SF_G_NETWORK_TIMEOUT, &total_send_bytes)) != 0)
 		{
 			logError("file: "__FILE__", line: %d, " \
 				"sync data to storage server %s:%d fail, " \
@@ -589,7 +589,7 @@ static int storage_sync_truncate_file(ConnectionInfo *pStorageServer, \
 		p += pRecord->filename_len;
 
 		if((result=tcpsenddata_nb(pStorageServer->sock, out_buff, \
-			p - out_buff, g_fdfs_network_timeout)) != 0)
+			p - out_buff, SF_G_NETWORK_TIMEOUT)) != 0)
 		{
 			logError("file: "__FILE__", line: %d, " \
 				"sync data to storage server %s:%d fail, " \
@@ -663,7 +663,7 @@ static int storage_sync_delete_file(ConnectionInfo *pStorageServer, \
 
 	if ((result=tcpsenddata_nb(pStorageServer->sock, out_buff, \
 		sizeof(TrackerHeader) + 4 + FDFS_GROUP_NAME_MAX_LEN + \
-		pRecord->filename_len, g_fdfs_network_timeout)) != 0)
+		pRecord->filename_len, SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("FILE: "__FILE__", line: %d, " \
 			"send data to storage server %s:%d fail, " \
@@ -713,7 +713,7 @@ static int storage_report_my_server_id(ConnectionInfo *pStorageServer)
 	strcpy(out_buff + sizeof(TrackerHeader), g_my_server_id_str);
 	if ((result=tcpsenddata_nb(pStorageServer->sock, out_buff, \
 		sizeof(TrackerHeader) + FDFS_STORAGE_ID_MAX_SIZE, \
-		g_fdfs_network_timeout)) != 0)
+		SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("FILE: "__FILE__", line: %d, " \
 			"send data to storage server %s:%d fail, " \
@@ -938,7 +938,7 @@ static int storage_sync_link_file(ConnectionInfo *pStorageServer, \
 
 	if ((result=tcpsenddata_nb(pStorageServer->sock, out_buff, \
 		sizeof(TrackerHeader) + out_body_len, \
-		g_fdfs_network_timeout)) != 0)
+		SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("FILE: "__FILE__", line: %d, " \
 			"send data to storage server %s:%d fail, " \
@@ -1046,7 +1046,7 @@ static int storage_sync_rename_file(ConnectionInfo *pStorageServer,
 
 	if ((result=tcpsenddata_nb(pStorageServer->sock, out_buff,
 		sizeof(TrackerHeader) + out_body_len,
-		g_fdfs_network_timeout)) != 0)
+		SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("FILE: "__FILE__", line: %d, "
 			"send data to storage server %s:%d fail, "
@@ -1199,7 +1199,7 @@ static int storage_sync_data(StorageBinLogReader *pReader, \
 				logCrit("file: "__FILE__", line: %d, " \
 					"storage_write_to_mark_file " \
 					"fail, program exit!", __LINE__);
-				g_continue_flag = false;
+				SF_G_CONTINUE_FLAG = false;
 				return result;
 			}
 		}
@@ -1216,7 +1216,7 @@ static int write_to_binlog_index(const int binlog_index)
 	int len;
 
 	snprintf(full_filename, sizeof(full_filename),
-			"%s/data/"SYNC_DIR_NAME"/%s", g_fdfs_base_path,
+			"%s/data/"SYNC_DIR_NAME"/%s", SF_G_BASE_PATH_STR,
 			SYNC_BINLOG_INDEX_FILENAME);
 	if ((fd=open(full_filename, O_WRONLY | O_CREAT | O_TRUNC, 0644)) < 0)
 	{
@@ -1245,7 +1245,7 @@ static int write_to_binlog_index(const int binlog_index)
 
 	close(fd);
 
-	STORAGE_CHOWN(full_filename, geteuid(), getegid())
+	SF_CHOWN_TO_RUNBY_RETURN_ON_ERROR(full_filename);
 
 	return 0;
 }
@@ -1258,7 +1258,7 @@ static int get_binlog_index_from_file_old()
 	int bytes;
 
 	snprintf(full_filename, sizeof(full_filename),
-			"%s/data/"SYNC_DIR_NAME"/%s", g_fdfs_base_path,
+			"%s/data/"SYNC_DIR_NAME"/%s", SF_G_BASE_PATH_STR,
 			SYNC_BINLOG_INDEX_FILENAME_OLD);
 	if ((fd=open(full_filename, O_RDONLY)) >= 0)
 	{
@@ -1297,7 +1297,7 @@ static int get_binlog_index_from_file()
     int result;
 
     snprintf(full_filename, sizeof(full_filename),
-            "%s/data/"SYNC_DIR_NAME"/%s", g_fdfs_base_path,
+            "%s/data/"SYNC_DIR_NAME"/%s", SF_G_BASE_PATH_STR,
             SYNC_BINLOG_INDEX_FILENAME);
     if (access(full_filename, F_OK) != 0)
     {
@@ -1348,7 +1348,7 @@ static char *get_writable_binlog_filename(char *full_filename)
 	snprintf(full_filename, MAX_PATH_SIZE, \
 			"%s/data/"SYNC_DIR_NAME"/"SYNC_BINLOG_FILE_PREFIX"" \
 			SYNC_BINLOG_FILE_EXT_FMT, \
-			g_fdfs_base_path, g_binlog_index);
+			SF_G_BASE_PATH_STR, g_binlog_index);
 	return full_filename;
 }
 
@@ -1358,7 +1358,7 @@ static char *get_writable_binlog_filename1(char *full_filename, \
 	snprintf(full_filename, MAX_PATH_SIZE, \
 			"%s/data/"SYNC_DIR_NAME"/"SYNC_BINLOG_FILE_PREFIX"" \
 			SYNC_BINLOG_FILE_EXT_FMT, \
-			g_fdfs_base_path, binlog_index);
+			SF_G_BASE_PATH_STR, binlog_index);
 	return full_filename;
 }
 
@@ -1400,7 +1400,7 @@ static int open_next_writable_binlog()
 			errno, STRERROR(errno));
 		return errno != 0 ? errno : EACCES;
 	}
-	STORAGE_FCHOWN(g_binlog_fd, full_filename, geteuid(), getegid())
+	SF_FCHOWN_TO_RUNBY_RETURN_ON_ERROR(g_binlog_fd, full_filename);
 
 	g_binlog_index++;
 	return 0;
@@ -1413,7 +1413,7 @@ int storage_sync_init()
 	char full_filename[MAX_PATH_SIZE];
 	int result;
 
-	snprintf(data_path, sizeof(data_path), "%s/data", g_fdfs_base_path);
+	snprintf(data_path, sizeof(data_path), "%s/data", SF_G_BASE_PATH_STR);
 	if (!fileExists(data_path))
 	{
 		if (mkdir(data_path, 0755) != 0)
@@ -1426,7 +1426,7 @@ int storage_sync_init()
 			return errno != 0 ? errno : ENOENT;
 		}
 
-		STORAGE_CHOWN(data_path, geteuid(), getegid())
+		SF_CHOWN_TO_RUNBY_RETURN_ON_ERROR(data_path);
 	}
 
 	snprintf(sync_path, sizeof(sync_path), \
@@ -1443,7 +1443,7 @@ int storage_sync_init()
 			return errno != 0 ? errno : ENOENT;
 		}
 
-		STORAGE_CHOWN(sync_path, geteuid(), getegid())
+		SF_CHOWN_TO_RUNBY_RETURN_ON_ERROR(sync_path);
 	}
 
 	binlog_write_cache_buff = (char *)malloc(SYNC_BINLOG_WRITE_BUFF_SIZE);
@@ -1486,7 +1486,7 @@ int storage_sync_init()
 		return errno != 0 ? errno : EIO;
 	}
 
-	STORAGE_FCHOWN(g_binlog_fd, full_filename, geteuid(), getegid())
+	SF_FCHOWN_TO_RUNBY_RETURN_ON_ERROR(g_binlog_fd, full_filename);
 
 	/*
 	//printf("full_filename=%s, binlog_file_size=%d\n", \
@@ -1631,7 +1631,7 @@ static int storage_binlog_fsync(const bool bNeedLock)
 			binlog_file_size = 0;
 			if (write_ret != 0)
 			{
-				g_continue_flag = false;
+				SF_G_CONTINUE_FLAG = false;
 				logCrit("file: "__FILE__", line: %d, " \
 					"open binlog file \"%s\" fail, " \
 					"program exit!", \
@@ -1720,7 +1720,7 @@ static char *get_binlog_readable_filename_ex(
 	snprintf(full_filename, MAX_PATH_SIZE,
 			"%s/data/"SYNC_DIR_NAME"/"SYNC_BINLOG_FILE_PREFIX""
 			SYNC_BINLOG_FILE_EXT_FMT,
-			g_fdfs_base_path, binlog_index);
+			SF_G_BASE_PATH_STR, binlog_index);
 	return full_filename;
 }
 
@@ -1952,13 +1952,13 @@ static char *get_mark_filename_by_id_and_port(const char *storage_id,
 	if (g_use_storage_id)
 	{
 		snprintf(full_filename, filename_size,
-			"%s/data/"SYNC_DIR_NAME"/%s%s", g_fdfs_base_path,
+			"%s/data/"SYNC_DIR_NAME"/%s%s", SF_G_BASE_PATH_STR,
 			storage_id, SYNC_MARK_FILE_EXT);
 	}
 	else
 	{
 		snprintf(full_filename, filename_size,
-			"%s/data/"SYNC_DIR_NAME"/%s_%d%s", g_fdfs_base_path,
+			"%s/data/"SYNC_DIR_NAME"/%s_%d%s", SF_G_BASE_PATH_STR,
 			storage_id, port, SYNC_MARK_FILE_EXT);
 	}
 	return full_filename;
@@ -1968,7 +1968,7 @@ static char *get_mark_filename_by_ip_and_port(const char *ip_addr,
 		const int port, char *full_filename, const int filename_size)
 {
 	snprintf(full_filename, filename_size,
-		"%s/data/"SYNC_DIR_NAME"/%s_%d%s", g_fdfs_base_path,
+		"%s/data/"SYNC_DIR_NAME"/%s_%d%s", SF_G_BASE_PATH_STR,
 		ip_addr, port, SYNC_MARK_FILE_EXT);
 	return full_filename;
 }
@@ -1976,7 +1976,7 @@ static char *get_mark_filename_by_ip_and_port(const char *ip_addr,
 char *get_mark_filename_by_reader(StorageBinLogReader *pReader)
 {
 	return get_mark_filename_by_id_and_port(pReader->storage_id,
-			g_server_port, pReader->mark_filename,
+			SF_G_INNER_PORT, pReader->mark_filename,
             sizeof(pReader->mark_filename));
 }
 
@@ -1984,7 +1984,7 @@ static char *get_mark_filename_by_id(const char *storage_id,
 		char *full_filename, const int filename_size)
 {
 	return get_mark_filename_by_id_and_port(storage_id,
-            g_server_port, full_filename, filename_size);
+            SF_G_INNER_PORT, full_filename, filename_size);
 }
 
 int storage_report_storage_status(const char *storage_id, \
@@ -2017,12 +2017,12 @@ int storage_report_storage_status(const char *storage_id, \
 			"waiting for g_sync_old_done turn to true...", \
 			__LINE__, ip_addr, status);
 
-		while (g_continue_flag && !g_sync_old_done)
+		while (SF_G_CONTINUE_FLAG && !g_sync_old_done)
 		{
 			sleep(1);
 		}
 
-		if (!g_continue_flag)
+		if (!SF_G_CONTINUE_FLAG)
 		{
 			return 0;
 		}
@@ -2048,7 +2048,7 @@ int storage_report_storage_status(const char *storage_id, \
 		for (i=0; i < 3; i++)
 		{
             conn = tracker_connect_server_no_pool_ex(pTServer,
-                    g_client_bind_addr ? g_bind_addr : NULL, &result, false);
+                    g_client_bind_addr ? SF_G_INNER_BIND_ADDR : NULL, &result, false);
             if (conn != NULL)
             {
 				break;
@@ -2098,12 +2098,12 @@ static int storage_reader_sync_init_req(StorageBinLogReader *pReader)
 
 	if (!g_sync_old_done)
 	{
-		while (g_continue_flag && !g_sync_old_done)
+		while (SF_G_CONTINUE_FLAG && !g_sync_old_done)
 		{
 			sleep(1);
 		}
 
-		if (!g_continue_flag)
+		if (!SF_G_CONTINUE_FLAG)
 		{
 			return EINTR;
 		}
@@ -2141,10 +2141,10 @@ static int storage_reader_sync_init_req(StorageBinLogReader *pReader)
 	do
 	{
         conn = NULL;
-		while (g_continue_flag)
+		while (SF_G_CONTINUE_FLAG)
 		{
             conn = tracker_connect_server_no_pool_ex(pTServer,
-                    g_client_bind_addr ? g_bind_addr : NULL, &result, true);
+                    g_client_bind_addr ? SF_G_INNER_BIND_ADDR : NULL, &result, true);
             if (conn != NULL)
             {
 				break;
@@ -2159,7 +2159,7 @@ static int storage_reader_sync_init_req(StorageBinLogReader *pReader)
 			sleep(g_heart_beat_interval);
 		}
 
-		if (!g_continue_flag)
+		if (!SF_G_CONTINUE_FLAG)
 		{
 			break;
 		}
@@ -2239,7 +2239,7 @@ int storage_reader_init(FDFSStorageBrief *pStorage, StorageBinLogReader *pReader
 		{
 			char old_mark_filename[MAX_PATH_SIZE];
 			get_mark_filename_by_ip_and_port(pStorage->ip_addr,
-				g_server_port, old_mark_filename,
+				SF_G_INNER_PORT, old_mark_filename,
 				sizeof(old_mark_filename));
 			if (fileExists(old_mark_filename))
 			{
@@ -2437,7 +2437,7 @@ static int storage_write_to_mark_file(StorageBinLogReader *pReader)
 
 	if ((result=safeWriteToFile(pReader->mark_filename, buff, len)) == 0)
 	{
-        STORAGE_CHOWN(pReader->mark_filename, geteuid(), getegid())
+        SF_CHOWN_TO_RUNBY_RETURN_ON_ERROR(pReader->mark_filename);
 		pReader->last_scan_rows = pReader->scan_row_count;
 		pReader->last_sync_rows = pReader->sync_row_count;
 	}
@@ -2911,7 +2911,7 @@ static void* storage_sync_thread_entrance(void* arg)
 	
 	pStorage = (FDFSStorageBrief *)arg;
 	strcpy(storage_server.ip_addr, pStorage->ip_addr);
-	storage_server.port = g_server_port;
+	storage_server.port = SF_G_INNER_PORT;
 	storage_server.sock = -1;
 
 	memset(local_ip_addr, 0, sizeof(local_ip_addr));
@@ -2922,7 +2922,7 @@ static void* storage_sync_thread_entrance(void* arg)
                 "malloc %d bytes fail, "
                 "fail, program exit!",
                 __LINE__, (int)sizeof(StorageBinLogReader));
-        g_continue_flag = false;
+        SF_G_CONTINUE_FLAG = false;
         storage_sync_thread_exit(&storage_server);
         return NULL;
     }
@@ -2941,12 +2941,12 @@ static void* storage_sync_thread_entrance(void* arg)
 		"sync thread to storage server %s:%d started", \
 		__LINE__, storage_server.ip_addr, storage_server.port);
  
-	while (g_continue_flag && \
+	while (SF_G_CONTINUE_FLAG && \
 		pStorage->status != FDFS_STORAGE_STATUS_DELETED && \
 		pStorage->status != FDFS_STORAGE_STATUS_IP_CHANGED && \
 		pStorage->status != FDFS_STORAGE_STATUS_NONE)
 	{
-		while (g_continue_flag && \
+		while (SF_G_CONTINUE_FLAG && \
 			(pStorage->status == FDFS_STORAGE_STATUS_INIT ||
 			 pStorage->status == FDFS_STORAGE_STATUS_OFFLINE ||
 			 pStorage->status == FDFS_STORAGE_STATUS_ONLINE))
@@ -2954,7 +2954,7 @@ static void* storage_sync_thread_entrance(void* arg)
 			sleep(1);
 		}
 
-		if ((!g_continue_flag) ||
+		if ((!SF_G_CONTINUE_FLAG) ||
 			pStorage->status == FDFS_STORAGE_STATUS_DELETED || \
 			pStorage->status == FDFS_STORAGE_STATUS_IP_CHANGED || \
 			pStorage->status == FDFS_STORAGE_STATUS_NONE)
@@ -2970,7 +2970,7 @@ static void* storage_sync_thread_entrance(void* arg)
 				&start_time, &end_time);
 			start_time += 60;
 			end_time -= 60;
-			while (g_continue_flag && (current_time >= start_time \
+			while (SF_G_CONTINUE_FLAG && (current_time >= start_time \
 					&& current_time <= end_time))
 			{
 				current_time = g_current_time;
@@ -2980,7 +2980,7 @@ static void* storage_sync_thread_entrance(void* arg)
 
         storage_sync_connect_storage_server(pStorage, &storage_server);
 
-		if ((!g_continue_flag) ||
+		if ((!SF_G_CONTINUE_FLAG) ||
 			pStorage->status == FDFS_STORAGE_STATUS_DELETED || \
 			pStorage->status == FDFS_STORAGE_STATUS_IP_CHANGED || \
 			pStorage->status == FDFS_STORAGE_STATUS_NONE)
@@ -3006,13 +3006,13 @@ static void* storage_sync_thread_entrance(void* arg)
 				"storage_reader_init fail, errno=%d, " \
 				"program exit!", \
 				__LINE__, result);
-			g_continue_flag = false;
+			SF_G_CONTINUE_FLAG = false;
 			break;
 		}
 
 		if (!pReader->need_sync_old)
 		{
-			while (g_continue_flag && \
+			while (SF_G_CONTINUE_FLAG && \
 			(pStorage->status != FDFS_STORAGE_STATUS_ACTIVE && \
 			 pStorage->status != FDFS_STORAGE_STATUS_DELETED && \
 			 pStorage->status != FDFS_STORAGE_STATUS_IP_CHANGED && \
@@ -3087,7 +3087,7 @@ static void* storage_sync_thread_entrance(void* arg)
 		}
 
 		sync_result = 0;
-		while (g_continue_flag && (!g_sync_part_time || \
+		while (SF_G_CONTINUE_FLAG && (!g_sync_part_time || \
 			(current_time >= start_time && \
 			current_time <= end_time)) && \
 			(pStorage->status == FDFS_STORAGE_STATUS_ACTIVE || \
@@ -3107,7 +3107,7 @@ static void* storage_sync_thread_entrance(void* arg)
 						"storage_write_to_mark_file " \
 						"fail, program exit!", \
 						__LINE__);
-					g_continue_flag = false;
+					SF_G_CONTINUE_FLAG = false;
 					break;
 				}
 
@@ -3131,7 +3131,7 @@ static void* storage_sync_thread_entrance(void* arg)
 					logCrit("file: "__FILE__", line: %d, " \
 						"storage_write_to_mark_file fail, " \
 						"program exit!", __LINE__);
-					g_continue_flag = false;
+					SF_G_CONTINUE_FLAG = false;
 					break;
 					}
 				}
@@ -3189,7 +3189,7 @@ static void* storage_sync_thread_entrance(void* arg)
 					logCrit("file: "__FILE__", line: %d, " \
 						"rewind_to_prev_rec_end fail, "\
 						"program exit!", __LINE__);
-					g_continue_flag = false;
+					SF_G_CONTINUE_FLAG = false;
 				}
 
 				break;
@@ -3211,7 +3211,7 @@ static void* storage_sync_thread_entrance(void* arg)
 				logCrit("file: "__FILE__", line: %d, " \
 					"storage_write_to_mark_file fail, " \
 					"program exit!", __LINE__);
-				g_continue_flag = false;
+				SF_G_CONTINUE_FLAG = false;
 				break;
 			}
 		}
@@ -3220,7 +3220,7 @@ static void* storage_sync_thread_entrance(void* arg)
 		storage_server.sock = -1;
 		storage_reader_destroy(pReader);
 
-		if (!g_continue_flag)
+		if (!SF_G_CONTINUE_FLAG)
 		{
 			break;
 		}
@@ -3276,7 +3276,7 @@ int storage_sync_thread_start(const FDFSStorageBrief *pStorage)
 		return 0;
 	}
 
-	if ((result=init_pthread_attr(&pattr, g_thread_stack_size)) != 0)
+	if ((result=init_pthread_attr(&pattr, SF_G_THREAD_STACK_SIZE)) != 0)
 	{
 		return result;
 	}

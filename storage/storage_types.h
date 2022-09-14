@@ -6,28 +6,20 @@
 * Please visit the FastDFS Home Page http://www.fastken.com/ for more detail.
 **/
 
-//tracker_nio.h
+//storage_types.h
 
-#ifndef _TRACKER_NIO_H
-#define _TRACKER_NIO_H
+#ifndef _STORAGE_TYPES_H
+#define _STORAGE_TYPES_H
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
-#include "tracker_types.h"
-#include "storage_func.h"
 #include "fastcommon/fast_task_queue.h"
-#include "storage_global.h"
+#include "tracker_types.h"
 #include "fdht_types.h"
 #include "trunk_mem.h"
 #include "fastcommon/md5.h"
-
-#define FDFS_STORAGE_STAGE_NIO_INIT   0
-#define FDFS_STORAGE_STAGE_NIO_RECV   1
-#define FDFS_STORAGE_STAGE_NIO_SEND   2
-#define FDFS_STORAGE_STAGE_NIO_CLOSE  4  //close socket
-#define FDFS_STORAGE_STAGE_DIO_THREAD 8
 
 #define FDFS_STORAGE_FILE_OP_READ     'R'
 #define FDFS_STORAGE_FILE_OP_WRITE    'W'
@@ -40,13 +32,14 @@ typedef int (*TaskDealFunc)(struct fast_task_info *pTask);
 /* this clean func will be called when connection disconnected */
 typedef void (*DisconnectCleanFunc)(struct fast_task_info *pTask);
 
-typedef void (*DeleteFileLogCallback)(struct fast_task_info *pTask, \
+typedef void (*DeleteFileLogCallback)(struct fast_task_info *pTask,
 		const int err_no);
 
-typedef void (*FileDealDoneCallback)(struct fast_task_info *pTask, \
+typedef void (*FileDealDoneCallback)(struct fast_task_info *pTask,
 		const int err_no);
 
-typedef int (*FileDealContinueCallback)(struct fast_task_info *pTask);
+typedef int (*FileDealContinueCallback)(struct fast_task_info *pTask,
+        const int stage);
 
 typedef int (*FileBeforeOpenCallback)(struct fast_task_info *pTask);
 typedef int (*FileBeforeCloseCallback)(struct fast_task_info *pTask);
@@ -56,6 +49,21 @@ typedef int (*FileBeforeCloseCallback)(struct fast_task_info *pTask);
 #define _FILE_TYPE_SLAVE     4
 #define _FILE_TYPE_REGULAR   8
 #define _FILE_TYPE_LINK     16
+
+typedef struct
+{
+    FDFSStorageBrief server;
+    int last_sync_src_timestamp;
+} FDFSStorageServer;
+
+typedef struct
+{
+    signed char my_status;   //my status from tracker server
+    signed char my_result;   //my report result
+    signed char src_storage_result; //src storage report result
+    bool get_my_ip_done;
+    bool report_my_status;
+} StorageStatusPerTracker;
 
 typedef struct
 {
@@ -120,8 +128,6 @@ typedef struct
 
 typedef struct
 {
-	int nio_thread_index;  //nio thread index
-	char stage;  //nio stage, send or recv
 	char storage_server_id[FDFS_STORAGE_ID_MAX_SIZE];
 
 	StorageFileContext file_context;
@@ -137,24 +143,4 @@ typedef struct
 	DisconnectCleanFunc clean_func;  //clean function pointer when finished
 } StorageClientInfo;
 
-struct storage_nio_thread_data
-{
-	struct nio_thread_data thread_data;
-	GroupArray group_array;  //FastDHT group array
-};
-
-#ifdef __cplusplus
-extern "C" {
 #endif
-
-void storage_recv_notify_read(int sock, short event, void *arg);
-int storage_send_add_event(struct fast_task_info *pTask);
-
-void task_finish_clean_up(struct fast_task_info *pTask);
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif
-

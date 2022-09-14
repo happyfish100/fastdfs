@@ -84,7 +84,7 @@ char *get_trunk_binlog_filename(char *full_filename)
 {
 	snprintf(full_filename, MAX_PATH_SIZE, \
 		"%s/data/"TRUNK_DIR_NAME"/"TRUNK_SYNC_BINLOG_FILENAME_STR, \
-		g_fdfs_base_path);
+		SF_G_BASE_PATH_STR);
 	return full_filename;
 }
 
@@ -171,7 +171,7 @@ int trunk_sync_init()
 	char binlog_filename[MAX_PATH_SIZE];
 	int result;
 
-	snprintf(data_path, sizeof(data_path), "%s/data", g_fdfs_base_path);
+	snprintf(data_path, sizeof(data_path), "%s/data", SF_G_BASE_PATH_STR);
 	if (!fileExists(data_path))
 	{
 		if (mkdir(data_path, 0755) != 0)
@@ -184,7 +184,7 @@ int trunk_sync_init()
 			return errno != 0 ? errno : ENOENT;
 		}
 
-		STORAGE_CHOWN(data_path, geteuid(), getegid())
+		SF_CHOWN_TO_RUNBY_RETURN_ON_ERROR(data_path);
 	}
 
 	snprintf(sync_path, sizeof(sync_path), \
@@ -201,7 +201,7 @@ int trunk_sync_init()
 			return errno != 0 ? errno : ENOENT;
 		}
 
-		STORAGE_CHOWN(sync_path, geteuid(), getegid())
+		SF_CHOWN_TO_RUNBY_RETURN_ON_ERROR(sync_path);
 	}
 
 	trunk_binlog_write_cache_buff = (char *)malloc( \
@@ -227,7 +227,7 @@ int trunk_sync_init()
 		return result;
 	}
 
-	STORAGE_FCHOWN(trunk_binlog_fd, binlog_filename, geteuid(), getegid())
+	SF_FCHOWN_TO_RUNBY_RETURN_ON_ERROR(trunk_binlog_fd, binlog_filename);
 
 	return 0;
 }
@@ -344,7 +344,7 @@ int trunk_sync_notify_thread_reset_offset()
             __LINE__, count);
 
     done = false;
-    for (i=0; i<300 && g_continue_flag; i++)
+    for (i=0; i<300 && SF_G_CONTINUE_FLAG; i++)
     {
         info_end = sync_thread_info_array.thread_data +
             sync_thread_info_array.alloc_count;
@@ -487,7 +487,7 @@ static int trunk_binlog_delete_overflow_backups()
     TrunkBinlogBackupFileArray file_array;
 
 	snprintf(file_path, sizeof(file_path),
-		"%s/data/%s", g_fdfs_base_path, TRUNK_DIR_NAME);
+		"%s/data/%s", SF_G_BASE_PATH_STR, TRUNK_DIR_NAME);
     if ((dir=opendir(file_path)) == NULL)
     {
         result = errno != 0 ? errno : EPERM;
@@ -1435,7 +1435,7 @@ static char *get_binlog_readable_filename(const void *pArg,
 
 	snprintf(full_filename, MAX_PATH_SIZE, 
 		"%s/data/"TRUNK_DIR_NAME"/"TRUNK_SYNC_BINLOG_FILENAME_STR,
-		g_fdfs_base_path);
+		SF_G_BASE_PATH_STR);
 	return full_filename;
 }
 
@@ -1505,13 +1505,13 @@ static char *trunk_get_mark_filename_by_id_and_port(const char *storage_id, \
 	if (g_use_storage_id)
 	{
 		snprintf(full_filename, filename_size, \
-			"%s/data/"TRUNK_DIR_NAME"/%s%s", g_fdfs_base_path, \
+			"%s/data/"TRUNK_DIR_NAME"/%s%s", SF_G_BASE_PATH_STR, \
 			storage_id, TRUNK_SYNC_MARK_FILE_EXT_STR);
 	}
 	else
 	{
 		snprintf(full_filename, filename_size, \
-			"%s/data/"TRUNK_DIR_NAME"/%s_%d%s", g_fdfs_base_path, \
+			"%s/data/"TRUNK_DIR_NAME"/%s_%d%s", SF_G_BASE_PATH_STR, \
 			storage_id, port, TRUNK_SYNC_MARK_FILE_EXT_STR);
 	}
 
@@ -1522,7 +1522,7 @@ static char *trunk_get_mark_filename_by_ip_and_port(const char *ip_addr, \
 		const int port, char *full_filename, const int filename_size)
 {
 	snprintf(full_filename, filename_size, \
-		"%s/data/"TRUNK_DIR_NAME"/%s_%d%s", g_fdfs_base_path, \
+		"%s/data/"TRUNK_DIR_NAME"/%s_%d%s", SF_G_BASE_PATH_STR, \
 		ip_addr, port, TRUNK_SYNC_MARK_FILE_EXT_STR);
 
 	return full_filename;
@@ -1540,13 +1540,13 @@ char *trunk_mark_filename_by_reader(const void *pArg, char *full_filename)
 	}
 
 	return trunk_get_mark_filename_by_id_and_port(pReader->storage_id, \
-			g_server_port, full_filename, MAX_PATH_SIZE);
+			SF_G_INNER_PORT, full_filename, MAX_PATH_SIZE);
 }
 
 static char *trunk_get_mark_filename_by_id(const char *storage_id, 
 	char *full_filename, const int filename_size)
 {
-	return trunk_get_mark_filename_by_id_and_port(storage_id, g_server_port, \
+	return trunk_get_mark_filename_by_id_and_port(storage_id, SF_G_INNER_PORT, \
 				full_filename, filename_size);
 }
 
@@ -1598,7 +1598,7 @@ int trunk_reader_init(const FDFSStorageBrief *pStorage,
 		{
 			char old_mark_filename[MAX_PATH_SIZE];
 			trunk_get_mark_filename_by_ip_and_port(
-				pStorage->ip_addr, g_server_port,
+				pStorage->ip_addr, SF_G_INNER_PORT,
 				old_mark_filename, sizeof(old_mark_filename));
 			if (fileExists(old_mark_filename))
 			{
@@ -1717,7 +1717,7 @@ static int trunk_write_to_mark_file(TrunkBinLogReader *pReader)
 
     if ((result=safeWriteToFile(pReader->mark_filename, buff, len)) == 0)
     {
-        STORAGE_CHOWN(pReader->mark_filename, geteuid(), getegid())
+        SF_CHOWN_TO_RUNBY_RETURN_ON_ERROR(pReader->mark_filename);
 		pReader->last_binlog_offset = pReader->binlog_offset;
     }
 
@@ -2008,7 +2008,7 @@ static int trunk_sync_data(TrunkBinLogReader *pReader, \
 	long2buff(length, header.pkg_len);
 	header.cmd = STORAGE_PROTO_CMD_TRUNK_SYNC_BINLOG;
 	if ((result=tcpsenddata_nb(pStorage->sock, &header, \
-		sizeof(TrackerHeader), g_fdfs_network_timeout)) != 0)
+		sizeof(TrackerHeader), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("FILE: "__FILE__", line: %d, " \
 			"send data to storage server %s:%d fail, " \
@@ -2019,7 +2019,7 @@ static int trunk_sync_data(TrunkBinLogReader *pReader, \
 	}
 
 	if ((result=tcpsenddata_nb(pStorage->sock, pReader->binlog_buff.buffer,\
-		length, g_fdfs_network_timeout)) != 0)
+		length, SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("FILE: "__FILE__", line: %d, " \
 			"send data to storage server %s:%d fail, " \
@@ -2072,14 +2072,14 @@ static void *trunk_sync_thread_entrance(void* arg)
 	pStorage = thread_data->pStorage;
 
 	strcpy(storage_server.ip_addr, pStorage->ip_addr);
-	storage_server.port = g_server_port;
+	storage_server.port = SF_G_INNER_PORT;
 	storage_server.sock = -1;
 
 	logInfo("file: "__FILE__", line: %d, " \
 		"trunk sync thread to storage server %s:%d started", \
 		__LINE__, storage_server.ip_addr, storage_server.port);
 
-	while (g_continue_flag && g_if_trunker_self && \
+	while (SF_G_CONTINUE_FLAG && g_if_trunker_self && \
 		pStorage->status != FDFS_STORAGE_STATUS_DELETED && \
 		pStorage->status != FDFS_STORAGE_STATUS_IP_CHANGED && \
 		pStorage->status != FDFS_STORAGE_STATUS_NONE)
@@ -2087,15 +2087,15 @@ static void *trunk_sync_thread_entrance(void* arg)
         storage_sync_connect_storage_server_ex(pStorage,
                 &storage_server, &g_if_trunker_self);
 
-		if ((!g_continue_flag) || (!g_if_trunker_self) || \
+		if ((!SF_G_CONTINUE_FLAG) || (!g_if_trunker_self) || \
 			pStorage->status == FDFS_STORAGE_STATUS_DELETED || \
 			pStorage->status == FDFS_STORAGE_STATUS_IP_CHANGED || \
 			pStorage->status == FDFS_STORAGE_STATUS_NONE)
 		{
 			logError("file: "__FILE__", line: %d, break loop." \
-				"g_continue_flag: %d, g_if_trunker_self: %d, " \
+				"SF_G_CONTINUE_FLAG: %d, g_if_trunker_self: %d, " \
 				"dest storage status: %d", __LINE__, \
-				g_continue_flag, g_if_trunker_self, \
+				SF_G_CONTINUE_FLAG, g_if_trunker_self, \
 				pStorage->status);
 			break;
 		}
@@ -2106,7 +2106,7 @@ static void *trunk_sync_thread_entrance(void* arg)
 			logCrit("file: "__FILE__", line: %d, "
 				"trunk_reader_init fail, errno=%d, "
 				"program exit!", __LINE__, result);
-			g_continue_flag = false;
+			SF_G_CONTINUE_FLAG = false;
 			break;
 		}
 
@@ -2160,7 +2160,7 @@ static void *trunk_sync_thread_entrance(void* arg)
 		}
 
 		sync_result = 0;
-		while (g_continue_flag && !thread_data->reset_binlog_offset &&
+		while (SF_G_CONTINUE_FLAG && !thread_data->reset_binlog_offset &&
 			pStorage->status != FDFS_STORAGE_STATUS_DELETED &&
 			pStorage->status != FDFS_STORAGE_STATUS_IP_CHANGED &&
 			pStorage->status != FDFS_STORAGE_STATUS_NONE)
@@ -2176,7 +2176,7 @@ static void *trunk_sync_thread_entrance(void* arg)
 					logCrit("file: "__FILE__", line: %d, "
 						"trunk_write_to_mark_file fail, "
 						"program exit!", __LINE__);
-					g_continue_flag = false;
+					SF_G_CONTINUE_FLAG = false;
 					break;
 					}
 				}
@@ -2227,7 +2227,7 @@ static void *trunk_sync_thread_entrance(void* arg)
 				logCrit("file: "__FILE__", line: %d, " \
 					"trunk_write_to_mark_file fail, " \
 					"program exit!", __LINE__);
-				g_continue_flag = false;
+				SF_G_CONTINUE_FLAG = false;
 				break;
 			}
 		}
@@ -2236,7 +2236,7 @@ static void *trunk_sync_thread_entrance(void* arg)
 		storage_server.sock = -1;
 		trunk_reader_destroy(&reader);
 
-		if (!g_continue_flag)
+		if (!SF_G_CONTINUE_FLAG)
 		{
 			break;
 		}
@@ -2384,7 +2384,7 @@ int trunk_sync_thread_start(const FDFSStorageBrief *pStorage)
 		return 0;
 	}
 
-	if ((result=init_pthread_attr(&pattr, g_thread_stack_size)) != 0)
+	if ((result=init_pthread_attr(&pattr, SF_G_THREAD_STACK_SIZE)) != 0)
 	{
 		return result;
 	}
@@ -2486,7 +2486,7 @@ int trunk_unlink_all_mark_files()
 	localtime_r(&t, &tm);
 
 	snprintf(file_path, sizeof(file_path),
-		"%s/data/%s", g_fdfs_base_path, TRUNK_DIR_NAME);
+		"%s/data/%s", SF_G_BASE_PATH_STR, TRUNK_DIR_NAME);
 
     if ((dir=opendir(file_path)) == NULL)
     {

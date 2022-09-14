@@ -25,10 +25,11 @@
 #include "fastcommon/logger.h"
 #include "fastcommon/sockopt.h"
 #include "fastcommon/ioevent_loop.h"
-#include "storage_dio.h"
-#include "storage_nio.h"
+#include "sf/sf_service.h"
+#include "storage_global.h"
 #include "storage_service.h"
 #include "trunk_mem.h"
+#include "storage_dio.h"
 
 static pthread_mutex_t g_dio_thread_lock;
 static struct storage_dio_context *g_dio_contexts = NULL;
@@ -55,7 +56,7 @@ int storage_dio_init()
 		return result;
 	}
 
-	if ((result=init_pthread_attr(&thread_attr, g_thread_stack_size)) != 0)
+	if ((result=init_pthread_attr(&thread_attr, SF_G_THREAD_STACK_SIZE)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"init_pthread_attr fail, program exit!", __LINE__);
@@ -153,10 +154,10 @@ int storage_dio_queue_push(struct fast_task_info *pTask)
     pClientInfo = (StorageClientInfo *)pTask->arg;
 	pFileContext = &(pClientInfo->file_context);
 	pContext = g_dio_contexts + pFileContext->dio_thread_index;
-
-	pClientInfo->stage |= FDFS_STORAGE_STAGE_DIO_THREAD;
+    sf_hold_task(pTask);
 	if ((result=blocked_queue_push(&(pContext->queue), pTask)) != 0)
 	{
+        sf_release_task(pTask);
 		ioevent_add_to_deleted_list(pTask);
 		return result;
 	}
@@ -238,7 +239,7 @@ int dio_discard_file(struct fast_task_info *pTask)
 	StorageFileContext *pFileContext;
 
 	pFileContext = &(((StorageClientInfo *)pTask->arg)->file_context);
-	pFileContext->offset+=pTask->length - pFileContext->buff_offset;
+	pFileContext->offset += pTask->length - pFileContext->buff_offset;
 	if (pFileContext->offset >= pFileContext->end)
 	{
 		pFileContext->done_callback(pTask, 0);
@@ -246,7 +247,7 @@ int dio_discard_file(struct fast_task_info *pTask)
 	else
 	{
 		pFileContext->buff_offset = 0;
-        pFileContext->continue_callback(pTask);
+        pFileContext->continue_callback(pTask, SF_NIO_STAGE_RECV);
 	}
 
 	return 0;
@@ -370,7 +371,7 @@ int dio_read_file(struct fast_task_info *pTask)
 
 	if (pFileContext->offset < pFileContext->end)
 	{
-        pFileContext->continue_callback(pTask);
+        pFileContext->continue_callback(pTask, SF_NIO_STAGE_SEND);
 	}
 	else
 	{
@@ -478,16 +479,17 @@ int dio_write_file(struct fast_task_info *pTask)
 		}
 	}
 
-	/*
-	logInfo("###dio write bytes: %d, pTask->length=%d, buff_offset=%d", \
-		write_bytes, pTask->length, pFileContext->buff_offset);
-	*/
+    /*
+	logInfo("###dio fd: %d, write bytes: %d, pTask->length=%d, "
+            "buff_offset=%d", pFileContext->fd, write_bytes,
+            pTask->length, pFileContext->buff_offset);
+            */
 
 	pFileContext->offset += write_bytes;
 	if (pFileContext->offset < pFileContext->end)
 	{
 		pFileContext->buff_offset = 0;
-        pFileContext->continue_callback(pTask);
+        pFileContext->continue_callback(pTask, SF_NIO_STAGE_RECV);
 	}
 	else
 	{
@@ -741,12 +743,13 @@ static void *dio_thread_entrance(void* arg)
 	struct fast_task_info *pTask;
 
 	pContext = (struct storage_dio_context *)arg; 
-	while (g_continue_flag)
+	while (SF_G_CONTINUE_FLAG)
 	{
 		while ((pTask=blocked_queue_pop(&(pContext->queue))) != NULL)
-		{
-			((StorageClientInfo *)pTask->arg)->deal_func(pTask);
-		}
+        {
+            ((StorageClientInfo *)pTask->arg)->deal_func(pTask);
+            sf_release_task(pTask);
+        }
 	}
 
 	if ((result=pthread_mutex_lock(&g_dio_thread_lock)) != 0)

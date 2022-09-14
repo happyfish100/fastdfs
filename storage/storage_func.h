@@ -22,8 +22,7 @@ typedef char * (*get_filename_func)(const void *pArg, \
 
 int storage_write_to_fd(int fd, get_filename_func filename_func, \
 		const void *pArg, const char *buff, const int len);
-int storage_func_init(const char *filename, \
-		char *bind_addr, const int addr_size);
+int storage_func_init(const char *filename);
 int storage_func_destroy();
 
 int storage_write_to_stat_file();
@@ -42,36 +41,6 @@ int storage_check_and_make_global_data_path();
 int storage_logic_to_local_full_filename(const char *logic_filename,
         const int logic_filename_len, int *store_path_index,
         char *full_filename, const int filename_size);
-
-#define STORAGE_CHOWN(path, current_uid, current_gid) \
-	if (!(g_run_by_gid == current_gid && g_run_by_uid == current_uid)) \
-	{ \
-		if (chown(path, g_run_by_uid, g_run_by_gid) != 0) \
-		{ \
-			logError("file: "__FILE__", line: %d, " \
-				"chown \"%s\" fail, " \
-				"errno: %d, error info: %s", \
-				__LINE__, path, \
-				errno, STRERROR(errno)); \
-			return errno != 0 ? errno : EPERM; \
-		} \
-	}
-
-
-#define STORAGE_FCHOWN(fd, path, current_uid, current_gid) \
-	if (!(g_run_by_gid == current_gid && g_run_by_uid == current_uid)) \
-	{ \
-		if (fchown(fd, g_run_by_uid, g_run_by_gid) != 0) \
-		{ \
-			logError("file: "__FILE__", line: %d, " \
-				"chown \"%s\" fail, " \
-				"errno: %d, error info: %s", \
-				__LINE__, path, \
-				errno, STRERROR(errno)); \
-			return errno != 0 ? errno : EPERM; \
-		} \
-	}
-
 
 /*
 int write_serialized(int fd, const char *buff, size_t count, const bool bSync);

@@ -150,7 +150,7 @@ static int storage_trunk_node_compare_offset(void *p1, void *p2)
 char *storage_trunk_get_data_filename(char *full_filename)
 {
 	snprintf(full_filename, MAX_PATH_SIZE, "%s/data/%s",
-		g_fdfs_base_path, STORAGE_TRUNK_DATA_FILENAME);
+		SF_G_BASE_PATH_STR, STORAGE_TRUNK_DATA_FILENAME);
 	return full_filename;
 }
 
@@ -269,7 +269,7 @@ int storage_trunk_init()
 	/*
 	{
 	char filename[MAX_PATH_SIZE];
-	sprintf(filename, "%s/logs/tttt.dat", g_fdfs_base_path);
+	sprintf(filename, "%s/logs/tttt.dat", SF_G_BASE_PATH_STR);
 	trunk_free_block_tree_print(filename);
 	}
 	*/
@@ -301,7 +301,7 @@ int storage_trunk_destroy_ex(const bool bNeedSleep,
 		"storage trunk destroy", __LINE__);
     if (bSaveData)
     {
-        if (g_current_time - g_up_time >= 3600 &&
+        if (g_current_time - g_sf_global_vars.up_time >= 3600 &&
                 g_trunk_compress_binlog_interval == 0)
         {
             result = storage_trunk_save();
@@ -727,7 +727,7 @@ static int trunk_open_file_writers(struct walk_callback_args *pCallbackArgs)
     memset(pCallbackArgs, 0, sizeof(*pCallbackArgs));
 
     snprintf(temp_trunk_filename, MAX_PATH_SIZE, "%s/data/.%s.tmp",
-            g_fdfs_base_path, STORAGE_TRUNK_DATA_FILENAME);
+            SF_G_BASE_PATH_STR, STORAGE_TRUNK_DATA_FILENAME);
     if ((result=buffered_file_writer_open(&pCallbackArgs->data_writer,
                     temp_trunk_filename)) != 0)
     {
@@ -958,12 +958,12 @@ static int storage_trunk_compress()
         return EAGAIN;
     }
 
-    if (g_current_time - g_up_time < 600)
+    if (g_current_time - g_sf_global_vars.up_time < 600)
     {
         logWarning("file: "__FILE__", line: %d, "
                 "too little time lapse: %ds afer startup, "
                 "skip trunk binlog compress", __LINE__,
-                (int)(g_current_time - g_up_time));
+                (int)(g_current_time - g_sf_global_vars.up_time));
         return EAGAIN;
     }
 

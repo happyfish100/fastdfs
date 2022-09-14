@@ -11,28 +11,37 @@ Chinese language: http://www.fastken.com/
 # command lines as:
 
    git clone https://github.com/happyfish100/libfastcommon.git
-   cd libfastcommon; git checkout V1.0.56
+   cd libfastcommon; git checkout V1.0.60
    ./make.sh clean && ./make.sh && ./make.sh install
 
 
-# step 2. download fastdfs source codes and install it, 
+# step 2. download libserverframe source codes and install it,
+#   github address:  https://github.com/happyfish100/libserverframe.git
+#   gitee address:   https://gitee.com/fastdfs100/libserverframe.git
+# command lines as:
+
+   git clone https://github.com/happyfish100/libserverframe.git
+   cd libserverframe; git checkout V1.1.18
+   ./make.sh clean && ./make.sh && ./make.sh install
+
+# step 3. download fastdfs source codes and install it, 
 #   github address:  https://github.com/happyfish100/fastdfs.git
 #   gitee address:   https://gitee.com/fastdfs100/fastdfs.git
 # command lines as:
 
    git clone https://github.com/happyfish100/fastdfs.git
-   cd fastdfs; git checkout V6.08
+   cd fastdfs; git checkout V6.09
    ./make.sh clean && ./make.sh && ./make.sh install
 
 
-# step 3. setup the config files
+# step 4. setup the config files
 #   the setup script does NOT overwrite existing config files,
 #   please feel free to execute this script (take easy :)
 
 ./setup.sh /etc/fdfs
 
 
-# step 4. edit or modify the config files of tracker, storage and client
+# step 5. edit or modify the config files of tracker, storage and client
 such as:
  vi /etc/fdfs/tracker.conf
  vi /etc/fdfs/storage.conf
@@ -41,7 +50,7 @@ such as:
  and so on ...
 
 
-# step 5. run the server programs
+# step 6. run the server programs
 # start the tracker server:
 /usr/bin/fdfs_trackerd /etc/fdfs/tracker.conf restart
 
@@ -53,12 +62,12 @@ such as:
 /sbin/service fdfs_storaged restart
 
 
-# step 6. (optional) run monitor program
+# step 7. (optional) run monitor program
 # such as:
 /usr/bin/fdfs_monitor /etc/fdfs/client.conf
 
 
-# step 7. (optional) run the test program
+# step 8. (optional) run the test program
 # such as:
 /usr/bin/fdfs_test <client_conf_filename> <operation>
 /usr/bin/fdfs_test1 <client_conf_filename> <operation>

@@ -38,11 +38,11 @@ int tracker_write_status_to_file(void *args)
 	int len;
 
 	snprintf(full_filename, sizeof(full_filename), "%s/data/%s", \
-		g_fdfs_base_path, TRACKER_STATUS_FILENAME);
+		SF_G_BASE_PATH_STR, TRACKER_STATUS_FILENAME);
 
 	len = sprintf(buff, "%s=%d\n" \
 		      "%s=%d\n",
-		TRACKER_STATUS_ITEM_UP_TIME, (int)g_up_time,
+		TRACKER_STATUS_ITEM_UP_TIME, (int)g_sf_global_vars.up_time,
 		TRACKER_STATUS_ITEM_LAST_CHECK_TIME, (int)g_current_time
 	);
 
@@ -56,7 +56,7 @@ int tracker_load_status_from_file(TrackerStatus *pStatus)
 	int result;
 
 	snprintf(full_filename, sizeof(full_filename), "%s/data/%s", \
-		g_fdfs_base_path, TRACKER_STATUS_FILENAME);
+		SF_G_BASE_PATH_STR, TRACKER_STATUS_FILENAME);
 	if (!fileExists(full_filename))
 	{
 		return 0;

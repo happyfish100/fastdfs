@@ -42,17 +42,16 @@ static int fdfs_dump_global_vars(char *buff, const int buffSize)
             last_storage_ip_str, sizeof(last_storage_ip_str));
 
 	total_len = snprintf(buff, buffSize,
-		"g_fdfs_connect_timeout=%ds\n"
-		"g_fdfs_network_timeout=%ds\n"
-		"g_fdfs_base_path=%s\n"
+		"SF_G_CONNECT_TIMEOUT=%ds\n"
+		"SF_G_NETWORK_TIMEOUT=%ds\n"
+		"SF_G_BASE_PATH_STR=%s\n"
 		"g_fdfs_version=%d.%02d\n"
-		"g_continue_flag=%d\n"
+		"SF_G_CONTINUE_FLAG=%d\n"
 		"g_schedule_flag=%d\n"
-		"g_server_port=%d\n"
+		"SF_G_INNER_PORT=%d\n"
 		"g_max_connections=%d\n"
 		"g_storage_thread_count=%d\n"
 		"g_group_name=%s\n"
-		"g_sync_log_buff_interval=%d\n"
 		"g_subdir_count_per_path=%d\n"
 		"g_http_port=%d\n"
 		"g_last_server_port=%d\n"
@@ -94,11 +93,11 @@ static int fdfs_dump_global_vars(char *buff, const int buffSize)
 		"g_check_file_duplicate=%d\n"
 		"g_key_namespace=%s\n"
 		"g_namespace_len=%d\n"
-		"g_bind_addr=%s\n"
+		"SF_G_INNER_BIND_ADDR=%s\n"
 		"g_client_bind_addr=%d\n"
 		"g_storage_ip_changed_auto_adjust=%d\n"
 		"g_thread_kill_done=%d\n"
-		"g_thread_stack_size=%d\n"
+		"SF_G_THREAD_STACK_SIZE=%d\n"
 		"g_upload_priority=%d\n"
 		"g_up_time=%s\n"
 		"g_if_alias_prefix=%s\n"
@@ -136,24 +135,23 @@ static int fdfs_dump_global_vars(char *buff, const int buffSize)
 	#if defined(DEBUG_FLAG) && defined(OS_LINUX)
 		"g_exe_name=%s\n"
 	#endif
-		, g_fdfs_connect_timeout
-		, g_fdfs_network_timeout
-		, g_fdfs_base_path
+		, SF_G_CONNECT_TIMEOUT
+		, SF_G_NETWORK_TIMEOUT
+		, SF_G_BASE_PATH_STR
 		, g_fdfs_version.major, g_fdfs_version.minor
-		, g_continue_flag
+		, SF_G_CONTINUE_FLAG
 		, g_schedule_flag
-		, g_server_port
-		, g_max_connections
-		, g_storage_thread_count
+		, SF_G_INNER_PORT
+		, g_sf_global_vars.max_connections
+		, SF_G_ALIVE_THREAD_COUNT 
 		, g_group_name
-		, g_sync_log_buff_interval
 		, g_subdir_count_per_path 
 		, g_http_port 
 		, g_last_server_port 
 		, g_last_http_port
 		, g_allow_ip_count
-		, g_run_by_group
-		, g_run_by_user
+		, g_sf_global_vars.run_by_group
+		, g_sf_global_vars.run_by_user
 		, g_http_domain
 		, g_file_distribute_path_mode
 		, g_file_distribute_rotate_count
@@ -174,7 +172,7 @@ static int fdfs_dump_global_vars(char *buff, const int buffSize)
 		, g_sync_start_time.hour, g_sync_start_time.minute
 		, g_sync_end_time.hour, g_sync_end_time.minute
 		, g_sync_part_time
-		, g_sync_log_buff_interval
+		, g_sf_global_vars.error_log.sync_log_buff_interval
 		, g_sync_binlog_buff_interval
 		, g_write_mark_file_freq
 		, g_sync_stat_file_interval
@@ -190,13 +188,13 @@ static int fdfs_dump_global_vars(char *buff, const int buffSize)
 		, g_check_file_duplicate
 		, g_key_namespace
 		, g_namespace_len
-		, g_bind_addr
+		, SF_G_INNER_BIND_ADDR
 		, g_client_bind_addr
 		, g_storage_ip_changed_auto_adjust
 		, g_thread_kill_done
-		, g_thread_stack_size
+		, SF_G_THREAD_STACK_SIZE
 		, g_upload_priority
-		, formatDatetime(g_up_time, "%Y-%m-%d %H:%M:%S", 
+		, formatDatetime(g_sf_global_vars.up_time, "%Y-%m-%d %H:%M:%S", 
 			szUptime, sizeof(szUptime))
 		, g_if_alias_prefix
 		, g_binlog_fd

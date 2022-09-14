@@ -36,7 +36,7 @@ static void *http_check_entrance(void *arg)
 
 	g_http_check_flag = true;
 	g_http_servers_dirty = false;
-	while (g_continue_flag)
+	while (SF_G_CONTINUE_FLAG)
 	{
 	if (g_http_servers_dirty)
 	{
@@ -48,7 +48,7 @@ static void *http_check_entrance(void *arg)
 	}
 
 	ppGroupEnd = g_groups.groups + g_groups.count;
-	for (ppGroup=g_groups.groups; g_continue_flag && (!g_http_servers_dirty)\
+	for (ppGroup=g_groups.groups; SF_G_CONTINUE_FLAG && (!g_http_servers_dirty)\
 		&& ppGroup<ppGroupEnd; ppGroup++)
         {
 
@@ -59,14 +59,14 @@ static void *http_check_entrance(void *arg)
 
 	server_count = 0;
 	ppServerEnd = (*ppGroup)->active_servers + (*ppGroup)->active_count;
-	for (ppServer=(*ppGroup)->active_servers; g_continue_flag && \
+	for (ppServer=(*ppGroup)->active_servers; SF_G_CONTINUE_FLAG && \
 		(!g_http_servers_dirty) && ppServer<ppServerEnd; ppServer++)
 	{
 		if (g_http_check_type == FDFS_HTTP_CHECK_ALIVE_TYPE_TCP)
 		{
             sock = socketClientAuto((*ppServer)->ip_addr,
                     (*ppGroup)->storage_http_port,
-                    g_fdfs_connect_timeout, O_NONBLOCK, &result);
+                    SF_G_CONNECT_TIMEOUT, O_NONBLOCK, &result);
             if (sock >= 0)
             {
                 close(sock);
@@ -135,8 +135,8 @@ static void *http_check_entrance(void *arg)
 		sprintf(url, "http://%s:%d%s", (*ppServer)->ip_addr, \
 			(*ppGroup)->storage_http_port, g_http_check_uri);
 
-		result = get_url_content(url, g_fdfs_connect_timeout, \
-				g_fdfs_network_timeout, &http_status, \
+		result = get_url_content(url, SF_G_CONNECT_TIMEOUT, \
+				SF_G_NETWORK_TIMEOUT, &http_status, \
         			&content, &content_len, error_info);
 
 		if (g_http_servers_dirty)

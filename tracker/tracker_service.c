@@ -26,322 +26,89 @@
 #include "fastcommon/shared_func.h"
 #include "fastcommon/pthread_func.h"
 #include "fastcommon/sched_thread.h"
+#include "sf/sf_service.h"
+#include "sf/sf_nio.h"
 #include "tracker_types.h"
 #include "tracker_global.h"
 #include "tracker_mem.h"
 #include "tracker_func.h"
 #include "tracker_proto.h"
-#include "tracker_nio.h"
 #include "tracker_relationship.h"
 #include "fdfs_shared_func.h"
-#include "fastcommon/ioevent_loop.h"
 #include "tracker_service.h"
 
 #define PKG_LEN_PRINTF_FORMAT  "%d"
 
-static pthread_mutex_t tracker_thread_lock;
 static pthread_mutex_t lb_thread_lock;
-
-int g_tracker_thread_count = 0;
-struct nio_thread_data *g_thread_data = NULL;
 
 static int lock_by_client_count = 0;
 
-static void *work_thread_entrance(void* arg);
-static void wait_for_work_threads_exit();
 static void tracker_find_max_free_space_group();
+
+static int tracker_deal_task(struct fast_task_info *pTask, const int stage);
+
+static void task_finish_clean_up(struct fast_task_info *pTask)
+{
+	TrackerClientInfo *pClientInfo;
+
+	pClientInfo = (TrackerClientInfo *)pTask->arg;
+	if (pClientInfo->pGroup != NULL)
+	{
+		if (pClientInfo->pStorage != NULL)
+		{
+			tracker_mem_offline_store_server(pClientInfo->pGroup,
+						pClientInfo->pStorage);
+		}
+	}
+	memset(pTask->arg, 0, sizeof(TrackerClientInfo));
+
+    sf_task_finish_clean_up(pTask);
+}
+
+static int sock_accept_done_callback(struct fast_task_info *task,
+        const in_addr_t client_addr, const bool bInnerPort)
+{
+    if (g_allow_ip_count >= 0)
+    {
+        if (bsearch(&client_addr, g_allow_ip_addrs,
+                    g_allow_ip_count, sizeof(in_addr_t),
+                    cmp_by_ip_addr_t) == NULL)
+        {
+            logError("file: "__FILE__", line: %d, "
+                    "ip addr %s is not allowed to access",
+                    __LINE__, task->client_ip);
+            return EPERM;
+        }
+    }
+
+    return 0;
+}
 
 int tracker_service_init()
 {
-#define ALLOC_CONNECTIONS_ONCE 1024
-	int result;
-	int bytes;
-    int init_connections;
-	struct nio_thread_data *pThreadData;
-	struct nio_thread_data *pDataEnd;
-	pthread_t tid;
-	pthread_attr_t thread_attr;
+    int result;
 
-	if ((result=init_pthread_lock(&tracker_thread_lock)) != 0)
-	{
-		return result;
-	}
+    if ((result=init_pthread_lock(&lb_thread_lock)) != 0)
+    {
+        return result;
+    }
 
-	if ((result=init_pthread_lock(&lb_thread_lock)) != 0)
-	{
-		return result;
-	}
-
-	if ((result=init_pthread_attr(&thread_attr, g_thread_stack_size)) != 0)
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"init_pthread_attr fail, program exit!", __LINE__);
-		return result;
-	}
-
-    init_connections = g_max_connections < ALLOC_CONNECTIONS_ONCE ?
-        g_max_connections : ALLOC_CONNECTIONS_ONCE;
-	if ((result=free_queue_init_ex(g_max_connections, init_connections,
-                    ALLOC_CONNECTIONS_ONCE, g_min_buff_size,
-                    g_max_buff_size, sizeof(TrackerClientInfo))) != 0)
-	{
-		return result;
-	}
-	bytes = sizeof(struct nio_thread_data) * g_work_threads;
-	g_thread_data = (struct nio_thread_data *)malloc(bytes );
-	if (g_thread_data == NULL)
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"malloc %d bytes fail, errno: %d, error info: %s", \
-			__LINE__, bytes, errno, STRERROR(errno));
-		return errno != 0 ? errno : ENOMEM;
-	}
-	memset(g_thread_data, 0, bytes);
-
-	g_tracker_thread_count = 0;
-	pDataEnd = g_thread_data + g_work_threads;
-	for (pThreadData=g_thread_data; pThreadData<pDataEnd; pThreadData++)
-	{
-		if (ioevent_init(&pThreadData->ev_puller,
-			g_max_connections + 2, 1000, 0) != 0)
-		{
-			result  = errno != 0 ? errno : ENOMEM;
-			logError("file: "__FILE__", line: %d, " \
-				"ioevent_init fail, " \
-				"errno: %d, error info: %s", \
-				__LINE__, result, STRERROR(result));
-			return result;
-		}
-
-		result = fast_timer_init(&pThreadData->timer,
-				2 * g_fdfs_network_timeout, g_current_time);
-		if (result != 0)
-		{
-			logError("file: "__FILE__", line: %d, " \
-				"fast_timer_init fail, " \
-				"errno: %d, error info: %s", \
-				__LINE__, result, STRERROR(result));
-			return result;
-		}
-
-		if (pipe(pThreadData->pipe_fds) != 0)
-		{
-			result = errno != 0 ? errno : EPERM;
-			logError("file: "__FILE__", line: %d, " \
-				"call pipe fail, " \
-				"errno: %d, error info: %s", \
-				__LINE__, result, STRERROR(result));
-			break;
-		}
-
-#if defined(OS_LINUX)
-		if ((result=fd_add_flags(pThreadData->pipe_fds[0], \
-				O_NONBLOCK | O_NOATIME)) != 0)
-		{
-			break;
-		}
-#else
-		if ((result=fd_add_flags(pThreadData->pipe_fds[0], \
-				O_NONBLOCK)) != 0)
-		{
-			break;
-		}
-#endif
-
-		if ((result=pthread_create(&tid, &thread_attr, \
-			work_thread_entrance, pThreadData)) != 0)
-		{
-			logError("file: "__FILE__", line: %d, " \
-				"create thread failed, startup threads: %d, " \
-				"errno: %d, error info: %s", \
-				__LINE__, g_tracker_thread_count, \
-				result, STRERROR(result));
-			break;
-		}
-		else
-		{
-			if ((result=pthread_mutex_lock(&tracker_thread_lock)) != 0)
-			{
-				logError("file: "__FILE__", line: %d, " \
-					"call pthread_mutex_lock fail, " \
-					"errno: %d, error info: %s", \
-					__LINE__, result, STRERROR(result));
-			}
-			g_tracker_thread_count++;
-			if ((result=pthread_mutex_unlock(&tracker_thread_lock)) != 0)
-			{
-				logError("file: "__FILE__", line: %d, " \
-					"call pthread_mutex_lock fail, " \
-					"errno: %d, error info: %s", \
-					__LINE__, result, STRERROR(result));
-			}
-		}
-	}
-
-	pthread_attr_destroy(&thread_attr);
-
-	return 0;
+    result = sf_service_init("fdfs_trackerd", NULL, NULL,
+            sock_accept_done_callback, fdfs_set_body_length, NULL,
+            tracker_deal_task, task_finish_clean_up, NULL, 1000,
+            sizeof(TrackerHeader), sizeof(TrackerClientInfo));
+    sf_enable_thread_notify(false);
+    sf_set_remove_from_ready_list(false);
+    return result;
 }
 
-int tracker_terminate_threads()
+void tracker_service_destroy()
 {
-        struct nio_thread_data *pThreadData;
-        struct nio_thread_data *pDataEnd;
-        int quit_sock;
-
-        if (g_thread_data != NULL)
-        {
-                pDataEnd = g_thread_data + g_work_threads;
-                quit_sock = 0;
-                for (pThreadData=g_thread_data; pThreadData<pDataEnd; \
-                        pThreadData++)
-                {
-                        quit_sock--;
-                        if (write(pThreadData->pipe_fds[1], &quit_sock, \
-                                        sizeof(quit_sock)) != sizeof(quit_sock))
-			{
-				logError("file: "__FILE__", line: %d, " \
-					"write to pipe fail, " \
-					"errno: %d, error info: %s", \
-					__LINE__, errno, STRERROR(errno));
-			}
-                }
-        }
-
-        return 0;
-}
-
-static void wait_for_work_threads_exit()
-{
-	while (g_tracker_thread_count != 0)
-	{
-		sleep(1);
-	}
-}
-
-int tracker_service_destroy()
-{
-	wait_for_work_threads_exit();
-	pthread_mutex_destroy(&tracker_thread_lock);
-	pthread_mutex_destroy(&lb_thread_lock);
-
-	return 0;
-}
-
-static void *accept_thread_entrance(void* arg)
-{
-	int server_sock;
-	int incomesock;
-	struct sockaddr_in inaddr;
-	socklen_t sockaddr_len;
-	struct nio_thread_data *pThreadData;
-
-	server_sock = (long)arg;
-	while (g_continue_flag)
-	{
-		sockaddr_len = sizeof(inaddr);
-		incomesock = accept(server_sock, (struct sockaddr*)&inaddr, &sockaddr_len);
-		if (incomesock < 0) //error
-		{
-			if (!(errno == EINTR || errno == EAGAIN))
-			{
-				logError("file: "__FILE__", line: %d, " \
-					"accept failed, " \
-					"errno: %d, error info: %s", \
-					__LINE__, errno, STRERROR(errno));
-			}
-
-			continue;
-		}
-
-		pThreadData = g_thread_data + incomesock % g_work_threads;
-		if (write(pThreadData->pipe_fds[1], &incomesock, \
-			sizeof(incomesock)) != sizeof(incomesock))
-		{
-			close(incomesock);
-			logError("file: "__FILE__", line: %d, " \
-				"call write failed, " \
-				"errno: %d, error info: %s", \
-				__LINE__, errno, STRERROR(errno));
-		}
-        else
-        {
-            int current_connections;
-            current_connections = __sync_add_and_fetch(&g_connection_stat.
-                    current_count, 1);
-            if (current_connections > g_connection_stat.max_count) {
-                g_connection_stat.max_count = current_connections;
-            }
-        }
-	}
-
-	return NULL;
-}
-
-void tracker_accept_loop(int server_sock)
-{
-	if (g_accept_threads > 1)
-	{
-		pthread_t tid;
-		pthread_attr_t thread_attr;
-		int result;
-		int i;
-
-		if ((result=init_pthread_attr(&thread_attr, g_thread_stack_size)) != 0)
-		{
-			logWarning("file: "__FILE__", line: %d, " \
-				"init_pthread_attr fail!", __LINE__);
-		}
-		else
-		{
-			for (i=1; i<g_accept_threads; i++)
-			{
-			if ((result=pthread_create(&tid, &thread_attr, \
-				accept_thread_entrance, \
-				(void *)(long)server_sock)) != 0)
-			{
-				logError("file: "__FILE__", line: %d, " \
-				"create thread failed, startup threads: %d, " \
-				"errno: %d, error info: %s", \
-				__LINE__, i, result, STRERROR(result));
-				break;
-			}
-			}
-
-			pthread_attr_destroy(&thread_attr);
-		}
-	}
-
-	accept_thread_entrance((void *)(long)server_sock);
-}
-
-static void *work_thread_entrance(void* arg)
-{
-	int result;
-	struct nio_thread_data *pThreadData;
-
-	pThreadData = (struct nio_thread_data *)arg;
-	ioevent_loop(pThreadData, recv_notify_read, task_finish_clean_up,
-		&g_continue_flag);
-	ioevent_destroy(&pThreadData->ev_puller);
-
-	if ((result=pthread_mutex_lock(&tracker_thread_lock)) != 0)
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"call pthread_mutex_lock fail, " \
-			"errno: %d, error info: %s", \
-			__LINE__, result, STRERROR(result));
-	}
-	g_tracker_thread_count--;
-	if ((result=pthread_mutex_unlock(&tracker_thread_lock)) != 0)
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"call pthread_mutex_lock fail, " \
-			"errno: %d, error info: %s", \
-			__LINE__, result, STRERROR(result));
-	}
-
-	return NULL;
+    while (SF_G_ALIVE_THREAD_COUNT != 0)
+    {
+        sleep(1);
+    }
+    pthread_mutex_destroy(&lb_thread_lock);
 }
 
 /*
@@ -486,7 +253,7 @@ static int tracker_changelog_response(struct fast_task_info *pTask, \
 		chg_len = TRACKER_MAX_PACKAGE_SIZE - sizeof(TrackerHeader);
 	}
 
-	snprintf(filename, sizeof(filename), "%s/data/%s", g_fdfs_base_path,\
+	snprintf(filename, sizeof(filename), "%s/data/%s", SF_G_BASE_PATH_STR,\
 		 STORAGE_SERVERS_CHANGELOG_FILENAME);
 	fd = open(filename, O_RDONLY);
 	if (fd < 0)
@@ -914,7 +681,7 @@ static int tracker_deal_notify_next_leader(struct fast_task_info *pTask)
 		return ENOENT;
 	}
 
-	if (g_if_leader_self && !(leader.port == g_server_port &&
+	if (g_if_leader_self && !(leader.port == SF_G_INNER_PORT &&
 		is_local_host_ip(leader.ip_addr)))
 	{
 		g_if_leader_self = false;
@@ -987,7 +754,7 @@ static int tracker_deal_commit_next_leader(struct fast_task_info *pTask)
 		return EINVAL;
 	}
 
-    leader_self = (leader.port == g_server_port) &&
+    leader_self = (leader.port == SF_G_INNER_PORT) &&
             is_local_host_ip(leader.ip_addr);
     relationship_set_tracker_leader(server_index, &leader, leader_self);
 
@@ -2098,7 +1865,7 @@ static int tracker_deal_get_one_sys_file(struct fast_task_info *pTask)
 	}
 
 	snprintf(full_filename, sizeof(full_filename), "%s/data/%s", \
-		g_fdfs_base_path, g_tracker_sys_filenames[index]);
+		SF_G_BASE_PATH_STR, g_tracker_sys_filenames[index]);
 	if (stat(full_filename, &file_stat) != 0)
 	{
 		result = errno != 0 ? errno : ENOENT;
@@ -3118,10 +2885,11 @@ static int tracker_deal_server_list_all_groups(struct fast_task_info *pTask)
 		return EINVAL;
 	}
 
-    expect_size = sizeof(TrackerHeader) + g_groups.count * sizeof(TrackerGroupStat);
-    if (expect_size > g_min_buff_size)
+    expect_size = sizeof(TrackerHeader) + g_groups.count *
+        sizeof(TrackerGroupStat);
+    if (expect_size > g_sf_global_vars.min_buff_size)
     {
-        if (expect_size <= g_max_buff_size)
+        if (expect_size <= g_sf_global_vars.max_buff_size)
         {
             if ((result=free_queue_set_buffer_size(pTask, expect_size)) != 0)
             {
@@ -3136,7 +2904,8 @@ static int tracker_deal_server_list_all_groups(struct fast_task_info *pTask)
                     "expect buffer size: %d > max_buff_size: %d, "
                     "you should increase max_buff_size in tracker.conf",
                     __LINE__, TRACKER_PROTO_CMD_SERVER_LIST_ALL_GROUPS,
-                    pTask->client_ip, expect_size, g_max_buff_size);
+                    pTask->client_ip, expect_size,
+                    g_sf_global_vars.max_buff_size);
             pTask->length = sizeof(TrackerHeader);
             return ENOSPC;
         }
@@ -3904,7 +3673,7 @@ static int tracker_deal_storage_beat(struct fast_task_info *pTask)
 	} \
 
 
-int tracker_deal_task(struct fast_task_info *pTask)
+static int tracker_deal_task(struct fast_task_info *pTask, const int stage)
 {
 	TrackerHeader *pHeader;
 	int result;
@@ -4077,9 +3846,7 @@ int tracker_deal_task(struct fast_task_info *pTask)
 	pHeader->status = result;
 	pHeader->cmd = TRACKER_PROTO_CMD_RESP;
 	long2buff(pTask->length - sizeof(TrackerHeader), pHeader->pkg_len);
-
-	send_add_event(pTask);
+	sf_send_add_event(pTask);
 
 	return 0;
 }
-

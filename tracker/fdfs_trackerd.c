@@ -28,6 +28,8 @@
 #include "fastcommon/base64.h"
 #include "fastcommon/sockopt.h"
 #include "fastcommon/sched_thread.h"
+#include "sf/sf_service.h"
+#include "sf/sf_util.h"
 #include "tracker_types.h"
 #include "tracker_mem.h"
 #include "tracker_service.h"
@@ -46,10 +48,9 @@
 #include "tracker_dump.h"
 #endif
 
+static bool daemon_mode = true;
 static bool bTerminateFlag = false;
 static bool bAcceptEndFlag = false;
-
-static char bind_addr[IP_ADDRESS_SIZE];
 
 static void sigQuitHandler(int sig);
 static void sigHupHandler(int sig);
@@ -57,75 +58,134 @@ static void sigUsrHandler(int sig);
 static void sigAlarmHandler(int sig);
 
 #if defined(DEBUG_FLAG)
-/*
-#if defined(OS_LINUX)
-static void sigSegvHandler(int signum, siginfo_t *info, void *ptr);
-#endif
-*/
-
 static void sigDumpHandler(int sig);
 #endif
 
-#define SCHEDULE_ENTRIES_COUNT 5
-
-static void usage(const char *program)
+static int setup_signal_handlers()
 {
-	fprintf(stderr, "FastDFS server v%d.%02d\n"
-            "Usage: %s <config_file> [start | stop | restart]\n",
-            g_fdfs_version.major, g_fdfs_version.minor,
-            program);
+	struct sigaction act;
+
+	memset(&act, 0, sizeof(act));
+	sigemptyset(&act.sa_mask);
+	act.sa_handler = sigUsrHandler;
+	if(sigaction(SIGUSR1, &act, NULL) < 0 || \
+		sigaction(SIGUSR2, &act, NULL) < 0)
+	{
+		logCrit("file: "__FILE__", line: %d, " \
+			"call sigaction fail, errno: %d, error info: %s", \
+			__LINE__, errno, STRERROR(errno));
+		return errno;
+	}
+
+	act.sa_handler = sigHupHandler;
+	if(sigaction(SIGHUP, &act, NULL) < 0)
+	{
+		logCrit("file: "__FILE__", line: %d, " \
+			"call sigaction fail, errno: %d, error info: %s", \
+			__LINE__, errno, STRERROR(errno));
+		return errno;
+	}
+
+	act.sa_handler = SIG_IGN;
+	if(sigaction(SIGPIPE, &act, NULL) < 0)
+	{
+		logCrit("file: "__FILE__", line: %d, " \
+			"call sigaction fail, errno: %d, error info: %s", \
+			__LINE__, errno, STRERROR(errno));
+		return errno;
+	}
+
+	act.sa_handler = sigQuitHandler;
+	if(sigaction(SIGINT, &act, NULL) < 0 || \
+		sigaction(SIGTERM, &act, NULL) < 0 || \
+		sigaction(SIGQUIT, &act, NULL) < 0)
+	{
+		logCrit("file: "__FILE__", line: %d, " \
+			"call sigaction fail, errno: %d, error info: %s", \
+			__LINE__, errno, STRERROR(errno));
+		return errno;
+	}
+
+#if defined(DEBUG_FLAG)
+	memset(&act, 0, sizeof(act));
+	sigemptyset(&act.sa_mask);
+	act.sa_handler = sigDumpHandler;
+	if(sigaction(SIGUSR1, &act, NULL) < 0 || \
+		sigaction(SIGUSR2, &act, NULL) < 0)
+	{
+		logCrit("file: "__FILE__", line: %d, " \
+			"call sigaction fail, errno: %d, error info: %s", \
+			__LINE__, errno, STRERROR(errno));
+		return errno;
+	}
+#endif
+
+    return 0;
+}
+
+static int setup_schedule_tasks()
+{
+#define SCHEDULE_ENTRIES_COUNT 4
+    ScheduleEntry scheduleEntries[SCHEDULE_ENTRIES_COUNT];
+    ScheduleArray scheduleArray;
+
+    scheduleArray.entries = scheduleEntries;
+    scheduleArray.count = 0;
+    memset(scheduleEntries, 0, sizeof(scheduleEntries));
+
+    INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
+            sched_generate_next_id(), TIME_NONE, TIME_NONE, TIME_NONE,
+            g_check_active_interval, tracker_mem_check_alive, NULL);
+    scheduleArray.count++;
+
+    INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
+            sched_generate_next_id(), 0, 0, 0,
+            TRACKER_SYNC_STATUS_FILE_INTERVAL,
+            tracker_write_status_to_file, NULL);
+    scheduleArray.count++;
+
+    return sched_add_entries(&scheduleArray);
 }
 
 int main(int argc, char *argv[])
 {
-	char *conf_filename;
+	const char *conf_filename;
     char *action;
 	int result;
 	int wait_count;
-	int sock;
 	pthread_t schedule_tid;
-	struct sigaction act;
-	ScheduleEntry scheduleEntries[SCHEDULE_ENTRIES_COUNT];
-	ScheduleArray scheduleArray;
 	char pidFilename[MAX_PATH_SIZE];
 	bool stop;
 
 	if (argc < 2)
 	{
-		usage(argv[0]);
+		sf_usage(argv[0]);
 		return 1;
 	}
 
-	g_current_time = time(NULL);
-	g_up_time = g_current_time;
-	srand(g_up_time);
+    conf_filename = sf_parse_daemon_mode_and_action(argc, argv,
+            &g_fdfs_version, &daemon_mode, &action);
+    if (conf_filename == NULL)
+    {
+        return 0;
+    }
 
+	g_current_time = time(NULL);
 	log_init2();
 
-	conf_filename = argv[1];
-    if (!fileExists(conf_filename))
-    {
-        if (starts_with(conf_filename, "-"))
-        {
-            usage(argv[0]);
-            return 0;
-        }
-    }
-	if ((result=get_base_path_from_conf_file(conf_filename,
-		g_fdfs_base_path, sizeof(g_fdfs_base_path))) != 0)
+	if ((result=sf_get_base_path_from_conf_file(conf_filename)) != 0)
 	{
 		log_destroy();
 		return result;
 	}
 
 	snprintf(pidFilename, sizeof(pidFilename),
-		"%s/data/fdfs_trackerd.pid", g_fdfs_base_path);
-    action = argc >= 3 ? argv[2] : "start";
+		"%s/data/fdfs_trackerd.pid", SF_G_BASE_PATH_STR);
 	if ((result=process_action(pidFilename, action, &stop)) != 0)
 	{
 		if (result == EINVAL)
 		{
-			usage(argv[0]);
+			sf_usage(argv[0]);
 		}
 		log_destroy();
 		return result;
@@ -146,9 +206,7 @@ int main(int argc, char *argv[])
 	}
 #endif
 
-	memset(bind_addr, 0, sizeof(bind_addr));
-	if ((result=tracker_load_from_conf_file(conf_filename, \
-			bind_addr, sizeof(bind_addr))) != 0)
+	if ((result=tracker_load_from_conf_file(conf_filename)) != 0)
 	{
 		logCrit("exit abnormally!\n");
 		log_destroy();
@@ -177,22 +235,16 @@ int main(int argc, char *argv[])
 		return result;
 	}
 
-	sock = socketServer(bind_addr, g_server_port, &result);
-	if (sock < 0)
-	{
-		logCrit("exit abnormally!\n");
+    if ((result=sf_socket_server()) != 0)
+    {
 		log_destroy();
 		return result;
-	}
+    }
 
-	if ((result=tcpsetserveropt(sock, g_fdfs_network_timeout)) != 0)
-	{
-		logCrit("exit abnormally!\n");
-		log_destroy();
-		return result;
-	}
-
-	daemon_init(false);
+    if (daemon_mode)
+    {
+        daemon_init(false);
+    }
 	umask(0);
 	
 	if ((result=write_to_pid_file(pidFilename)) != 0)
@@ -208,89 +260,17 @@ int main(int argc, char *argv[])
 		return result;
 	}
 	
-	memset(&act, 0, sizeof(act));
-	sigemptyset(&act.sa_mask);
-
-	act.sa_handler = sigUsrHandler;
-	if(sigaction(SIGUSR1, &act, NULL) < 0 || \
-		sigaction(SIGUSR2, &act, NULL) < 0)
+	if ((result=setup_signal_handlers()) != 0)
 	{
-		logCrit("file: "__FILE__", line: %d, " \
-			"call sigaction fail, errno: %d, error info: %s", \
-			__LINE__, errno, STRERROR(errno));
 		logCrit("exit abnormally!\n");
-		return errno;
+		log_destroy();
+		return result;
 	}
-
-	act.sa_handler = sigHupHandler;
-	if(sigaction(SIGHUP, &act, NULL) < 0)
-	{
-		logCrit("file: "__FILE__", line: %d, " \
-			"call sigaction fail, errno: %d, error info: %s", \
-			__LINE__, errno, STRERROR(errno));
-		logCrit("exit abnormally!\n");
-		return errno;
-	}
-	
-	act.sa_handler = SIG_IGN;
-	if(sigaction(SIGPIPE, &act, NULL) < 0)
-	{
-		logCrit("file: "__FILE__", line: %d, " \
-			"call sigaction fail, errno: %d, error info: %s", \
-			__LINE__, errno, STRERROR(errno));
-		logCrit("exit abnormally!\n");
-		return errno;
-	}
-
-	act.sa_handler = sigQuitHandler;
-	if(sigaction(SIGINT, &act, NULL) < 0 || \
-		sigaction(SIGTERM, &act, NULL) < 0 || \
-		sigaction(SIGQUIT, &act, NULL) < 0)
-	{
-		logCrit("file: "__FILE__", line: %d, " \
-			"call sigaction fail, errno: %d, error info: %s", \
-			__LINE__, errno, STRERROR(errno));
-		logCrit("exit abnormally!\n");
-		return errno;
-	}
-
-#if defined(DEBUG_FLAG)
-/*
-#if defined(OS_LINUX)
-	memset(&act, 0, sizeof(act));
-	sigemptyset(&act.sa_mask);
-        act.sa_sigaction = sigSegvHandler;
-        act.sa_flags = SA_SIGINFO;
-        if (sigaction(SIGSEGV, &act, NULL) < 0 || \
-        	sigaction(SIGABRT, &act, NULL) < 0)
-	{
-		logCrit("file: "__FILE__", line: %d, " \
-			"call sigaction fail, errno: %d, error info: %s", \
-			__LINE__, errno, STRERROR(errno));
-		logCrit("exit abnormally!\n");
-		return errno;
-	}
-#endif
-*/
-
-	memset(&act, 0, sizeof(act));
-	sigemptyset(&act.sa_mask);
-	act.sa_handler = sigDumpHandler;
-	if(sigaction(SIGUSR1, &act, NULL) < 0 || \
-		sigaction(SIGUSR2, &act, NULL) < 0)
-	{
-		logCrit("file: "__FILE__", line: %d, " \
-			"call sigaction fail, errno: %d, error info: %s", \
-			__LINE__, errno, STRERROR(errno));
-		logCrit("exit abnormally!\n");
-		return errno;
-	}
-#endif
 
 #ifdef WITH_HTTPD
 	if (!g_http_params.disabled)
 	{
-		if ((result=tracker_httpd_start(bind_addr)) != 0)
+		if ((result=tracker_httpd_start(g_sf_context.inner_bind_addr)) != 0)
 		{
 			logCrit("file: "__FILE__", line: %d, " \
 				"tracker_httpd_start fail, program exit!", \
@@ -309,58 +289,25 @@ int main(int argc, char *argv[])
 	}
 #endif
 
-	if ((result=set_run_by(g_run_by_group, g_run_by_user)) != 0)
+	if ((result=set_run_by(g_sf_global_vars.run_by_group,
+                    g_sf_global_vars.run_by_user)) != 0)
 	{
 		logCrit("exit abnormally!\n");
 		log_destroy();
 		return result;
 	}
 
-	scheduleArray.entries = scheduleEntries;
-	scheduleArray.count = 0;
-	memset(scheduleEntries, 0, sizeof(scheduleEntries));
+    if ((result=sf_startup_schedule(&schedule_tid)) != 0)
+    {
+        log_destroy();
+        return result;
+    }
 
-	INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
-		scheduleArray.count + 1, TIME_NONE, TIME_NONE, TIME_NONE,
-		g_sync_log_buff_interval, log_sync_func, &g_log_context);
-	scheduleArray.count++;
-
-	INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
-		scheduleArray.count + 1, TIME_NONE, TIME_NONE, TIME_NONE,
-		g_check_active_interval, tracker_mem_check_alive, NULL);
-	scheduleArray.count++;
-
-	INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
-		scheduleArray.count + 1, 0, 0, 0,
-		TRACKER_SYNC_STATUS_FILE_INTERVAL,
-		tracker_write_status_to_file, NULL);
-	scheduleArray.count++;
-
-	if (g_rotate_error_log)
-	{
-		INIT_SCHEDULE_ENTRY_EX(scheduleEntries[scheduleArray.count],
-			scheduleArray.count + 1, g_error_log_rotate_time,
-			24 * 3600, log_notify_rotate, &g_log_context);
-		scheduleArray.count++;
-
-		if (g_log_file_keep_days > 0)
-		{
-			log_set_keep_days(&g_log_context, g_log_file_keep_days);
-
-			INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
-				scheduleArray.count + 1, 1, 0, 0, 24 * 3600,
-				log_delete_old_files, &g_log_context);
-			scheduleArray.count++;
-		}
-	}
-
-	if ((result=sched_start(&scheduleArray, &schedule_tid, \
-		g_thread_stack_size, (bool * volatile)&g_continue_flag)) != 0)
-	{
-		logCrit("exit abnormally!\n");
-		log_destroy();
-		return result;
-	}
+    if ((result=setup_schedule_tasks()) != 0)
+    {
+        log_destroy();
+        return result;
+    }
 
 	if ((result=tracker_relationship_init()) != 0)
 	{
@@ -374,13 +321,13 @@ int main(int argc, char *argv[])
 	bTerminateFlag = false;
 	bAcceptEndFlag = false;
 
-	tracker_accept_loop(sock);
+    sf_accept_loop();
+
 	bAcceptEndFlag = true;
 	if (g_schedule_flag)
 	{
 		pthread_kill(schedule_tid, SIGINT);
 	}
-	tracker_terminate_threads();
 
 #ifdef WITH_HTTPD
 	if (g_http_check_flag)
@@ -395,20 +342,9 @@ int main(int argc, char *argv[])
 #endif
 
 	wait_count = 0;
-	while ((g_tracker_thread_count != 0) || g_schedule_flag)
+	while ((SF_G_ALIVE_THREAD_COUNT != 0) || g_schedule_flag)
 	{
-
-/*
-#if defined(DEBUG_FLAG) && defined(OS_LINUX)
-		if (bSegmentFault)
-		{
-			sleep(5);
-			break;
-		}
-#endif
-*/
-
-		usleep(10000);
+		fc_sleep_ms(10);
 		if (++wait_count > 3000)
 		{
 			logWarning("waiting timeout, exit!");
@@ -441,7 +377,7 @@ static void sigDumpHandler(int sig)
 	bDumpFlag = true;
 
 	snprintf(filename, sizeof(filename), 
-		"%s/logs/tracker_dump.log", g_fdfs_base_path);
+		"%s/logs/tracker_dump.log", SF_G_BASE_PATH_STR);
 	fdfs_dump_tracker_global_vars_to_file(filename);
 
 	bDumpFlag = false;
@@ -457,7 +393,7 @@ static void sigQuitHandler(int sig)
 		set_timer(1, 1, sigAlarmHandler);
 
 		bTerminateFlag = true;
-		g_continue_flag = false;
+		SF_G_CONTINUE_FLAG = false;
 		logCrit("file: "__FILE__", line: %d, " \
 			"catch signal %d, program exiting...", \
 			__LINE__, sig);
@@ -466,12 +402,12 @@ static void sigQuitHandler(int sig)
 
 static void sigHupHandler(int sig)
 {
-	if (g_rotate_error_log)
+	if (g_sf_global_vars.error_log.rotate_everyday)
 	{
 		g_log_context.rotate_immediately = true;
 	}
 
-	logInfo("file: "__FILE__", line: %d, " \
+	logInfo("file: "__FILE__", line: %d, "
 		"catch signal %d, rotate log", __LINE__, sig);
 }
 
@@ -487,18 +423,18 @@ static void sigAlarmHandler(int sig)
 	logDebug("file: "__FILE__", line: %d, " \
 		"signal server to quit...", __LINE__);
 
-	if (*bind_addr != '\0')
+	if (*g_sf_context.inner_bind_addr != '\0')
 	{
-		strcpy(server.ip_addr, bind_addr);
+		strcpy(server.ip_addr, g_sf_context.inner_bind_addr);
 	}
 	else
 	{
 		strcpy(server.ip_addr, "127.0.0.1");
 	}
-	server.port = g_server_port;
+	server.port = SF_G_INNER_PORT;
 	server.sock = -1;
 
-	if (conn_pool_connect_server(&server, g_fdfs_connect_timeout) != 0)
+	if (conn_pool_connect_server(&server, SF_G_CONNECT_TIMEOUT) != 0)
 	{
 		return;
 	}

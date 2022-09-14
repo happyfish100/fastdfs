@@ -31,6 +31,7 @@
 #include "fastcommon/sched_thread.h"
 #include "fastcommon/ini_file_reader.h"
 #include "fastcommon/connection_pool.h"
+#include "sf/sf_service.h"
 #include "tracker_types.h"
 #include "tracker_proto.h"
 #include "fdfs_shared_func.h"
@@ -148,10 +149,10 @@ static int storage_do_get_group_name(ConnectionInfo *pTrackerServer)
 	pHeader = (TrackerHeader *)out_buff;
 	memset(out_buff, 0, sizeof(out_buff));
 	long2buff(4, pHeader->pkg_len);
-    int2buff(g_server_port, out_buff + sizeof(TrackerHeader));
+    int2buff(SF_G_INNER_PORT, out_buff + sizeof(TrackerHeader));
 	pHeader->cmd = TRACKER_PROTO_CMD_STORAGE_GET_GROUP_NAME;
 	if ((result=tcpsenddata_nb(pTrackerServer->sock, out_buff, \
-			sizeof(out_buff), g_fdfs_network_timeout)) != 0)
+			sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"tracker server %s:%d, send data fail, " \
@@ -285,7 +286,7 @@ static char *get_storage_stat_filename(const void *pArg, char *full_filename)
 	}
 
 	snprintf(full_filename, MAX_PATH_SIZE, \
-			"%s/data/%s", g_fdfs_base_path, STORAGE_STAT_FILENAME);
+			"%s/data/%s", SF_G_BASE_PATH_STR, STORAGE_STAT_FILENAME);
 	return full_filename;
 }
 
@@ -472,7 +473,7 @@ static int storage_open_stat_file()
 		return result;
 	}
 
-	STORAGE_FCHOWN(storage_stat_fd, full_filename, geteuid(), getegid())
+	SF_FCHOWN_TO_RUNBY_RETURN_ON_ERROR(storage_stat_fd, full_filename);
 	return 0;
 }
 
@@ -648,7 +649,7 @@ int storage_write_to_sync_ini_file()
     int i;
 
 	snprintf(full_filename, sizeof(full_filename),
-		"%s/data/%s", g_fdfs_base_path, DATA_DIR_INITED_FILENAME);
+		"%s/data/%s", SF_G_BASE_PATH_STR, DATA_DIR_INITED_FILENAME);
 
     fdfs_multi_ips_to_string(&g_tracker_client_ip,
             ip_str, sizeof(ip_str));
@@ -693,7 +694,7 @@ int storage_write_to_sync_ini_file()
         return result;
     }
 
-	STORAGE_CHOWN(full_filename, geteuid(), getegid())
+	SF_CHOWN_TO_RUNBY_RETURN_ON_ERROR(full_filename);
 
 	return 0;
 }
@@ -702,7 +703,7 @@ int storage_check_and_make_global_data_path()
 {
     char data_path[MAX_PATH_SIZE];
     snprintf(data_path, sizeof(data_path), "%s/data",
-            g_fdfs_base_path);
+            SF_G_BASE_PATH_STR);
     if (!fileExists(data_path))
     {
         if (mkdir(data_path, 0755) != 0)
@@ -715,7 +716,7 @@ int storage_check_and_make_global_data_path()
             return errno != 0 ? errno : EPERM;
         }
 
-        STORAGE_CHOWN(data_path, geteuid(), getegid())
+        SF_CHOWN_TO_RUNBY_RETURN_ON_ERROR(data_path);
     }
 
     return 0;
@@ -775,7 +776,7 @@ static int storage_generate_store_path_mark(const int store_path_index)
 
     memset(&mark_info, 0, sizeof(FDFSStorePathMarkInfo));
     strcpy(mark_info.ip_addr, g_tracker_client_ip.ips[0].address);
-    mark_info.port = g_server_port;
+    mark_info.port = SF_G_INNER_PORT;
     mark_info.store_path_index = store_path_index;
     mark_info.create_time = g_current_time;
 
@@ -982,7 +983,7 @@ static int storage_check_and_make_data_dirs()
 	bool pathCreated;
 
 	snprintf(data_path, sizeof(data_path), "%s/data",
-			g_fdfs_base_path);
+			SF_G_BASE_PATH_STR);
 	snprintf(full_filename, sizeof(full_filename), "%s/%s",
 			data_path, DATA_DIR_INITED_FILENAME);
 	if (fileExists(full_filename))
@@ -1086,7 +1087,7 @@ static int storage_check_and_make_data_dirs()
 		{
 			if (g_last_server_port == 0)
 			{
-				g_last_server_port = g_server_port;
+				g_last_server_port = SF_G_INNER_PORT;
 			}
 
 			if (g_last_http_port == 0)
@@ -1121,7 +1122,7 @@ static int storage_check_and_make_data_dirs()
         {
 			return result;
         }
-		g_last_server_port = g_server_port;
+		g_last_server_port = SF_G_INNER_PORT;
 		g_last_http_port = g_http_port;
 		g_storage_join_time = g_current_time;
 		if ((result=storage_write_to_sync_ini_file()) != 0)
@@ -1200,7 +1201,7 @@ static int storage_make_data_dirs(const char *pBasePath, bool *pathCreated)
 			return errno != 0 ? errno : EPERM;
 		}
 
-		STORAGE_CHOWN(data_path, current_uid, current_gid)
+		SF_CHOWN_RETURN_ON_ERROR(data_path, current_uid, current_gid);
 	}
 
 	if (chdir(data_path) != 0)
@@ -1241,7 +1242,7 @@ static int storage_make_data_dirs(const char *pBasePath, bool *pathCreated)
 			}
 		}
 
-		STORAGE_CHOWN(dir_name, current_uid, current_gid)
+		SF_CHOWN_RETURN_ON_ERROR(dir_name, current_uid, current_gid);
 
 		if (chdir(dir_name) != 0)
 		{
@@ -1270,7 +1271,7 @@ static int storage_make_data_dirs(const char *pBasePath, bool *pathCreated)
 				}
 			}
 
-			STORAGE_CHOWN(sub_name, current_uid, current_gid)
+			SF_CHOWN_RETURN_ON_ERROR(sub_name, current_uid, current_gid);
 		}
 
 		if (chdir("..") != 0)
@@ -1400,27 +1401,22 @@ static int init_my_result_per_tracker()
     return 0;
 }
 
-int storage_func_init(const char *filename, \
-		char *bind_addr, const int addr_size)
+int storage_func_init(const char *filename)
 {
-	char *pBindAddr;
+    const int task_buffer_extra_size = 0;
+    const bool need_set_run_by = false;
 	char *pGroupName;
-	char *pRunByGroup;
-	char *pRunByUser;
 	char *pFsyncAfterWrittenBytes;
-	char *pThreadStackSize;
-	char *pBuffSize;
 	char *pIfAliasPrefix;
 	char *pHttpDomain;
 	char *pRotateAccessLogSize;
-	char *pRotateErrorLogSize;
 	IniContext iniContext;
+    SFContextIniConfig config;
 	int result;
 	int64_t fsync_after_written_bytes;
-	int64_t thread_stack_size;
-	int64_t buff_size;
 	int64_t rotate_access_log_size;
-	int64_t rotate_error_log_size;
+    char sz_global_config[512];
+    char sz_service_config[128];
 
 	if ((result=iniLoadFromFile(filename, &iniContext)) != 0)
 	{
@@ -1441,6 +1437,18 @@ int storage_func_init(const char *filename, \
 			break;
 		}
 
+        sf_set_current_time();
+
+        SF_SET_CONTEXT_INI_CONFIG_EX(config, filename, &iniContext,
+                NULL, FDFS_STORAGE_SERVER_DEF_PORT,
+                FDFS_STORAGE_SERVER_DEF_PORT, DEFAULT_WORK_THREADS,
+                "buff_size");
+        if ((result=sf_load_config_ex("storaged", &config,
+                        task_buffer_extra_size, need_set_run_by)) != 0)
+        {
+            return result;
+        }
+
 		g_subdir_count_per_path=iniGetIntValue(NULL, \
 				"subdir_count_per_path", &iniContext, \
 				DEFAULT_DATA_DIR_COUNT_PER_PATH);
@@ -1460,31 +1468,31 @@ int storage_func_init(const char *filename, \
 		}
 
 		load_log_level(&iniContext);
-		if ((result=log_set_prefix(g_fdfs_base_path, \
+		if ((result=log_set_prefix(SF_G_BASE_PATH_STR, \
 				STORAGE_ERROR_LOG_FILENAME)) != 0)
 		{
 			break;
 		}
 
-		g_fdfs_connect_timeout = iniGetIntValue(NULL, "connect_timeout", \
+		SF_G_CONNECT_TIMEOUT = iniGetIntValue(NULL, "connect_timeout", \
 				&iniContext, DEFAULT_CONNECT_TIMEOUT);
-		if (g_fdfs_connect_timeout <= 0)
+		if (SF_G_CONNECT_TIMEOUT <= 0)
 		{
-			g_fdfs_connect_timeout = DEFAULT_CONNECT_TIMEOUT;
+			SF_G_CONNECT_TIMEOUT = DEFAULT_CONNECT_TIMEOUT;
 		}
 
-		g_fdfs_network_timeout = iniGetIntValue(NULL, "network_timeout", \
+		SF_G_NETWORK_TIMEOUT = iniGetIntValue(NULL, "network_timeout", \
 				&iniContext, DEFAULT_NETWORK_TIMEOUT);
-		if (g_fdfs_network_timeout <= 0)
+		if (SF_G_NETWORK_TIMEOUT <= 0)
 		{
-			g_fdfs_network_timeout = DEFAULT_NETWORK_TIMEOUT;
+			SF_G_NETWORK_TIMEOUT = DEFAULT_NETWORK_TIMEOUT;
 		}
 
-		g_server_port = iniGetIntValue(NULL, "port", &iniContext, \
+		SF_G_INNER_PORT = iniGetIntValue(NULL, "port", &iniContext, \
 					FDFS_STORAGE_SERVER_DEF_PORT);
-		if (g_server_port <= 0)
+		if (SF_G_INNER_PORT <= 0)
 		{
-			g_server_port = FDFS_STORAGE_SERVER_DEF_PORT;
+			SF_G_INNER_PORT = FDFS_STORAGE_SERVER_DEF_PORT;
 		}
 
 		g_heart_beat_interval = iniGetIntValue(NULL, \
@@ -1501,16 +1509,6 @@ int storage_func_init(const char *filename, \
 		if (g_stat_report_interval <= 0)
 		{
 			g_stat_report_interval = STORAGE_REPORT_DEF_INTERVAL;
-		}
-
-		pBindAddr = iniGetStrValue(NULL, "bind_addr", &iniContext);
-		if (pBindAddr == NULL)
-		{
-			*bind_addr = '\0';
-		}
-		else
-		{
-			snprintf(bind_addr, addr_size, "%s", pBindAddr);
 		}
 
 		g_client_bind_addr = iniGetBoolValue(NULL, "client_bind", \
@@ -1604,63 +1602,16 @@ int storage_func_init(const char *filename, \
 				(g_sync_end_time.hour == 23 && \
 				g_sync_end_time.minute == 59));
 
-		g_max_connections = iniGetIntValue(NULL, "max_connections", \
-				&iniContext, DEFAULT_MAX_CONNECTONS);
-		if (g_max_connections <= 0)
-		{
-			g_max_connections = DEFAULT_MAX_CONNECTONS;
-		}
-		if ((result=set_rlimit(RLIMIT_NOFILE, g_max_connections)) != 0)
-		{
-			break;
-		}
-
-		g_accept_threads = iniGetIntValue(NULL, "accept_threads", \
-				&iniContext, 1);
-		if (g_accept_threads <= 0)
-		{
-			logError("file: "__FILE__", line: %d, " \
-				"item \"accept_threads\" is invalid, " \
-				"value: %d <= 0!", __LINE__, g_accept_threads);
-			result = EINVAL;
-                        break;
-		}
-
-		g_work_threads = iniGetIntValue(NULL, "work_threads", \
-				&iniContext, DEFAULT_WORK_THREADS);
-		if (g_work_threads <= 0)
-		{
-			logError("file: "__FILE__", line: %d, " \
-				"item \"work_threads\" is invalid, " \
-				"value: %d <= 0!", __LINE__, g_work_threads);
-			result = EINVAL;
-                        break;
-		}
-
-		pBuffSize = iniGetStrValue(NULL, \
-			"buff_size", &iniContext);
-		if (pBuffSize == NULL)
-		{
-			buff_size = STORAGE_DEFAULT_BUFF_SIZE;
-		}
-		else if ((result=parse_bytes(pBuffSize, 1, &buff_size)) != 0)
-		{
-			break;
-		}
-		g_buff_size = buff_size;
-		if (g_buff_size < 4 * 1024 || \
-			g_buff_size < sizeof(TrackerHeader) + \
-					TRUNK_BINLOG_BUFFER_SIZE)
-		{
-			logError("file: "__FILE__", line: %d, " \
-				"item \"buff_size\" is too small, " \
-				"value: %d < %d or < %d!", __LINE__, \
-				g_buff_size, 4 * 1024, \
-				(int)sizeof(TrackerHeader) + \
-				TRUNK_BINLOG_BUFFER_SIZE);
-			result = EINVAL;
-                        break;
-		}
+        if (g_sf_global_vars.min_buff_size < sizeof(TrackerHeader) +
+                TRUNK_BINLOG_BUFFER_SIZE)
+        {
+            logError("file: "__FILE__", line: %d, "
+                    "item \"buff_size\" is too small, value: %d < %d!",
+                    __LINE__, g_sf_global_vars.min_buff_size,
+                    (int)sizeof(TrackerHeader) + TRUNK_BINLOG_BUFFER_SIZE);
+            result = EINVAL;
+            break;
+        }
 
 		g_disk_rw_separated = iniGetBoolValue(NULL, \
 				"disk_rw_separated", &iniContext, true);
@@ -1733,75 +1684,6 @@ int storage_func_init(const char *filename, \
             break;
 		}
 
-		/*
-		g_disk_rw_direct = iniGetBoolValue(NULL, \
-				"disk_rw_direct", &iniContext, false);
-		*/
-
-		pRunByGroup = iniGetStrValue(NULL, "run_by_group", &iniContext);
-		pRunByUser = iniGetStrValue(NULL, "run_by_user", &iniContext);
-		if (pRunByGroup == NULL)
-		{
-			*g_run_by_group = '\0';
-		}
-		else
-		{
-			snprintf(g_run_by_group, sizeof(g_run_by_group), \
-				"%s", pRunByGroup);
-		}
-		if (*g_run_by_group == '\0')
-		{
-			g_run_by_gid = getegid();
-		}
-		else
-		{
-			struct group *pGroup;
-
-     			pGroup = getgrnam(g_run_by_group);
-			if (pGroup == NULL)
-			{
-				result = errno != 0 ? errno : ENOENT;
-				logError("file: "__FILE__", line: %d, " \
-					"getgrnam fail, errno: %d, " \
-					"error info: %s", __LINE__, \
-					result, STRERROR(result));
-				return result;
-			}
-
-			g_run_by_gid = pGroup->gr_gid;
-		}
-
-		if (pRunByUser == NULL)
-		{
-			*g_run_by_user = '\0';
-		}
-		else
-		{
-			snprintf(g_run_by_user, sizeof(g_run_by_user), \
-				"%s", pRunByUser);
-		}
-		if (*g_run_by_user == '\0')
-		{
-			g_run_by_uid = geteuid();
-		}
-		else
-		{
-			struct passwd *pUser;
-
-     			pUser = getpwnam(g_run_by_user);
-			if (pUser == NULL)
-			{
-				result = errno != 0 ? errno : ENOENT;
-				logError("file: "__FILE__", line: %d, " \
-					"getpwnam fail, errno: %d, " \
-					"error info: %s", __LINE__, \
-					result, STRERROR(result));
-				return result;
-			}
-
-			g_run_by_uid = pUser->pw_uid;
-		}
-
 		if ((result=load_allow_hosts(&iniContext, \
                 	 &g_allow_ip_addrs, &g_allow_ip_count)) != 0)
 		{
@@ -1833,14 +1715,6 @@ int storage_func_init(const char *filename, \
 		}
 		g_fsync_after_written_bytes = fsync_after_written_bytes;
 
-		g_sync_log_buff_interval = iniGetIntValue(NULL, \
-				"sync_log_buff_interval", &iniContext, \
-				SYNC_LOG_BUFF_DEF_INTERVAL);
-		if (g_sync_log_buff_interval <= 0)
-		{
-			g_sync_log_buff_interval = SYNC_LOG_BUFF_DEF_INTERVAL;
-		}
-
 		g_sync_binlog_buff_interval = iniGetIntValue(NULL, \
 				"sync_binlog_buff_interval", &iniContext,\
 				SYNC_BINLOG_BUFF_DEF_INTERVAL);
@@ -1866,24 +1740,11 @@ int storage_func_init(const char *filename, \
 			g_sync_stat_file_interval=DEFAULT_SYNC_STAT_FILE_INTERVAL;
 		}
 
-		pThreadStackSize = iniGetStrValue(NULL, \
-			"thread_stack_size", &iniContext);
-		if (pThreadStackSize == NULL)
-		{
-			thread_stack_size = 512 * 1024;
-		}
-		else if ((result=parse_bytes(pThreadStackSize, 1, \
-				&thread_stack_size)) != 0)
-		{
-			break;
-		}
-		g_thread_stack_size = (int)thread_stack_size;
-
-		if (g_thread_stack_size < FAST_WRITE_BUFF_SIZE + 64 * 1024)
+		if (SF_G_THREAD_STACK_SIZE < FAST_WRITE_BUFF_SIZE + 64 * 1024)
 		{
 			logError("file: "__FILE__", line: %d, " \
 				"item \"thread_stack_size\" %d is invalid, " \
-				"which < %d", __LINE__, g_thread_stack_size, \
+				"which < %d", __LINE__, SF_G_THREAD_STACK_SIZE, \
 				FAST_WRITE_BUFF_SIZE + 64 * 1024);
 			result = EINVAL;
 			break;
@@ -1926,9 +1787,9 @@ int storage_func_init(const char *filename, \
 					STORAGE_FILE_SIGNATURE_METHOD_HASH;
 			}
 
-			strcpy(g_fdht_base_path, g_fdfs_base_path);
-			g_fdht_connect_timeout = g_fdfs_connect_timeout;
-			g_fdht_network_timeout = g_fdfs_network_timeout;
+			strcpy(g_fdht_base_path, SF_G_BASE_PATH_STR);
+			g_fdht_connect_timeout = SF_G_CONNECT_TIMEOUT;
+			g_fdht_network_timeout = SF_G_NETWORK_TIMEOUT;
 
 			pKeyNamespace = iniGetStrValue(NULL, \
 				"key_namespace", &iniContext);
@@ -1996,7 +1857,7 @@ int storage_func_init(const char *filename, \
 				LOG_TIME_PRECISION_MSECOND);
 			log_set_cache_ex(&g_access_log_context, true);
 			result = log_set_prefix_ex(&g_access_log_context, \
-				g_fdfs_base_path, "storage_access");
+				SF_G_BASE_PATH_STR, "storage_access");
 			if (result != 0)
 			{
 				break;
@@ -2013,23 +1874,10 @@ int storage_func_init(const char *filename, \
 			break;
 		}
 
-		g_rotate_error_log = iniGetBoolValue(NULL, "rotate_error_log",\
-					&iniContext, false);
-		g_compress_old_access_log = iniGetBoolValue(NULL, "compress_old_access_log",
-					&iniContext, false);
-		g_compress_old_error_log = iniGetBoolValue(NULL, "compress_old_error_log",
-					&iniContext, false);
-		g_compress_error_log_days_before = iniGetIntValue(NULL,
-				"compress_error_log_days_before", &iniContext, 1);
+		g_compress_old_access_log = iniGetBoolValue(NULL,
+                "compress_old_access_log", &iniContext, false);
 		g_compress_access_log_days_before = iniGetIntValue(NULL,
 				"compress_access_log_days_before", &iniContext, 1);
-
-        if (g_compress_old_error_log)
-        {
-            log_set_compress_log_flags(LOG_COMPRESS_FLAGS_ENABLED |
-                    LOG_COMPRESS_FLAGS_NEW_THREAD);
-            log_set_compress_log_days_before(g_compress_error_log_days_before);
-        }
 		if (g_use_access_log && g_compress_old_access_log)
         {
             log_set_compress_log_flags_ex(&g_access_log_context,
@@ -2038,13 +1886,6 @@ int storage_func_init(const char *filename, \
             log_set_compress_log_days_before_ex(&g_access_log_context,
                     g_compress_access_log_days_before);
         }
-
-		if ((result=get_time_item_from_conf(&iniContext, \
-			"error_log_rotate_time", &g_error_log_rotate_time, \
-			0, 0)) != 0)
-		{
-			break;
-		}
 
 		pRotateAccessLogSize = iniGetStrValue(NULL, \
 			"rotate_access_log_size", &iniContext);
@@ -2068,32 +1909,6 @@ int storage_func_init(const char *filename, \
 			rotate_access_log_size = FDFS_ONE_MB;
 		}
 		fdfs_set_log_rotate_size(&g_access_log_context, rotate_access_log_size);
-
-		pRotateErrorLogSize = iniGetStrValue(NULL, \
-			"rotate_error_log_size", &iniContext);
-		if (pRotateErrorLogSize == NULL)
-		{
-			rotate_error_log_size = 0;
-		}
-		else if ((result=parse_bytes(pRotateErrorLogSize, 1, \
-				&rotate_error_log_size)) != 0)
-		{
-			break;
-		}
-		if (rotate_error_log_size > 0 && \
-			rotate_error_log_size < FDFS_ONE_MB)
-		{
-			logWarning("file: "__FILE__", line: %d, " \
-				"item \"rotate_error_log_size\": " \
-				"%"PRId64" is too small, " \
-				"change to 1 MB", __LINE__, \
-				rotate_error_log_size);
-			rotate_error_log_size = FDFS_ONE_MB;
-		}
-		fdfs_set_log_rotate_size(&g_log_context, rotate_error_log_size);
-
-		g_log_file_keep_days = iniGetIntValue(NULL, \
-				"log_file_keep_days", &iniContext, 0);
 
 		g_file_sync_skip_invalid_record = iniGetBoolValue(NULL, \
 			"file_sync_skip_invalid_record", &iniContext, false);
@@ -2140,88 +1955,70 @@ int storage_func_init(const char *filename, \
 		}
 #endif
 
-		logInfo("FastDFS v%d.%02d, base_path=%s, store_path_count=%d, " \
-			"subdir_count_per_path=%d, group_name=%s, " \
-			"run_by_group=%s, run_by_user=%s, " \
-			"connect_timeout=%ds, network_timeout=%ds, "\
-			"port=%d, bind_addr=%s, client_bind=%d, " \
-			"max_connections=%d, accept_threads=%d, " \
-			"work_threads=%d, "    \
-			"disk_rw_separated=%d, disk_reader_threads=%d, " \
-			"disk_writer_threads=%d, disk_recovery_threads=%d, " \
-			"buff_size=%d KB, heart_beat_interval=%ds, " \
-			"stat_report_interval=%ds, tracker_server_count=%d, " \
-			"sync_wait_msec=%dms, sync_interval=%dms, " \
-			"sync_start_time=%02d:%02d, sync_end_time=%02d:%02d, "\
-			"write_mark_file_freq=%d, " \
-			"allow_ip_count=%d, " \
-			"file_distribute_path_mode=%d, " \
-			"file_distribute_rotate_count=%d, " \
-			"fsync_after_written_bytes=%d, " \
-			"sync_log_buff_interval=%ds, " \
-			"sync_binlog_buff_interval=%ds, " \
-			"sync_stat_file_interval=%ds, " \
-			"thread_stack_size=%d KB, upload_priority=%d, " \
-			"if_alias_prefix=%s, " \
-			"check_file_duplicate=%d, file_signature_method=%s, " \
-			"FDHT group count=%d, FDHT server count=%d, " \
-			"FDHT key_namespace=%s, FDHT keep_alive=%d, " \
-			"HTTP server port=%d, domain name=%s, " \
-			"use_access_log=%d, rotate_access_log=%d, " \
-			"access_log_rotate_time=%02d:%02d, " \
-            "compress_old_access_log=%d, " \
-            "compress_access_log_days_before=%d, " \
-			"rotate_error_log=%d, " \
-			"error_log_rotate_time=%02d:%02d, " \
-            "compress_old_error_log=%d, " \
-            "compress_error_log_days_before=%d, " \
-			"rotate_access_log_size=%"PRId64", " \
-			"rotate_error_log_size=%"PRId64", " \
-			"log_file_keep_days=%d, " \
-			"file_sync_skip_invalid_record=%d, " \
-			"use_connection_pool=%d, " \
-			"g_connection_pool_max_idle_time=%ds, " \
-			"compress_binlog=%d, " \
-			"compress_binlog_time=%02d:%02d, " \
-            "check_store_path_mark=%d",  \
-			g_fdfs_version.major, g_fdfs_version.minor, \
-			g_fdfs_base_path, g_fdfs_store_paths.count, \
-			g_subdir_count_per_path, \
-			g_group_name, g_run_by_group, g_run_by_user, \
-			g_fdfs_connect_timeout, g_fdfs_network_timeout, \
-			g_server_port, bind_addr, \
-			g_client_bind_addr, g_max_connections, \
-			g_accept_threads, g_work_threads, g_disk_rw_separated, \
-			g_disk_reader_threads, g_disk_writer_threads, \
-            g_disk_recovery_threads, g_buff_size / 1024, \
-			g_heart_beat_interval, g_stat_report_interval, \
-			g_tracker_group.server_count, g_sync_wait_usec / 1000, \
-			g_sync_interval / 1000, \
-			g_sync_start_time.hour, g_sync_start_time.minute, \
-			g_sync_end_time.hour, g_sync_end_time.minute, \
-			g_write_mark_file_freq, \
-			g_allow_ip_count, g_file_distribute_path_mode, \
-			g_file_distribute_rotate_count, \
-			g_fsync_after_written_bytes, g_sync_log_buff_interval, \
-			g_sync_binlog_buff_interval, g_sync_stat_file_interval, \
-			g_thread_stack_size/1024, g_upload_priority, \
-			g_if_alias_prefix, g_check_file_duplicate, \
-			g_file_signature_method == STORAGE_FILE_SIGNATURE_METHOD_HASH \
-				? "hash" : "md5", 
-			g_group_array.group_count, g_group_array.server_count, \
-			g_key_namespace, g_keep_alive, \
-			g_http_port, g_http_domain, g_use_access_log, \
-			g_rotate_access_log, g_access_log_rotate_time.hour, \
-			g_access_log_rotate_time.minute, g_compress_old_access_log, \
-            g_compress_access_log_days_before, \
-			g_rotate_error_log, g_error_log_rotate_time.hour, \
-			g_error_log_rotate_time.minute, g_compress_old_error_log, \
-            g_compress_error_log_days_before, \
-			g_access_log_context.rotate_size, \
-			g_log_context.rotate_size, g_log_file_keep_days, \
-			g_file_sync_skip_invalid_record, \
-			g_use_connection_pool, g_connection_pool_max_idle_time, \
-            g_compress_binlog, g_compress_binlog_time.hour,   \
+        sf_global_config_to_string_ex("buff_size", sz_global_config,
+                sizeof(sz_global_config));
+        sf_context_config_to_string(&g_sf_context,
+                sz_service_config, sizeof(sz_service_config));
+
+		logInfo("FastDFS v%d.%02d, %s, %s, store_path_count=%d, "
+			"subdir_count_per_path=%d, group_name=%s, client_bind=%d, "
+            "disk_rw_separated=%d, disk_reader_threads=%d, "
+			"disk_writer_threads=%d, disk_recovery_threads=%d, "
+			"heart_beat_interval=%ds, stat_report_interval=%ds, "
+            "tracker_server_count=%d, sync_wait_msec=%dms, "
+            "sync_interval=%dms, sync_start_time=%02d:%02d, "
+            "sync_end_time=%02d:%02d, write_mark_file_freq=%d, "
+			"allow_ip_count=%d, "
+			"file_distribute_path_mode=%d, "
+			"file_distribute_rotate_count=%d, "
+			"fsync_after_written_bytes=%d, "
+			"sync_binlog_buff_interval=%ds, "
+			"sync_stat_file_interval=%ds, "
+			"upload_priority=%d, "
+			"if_alias_prefix=%s, "
+			"check_file_duplicate=%d, file_signature_method=%s, "
+			"FDHT group count=%d, FDHT server count=%d, "
+			"FDHT key_namespace=%s, FDHT keep_alive=%d, "
+			"HTTP server port=%d, domain name=%s, "
+			"use_access_log=%d, rotate_access_log=%d, "
+			"access_log_rotate_time=%02d:%02d, "
+            "compress_old_access_log=%d, "
+            "compress_access_log_days_before=%d, "
+			"rotate_access_log_size=%"PRId64", "
+			"file_sync_skip_invalid_record=%d, "
+			"use_connection_pool=%d, "
+			"g_connection_pool_max_idle_time=%ds, "
+			"compress_binlog=%d, "
+			"compress_binlog_time=%02d:%02d, "
+            "check_store_path_mark=%d",
+			g_fdfs_version.major, g_fdfs_version.minor,
+            sz_global_config, sz_service_config,
+			g_fdfs_store_paths.count, g_subdir_count_per_path,
+			g_group_name, g_client_bind_addr, g_disk_rw_separated,
+			g_disk_reader_threads, g_disk_writer_threads,
+            g_disk_recovery_threads, g_heart_beat_interval,
+            g_stat_report_interval, g_tracker_group.server_count,
+            g_sync_wait_usec / 1000, g_sync_interval / 1000,
+			g_sync_start_time.hour, g_sync_start_time.minute,
+			g_sync_end_time.hour, g_sync_end_time.minute,
+			g_write_mark_file_freq, g_allow_ip_count,
+            g_file_distribute_path_mode,
+			g_file_distribute_rotate_count,
+			g_fsync_after_written_bytes,
+			g_sync_binlog_buff_interval, g_sync_stat_file_interval,
+			g_upload_priority, g_if_alias_prefix, g_check_file_duplicate,
+			g_file_signature_method == STORAGE_FILE_SIGNATURE_METHOD_HASH
+				? "hash" : "md5",
+			g_group_array.group_count, g_group_array.server_count,
+			g_key_namespace, g_keep_alive,
+			g_http_port, g_http_domain, g_use_access_log,
+			g_rotate_access_log, g_access_log_rotate_time.hour,
+			g_access_log_rotate_time.minute, g_compress_old_access_log,
+            g_compress_access_log_days_before,
+			g_access_log_context.rotate_size,
+			g_file_sync_skip_invalid_record,
+			g_use_connection_pool, g_connection_pool_max_idle_time,
+            g_compress_binlog, g_compress_binlog_time.hour,
             g_compress_binlog_time.minute, g_check_store_path_mark);
 
 #ifdef WITH_HTTPD
@@ -2401,7 +2198,7 @@ static int storage_get_my_ip_from_tracker(ConnectionInfo *conn,
 	pHeader->cmd = TRACKER_PROTO_CMD_STORAGE_GET_MY_IP;
 	strcpy(out_buff + sizeof(TrackerHeader), g_group_name);
 	if((result=tcpsenddata_nb(conn->sock, out_buff,
-		sizeof(out_buff), g_fdfs_network_timeout)) != 0)
+		sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, "
 			"tracker server %s:%d, send data fail, "
@@ -2716,7 +2513,7 @@ int recv_file_serialized(int sock, const char *filename, \
 		}
 
 		if ((result=tcprecvdata_nb(sock, buff, recv_bytes, \
-				g_fdfs_network_timeout)) != 0)
+				SF_G_NETWORK_TIMEOUT)) != 0)
 		{
 			close(fd);
 			unlink(filename);

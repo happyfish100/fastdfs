@@ -4,7 +4,7 @@ COMPILE = $(CC) $(CFLAGS)
 ENABLE_STATIC_LIB = $(ENABLE_STATIC_LIB)
 ENABLE_SHARED_LIB = $(ENABLE_SHARED_LIB)
 INC_PATH = -I../common -I../tracker -I/usr/include/fastcommon
-LIB_PATH = $(LIBS) -lfastcommon
+LIB_PATH = $(LIBS) -lfastcommon -lserverframe
 TARGET_PATH = $(TARGET_PREFIX)/bin
 TARGET_LIB = $(TARGET_PREFIX)/$(LIB_VERSION)
 TARGET_INC = $(TARGET_PREFIX)/include
@@ -49,6 +49,7 @@ CLIENT_SHARED_LIBS = libfdfsclient.so
 ALL_LIBS = $(STATIC_LIBS) $(SHARED_LIBS)
 
 all: $(ALL_OBJS) $(ALL_PRGS) $(ALL_LIBS)
+
 libfdfsclient.so:
 	$(COMPILE) -o $@ $< -shared $(FDFS_SHARED_OBJS) $(LIB_PATH)
 libfdfsclient.a:

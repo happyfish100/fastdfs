@@ -27,22 +27,14 @@
 extern "C" {
 #endif
 
-extern int g_storage_thread_count;
-extern pthread_mutex_t g_storage_thread_lock;
-
 int storage_service_init();
 void storage_service_destroy();
 
 int fdfs_stat_file_sync_func(void *args);
-int storage_deal_task(struct fast_task_info *pTask);
-
-int storage_nio_notify(struct fast_task_info *pTask);
-void storage_accept_loop(int server_sock);
-int storage_terminate_threads();
 
 int storage_get_storage_path_index(int *store_path_index);
 
-void storage_get_store_path(const char *filename, const int filename_len, \
+void storage_get_store_path(const char *filename, const int filename_len,
 		int *sub_path_high, int *sub_path_low);
 
 #ifdef __cplusplus

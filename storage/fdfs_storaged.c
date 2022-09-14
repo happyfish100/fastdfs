@@ -28,6 +28,8 @@
 #include "fdfs_global.h"
 #include "fastcommon/ini_file_reader.h"
 #include "fastcommon/sockopt.h"
+#include "sf/sf_service.h"
+#include "sf/sf_util.h"
 #include "tracker_types.h"
 #include "tracker_proto.h"
 #include "tracker_client_thread.h"
@@ -53,6 +55,7 @@
 #define ACCEPT_STAGE_DOING   1
 #define ACCEPT_STAGE_DONE    2
 
+static bool daemon_mode = true;
 static bool bTerminateFlag = false;
 static char accept_stage = ACCEPT_STAGE_NONE;
 
@@ -61,7 +64,7 @@ static void sigHupHandler(int sig);
 static void sigUsrHandler(int sig);
 static void sigAlarmHandler(int sig);
 
-static int setupSchedules(pthread_t *schedule_tid);
+static int setup_schedule_tasks();
 static int setupSignalHandlers();
 
 #if defined(DEBUG_FLAG)
@@ -75,20 +78,11 @@ static void sigSegvHandler(int signum, siginfo_t *info, void *ptr);
 static void sigDumpHandler(int sig);
 #endif
 
-static void usage(const char *program)
-{
-	fprintf(stderr, "FastDFS server v%d.%02d\n"
-            "Usage: %s <config_file> [start | stop | restart]\n",
-            g_fdfs_version.major, g_fdfs_version.minor,
-            program);
-}
-
 int main(int argc, char *argv[])
 {
-	char *conf_filename;
+	const char *conf_filename;
     char *action;
 	int result;
-	int sock;
 	int wait_count;
 	pthread_t schedule_tid;
 	char pidFilename[MAX_PATH_SIZE];
@@ -96,13 +90,18 @@ int main(int argc, char *argv[])
 
 	if (argc < 2)
 	{
-		usage(argv[0]);
+        sf_usage(argv[0]);
 		return 1;
 	}
 
-	g_current_time = time(NULL);
-	g_up_time = g_current_time;
+    conf_filename = sf_parse_daemon_mode_and_action(argc, argv,
+            &g_fdfs_version, &daemon_mode, &action);
+    if (conf_filename == NULL)
+    {
+        return 0;
+    }
 
+	g_current_time = time(NULL);
 	log_init2();
 	if ((result=trunk_shared_init()) != 0)
     {
@@ -110,17 +109,7 @@ int main(int argc, char *argv[])
 		return result;
     }
 
-	conf_filename = argv[1];
-    if (!fileExists(conf_filename))
-    {
-        if (starts_with(conf_filename, "-"))
-        {
-            usage(argv[0]);
-            return 0;
-        }
-    }
-	if ((result=get_base_path_from_conf_file(conf_filename,
-		g_fdfs_base_path, sizeof(g_fdfs_base_path))) != 0)
+	if ((result=sf_get_base_path_from_conf_file(conf_filename)) != 0)
 	{
 		log_destroy();
 		return result;
@@ -131,14 +120,14 @@ int main(int argc, char *argv[])
 		log_destroy();
         return result;
     }
+
 	snprintf(pidFilename, sizeof(pidFilename),
-		"%s/data/fdfs_storaged.pid", g_fdfs_base_path);
-    action = argc >= 3 ? argv[2] : "start";
+		"%s/data/fdfs_storaged.pid", SF_G_BASE_PATH_STR);
 	if ((result=process_action(pidFilename, action, &stop)) != 0)
 	{
 		if (result == EINVAL)
 		{
-			usage(argv[0]);
+			sf_usage(argv[0]);
 		}
 		log_destroy();
 		return result;
@@ -159,14 +148,10 @@ int main(int argc, char *argv[])
 	}
 #endif
 
-	daemon_init(false);
+    if (daemon_mode) {
+        daemon_init(false);
+    }
 	umask(0);
-
-	if ((result=write_to_pid_file(pidFilename)) != 0)
-	{
-		log_destroy();
-		return result;
-	}
 
     if ((result=setupSignalHandlers()) != 0)
     {
@@ -175,29 +160,21 @@ int main(int argc, char *argv[])
 		return result;
     }
 
-	memset(g_bind_addr, 0, sizeof(g_bind_addr));
-	if ((result=storage_func_init(conf_filename, \
-			g_bind_addr, sizeof(g_bind_addr))) != 0)
+	if ((result=storage_func_init(conf_filename)) != 0)
 	{
 		logCrit("exit abnormally!\n");
-        delete_pid_file(pidFilename);
 		log_destroy();
 		return result;
 	}
 
-	sock = socketServer(g_bind_addr, g_server_port, &result);
-	if (sock < 0)
-	{
-		logCrit("exit abnormally!\n");
-        delete_pid_file(pidFilename);
-		log_destroy();
-		return result;
-	}
+    if ((result=sf_socket_server()) != 0)
+    {
+        log_destroy();
+        return result;
+    }
 
-	if ((result=tcpsetserveropt(sock, g_fdfs_network_timeout)) != 0)
+	if ((result=write_to_pid_file(pidFilename)) != 0)
 	{
-		logCrit("exit abnormally!\n");
-        delete_pid_file(pidFilename);
 		log_destroy();
 		return result;
 	}
@@ -206,7 +183,7 @@ int main(int argc, char *argv[])
 	{
 		logCrit("file: "__FILE__", line: %d, " \
 			"storage_sync_init fail, program exit!", __LINE__);
-		g_continue_flag = false;
+		SF_G_CONTINUE_FLAG = false;
 		return result;
 	}
 
@@ -214,7 +191,7 @@ int main(int argc, char *argv[])
 	{
 		logCrit("file: "__FILE__", line: %d, " \
 			"tracker_report_init fail, program exit!", __LINE__);
-		g_continue_flag = false;
+		SF_G_CONTINUE_FLAG = false;
 		return result;
 	}
 
@@ -222,7 +199,7 @@ int main(int argc, char *argv[])
 	{
 		logCrit("file: "__FILE__", line: %d, " \
 			"storage_service_init fail, program exit!", __LINE__);
-		g_continue_flag = false;
+		SF_G_CONTINUE_FLAG = false;
 		return result;
 	}
 
@@ -230,7 +207,7 @@ int main(int argc, char *argv[])
 	{
 		logCrit("file: "__FILE__", line: %d, " \
 			"set_rand_seed fail, program exit!", __LINE__);
-		g_continue_flag = false;
+		SF_G_CONTINUE_FLAG = false;
 		return result;
 	}
 
@@ -238,7 +215,7 @@ int main(int argc, char *argv[])
 #ifdef WITH_HTTPD
 	if (!g_http_params.disabled)
 	{
-		if ((result=storage_httpd_start(g_bind_addr)) != 0)
+		if ((result=storage_httpd_start(SF_G_INNER_BIND_ADDR)) != 0)
 		{
 			logCrit("file: "__FILE__", line: %d, " \
 				"storage_httpd_start fail, " \
@@ -253,20 +230,27 @@ int main(int argc, char *argv[])
 		logCrit("file: "__FILE__", line: %d, " \
 			"tracker_report_thread_start fail, " \
 			"program exit!", __LINE__);
-		g_continue_flag = false;
+		SF_G_CONTINUE_FLAG = false;
 		storage_func_destroy();
 		log_destroy();
 		return result;
 	}
 
-    if ((result=setupSchedules(&schedule_tid)) != 0)
+    if ((result=sf_startup_schedule(&schedule_tid)) != 0)
+    {
+        log_destroy();
+        return result;
+    }
+
+    if ((result=setup_schedule_tasks()) != 0)
     {
 		logCrit("exit abnormally!\n");
 		log_destroy();
 		return result;
     }
 
-	if ((result=set_run_by(g_run_by_group, g_run_by_user)) != 0)
+	if ((result=set_run_by(g_sf_global_vars.run_by_group,
+                    g_sf_global_vars.run_by_user)) != 0)
 	{
 		logCrit("exit abnormally!\n");
 		log_destroy();
@@ -284,7 +268,7 @@ int main(int argc, char *argv[])
 	bTerminateFlag = false;
 	accept_stage = ACCEPT_STAGE_DOING;
 	
-	storage_accept_loop(sock);
+    sf_accept_loop();
 	accept_stage = ACCEPT_STAGE_DONE;
 
 	fdfs_binlog_sync_func(NULL);  //binlog fsync
@@ -294,17 +278,14 @@ int main(int argc, char *argv[])
 		pthread_kill(schedule_tid, SIGINT);
 	}
 
-	storage_terminate_threads();
 	storage_dio_terminate();
 
 	kill_tracker_report_threads();
 	kill_storage_sync_threads();
 
 	wait_count = 0;
-	while (g_storage_thread_count != 0 || \
-		g_dio_thread_count != 0 || \
-		g_tracker_reporter_count > 0 || \
-		g_schedule_flag)
+	while (SF_G_ALIVE_THREAD_COUNT != 0 || g_dio_thread_count != 0 ||
+		g_tracker_reporter_count > 0 || g_schedule_flag)
 	{
 /*
 #if defined(DEBUG_FLAG) && defined(OS_LINUX)
@@ -350,7 +331,7 @@ static void sigQuitHandler(int sig)
 		set_timer(1, 1, sigAlarmHandler);
 
 		bTerminateFlag = true;
-		g_continue_flag = false;
+		SF_G_CONTINUE_FLAG = false;
 
 		logCrit("file: "__FILE__", line: %d, " \
 			"catch signal %d, program exiting...", \
@@ -370,18 +351,18 @@ static void sigAlarmHandler(int sig)
 	logDebug("file: "__FILE__", line: %d, " \
 		"signal server to quit...", __LINE__);
 
-	if (*g_bind_addr != '\0')
+	if (*SF_G_INNER_BIND_ADDR != '\0')
 	{
-		strcpy(server.ip_addr, g_bind_addr);
+		strcpy(server.ip_addr, SF_G_INNER_BIND_ADDR);
 	}
 	else
 	{
 		strcpy(server.ip_addr, "127.0.0.1");
 	}
-	server.port = g_server_port;
+	server.port = SF_G_INNER_PORT;
 	server.sock = -1;
 
-	if (conn_pool_connect_server(&server, g_fdfs_connect_timeout) != 0)
+	if (conn_pool_connect_server(&server, SF_G_CONNECT_TIMEOUT) != 0)
 	{
 		return;
 	}
@@ -395,7 +376,7 @@ static void sigAlarmHandler(int sig)
 
 static void sigHupHandler(int sig)
 {
-	if (g_rotate_error_log)
+	if (g_sf_global_vars.error_log.rotate_everyday)
 	{
 		g_log_context.rotate_immediately = true;
 	}
@@ -429,44 +410,38 @@ static void sigDumpHandler(int sig)
 	bDumpFlag = true;
 
 	snprintf(filename, sizeof(filename), 
-		"%s/logs/storage_dump.log", g_fdfs_base_path);
+		"%s/logs/storage_dump.log", SF_G_BASE_PATH_STR);
 	fdfs_dump_storage_global_vars_to_file(filename);
 
 	bDumpFlag = false;
 }
 #endif
 
-static int setupSchedules(pthread_t *schedule_tid)
+static int setup_schedule_tasks()
 {
-#define SCHEDULE_ENTRIES_MAX_COUNT 10
+#define SCHEDULE_ENTRIES_MAX_COUNT 8
 
 	ScheduleEntry scheduleEntries[SCHEDULE_ENTRIES_MAX_COUNT];
 	ScheduleArray scheduleArray;
-    int result;
 
 	scheduleArray.entries = scheduleEntries;
 	scheduleArray.count = 0;
 	memset(scheduleEntries, 0, sizeof(scheduleEntries));
 
 	INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
-		scheduleArray.count + 1, TIME_NONE, TIME_NONE, TIME_NONE,
-		g_sync_log_buff_interval, log_sync_func, &g_log_context);
-	scheduleArray.count++;
-
-	INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
-		scheduleArray.count + 1, TIME_NONE, TIME_NONE, TIME_NONE,
+		sched_generate_next_id(), TIME_NONE, TIME_NONE, TIME_NONE,
 		g_sync_binlog_buff_interval, fdfs_binlog_sync_func, NULL);
 	scheduleArray.count++;
 
 	INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
-		scheduleArray.count + 1, TIME_NONE, TIME_NONE, TIME_NONE,
+		sched_generate_next_id(), TIME_NONE, TIME_NONE, TIME_NONE,
 		g_sync_stat_file_interval, fdfs_stat_file_sync_func, NULL);
 	scheduleArray.count++;
 
 	if (g_if_use_trunk_file)
 	{
 		INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
-			scheduleArray.count + 1, TIME_NONE, TIME_NONE, TIME_NONE,
+			sched_generate_next_id(), TIME_NONE, TIME_NONE, TIME_NONE,
 			1, trunk_binlog_sync_func, NULL);
 		scheduleArray.count++;
 	}
@@ -474,63 +449,40 @@ static int setupSchedules(pthread_t *schedule_tid)
 	if (g_use_access_log)
 	{
 		INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
-			scheduleArray.count + 1, TIME_NONE, TIME_NONE, TIME_NONE,
-			g_sync_log_buff_interval, log_sync_func, &g_access_log_context);
+			sched_generate_next_id(), TIME_NONE, TIME_NONE, TIME_NONE,
+			g_sf_global_vars.error_log.sync_log_buff_interval,
+            log_sync_func, &g_access_log_context);
 		scheduleArray.count++;
 
 		if (g_rotate_access_log)
 		{
 			INIT_SCHEDULE_ENTRY_EX(scheduleEntries[scheduleArray.count],
-				scheduleArray.count + 1, g_access_log_rotate_time,
+				sched_generate_next_id(), g_access_log_rotate_time,
 				24 * 3600, log_notify_rotate, &g_access_log_context);
 			scheduleArray.count++;
 
-			if (g_log_file_keep_days > 0)
+			if (g_sf_global_vars.error_log.keep_days > 0)
 			{
 				log_set_keep_days(&g_access_log_context,
-					g_log_file_keep_days);
+					g_sf_global_vars.error_log.keep_days);
 
 				INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
-					scheduleArray.count + 1, 1, 0, 0, 24 * 3600,
+					sched_generate_next_id(), 1, 0, 0, 24 * 3600,
 					log_delete_old_files, &g_access_log_context);
 				scheduleArray.count++;
 			}
 		}
 	}
 
-	if (g_rotate_error_log)
-	{
-		INIT_SCHEDULE_ENTRY_EX(scheduleEntries[scheduleArray.count],
-			scheduleArray.count + 1, g_error_log_rotate_time,
-			24 * 3600, log_notify_rotate, &g_log_context);
-		scheduleArray.count++;
-
-		if (g_log_file_keep_days > 0)
-		{
-			log_set_keep_days(&g_log_context, g_log_file_keep_days);
-
-			INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
-				scheduleArray.count + 1, 1, 0, 0, 24 * 3600,
-				log_delete_old_files, &g_log_context);
-			scheduleArray.count++;
-		}
-	}
-
 	if (g_compress_binlog)
 	{
 		INIT_SCHEDULE_ENTRY_EX(scheduleEntries[scheduleArray.count],
-			scheduleArray.count + 1, g_compress_binlog_time,
+			sched_generate_next_id(), g_compress_binlog_time,
 			24 * 3600, fdfs_binlog_compress_func, NULL);
 		scheduleArray.count++;
     }
 
-	if ((result=sched_start(&scheduleArray, schedule_tid,
-		g_thread_stack_size, (bool * volatile)&g_continue_flag)) != 0)
-	{
-		return result;
-	}
-
-    return 0;
+    return sched_add_entries(&scheduleArray);
 }
 
 static int setupSignalHandlers()
