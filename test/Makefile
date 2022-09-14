@@ -2,11 +2,11 @@
 
 COMPILE = $(CC) -g -Wall -O -D_FILE_OFFSET_BITS=64 -DDEBUG
 INC_PATH = -I/usr/local/include
-LIB_PATH = -L/usr/local/lib -lfdfsclient -lfastcommon
+LIB_PATH = -L/usr/local/lib -lfdfsclient -lfastcommon -lserverframe
 TARGET_PATH = $(TARGET_PREFIX)/bin
 
-SHARED_OBJS = common_func.o dfs_func.o
-#SHARED_OBJS = common_func.o dfs_func_pc.o
+#SHARED_OBJS = common_func.o dfs_func.o
+SHARED_OBJS = common_func.o dfs_func_pc.o
 
 ALL_OBJS = $(SHARED_OBJS)
 
