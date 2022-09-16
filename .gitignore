@@ -7,9 +7,6 @@ client/Makefile
 # client/fdfs_link_library.sh.in 
 client/fdfs_link_library.sh
 
-# Prerequisites
-*.d
-
 # Compiled Object files
 *.slo
 *.lo
