@@ -1,0 +1,141 @@
+fastdfs源自bbs论坛的问题整理：http://bbs.chinaunix.net/forum-240-1.html
+
+##### Q0、上传文件，如何选择存储地址的？
+
+tracker是各协调器， 是如何查询存储地址返回给客户端的？请阅读《fastdfs\1、fastdf配置文件参数解释\tracker.conf参数说明.txt》
+
+```bash
+1. client上传文件 <--指定\不指定group--> tracker｛选择group ---> 选择 group 中的哪台storage --->选择storage server 中的哪个目录｝
+
+2. Client拿着地址直接和对应的Storage通讯，将文件上传到该Storage。
+```
+>[danger]备注：tracker.conf中的 reserved_storage_space 参数是storage为系统、其他应用保留的空间，若空间不足，则上传失败。
+
+
+##### Q1、fastdfs的版本号如何查看
+/usr/bin/fdfs_monitor /etc/fdfs/storage.conf 或打开tracker的基础数据存储文件storage_servers_new.dat
+
+##### Q2、同一个集群内，相互关系
+- cluster里每个tracker之间是完全对等的，所有的tracker都接受stroage的心跳信息，生成元数据信息来提供读写服务。
+> 2.03以后，tracker server之间会有通信。比如解决: 新增加一台tracker server时，新的tracker server会自动向老的tracker server获取系统数据文件。。
+- 同组内的storage server之间，都是对等关系，不存在主从关系。
+- 组与组之间的storage都是独立的，不同组的storage server之间不会相互通信。
+
+---
+##### Q3、备份机制
+FastDFS采用了分组存储，一个组可以由一台或多台storage存储服务器组成，同组内的storage文件都是相同的，组中的多台storage服务器起到相互备份和负载均衡的作用。
+
+---
+##### Q4、storage和组的对应关系
+一个storage只能属于一个group，组名在storage server上配置，由storage server主动向tracker server报告其组名和存储空间等信息。
+
+---
+##### Q5、storage 能连接几个tracker
+在storage server上配置它要连接的tracker server，可以配置1个或多个。 当storage配置连接2个以上tracker时，tracker群起到负载均衡作用。
+
+>备注：storage server的信息在tracker上全部缓存到内存中的，支持的分组数，理论上取决于tracker server的内存大小。所以支持上千上万个组没有一点问题。
+
+>[danger]提醒：在一个集群中，正确的做法是“storage应连接所有的tracker” 万一有个别storage server没有绑定所有tracker server，也不会出现问题。
+
+---
+##### Q6、一台机器上运行几个storage
+通常一台机器只启动一个storage节点（即跑一个group）；根据服务器情况（比如多磁盘挂载）、或文件要隔离存储时，可以运行多个storage，但是没必要，因为storage支持多目录挂载.
+
+>[danger]注意： 同集群内，同组下的storage 端口好必须相同，因此单台上只能运行属于不同组的storage.
+---
+##### Q7、一台机器上多个磁盘时，如何使用
+如果我一台机器多个硬盘挂到不同的目录，不要做RAID，每个硬盘作为一个mount point，直接挂载单盘使用即可
+- 可以按一个组，运行一个storage，设置多个store_path（索引从0开始）对应不同的磁盘目录。--->推荐
+- 也按多个组使用，即运行多个storage，每个组管理一个硬盘（mount point）。--->没必要这样做，因为storage已经可以管理多块硬盘了
+
+> 备注：storage server支持多个路径（例如磁盘）存放文件，为了提高IO性能，不同的磁盘可能挂不同的目录
+
+---
+
+##### Q8、同组内的storage服务器的空间大小不一样时，会出现什么问题
+同一个卷的存储空间以group内容量最小的storage为准，所以建议同一个GROUP中的多个storage尽量配置相同，即**store_path_count个数、存放文件的目录磁盘大小要相同，目录名称可以不相同**。
+ > 论坛帖子：若同一个卷下的各storage配置不同，某个服务器有空间，但是不能再上传文件的现象。http://bbs.chinaunix.net/forum.php?mod=viewthread&tid=1941456&extra=page%3D1%26filter%3Ddigest%26digest%3D1
+
+---
+##### Q9、每个目录下存放的文件数有限制吗。
+没有限制，能不能上传取决于剩余空间。
+> 备注：storage的缺省情况下，**每个目录下存放100个文件，然后就轮转到下一个目录， 到最后一个目录data/FF/FF后，会跳会第一个目录**。
+- subdir_count_per_path =256，storage server在初次运行时，会在store_path0~n\data\目录下，自动创建 N * N 个存放文件的子目录。
+- file_distribute_path_mode配置为0（轮流存放方式），file_distribute_rotate_count = 100，当一个目录下的文件存放的文件数达到本参数值时，后续上传的文件存储到下一个目录中。
+
+##### Q10、tracker、storage和client配置文件中的http.server_port还要配置吗
+不用理会这个配置项，HTTP访问文件请使用外部的web server.
+>[danger] 备注：
+- fastdfs内置的web server从4.0.5版本就移除了（因为之前自带的HTTP服务较为简单，无法提供负载均衡等高性能服务），而是使用外部web server（apache和nginx）提供http文件访问服务。
+- 为了解决文件同步延迟的问题，apache或nginx上需要使用FastDFS提供的扩展模块，如nginx的fastdfs-nginx-module
+- 在每台storage server上部署web server，直接对外提供HTTP服务
+- tracker server上不需要部署web server
+
+##### Q11、如何防盗链
+通过token的方式来实现的防盗链。原贴地址：http://bbs.chinaunix.net/thread-1916999-1-1.html
+看一下配置文件 mod_fastdfs.conf，里面包含了http.conf，在http.conf中进行防盗链相关设置。
+
+##### Q12、“海量”小文件会导致文件系统性能急剧下降，请问这里的“海量”大致在什么级别
+出于性能考虑，我觉得单台机器存储的文件数不要超过1千万吧。
+> [点击查看原贴地址](点击查看原贴地址：http://bbs.chinaunix.net/thread-2328826-1-48.html "点击查看原贴地址")， 3.0的计划中，提到“海量”小文件会导致文件系统性能急剧下降，乃至崩溃。请问这里的“海量”大致在什么级别，通过扩展主机（不仅仅是磁盘）是否可以解决“海量”小文件带来的性能瓶颈？
+
+##### Q13、FastDFS扩展模块（fastdfs-nginx-module）支持断点续传吗
+
+版本V1.08，增加了支持断点续传
+
+##### Q14、配置了Nginx的FDFS扩展模块，可以通过nginx访问文件，mod_fastdfs.conf中的tracker_server配置项有什么作用？ 
+
+扩展模块在web server启动时，连接tracker server，以获得2个配置参数，
+如果连不上时或者获取失败，会使用缺省值：
++ storage_sync_file_max_delay：文件同步的最大延迟，缺省为1天
++ storage_sync_file_max_time：同步单个文件需要的最大时间，缺省为5分钟。
+
+##### Q15、扩展模块有哪些注意事项
+配置文件/etc/fdfs/mod_fastdfs.conf，参数url_have_group_name：URL中是否包含了group name。这个参数必须正确设置，否则文件不能被下载到
+
+##### Q16、FastDFS是否支持文件修改呢？
+V3.08开始支持文件修改了。
+
+##### Q17、如果你需要相同文件内容的文件只保存一份时，怎么办？
+
+结合FastDHT使用,http://localhost:8181/docs/fastdfs/fastdfs-1dtfs5fe93h60
+
+##### Q18、只要知道tracker的服务器IP和端口，任何都可以使用api上传文件，这样是否会有恶意上传的问题
+
+可以指定访问限制，tracker.conf，storage.conf，添加访问IP限制：（例）
+```bash
+# allow_hosts can ocur more than once, host can be hostname or ip address,
+# "*" means match all ip addresses, can use range like this: 10.0.1.[1-15,20] or
+# host[01-08,20-25].domain.com, for example:
+# allow_hosts=10.0.1.[1-15,20]
+# allow_hosts=host[01-08,20-25].domain.com
+#allow_hosts=*
+allow_hosts=222.222.222.[152-154]
+allow_hosts=111.111.111.111
+
+```
+Q19、部署哪些事项要注意？
+
+0. tracker 只管理集群拓扑数据，不存储任何文件索引，对硬件配置要求较低，为了实现互备，**两台tracker就够了。若集群规模较小，可复用storage机器**
+
+1. 在tracker的配置文件tracker.conf中设置好预留合适的空间.
+
+2. fastdfs存储文件是直接基于操作系统的文件系统的，**storage的性能瓶颈通常表现在磁盘IO**。为了充分利用文件系统的cache已加快文件访问，**推荐storage配置较大内存**，尤其在众多热点文件的场合下，大量IO吞吐也会消耗cpu
+
+3. storage，为了互相备份，**一个group内有两台storage即可**
+
+4.  storage 为了充分利用磁盘，推荐不做RAID，直接挂载单块硬盘，每块硬盘mount为一个路径，作为storage的一个store_path。
+
+5. **同组内的storage 端口号必须相同**，建议挂载存储个数相同、空间大小相同；同一主机上可以运行多个不同组的storage.
+
+6. 同组内的storage 若有多个tracker，应当配置上所有的tracker地址
+
+7. fastdfs从4.0.5开始去除了http文件下载功能，需要外部的web server，为了解决文件同步延迟的问题，apache或nginx上需要使用FastDFS提供的扩展模块，如nginx的fastdfs-nginx-module
+	- 在每台storage server上部署web server，直接对外提供HTTP服务
+	- tracker server上不需要部署web server
+	- 每个组必须有一个nginx，提供http文件访问服务.
+
+8. 海量小文件场景，建议使用文件合并存储特性，在tracker.conf 设置 use_trunck_file=true，**如果一个group存储的文件数不超过一千万，就没有必要使用这个特性**。
+
+9. 为了避免不必要的干扰集群安全考虑，**建议使用storage server id 方式。** tracker.conf 设置 use_storage_id=true 并在storage_ids.conf填写所有storage的id、所属组名，ip。这样做迁移很容易。
+
