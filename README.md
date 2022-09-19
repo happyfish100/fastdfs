@@ -49,3 +49,7 @@ FastDFS is a lightweight object storage solution. If you need a general distribu
 file system for databases, K8s and virtual machines (such as KVM), you can learn about
 [FastCFS](https://github.com/happyfish100/FastCFS) which achieves strong data consistency
 and high performance.
+
+We provide technical support service and customized development. Welcome to use WeChat or email for discuss.
+
+email: 384681(at)qq(dot)com
