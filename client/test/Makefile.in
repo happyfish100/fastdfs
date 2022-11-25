@@ -3,7 +3,7 @@
 COMPILE = $(CC) $(CFLAGS)
 INC_PATH = -I/usr/include/fastcommon -I/usr/include/fastdfs \
            -I/usr/local/include/fastcommon -I/usr/local/include/fastdfs
-LIB_PATH = -L/usr/local/lib -lfastcommon -lfdfsclient $(LIBS)
+LIB_PATH = -L/usr/local/lib -lfastcommon -lserverframe -lfdfsclient $(LIBS)
 TARGET_PATH = $(TARGET_PATH)
 
 ALL_OBJS = 

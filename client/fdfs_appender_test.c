@@ -79,13 +79,13 @@ int main(int argc, char *argv[])
 	const char *file_ext_name;
 	struct stat stat_buf;
 
-	printf("This is FastDFS client test program v%d.%02d\n" \
+	printf("This is FastDFS client test program v%d.%d.%d\n" \
 "\nCopyright (C) 2008, Happy Fish / YuQing\n" \
 "\nFastDFS may be copied only under the terms of the GNU General\n" \
 "Public License V3, which may be found in the FastDFS source kit.\n" \
 "Please visit the FastDFS Home Page http://www.fastken.com/ \n" \
-"for more detail.\n\n" \
-, g_fdfs_version.major, g_fdfs_version.minor);
+"for more detail.\n\n", g_fdfs_version.major, g_fdfs_version.minor,
+g_fdfs_version.patch);
 
 	if (argc < 3)
 	{

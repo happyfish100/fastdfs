@@ -490,7 +490,7 @@ int tracker_load_from_conf_file(const char *filename)
         sf_context_config_to_string(&g_sf_context,
             sz_service_config, sizeof(sz_service_config));
 
-		logInfo("FastDFS v%d.%02d, %s, %s, "
+		logInfo("FastDFS v%d.%d.%d, %s, %s, "
 			"store_lookup=%d, store_group=%s, "
 			"store_server=%d, store_path=%d, "
 			"reserved_storage_space=%s, "
@@ -524,7 +524,7 @@ int tracker_load_from_conf_file(const char *filename)
 			"use_connection_pool=%d, "
 			"g_connection_pool_max_idle_time=%ds",
 			g_fdfs_version.major, g_fdfs_version.minor,
-            sz_global_config, sz_service_config,
+            g_fdfs_version.patch, sz_global_config, sz_service_config,
 			g_groups.store_lookup, g_groups.store_group,
 			g_groups.store_server, g_groups.store_path,
 			fdfs_storage_reserved_space_to_string(

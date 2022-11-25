@@ -5320,8 +5320,9 @@ ZEND_FUNCTION(fastdfs_client_version)
 	char szVersion[16];
 	int len;
 
-	len = sprintf(szVersion, "%d.%02d", \
-		g_fdfs_version.major, g_fdfs_version.minor);
+	len = sprintf(szVersion, "%d.%d.%d",
+		g_fdfs_version.major, g_fdfs_version.minor,
+        g_fdfs_version.patch);
 
 	ZEND_RETURN_STRINGL(szVersion, len, 1);
 }
@@ -7859,8 +7860,8 @@ PHP_RSHUTDOWN_FUNCTION(fastdfs_client)
 PHP_MINFO_FUNCTION(fastdfs_client)
 {
 	char fastdfs_info[64];
-	sprintf(fastdfs_info, "fastdfs_client v%d.%02d support", 
-		g_fdfs_version.major, g_fdfs_version.minor);
+	sprintf(fastdfs_info, "fastdfs_client v%d.%d.%d support",
+		g_fdfs_version.major, g_fdfs_version.minor, g_fdfs_version.patch);
 
 	php_info_print_table_start();
 	php_info_print_table_header(2, fastdfs_info, "enabled");

@@ -20,8 +20,10 @@
 #define STORAGE_DELETE_FLAG_LINK  2
 
 #include "fastcommon/logger.h"
-#include "fdfs_define.h"
 #include "fastcommon/fast_task_queue.h"
+#include "sf/sf_service.h"
+#include "fdfs_define.h"
+#include "storage_types.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -36,6 +38,27 @@ int storage_get_storage_path_index(int *store_path_index);
 
 void storage_get_store_path(const char *filename, const int filename_len,
 		int *sub_path_high, int *sub_path_low);
+
+static inline void storage_clear_task(struct fast_task_info *pTask)
+{
+    StorageClientInfo *pClientInfo;
+
+    pClientInfo = (StorageClientInfo *)pTask->arg;
+    if (pClientInfo->clean_func != NULL)
+    {
+        pClientInfo->clean_func(pTask);
+    }
+    memset(pTask->arg, 0, sizeof(StorageClientInfo));
+}
+
+static inline void storage_release_task(struct fast_task_info *pTask)
+{
+    if (__sync_sub_and_fetch(&pTask->reffer_count, 0) == 1)
+    {
+        storage_clear_task(pTask);
+    }
+    sf_release_task(pTask);
+}
 
 #ifdef __cplusplus
 }

@@ -294,7 +294,7 @@ static int fdfs_dump_global_vars(char *buff, const int buffSize)
 		"SF_G_CONNECT_TIMEOUT=%ds\n"
 		"SF_G_NETWORK_TIMEOUT=%ds\n"
 		"SF_G_BASE_PATH_STR=%s\n"
-		"g_fdfs_version=%d.%02d\n"
+		"g_fdfs_version=%d.%d.%d\n"
 		"SF_G_CONTINUE_FLAG=%d\n"
 		"g_schedule_flag=%d\n"
 		"SF_G_INNER_PORT=%d\n"
@@ -349,7 +349,7 @@ static int fdfs_dump_global_vars(char *buff, const int buffSize)
 		, SF_G_NETWORK_TIMEOUT
 		, SF_G_BASE_PATH_STR
 		, g_fdfs_version.major, g_fdfs_version.minor
-		, SF_G_CONTINUE_FLAG
+        , g_fdfs_version.patch, SF_G_CONTINUE_FLAG
 		, g_schedule_flag
 		, SF_G_INNER_PORT
 		, g_sf_global_vars.max_connections

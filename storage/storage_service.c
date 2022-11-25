@@ -1527,15 +1527,10 @@ static void storage_set_metadata_done_callback( \
 
 void task_finish_clean_up(struct fast_task_info *pTask)
 {
-    StorageClientInfo *pClientInfo;
-
-    pClientInfo = (StorageClientInfo *)pTask->arg;
-    if (pClientInfo->clean_func != NULL)
+    if (__sync_sub_and_fetch(&pTask->reffer_count, 0) == 1)
     {
-        pClientInfo->clean_func(pTask);
+        storage_clear_task(pTask);
     }
-    memset(pTask->arg, 0, sizeof(StorageClientInfo));
-
     ++g_stat_change_count;
     sf_task_finish_clean_up(pTask);
 }

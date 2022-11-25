@@ -74,7 +74,6 @@ int tracker_report_init()
 
 	memset(g_storage_servers, 0, sizeof(g_storage_servers));
 	memset(g_sorted_storages, 0, sizeof(g_sorted_storages));
-
 	if ((result=init_pthread_lock(&reporter_thread_lock)) != 0)
 	{
 		return result;
@@ -2008,8 +2007,8 @@ int tracker_report_join(ConnectionInfo *pTrackerServer, \
 	pHeader->cmd = TRACKER_PROTO_CMD_STORAGE_JOIN;
 	strcpy(pReqBody->group_name, g_group_name);
 	strcpy(pReqBody->domain_name, g_http_domain);
-	snprintf(pReqBody->version, sizeof(pReqBody->version), "%d.%02d", \
-		g_fdfs_version.major, g_fdfs_version.minor);
+	snprintf(pReqBody->version, sizeof(pReqBody->version), "%d.%d.%d",
+		g_fdfs_version.major, g_fdfs_version.minor, g_fdfs_version.patch);
 	long2buff(SF_G_INNER_PORT, pReqBody->storage_port);
 	long2buff(g_http_port, pReqBody->storage_http_port);
 	long2buff(g_fdfs_store_paths.count, pReqBody->store_path_count);

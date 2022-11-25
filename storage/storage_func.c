@@ -1960,7 +1960,7 @@ int storage_func_init(const char *filename)
         sf_context_config_to_string(&g_sf_context,
                 sz_service_config, sizeof(sz_service_config));
 
-		logInfo("FastDFS v%d.%02d, %s, %s, store_path_count=%d, "
+		logInfo("FastDFS v%d.%d.%d, %s, %s, store_path_count=%d, "
 			"subdir_count_per_path=%d, group_name=%s, client_bind=%d, "
             "disk_rw_separated=%d, disk_reader_threads=%d, "
 			"disk_writer_threads=%d, disk_recovery_threads=%d, "
@@ -1992,7 +1992,7 @@ int storage_func_init(const char *filename)
 			"compress_binlog_time=%02d:%02d, "
             "check_store_path_mark=%d",
 			g_fdfs_version.major, g_fdfs_version.minor,
-            sz_global_config, sz_service_config,
+            g_fdfs_version.patch, sz_global_config, sz_service_config,
 			g_fdfs_store_paths.count, g_subdir_count_per_path,
 			g_group_name, g_client_bind_addr, g_disk_rw_separated,
 			g_disk_reader_threads, g_disk_writer_threads,

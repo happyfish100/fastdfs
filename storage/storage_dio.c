@@ -149,8 +149,8 @@ int storage_dio_queue_push(struct fast_task_info *pTask)
     sf_hold_task(pTask);
 	if ((result=blocked_queue_push(&(pContext->queue), pTask)) != 0)
 	{
-        sf_release_task(pTask);
 		ioevent_add_to_deleted_list(pTask);
+        sf_release_task(pTask);
 		return result;
 	}
 
@@ -352,10 +352,11 @@ int dio_read_file(struct fast_task_info *pTask)
 	pTask->length += read_bytes;
 	pFileContext->offset += read_bytes;
 
-	/*
-	logInfo("###after dio read bytes: %d, pTask->length=%d, file offset=%ld", \
-		read_bytes, pTask->length, pFileContext->offset);
-	*/
+    /*
+	logInfo("###after dio read bytes: %d, pTask->length=%d, "
+            "file offset=%"PRId64", file size: %"PRId64, read_bytes,
+            pTask->length, pFileContext->offset, pFileContext->end);
+            */
 
 	if (pFileContext->offset < pFileContext->end)
 	{
@@ -733,7 +734,7 @@ static void *dio_thread_entrance(void* arg)
 		while ((pTask=blocked_queue_pop(&(pContext->queue))) != NULL)
         {
             ((StorageClientInfo *)pTask->arg)->deal_func(pTask);
-            sf_release_task(pTask);
+            storage_release_task(pTask);
         }
 	}
 
