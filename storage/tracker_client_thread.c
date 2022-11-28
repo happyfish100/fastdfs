@@ -2246,7 +2246,7 @@ static int tracker_report_df_stat(ConnectionInfo *pTrackerServer,
 
 	if (g_store_path_mode == FDFS_STORE_PATH_LOAD_BALANCE)
 	{
-		int max_free_mb;
+		int64_t max_free_mb;
 
 		/* find the max free space path */
 		max_free_mb = 0;

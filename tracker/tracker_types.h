@@ -459,7 +459,7 @@ typedef struct
 typedef struct {
 	char flag;
 	union {
-		int mb;
+		int64_t mb;
 		double ratio;
 	} rs;
 } FDFSStorageReservedSpace;

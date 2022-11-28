@@ -2435,7 +2435,7 @@ static int tracker_deal_service_query_storage( \
 	char *p;
 	bool bHaveActiveServer;
 	int write_path_index;
-	int avg_reserved_mb;
+	int64_t avg_reserved_mb;
 
 	if (cmd == TRACKER_PROTO_CMD_SERVICE_QUERY_STORE_WITH_GROUP_ONE
 	 || cmd == TRACKER_PROTO_CMD_SERVICE_QUERY_STORE_WITH_GROUP_ALL)

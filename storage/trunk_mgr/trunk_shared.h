@@ -50,8 +50,8 @@
 
 typedef struct
 {
-	int total_mb;  //total spaces
-	int free_mb;   //free spaces
+	int64_t total_mb;  //total spaces
+	int64_t free_mb;   //free spaces
     int path_len;  //the length of store path
 	char *path;    //file store path
     char *mark;    //path mark to avoid confusion

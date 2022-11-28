@@ -35,17 +35,17 @@ extern "C" {
 int fdfs_get_tracker_leader_index_ex(TrackerServerGroup *pServerGroup, \
 		const char *leaderIp, const int leaderPort);
 
-int fdfs_parse_storage_reserved_space(IniContext *pIniContext, \
+int fdfs_parse_storage_reserved_space(IniContext *pIniContext,
 		FDFSStorageReservedSpace *pStorageReservedSpace);
 
-const char *fdfs_storage_reserved_space_to_string(FDFSStorageReservedSpace \
+const char *fdfs_storage_reserved_space_to_string(FDFSStorageReservedSpace
 			*pStorageReservedSpace, char *buff);
 
-const char *fdfs_storage_reserved_space_to_string_ex(const bool flag, \
-	const int space_mb, const int total_mb, const double space_ratio, \
-	char *buff);
+const char *fdfs_storage_reserved_space_to_string_ex(const bool flag,
+	const int64_t space_mb, const int64_t total_mb,
+    const double space_ratio, char *buff);
 
-int fdfs_get_storage_reserved_space_mb(const int total_mb, \
+int64_t fdfs_get_storage_reserved_space_mb(const int64_t total_mb,
 		FDFSStorageReservedSpace *pStorageReservedSpace);
 
 bool fdfs_check_reserved_space(FDFSGroupInfo *pGroup, \
@@ -55,7 +55,7 @@ bool fdfs_check_reserved_space_trunk(FDFSGroupInfo *pGroup, \
 	FDFSStorageReservedSpace *pStorageReservedSpace);
 
 bool fdfs_check_reserved_space_path(const int64_t total_mb, \
-	const int64_t free_mb, const int avg_mb, \
+	const int64_t free_mb, const int64_t avg_mb, \
 	FDFSStorageReservedSpace *pStorageReservedSpace);
 
 int fdfs_connection_pool_init(const char *config_filename, \

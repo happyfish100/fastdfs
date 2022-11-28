@@ -4368,7 +4368,7 @@ static int storage_upload_file(struct fast_task_info *pTask, bool bAppenderFile)
 		{
 			logError("file: "__FILE__", line: %d, " \
 				"no space to upload file, "
-				"free space: %d MB is too small, file bytes: " \
+				"free space: %"PRId64" MB is too small, file bytes: " \
 				"%"PRId64", reserved space: %s", \
 				__LINE__, g_fdfs_store_paths.paths[store_path_index].\
 				free_mb, file_bytes, \
@@ -5222,7 +5222,7 @@ static int storage_upload_slave_file(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"no space to upload file, "
-			"free space: %d MB is too small, file bytes: " \
+			"free space: %"PRId64" MB is too small, file bytes: " \
 			"%"PRId64", reserved space: %s", __LINE__,\
 			g_fdfs_store_paths.paths[store_path_index].free_mb, \
 			file_bytes, fdfs_storage_reserved_space_to_string_ex(\

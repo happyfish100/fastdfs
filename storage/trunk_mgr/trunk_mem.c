@@ -50,7 +50,7 @@ int g_trunk_file_size = 0;
 int g_store_path_mode = FDFS_STORE_PATH_ROUND_ROBIN;
 FDFSStorageReservedSpace g_storage_reserved_space = {
 			TRACKER_STORAGE_RESERVED_SPACE_FLAG_MB};
-int g_avg_storage_reserved_mb = FDFS_DEF_STORAGE_RESERVED_MB;
+int64_t g_avg_storage_reserved_mb = FDFS_DEF_STORAGE_RESERVED_MB;
 int g_store_path_index = 0;
 volatile int g_current_trunk_file_id = 0;
 TimeInfo g_trunk_create_file_time_base = {0, 0};

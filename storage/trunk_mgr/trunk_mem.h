@@ -43,7 +43,7 @@ extern int g_trunk_alloc_alignment_size;  //the alignment size for trunk alloc
 extern int g_trunk_file_size;  //the trunk file size, such as 64MB
 extern int g_store_path_mode;  //store which path mode, fetch from tracker
 extern FDFSStorageReservedSpace g_storage_reserved_space;  //fetch from tracker
-extern int g_avg_storage_reserved_mb;  //calc by above var: g_storage_reserved_mb
+extern int64_t g_avg_storage_reserved_mb;  //calc by above var: g_storage_reserved_mb
 extern int g_store_path_index;  //store to which path
 extern volatile int g_current_trunk_file_id;  //current trunk file id
 extern TimeInfo g_trunk_create_file_time_base;

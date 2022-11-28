@@ -26,8 +26,8 @@ typedef struct
 	char src_id[FDFS_STORAGE_ID_MAX_SIZE];  //src storage id
 	char domain_name[FDFS_DOMAIN_NAME_MAX_SIZE]; //http domain name
 	char version[FDFS_VERSION_SIZE];
-	int total_mb;  //total disk storage in MB
-	int free_mb;  //free disk storage in MB
+	int64_t total_mb;  //total disk storage in MB
+	int64_t free_mb;   //free disk storage in MB
 	int upload_priority;  //upload priority
 	time_t join_time; //storage join timestamp (create timestamp)
 	time_t up_time;   //storage service started timestamp
