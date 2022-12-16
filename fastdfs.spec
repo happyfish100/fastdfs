@@ -7,7 +7,7 @@
 %define CommitVersion %(echo $COMMIT_VERSION)
 
 Name: %{FastDFS}
-Version: 6.9.1
+Version: 6.9.2
 Release: 1%{?dist}
 Summary: FastDFS server and client
 License: GPL

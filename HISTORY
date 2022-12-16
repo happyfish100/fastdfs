@@ -1,6 +1,8 @@
 
 Version 6.9.2  2022-11-28
  * space size such as total_mb and free_mb use int64_t instead of int
+ * bugfixed: log connection ip_addr and port correctly
+ * output port with format %u instead %d
 
 Version 6.9.1  2022-11-25
  * bugfixed: clear task extra data correctly when the connection broken
