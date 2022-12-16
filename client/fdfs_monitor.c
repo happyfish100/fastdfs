@@ -155,7 +155,7 @@ int main(int argc, char *argv[])
 		fdfs_client_destroy();
 		return errno != 0 ? errno : ECONNREFUSED;
 	}
-	printf("\ntracker server is %s:%d\n\n", pTrackerServer->ip_addr, pTrackerServer->port);
+	printf("\ntracker server is %s:%u\n\n", pTrackerServer->ip_addr, pTrackerServer->port);
 
 	if (arg_index < argc)
 	{

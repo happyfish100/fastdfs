@@ -140,7 +140,7 @@ static int copy_tracker_servers(TrackerServerGroup *pTrackerGroup,
 	for (pServer=pTrackerGroup->servers; pServer<pTrackerGroup->servers+ \
 		pTrackerGroup->server_count;	pServer++)
 	{
-		//printf("server=%s:%d\n", \
+		//printf("server=%s:%u\n", \
 			pServer->ip_addr, pServer->port);
 	}
 	}

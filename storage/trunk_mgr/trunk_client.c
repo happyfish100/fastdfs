@@ -54,7 +54,7 @@ static int trunk_client_trunk_do_alloc_space(ConnectionInfo *pTrunkServer, \
 			sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"send data to storage server %s:%d fail, " \
+			"send data to storage server %s:%u fail, " \
 			"errno: %d, error info: %s", __LINE__, \
 			pTrunkServer->ip_addr, pTrunkServer->port, \
 			result, STRERROR(result));
@@ -75,7 +75,7 @@ static int trunk_client_trunk_do_alloc_space(ConnectionInfo *pTrunkServer, \
 	if (in_bytes != sizeof(FDFSTrunkInfoBuff))
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"storage server %s:%d, recv body length: %d invalid, " \
+			"storage server %s:%u, recv body length: %d invalid, " \
 			"expect body length: %d", __LINE__, \
 			pTrunkServer->ip_addr, pTrunkServer->port, \
 			(int)in_bytes, (int)sizeof(FDFSTrunkInfoBuff));
@@ -110,7 +110,7 @@ static int trunk_client_connect_trunk_server(TrackerServerInfo *trunk_server,
 	{
 		logError("file: "__FILE__", line: %d, "
 			"%s because connect to trunk "
-			"server %s:%d fail, errno: %d", __LINE__,
+			"server %s:%u fail, errno: %d", __LINE__,
 			prompt, trunk_server->connections[0].ip_addr,
             trunk_server->connections[0].port, result);
 		return result;
@@ -189,7 +189,7 @@ static int trunk_client_trunk_confirm_or_free(ConnectionInfo *pTrunkServer,\
 			sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"send data to storage server %s:%d fail, " \
+			"send data to storage server %s:%u fail, " \
 			"errno: %d, error info: %s", __LINE__, \
 			pTrunkServer->ip_addr, pTrunkServer->port, \
 			result, STRERROR(result));
@@ -208,7 +208,7 @@ static int trunk_client_trunk_confirm_or_free(ConnectionInfo *pTrunkServer,\
 	if (in_bytes != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"storage server %s:%d response data " \
+			"storage server %s:%u response data " \
 			"length: %"PRId64" is invalid, " \
 			"should == 0", __LINE__, pTrunkServer->ip_addr, \
 			pTrunkServer->port, in_bytes);

@@ -1972,7 +1972,7 @@ static void trunk_sync_thread_exit(TrunkSyncThreadInfo *thread_data,
 	}
 
 	logInfo("file: "__FILE__", line: %d, "
-		"trunk sync thread to storage server %s:%d exit",
+		"trunk sync thread to storage server %s:%u exit",
 		__LINE__, thread_data->pStorage->ip_addr, port);
 }
 
@@ -2011,7 +2011,7 @@ static int trunk_sync_data(TrunkBinLogReader *pReader, \
 		sizeof(TrackerHeader), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("FILE: "__FILE__", line: %d, " \
-			"send data to storage server %s:%d fail, " \
+			"send data to storage server %s:%u fail, " \
 			"errno: %d, error info: %s", \
 			__LINE__, pStorage->ip_addr, pStorage->port, \
 			result, STRERROR(result));
@@ -2022,7 +2022,7 @@ static int trunk_sync_data(TrunkBinLogReader *pReader, \
 		length, SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("FILE: "__FILE__", line: %d, " \
-			"send data to storage server %s:%d fail, " \
+			"send data to storage server %s:%u fail, " \
 			"errno: %d, error info: %s", \
 			__LINE__, pStorage->ip_addr, pStorage->port, \
 			result, STRERROR(result));
@@ -2076,7 +2076,7 @@ static void *trunk_sync_thread_entrance(void* arg)
 	storage_server.sock = -1;
 
 	logInfo("file: "__FILE__", line: %d, " \
-		"trunk sync thread to storage server %s:%d started", \
+		"trunk sync thread to storage server %s:%u started",
 		__LINE__, storage_server.ip_addr, storage_server.port);
 
 	while (SF_G_CONTINUE_FLAG && g_if_trunker_self && \

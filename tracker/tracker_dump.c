@@ -444,7 +444,7 @@ static int fdfs_dump_tracker_servers(char *buff, const int buffSize)
         fdfs_server_info_to_string(pTrackerServer, ip_str, sizeof(ip_str));
 
 		total_len += snprintf(buff + total_len, buffSize - total_len,
-			"\t%d. tracker server=%s:%d\n", \
+			"\t%d. tracker server=%s:%u\n", \
 			(int)(pTrackerServer - g_tracker_servers.servers) + 1, \
 			ip_str, pTrackerServer->connections[0].port);
 	}

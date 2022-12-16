@@ -168,7 +168,7 @@ static void thracker_report_thread_exit(TrackerServerInfo *pTrackerServer)
 	}
 
 	logDebug("file: "__FILE__", line: %d, "
-		"report thread to tracker server %s:%d exit",
+		"report thread to tracker server %s:%u exit",
 		__LINE__, pTrackerServer->connections[0].ip_addr,
         pTrackerServer->connections[0].port);
 }
@@ -225,7 +225,7 @@ static void *tracker_report_thread_entrance(void *arg)
 	tracker_index = pTrackerServer - g_tracker_group.servers;
 
 	logDebug("file: "__FILE__", line: %d, "
-		"report thread to tracker server %s:%d started",
+		"report thread to tracker server %s:%u started",
 		__LINE__, pTrackerServer->connections[0].ip_addr,
         pTrackerServer->connections[0].port);
 
@@ -255,7 +255,7 @@ static void *tracker_report_thread_entrance(void *arg)
 			if (previousCode != result)
 			{
 				logError("file: "__FILE__", line: %d, "
-					"connect to tracker server %s:%d fail, "
+					"connect to tracker server %s:%u fail, "
 					"errno: %d, error info: %s",
 					__LINE__, pTrackerServer->connections[0].ip_addr,
 					pTrackerServer->connections[0].port,
@@ -294,7 +294,7 @@ static void *tracker_report_thread_entrance(void *arg)
 				nContinuousFail);
 		}
 		logInfo("file: "__FILE__", line: %d, "
-			"successfully connect to tracker server %s:%d%s, "
+			"successfully connect to tracker server %s:%u%s, "
 			"as a tracker client, my ip is %s",
 			__LINE__, conn->ip_addr, conn->port,
             szFailPrompt, fdfs_get_ipaddr_by_peer_ip(
@@ -541,7 +541,7 @@ static void *tracker_report_thread_entrance(void *arg)
 	if (nContinuousFail > 0)
 	{
 		logError("file: "__FILE__", line: %d, "
-			"connect to tracker server %s:%d fail, try count: %d"
+			"connect to tracker server %s:%u fail, try count: %d"
 			", errno: %d, error info: %s",
 			__LINE__, pTrackerServer->connections[0].ip_addr,
 			pTrackerServer->connections[0].port, nContinuousFail,
@@ -613,7 +613,7 @@ int tracker_sync_diff_servers(ConnectionInfo *pTrackerServer, \
 			SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"trackert server %s:%d, send data fail, " \
+			"trackert server %s:%u, send data fail, " \
 			"errno: %d, error info: %s", \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, result, STRERROR(result));
@@ -624,7 +624,7 @@ int tracker_sync_diff_servers(ConnectionInfo *pTrackerServer, \
 		briefServers, out_len, SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"trackert server %s:%d, send data fail, " \
+			"trackert server %s:%u, send data fail, " \
 			"errno: %d, error info: %s", \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, result, STRERROR(result));
@@ -636,7 +636,7 @@ int tracker_sync_diff_servers(ConnectionInfo *pTrackerServer, \
 			sizeof(resp), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%d, recv data fail, " \
+			"tracker server %s:%u, recv data fail, " \
 			"errno: %d, error info: %s.", \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, result, STRERROR(result));
@@ -647,7 +647,7 @@ int tracker_sync_diff_servers(ConnectionInfo *pTrackerServer, \
 		FDFS_PROTO_PKG_LEN_SIZE) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%d, " \
+			"tracker server %s:%u, " \
 			"expect pkg len 0, but recv pkg len != 0", \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port);
@@ -680,7 +680,7 @@ int tracker_report_storage_status(ConnectionInfo *pTrackerServer, \
 			sizeof(FDFSStorageBrief), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"trackert server %s:%d, send data fail, " \
+			"trackert server %s:%u, send data fail, " \
 			"errno: %d, error info: %s", \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, result, STRERROR(result));
@@ -691,7 +691,7 @@ int tracker_report_storage_status(ConnectionInfo *pTrackerServer, \
 			sizeof(resp), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%d, recv data fail, " \
+			"tracker server %s:%u, recv data fail, " \
 			"errno: %d, error info: %s.", \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, result, STRERROR(result));
@@ -702,7 +702,7 @@ int tracker_report_storage_status(ConnectionInfo *pTrackerServer, \
 		FDFS_PROTO_PKG_LEN_SIZE) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%d, " \
+			"tracker server %s:%u, " \
 			"expect pkg len 0, but recv pkg len != 0", \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port);
@@ -887,7 +887,7 @@ static int tracker_merge_servers(ConnectionInfo *pTrackerServer,
 					logWarning("file: "__FILE__", line: %d, " \
 						"tracker response status: %d, " \
 						"local status: %d, need rejoin " \
-						"tracker server: %s:%d", \
+						"tracker server: %s:%u", \
 						__LINE__, pServer->status, \
 						(*ppFound)->server.status, \
 						pTrackerServer->ip_addr,
@@ -945,7 +945,7 @@ static int tracker_merge_servers(ConnectionInfo *pTrackerServer,
 			else
 			{
 				logError("file: "__FILE__", line: %d, " \
-					"tracker server %s:%d, " \
+					"tracker server %s:%u, " \
 					"storage servers of group \"%s\" " \
 					"exceeds max: %d", \
 					__LINE__, pTrackerServer->ip_addr, \
@@ -999,7 +999,7 @@ static int tracker_merge_servers(ConnectionInfo *pTrackerServer,
 			 && pServer->status != FDFS_STORAGE_STATUS_IP_CHANGED)
 			{
 				logError("file: "__FILE__", line: %d, " \
-					"tracker server %s:%d, " \
+					"tracker server %s:%u, " \
 					"group \"%s\", " \
 					"enter impossible statement branch", \
 					__LINE__, pTrackerServer->ip_addr, \
@@ -1052,7 +1052,7 @@ static int _notify_reselect_tleader(ConnectionInfo *conn)
 			sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, "
-			"tracker server %s:%d, send data fail, "
+			"tracker server %s:%u, send data fail, "
 			"errno: %d, error info: %s.",
 			__LINE__, conn->ip_addr, conn->port,
 			result, STRERROR(result));
@@ -1070,7 +1070,7 @@ static int _notify_reselect_tleader(ConnectionInfo *conn)
 	if (in_bytes != 0)
 	{
 		logError("file: "__FILE__", line: %d, "
-			"tracker server %s:%d, recv body length: "
+			"tracker server %s:%u, recv body length: "
 			"%"PRId64" != 0",  __LINE__, conn->ip_addr,
 			conn->port, in_bytes);
 		return EINVAL;
@@ -1128,8 +1128,8 @@ static void set_tracker_leader(const int leader_index)
                 memcpy(&new_leader_server, g_tracker_group.servers + leader_index,
                         sizeof(TrackerServerInfo));
                 logWarning("file: "__FILE__", line: %d, "
-                        "two tracker leaders occur, old leader is %s:%d, "
-                        "new leader is %s:%d, notify to re-select "
+                        "two tracker leaders occur, old leader is %s:%u, "
+                        "new leader is %s:%u, notify to re-select "
                         "tracker leader", __LINE__,
                         old_leader_server.connections[0].ip_addr,
                         old_leader_server.connections[0].port,
@@ -1169,7 +1169,7 @@ static void get_tracker_leader()
                 check_my_status_for_all_trackers();
 
                 logInfo("file: "__FILE__", line: %d, "
-                        "the tracker server leader is #%d. %s:%d",
+                        "the tracker server leader is #%d. %s:%u",
                         __LINE__, i, tracker_server.connections[0].ip_addr,
                         tracker_server.connections[0].port);
                 break;
@@ -1291,7 +1291,7 @@ static int tracker_check_response(ConnectionInfo *pTrackerServer,
 			sizeof(resp), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%d, recv data fail, " \
+			"tracker server %s:%u, recv data fail, " \
 			"errno: %d, error info: %s.", \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port,    \
@@ -1315,7 +1315,7 @@ static int tracker_check_response(ConnectionInfo *pTrackerServer,
 			sizeof(FDFSStorageBrief) != 0))
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%d, " \
+			"tracker server %s:%u, " \
 			"package size %"PRId64" is not correct", \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, nInPackLen);
@@ -1325,7 +1325,7 @@ static int tracker_check_response(ConnectionInfo *pTrackerServer,
 	if (nInPackLen > sizeof(in_buff))
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%d, package size " \
+			"tracker server %s:%u, package size " \
 			"%"PRId64" is too large, " \
 			"exceed max: %d", \
 			__LINE__, pTrackerServer->ip_addr, \
@@ -1338,7 +1338,7 @@ static int tracker_check_response(ConnectionInfo *pTrackerServer,
 			nInPackLen, SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%d, recv data fail, " \
+			"tracker server %s:%u, recv data fail, " \
 			"errno: %d, error info: %s.", \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, \
@@ -1358,7 +1358,7 @@ static int tracker_check_response(ConnectionInfo *pTrackerServer,
 		if (server_count < 1)
 		{
 			logError("file: "__FILE__", line: %d, " \
-				"tracker server %s:%d, response server " \
+				"tracker server %s:%u, response server " \
 				"count: %d < 1", __LINE__, \
 				pTrackerServer->ip_addr, \
 				pTrackerServer->port, server_count);
@@ -1378,8 +1378,8 @@ static int tracker_check_response(ConnectionInfo *pTrackerServer,
 			pTrackerLeader = g_tracker_group.servers +
 					g_tracker_group.leader_index;
 			logWarning("file: "__FILE__", line: %d, "
-				"tracker server %s:%d, "
-				"my tracker leader is: %s:%d, "
+				"tracker server %s:%u, "
+				"my tracker leader is: %s:%u, "
 				"but response tracker leader is null",
  				__LINE__, pTrackerServer->ip_addr,
 				pTrackerServer->port, pTrackerLeader->connections[0].ip_addr,
@@ -1397,8 +1397,8 @@ static int tracker_check_response(ConnectionInfo *pTrackerServer,
 			if (leader_index < 0)
 			{
 			logWarning("file: "__FILE__", line: %d, " \
-				"tracker server %s:%d, " \
-				"response tracker leader: %s:%d" \
+				"tracker server %s:%u, " \
+				"response tracker leader: %s:%u" \
 				" not exist in local", __LINE__, \
 				pTrackerServer->ip_addr, \
 				pTrackerServer->port, tracker_leader_ip, \
@@ -1407,8 +1407,8 @@ static int tracker_check_response(ConnectionInfo *pTrackerServer,
 			else
 			{
 			logInfo("file: "__FILE__", line: %d, " \
-				"tracker server %s:%d, " \
-				"set tracker leader: %s:%d", __LINE__, \
+				"tracker server %s:%u, " \
+				"set tracker leader: %s:%u", __LINE__, \
 				pTrackerServer->ip_addr, pTrackerServer->port,\
 				tracker_leader_ip, tracker_leader_port);
 
@@ -1427,7 +1427,7 @@ static int tracker_check_response(ConnectionInfo *pTrackerServer,
 		if (server_count < 1)
 		{
 			logError("file: "__FILE__", line: %d, " \
-				"tracker server %s:%d, response server " \
+				"tracker server %s:%u, response server " \
 				"count: %d < 1", __LINE__, \
 				pTrackerServer->ip_addr, \
 				pTrackerServer->port, server_count);
@@ -1445,7 +1445,7 @@ static int tracker_check_response(ConnectionInfo *pTrackerServer,
 		if (!g_if_use_trunk_file)
 		{
 			logWarning("file: "__FILE__", line: %d, " \
-				"tracker server %s:%d, " \
+				"tracker server %s:%u, " \
 				"my g_if_use_trunk_file is false, " \
 				"can't support trunk server!", \
 				__LINE__, pTrackerServer->ip_addr, \
@@ -1466,14 +1466,14 @@ static int tracker_check_response(ConnectionInfo *pTrackerServer,
 			if (g_if_trunker_self)
 			{
 			logWarning("file: "__FILE__", line: %d, "
-				"I am already the trunk server %s:%d, "
+				"I am already the trunk server %s:%u, "
 				"may be the tracker server restart",
 				__LINE__, pBriefServers->ip_addr, port);
 			}
 			else
 			{
 			logInfo("file: "__FILE__", line: %d, "
-				"I am the the trunk server %s:%d", __LINE__,
+				"I am the the trunk server %s:%u", __LINE__,
 				pBriefServers->ip_addr, port);
 
             if ((result=do_set_trunk_server_myself(pTrackerServer)) != 0)
@@ -1485,7 +1485,7 @@ static int tracker_check_response(ConnectionInfo *pTrackerServer,
 		else
 		{
 			logInfo("file: "__FILE__", line: %d, "
-				"the trunk server is %s:%d", __LINE__,
+				"the trunk server is %s:%u", __LINE__,
 				g_trunk_server.connections[0].ip_addr,
                 g_trunk_server.connections[0].port);
 
@@ -1493,7 +1493,7 @@ static int tracker_check_response(ConnectionInfo *pTrackerServer,
 			{
 				logWarning("file: "__FILE__", line: %d, " \
 					"I am the old trunk server, " \
-					"the new trunk server is %s:%d", \
+					"the new trunk server is %s:%u", \
 					__LINE__, g_trunk_server.connections[0].ip_addr, \
 					g_trunk_server.connections[0].port);
 
@@ -1584,7 +1584,7 @@ int tracker_sync_src_req(ConnectionInfo *pTrackerServer, \
 			sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%d, send data fail, " \
+			"tracker server %s:%u, send data fail, " \
 			"errno: %d, error info: %s.", \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, \
@@ -1613,7 +1613,7 @@ int tracker_sync_src_req(ConnectionInfo *pTrackerServer, \
 	if (in_bytes != sizeof(syncReqbody))
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%d, " \
+			"tracker server %s:%u, " \
 			"recv body length: %"PRId64" is invalid, " \
 			"expect body length: %d", \
 			__LINE__, pTrackerServer->ip_addr, \
@@ -1646,7 +1646,7 @@ static int tracker_sync_dest_req(ConnectionInfo *pTrackerServer)
 			sizeof(header), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%d, send data fail, " \
+			"tracker server %s:%u, send data fail, " \
 			"errno: %d, error info: %s.", \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, \
@@ -1672,7 +1672,7 @@ static int tracker_sync_dest_req(ConnectionInfo *pTrackerServer)
 	if (in_bytes != sizeof(syncReqbody))
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%d, " \
+			"tracker server %s:%u, " \
 			"recv body length: %"PRId64" is invalid, " \
 			"expect body length: %d", \
 			__LINE__, pTrackerServer->ip_addr, \
@@ -1703,7 +1703,7 @@ static int tracker_sync_dest_query(ConnectionInfo *pTrackerServer)
 			sizeof(header), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%d, send data fail, " \
+			"tracker server %s:%u, send data fail, " \
 			"errno: %d, error info: %s.", \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, \
@@ -1731,7 +1731,7 @@ static int tracker_sync_dest_query(ConnectionInfo *pTrackerServer)
 	if (in_bytes != sizeof(syncReqbody))
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%d, " \
+			"tracker server %s:%u, " \
 			"recv body length: %"PRId64" is invalid, " \
 			"expect body length: %d", \
 			__LINE__, pTrackerServer->ip_addr, \
@@ -1765,7 +1765,7 @@ static int tracker_report_trunk_fid(ConnectionInfo *pTrackerServer)
 			sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%d, send data fail, " \
+			"tracker server %s:%u, send data fail, " \
 			"errno: %d, error info: %s.", \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, \
@@ -1784,7 +1784,7 @@ static int tracker_report_trunk_fid(ConnectionInfo *pTrackerServer)
 	if (in_bytes != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%d, recv body length: " \
+			"tracker server %s:%u, recv body length: " \
 			"%"PRId64" != 0",  \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, in_bytes);
@@ -1811,7 +1811,7 @@ static int tracker_report_trunk_free_space(ConnectionInfo *pTrackerServer)
 			sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%d, send data fail, " \
+			"tracker server %s:%u, send data fail, " \
 			"errno: %d, error info: %s.", \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, \
@@ -1830,7 +1830,7 @@ static int tracker_report_trunk_free_space(ConnectionInfo *pTrackerServer)
 	if (in_bytes != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%d, recv body length: " \
+			"tracker server %s:%u, recv body length: " \
 			"%"PRId64" != 0",  \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, in_bytes);
@@ -1857,7 +1857,7 @@ static int tracker_fetch_trunk_fid(ConnectionInfo *pTrackerServer)
 			sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%d, send data fail, " \
+			"tracker server %s:%u, send data fail, " \
 			"errno: %d, error info: %s.", \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, \
@@ -1878,7 +1878,7 @@ static int tracker_fetch_trunk_fid(ConnectionInfo *pTrackerServer)
 	if (in_bytes != sizeof(in_buff))
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%d, recv body length: " \
+			"tracker server %s:%u, recv body length: " \
 			"%"PRId64" != %d",  \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, in_bytes, (int)sizeof(in_buff));
@@ -1889,7 +1889,7 @@ static int tracker_fetch_trunk_fid(ConnectionInfo *pTrackerServer)
 	if (trunk_fid < 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%d, " \
+			"tracker server %s:%u, " \
 			"trunk file id: %d is invalid!", \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, trunk_fid);
@@ -1931,7 +1931,7 @@ static int tracker_sync_notify(ConnectionInfo *pTrackerServer, const int tracker
 			sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%d, send data fail, " \
+			"tracker server %s:%u, send data fail, " \
 			"errno: %d, error info: %s.", \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, \
@@ -1970,7 +1970,7 @@ static int tracker_sync_notify(ConnectionInfo *pTrackerServer, const int tracker
 	if (in_bytes != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%d, recv body length: " \
+			"tracker server %s:%u, recv body length: " \
 			"%"PRId64" != 0",  \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, in_bytes);
@@ -2040,7 +2040,7 @@ int tracker_report_join(ConnectionInfo *pTrackerServer, \
 				if (g_my_report_status[i].my_result == -1)
 				{
                     logInfo("file: "__FILE__", line: %d, "
-                            "tracker server: #%d. %s:%d, "
+                            "tracker server: #%d. %s:%u, "
                             "my_report_result: %d", __LINE__, i,
                             g_tracker_group.servers[i].connections[0].ip_addr,
                             g_tracker_group.servers[i].connections[0].port,
@@ -2081,7 +2081,7 @@ int tracker_report_join(ConnectionInfo *pTrackerServer, \
 			out_len, SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%d, send data fail, " \
+			"tracker server %s:%u, send data fail, " \
 			"errno: %d, error info: %s.", \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, \
@@ -2104,7 +2104,7 @@ int tracker_report_join(ConnectionInfo *pTrackerServer, \
 	if (in_bytes != sizeof(respBody))
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%d, recv data fail, " \
+			"tracker server %s:%u, recv data fail, " \
 			"expect %d bytes, but recv " \
 			"%"PRId64" bytes", \
 			__LINE__, pTrackerServer->ip_addr, \
@@ -2165,7 +2165,7 @@ static int tracker_report_sync_timestamp(ConnectionInfo *pTrackerServer,
 		sizeof(TrackerHeader) + body_len, SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%d, send data fail, " \
+			"tracker server %s:%u, send data fail, " \
 			"errno: %d, error info: %s.", \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, \
@@ -2276,7 +2276,7 @@ static int tracker_report_df_stat(ConnectionInfo *pTrackerServer,
 	if(result != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%d, send data fail, " \
+			"tracker server %s:%u, send data fail, " \
 			"errno: %d, error info: %s.", \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, \
@@ -2408,7 +2408,7 @@ static int tracker_heart_beat(ConnectionInfo *pTrackerServer,
 		sizeof(TrackerHeader) + body_len, SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%d, send data fail, " \
+			"tracker server %s:%u, send data fail, " \
 			"errno: %d, error info: %s.", \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, \
@@ -2448,7 +2448,7 @@ static int tracker_storage_change_status(ConnectionInfo *pTrackerServer,
     }
 
     logInfo("file: "__FILE__", line: %d, "
-            "tracker server: %s:%d, try to set storage "
+            "tracker server: %s:%u, try to set storage "
             "status from %d (%s) to %d (%s)", __LINE__,
             pTrackerServer->ip_addr, pTrackerServer->port,
             old_status, get_storage_status_caption(old_status),
@@ -2465,7 +2465,7 @@ static int tracker_storage_change_status(ConnectionInfo *pTrackerServer,
 		sizeof(TrackerHeader) + body_len, SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, "
-			"tracker server %s:%d, send data fail, "
+			"tracker server %s:%u, send data fail, "
 			"errno: %d, error info: %s.",
 			__LINE__, pTrackerServer->ip_addr,
 			pTrackerServer->port,
@@ -2487,7 +2487,7 @@ static int tracker_storage_change_status(ConnectionInfo *pTrackerServer,
 	if (nInPackLen != 0)
 	{
 		logError("file: "__FILE__", line: %d, "
-			"tracker server %s:%d, response body length: %d != 0",
+			"tracker server %s:%u, response body length: %d != 0",
             __LINE__, pTrackerServer->ip_addr, pTrackerServer->port,
             (int)nInPackLen);
 		return EINVAL;
@@ -2512,7 +2512,7 @@ static int tracker_storage_changelog_req(ConnectionInfo *pTrackerServer)
 		sizeof(TrackerHeader), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%d, send data fail, " \
+			"tracker server %s:%u, send data fail, " \
 			"errno: %d, error info: %s.", \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, \

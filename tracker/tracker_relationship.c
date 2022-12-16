@@ -54,7 +54,7 @@ static int fdfs_ping_leader(ConnectionInfo *pTrackerServer)
 	if(result != 0)
 	{
 		logError("file: "__FILE__", line: %d, "
-			"tracker server %s:%d, send data fail, "
+			"tracker server %s:%u, send data fail, "
 			"errno: %d, error info: %s",
 			__LINE__, pTrackerServer->ip_addr,
 			pTrackerServer->port, result, STRERROR(result));
@@ -66,7 +66,7 @@ static int fdfs_ping_leader(ConnectionInfo *pTrackerServer)
 			sizeof(in_buff), &in_bytes)) != 0)
 	{
         logError("file: "__FILE__", line: %d, "
-                "fdfs_recv_response from %s:%d fail, result: %d",
+                "fdfs_recv_response from %s:%u fail, result: %d",
                 __LINE__, pTrackerServer->ip_addr,
 		pTrackerServer->port, result);
 		return result;
@@ -80,7 +80,7 @@ static int fdfs_ping_leader(ConnectionInfo *pTrackerServer)
 			FDFS_STORAGE_ID_MAX_SIZE) != 0)
 	{
 		logError("file: "__FILE__", line: %d, "
-			"tracker server %s:%d, invalid body length: "
+			"tracker server %s:%u, invalid body length: "
 			"%"PRId64, __LINE__, pTrackerServer->ip_addr,
 			pTrackerServer->port, in_bytes);
 		return EINVAL;
@@ -238,7 +238,7 @@ static int relationship_get_tracker_leader(TrackerRunningStatus *pTrackerStatus)
 	for (i=0; i<count; i++)
 	{
 		logDebug("file: "__FILE__", line: %d, " \
-			"%s:%d if_leader: %d, running time: %d, " \
+			"%s:%u if_leader: %d, running time: %d, " \
 			"restart interval: %d", __LINE__, \
 			trackerStatus[i].pTrackerServer->connections->ip_addr, \
 			trackerStatus[i].pTrackerServer->connections->port, \
@@ -276,14 +276,14 @@ static int do_notify_leader_changed(TrackerServerInfo *pTrackerServer, \
 	memset(out_buff, 0, sizeof(out_buff));
 	pHeader = (TrackerHeader *)out_buff;
 	pHeader->cmd = cmd;
-	sprintf(out_buff + sizeof(TrackerHeader), "%s:%d", \
+	sprintf(out_buff + sizeof(TrackerHeader), "%s:%u", \
 			pLeader->ip_addr, pLeader->port);
 	long2buff(FDFS_PROTO_IP_PORT_SIZE, pHeader->pkg_len);
 	if ((result=tcpsenddata_nb(conn->sock, out_buff, \
 			sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, "
-			"send data to tracker server %s:%d fail, "
+			"send data to tracker server %s:%u fail, "
 			"errno: %d, error info: %s", __LINE__,
 			conn->ip_addr, conn->port, result, STRERROR(result));
 
@@ -297,7 +297,7 @@ static int do_notify_leader_changed(TrackerServerInfo *pTrackerServer, \
 	if (result != 0)
 	{
         logError("file: "__FILE__", line: %d, "
-                "fdfs_recv_response from tracker server %s:%d fail, "
+                "fdfs_recv_response from tracker server %s:%u fail, "
                 "result: %d", __LINE__, conn->ip_addr, conn->port, result);
 		break;
 	}
@@ -305,7 +305,7 @@ static int do_notify_leader_changed(TrackerServerInfo *pTrackerServer, \
 	if (in_bytes != 0)
 	{
 		logError("file: "__FILE__", line: %d, "
-			"tracker server %s:%d response data "
+			"tracker server %s:%u response data "
 			"length: %"PRId64" is invalid, "
 			"expect length: %d.", __LINE__,
 			conn->ip_addr, conn->port, in_bytes, 0);
@@ -341,7 +341,7 @@ void relationship_set_tracker_leader(const int server_index,
     else
     {
         logInfo("file: "__FILE__", line: %d, "
-            "the tracker leader is %s:%d", __LINE__,
+            "the tracker leader is %s:%u", __LINE__,
             pLeader->ip_addr, pLeader->port);
     }
 }
@@ -483,7 +483,7 @@ static int relationship_select_leader()
 		}
 
 		logInfo("file: "__FILE__", line: %d, "
-			"I am the new tracker leader %s:%d",
+			"I am the new tracker leader %s:%u",
 			__LINE__, conn->ip_addr, conn->port);
 
 		tracker_mem_find_trunk_servers();
@@ -510,13 +510,13 @@ static int relationship_select_leader()
         if (g_tracker_servers.leader_index >= 0)
         {
 			logInfo("file: "__FILE__", line: %d, "
-				"the tracker leader %s:%d", __LINE__,
+				"the tracker leader %s:%u", __LINE__,
 				conn->ip_addr, conn->port);
         }
         else
 		{
 			logInfo("file: "__FILE__", line: %d, "
-				"waiting for the candidate tracker leader %s:%d notify ...",
+				"waiting for the candidate tracker leader %s:%u notify ...",
                 __LINE__, conn->ip_addr, conn->port);
 			return ENOENT;
 		}
@@ -601,7 +601,7 @@ static void *relationship_thread_entrance(void* arg)
                     {
                         pLeader = g_tracker_servers.servers
                             [leader_index].connections;
-                        sprintf(leader_str, "leader %s:%d",
+                        sprintf(leader_str, "leader %s:%u",
                                 pLeader->ip_addr, pLeader->port);
                     }
 

@@ -33,7 +33,7 @@ int fdht_recv_header(FDHTServerInfo *pServer, fdht_pkg_size_t *in_bytes)
 		sizeof(resp), g_fdht_network_timeout)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"server: %s:%d, recv data fail, " \
+			"server: %s:%u, recv data fail, " \
 			"errno: %d, error info: %s", \
 			__LINE__, pServer->ip_addr, \
 			pServer->port, \
@@ -52,7 +52,7 @@ int fdht_recv_header(FDHTServerInfo *pServer, fdht_pkg_size_t *in_bytes)
 	if (*in_bytes < 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"server: %s:%d, recv package size %d " \
+			"server: %s:%u, recv package size %d " \
 			"is not correct", \
 			__LINE__, pServer->ip_addr, \
 			pServer->port, *in_bytes);
@@ -101,7 +101,7 @@ int fdht_recv_response(FDHTServerInfo *pServer, \
 		if (*in_bytes > buff_size)
 		{
 			logError("file: "__FILE__", line: %d, " \
-				"server: %s:%d, recv body bytes: %d" \
+				"server: %s:%u, recv body bytes: %d" \
 				" exceed max: %d", \
 				__LINE__, pServer->ip_addr, \
 				pServer->port, *in_bytes, buff_size);
@@ -116,7 +116,7 @@ int fdht_recv_response(FDHTServerInfo *pServer, \
 		*in_bytes, g_fdht_network_timeout)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"server: %s:%d, recv data fail, " \
+			"server: %s:%u, recv data fail, " \
 			"errno: %d, error info: %s", \
 			__LINE__, pServer->ip_addr, \
 			pServer->port, \
@@ -193,7 +193,7 @@ int fdht_connect_server_nb(FDHTServerInfo *pServer, const int connect_timeout)
 		pServer->ip_addr, pServer->port, connect_timeout)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"connect to %s:%d fail, errno: %d, " \
+			"connect to %s:%u fail, errno: %d, " \
 			"error info: %s", __LINE__, pServer->ip_addr, \
 			pServer->port, result, STRERROR(result));
 
@@ -227,7 +227,7 @@ int fdht_connect_server(FDHTServerInfo *pServer)
 		pServer->ip_addr, pServer->port)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"connect to %s:%d fail, errno: %d, " \
+			"connect to %s:%u fail, errno: %d, " \
 			"error info: %s", __LINE__, pServer->ip_addr, \
 			pServer->port, result, STRERROR(result));
 
@@ -293,7 +293,7 @@ int fdht_client_set(FDHTServerInfo *pServer, const char keep_alive, \
 					g_fdht_network_timeout)) != 0)
 		{
 			logError("file: "__FILE__", line: %d, " \
-				"send data to server %s:%d fail, " \
+				"send data to server %s:%u fail, " \
 				"errno: %d, error info: %s", __LINE__, \
 				pServer->ip_addr, pServer->port, \
 				result, STRERROR(result));
@@ -306,7 +306,7 @@ int fdht_client_set(FDHTServerInfo *pServer, const char keep_alive, \
 					g_fdht_network_timeout)) != 0)
 		{
 			logError("file: "__FILE__", line: %d, " \
-				"send data to server %s:%d fail, " \
+				"send data to server %s:%u fail, " \
 				"errno: %d, error info: %s", __LINE__, \
 				pServer->ip_addr, pServer->port, \
 				result, STRERROR(result));
@@ -317,7 +317,7 @@ int fdht_client_set(FDHTServerInfo *pServer, const char keep_alive, \
 					value_len, g_fdht_network_timeout)) != 0)
 		{
 			logError("file: "__FILE__", line: %d, " \
-				"send data to server %s:%d fail, " \
+				"send data to server %s:%u fail, " \
 				"errno: %d, error info: %s", __LINE__, \
 				pServer->ip_addr, pServer->port, \
 				result, STRERROR(result));
@@ -328,7 +328,7 @@ int fdht_client_set(FDHTServerInfo *pServer, const char keep_alive, \
 	if ((result=fdht_recv_header(pServer, &in_bytes)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"recv data from server %s:%d fail, " \
+			"recv data from server %s:%u fail, " \
 			"errno: %d, error info: %s", __LINE__, \
 			pServer->ip_addr, pServer->port, \
 			result, STRERROR(result));
@@ -338,7 +338,7 @@ int fdht_client_set(FDHTServerInfo *pServer, const char keep_alive, \
 	if (in_bytes != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"server %s:%d reponse bytes: %d != 0", \
+			"server %s:%u reponse bytes: %d != 0", \
 			__LINE__, pServer->ip_addr, \
 			pServer->port, in_bytes);
 		return EINVAL;
@@ -384,7 +384,7 @@ int fdht_client_delete(FDHTServerInfo *pServer, const char keep_alive, \
 		g_fdht_network_timeout)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"send data to server %s:%d fail, " \
+			"send data to server %s:%u fail, " \
 			"errno: %d, error info: %s", __LINE__, \
 			pServer->ip_addr, pServer->port, \
 			result, STRERROR(result));
@@ -396,7 +396,7 @@ int fdht_client_delete(FDHTServerInfo *pServer, const char keep_alive, \
 		if (result == ENOENT)
 		{
 			logWarning("file: "__FILE__", line: %d, " \
-				"recv data from server %s:%d fail, " \
+				"recv data from server %s:%u fail, " \
 				"errno: %d, error info: %s", __LINE__, \
 				pServer->ip_addr, pServer->port, \
 				result, STRERROR(result));
@@ -404,7 +404,7 @@ int fdht_client_delete(FDHTServerInfo *pServer, const char keep_alive, \
 		else
 		{
 			logError("file: "__FILE__", line: %d, " \
-				"recv data from server %s:%d fail, " \
+				"recv data from server %s:%u fail, " \
 				"errno: %d, error info: %s", __LINE__, \
 				pServer->ip_addr, pServer->port, \
 				result, STRERROR(result));
@@ -416,7 +416,7 @@ int fdht_client_delete(FDHTServerInfo *pServer, const char keep_alive, \
 	if (in_bytes != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"server %s:%d reponse bytes: %d != 0", \
+			"server %s:%u reponse bytes: %d != 0", \
 			__LINE__, pServer->ip_addr, \
 			pServer->port, in_bytes);
 		return EINVAL;
@@ -439,7 +439,7 @@ int fdht_client_heart_beat(FDHTServerInfo *pServer)
 		sizeof(header), g_fdht_network_timeout)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"send data to server %s:%d fail, " \
+			"send data to server %s:%u fail, " \
 			"errno: %d, error info: %s", __LINE__, \
 			pServer->ip_addr, pServer->port, \
 			result, STRERROR(result));
@@ -449,7 +449,7 @@ int fdht_client_heart_beat(FDHTServerInfo *pServer)
 	if ((result=fdht_recv_header(pServer, &in_bytes)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"recv data from server %s:%d fail, " \
+			"recv data from server %s:%u fail, " \
 			"errno: %d, error info: %s", __LINE__, \
 			pServer->ip_addr, pServer->port, \
 			result, STRERROR(result));
@@ -459,7 +459,7 @@ int fdht_client_heart_beat(FDHTServerInfo *pServer)
 	if (in_bytes != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"server %s:%d reponse bytes: %d != 0", \
+			"server %s:%u reponse bytes: %d != 0", \
 			__LINE__, pServer->ip_addr, \
 			pServer->port, in_bytes);
 		return EINVAL;

@@ -432,7 +432,7 @@ g_fdfs_version.patch);
 				printf("server list (%d):\n", server_count);
 				for (i=0; i<server_count; i++)
 				{
-					printf("\t%s:%d\n", \
+					printf("\t%s:%u\n", \
 						storageServers[i].ip_addr, \
 						storageServers[i].port);
 				}
@@ -455,7 +455,7 @@ g_fdfs_version.patch);
 			return result;
 		}
 
-		printf("storage=%s:%d\n", storageServer.ip_addr, \
+		printf("storage=%s:%u\n", storageServer.ip_addr, \
 			storageServer.port);
 
 		if ((pStorageServer=tracker_make_connection(&storageServer, \
@@ -637,14 +637,14 @@ g_fdfs_version.patch);
 	/* for test only */
 	if ((result=fdfs_active_test(pTrackerServer)) != 0)
 	{
-		printf("active_test to tracker server %s:%d fail, errno: %d\n", \
+		printf("active_test to tracker server %s:%u fail, errno: %d\n", \
 			pTrackerServer->ip_addr, pTrackerServer->port, result);
 	}
 
 	/* for test only */
 	if ((result=fdfs_active_test(pStorageServer)) != 0)
 	{
-		printf("active_test to storage server %s:%d fail, errno: %d\n", \
+		printf("active_test to storage server %s:%u fail, errno: %d\n", \
 			pStorageServer->ip_addr, pStorageServer->port, result);
 	}
 

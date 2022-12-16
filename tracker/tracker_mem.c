@@ -1830,7 +1830,7 @@ int tracker_save_storages()
 
 			count++;
 			len = sprintf(buff, \
-				"# storage %s:%d\n" \
+				"# storage %s:%u\n" \
 				"[%s"STORAGE_SECTION_NO_FORMAT"]\n" \
 				"%s" \
 				"\t%s=%s\n" \
@@ -3420,7 +3420,7 @@ int tracker_mem_delete_storage(FDFSGroupInfo *pGroup, const char *id)
 	}
 
     logDebug("file: "__FILE__", line: %d, "
-            "delete storage server: %s:%d, group: %s",
+            "delete storage server: %s:%u, group: %s",
             __LINE__, pStorageServer->ip_addrs.ips[0].address,
             pStorageServer->storage_port, pGroup->group_name);
 
@@ -3826,7 +3826,7 @@ static int tracker_mem_get_sys_file_piece(ConnectionInfo *pTrackerServer, \
 			sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"send data to tracker server %s:%d fail, " \
+			"send data to tracker server %s:%u fail, " \
 			"errno: %d, error info: %s", __LINE__, \
 			pTrackerServer->ip_addr, \
 			pTrackerServer->port, \
@@ -3849,7 +3849,7 @@ static int tracker_mem_get_sys_file_piece(ConnectionInfo *pTrackerServer, \
 	if (in_bytes < FDFS_PROTO_PKG_LEN_SIZE)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%d response data " \
+			"tracker server %s:%u response data " \
 			"length: %"PRId64" is invalid, " \
 			"expect length >= %d.", __LINE__, \
 			pTrackerServer->ip_addr, pTrackerServer->port, \
@@ -3863,7 +3863,7 @@ static int tracker_mem_get_sys_file_piece(ConnectionInfo *pTrackerServer, \
 	if (*file_size < 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%d, file size: %"PRId64\
+			"tracker server %s:%u, file size: %"PRId64\
 			" < 0", __LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, *file_size);
 		return EINVAL;
@@ -3872,7 +3872,7 @@ static int tracker_mem_get_sys_file_piece(ConnectionInfo *pTrackerServer, \
 	if (*file_size > 0 && write_bytes == 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%d, file size: %"PRId64\
+			"tracker server %s:%u, file size: %"PRId64\
 			" > 0, but file content is empty", __LINE__, \
 			pTrackerServer->ip_addr, pTrackerServer->port, \
 			*file_size);
@@ -4278,7 +4278,7 @@ static int tracker_mem_get_tracker_server(FDFSStorageJoinBody *pJoinBody, \
 	for (i=0; i<count; i++)
 	{
 		logDebug("file: "__FILE__", line: %d, "
-			"%s:%d leader: %d, running time: %d, "
+			"%s:%u leader: %d, running time: %d, "
 			"restart interval: %d", __LINE__,
 			trackerStatus[i].pTrackerServer->connections[0].ip_addr,
 			trackerStatus[i].pTrackerServer->connections[0].port,
@@ -4319,7 +4319,7 @@ static int tracker_mem_get_sys_files_from_others(FDFSStorageJoinBody *pJoinBody,
 							&trackerStatus) >= 0)
 		{
 			logDebug("file: "__FILE__", line: %d, "
-				"%s:%d running time: %d, restart interval: %d, "
+				"%s:%u running time: %d, restart interval: %d, "
 				"my running time: %d, restart interval: %d, "
 				"do not need sync system files", __LINE__,
 				trackerStatus.pTrackerServer->connections[0].ip_addr,
@@ -4341,7 +4341,7 @@ static int tracker_mem_get_sys_files_from_others(FDFSStorageJoinBody *pJoinBody,
 	}
 
 	logInfo("file: "__FILE__", line: %d, "
-		"sys files loaded from tracker server %s:%d",
+		"sys files loaded from tracker server %s:%u",
 		__LINE__, pTrackerServer->connections[0].ip_addr,
 		pTrackerServer->connections[0].port);
 
@@ -4633,7 +4633,7 @@ int tracker_mem_add_group_and_storage(TrackerClientInfo *pClientInfo, \
 			pJoinBody->status == FDFS_STORAGE_STATUS_NONE)
 			{
 				logError("file: "__FILE__", line: %d, " \
-					"client ip: %s:%d, invalid storage " \
+					"client ip: %s:%u, invalid storage " \
 					"status %d, in the group \"%s\"", \
 					__LINE__, ip_addr, \
 					pJoinBody->storage_port, \
@@ -4882,7 +4882,7 @@ int tracker_mem_sync_storages(FDFSGroupInfo *pGroup, \
 				}
 
                 logWarning("file: "__FILE__", line: %d, "
-                        "storage server: %s:%d, dest status: %d, "
+                        "storage server: %s:%u, dest status: %d, "
                         "my status: %d, should change my status!",
                         __LINE__, FDFS_CURRENT_IP_ADDR(*ppFound),
                         (*ppFound)->storage_port,
@@ -4992,7 +4992,7 @@ static int _storage_get_trunk_binlog_size(
 			sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"storage server %s:%d, send data fail, " \
+			"storage server %s:%u, send data fail, " \
 			"errno: %d, error info: %s.", \
 			__LINE__, pStorageServer->ip_addr, \
 			pStorageServer->port, \
@@ -5013,7 +5013,7 @@ static int _storage_get_trunk_binlog_size(
 	if (in_bytes != sizeof(in_buff))
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"storage server %s:%d, recv body length: " \
+			"storage server %s:%u, recv body length: " \
 			"%"PRId64" != %d",  \
 			__LINE__, pStorageServer->ip_addr, \
 			pStorageServer->port, in_bytes, (int)sizeof(in_buff));
@@ -5045,7 +5045,7 @@ static int tracker_mem_get_trunk_binlog_size(
 
 
 	logDebug("file: "__FILE__", line: %d, " \
-		"storage %s:%d, trunk binlog file size: %"PRId64, \
+		"storage %s:%u, trunk binlog file size: %"PRId64, \
 		__LINE__, storage_server.ip_addr, storage_server.port, \
 		*file_size);
 	return result;
@@ -5205,7 +5205,7 @@ static int tracker_mem_do_set_trunk_server(FDFSGroupInfo *pGroup,
 	g_trunk_server_chg_count++;
 
 	logInfo("file: "__FILE__", line: %d, "
-		"group: %s, trunk server set to %s(%s:%d)", __LINE__,
+		"group: %s, trunk server set to %s(%s:%u)", __LINE__,
 		pGroup->group_name, pGroup->pTrunkServer->id,
 		FDFS_CURRENT_IP_ADDR(pGroup->pTrunkServer),
         pGroup->storage_port);
@@ -6087,7 +6087,7 @@ int tracker_mem_check_alive(void *arg)
 		if (g_use_storage_id)
 		{
 			logInfo("file: "__FILE__", line: %d, "
-				"storage server %s(%s:%d) idle too long, "
+				"storage server %s(%s:%u) idle too long, "
 				"status change to offline!", __LINE__,
 				(*ppServer)->id, FDFS_CURRENT_IP_ADDR(*ppServer),
 				(*ppGroup)->storage_port);
@@ -6095,7 +6095,7 @@ int tracker_mem_check_alive(void *arg)
 		else
 		{
 			logInfo("file: "__FILE__", line: %d, "
-				"storage server %s:%d idle too long, "
+				"storage server %s:%u idle too long, "
 				"status change to offline!", __LINE__,
 				FDFS_CURRENT_IP_ADDR(*ppServer),
                 (*ppGroup)->storage_port);
@@ -6145,7 +6145,7 @@ int tracker_mem_check_alive(void *arg)
 	    	if (last_beat_interval > check_trunk_interval)
 		{
 			logInfo("file: "__FILE__", line: %d, "
-				"trunk server %s(%s:%d) offline because idle "
+				"trunk server %s(%s:%u) offline because idle "
 				"time: %d s > threshold: %d s, should "
 				"re-select trunk server", __LINE__,
 				(*ppGroup)->pTrunkServer->id,

@@ -675,7 +675,7 @@ static int tracker_deal_notify_next_leader(struct fast_task_info *pTask)
 	if (server_index < 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"client ip: %s, leader %s:%d not exist", \
+			"client ip: %s, leader %s:%u not exist", \
 			__LINE__, pTask->client_ip, \
 			leader.ip_addr, leader.port);
 		return ENOENT;
@@ -690,7 +690,7 @@ static int tracker_deal_notify_next_leader(struct fast_task_info *pTask)
 
 		logError("file: "__FILE__", line: %d, " \
 			"client ip: %s, two leaders occur, " \
-			"new leader is %s:%d", \
+			"new leader is %s:%u", \
 			__LINE__, pTask->client_ip, \
 			leader.ip_addr, leader.port);
 		return EINVAL;
@@ -740,7 +740,7 @@ static int tracker_deal_commit_next_leader(struct fast_task_info *pTask)
 	if (server_index < 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"client ip: %s, leader %s:%d not exist", \
+			"client ip: %s, leader %s:%u not exist", \
 			__LINE__, pTask->client_ip, \
 			leader.ip_addr, leader.port);
 		return ENOENT;
@@ -748,7 +748,7 @@ static int tracker_deal_commit_next_leader(struct fast_task_info *pTask)
 	if (server_index != g_next_leader_index)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"client ip: %s, can't commit leader %s:%d", \
+			"client ip: %s, can't commit leader %s:%u", \
 			__LINE__, pTask->client_ip, \
 			leader.ip_addr, leader.port);
 		return EINVAL;
@@ -1025,7 +1025,7 @@ static int tracker_deal_get_storage_group_name(struct fast_task_info *pTask)
     if (pFDFSStorageIdInfo == NULL)
     {
         logError("file: "__FILE__", line: %d, "
-                "client ip: %s, can't get group name for storage %s:%d",
+                "client ip: %s, can't get group name for storage %s:%u",
                 __LINE__, pTask->client_ip, ip_addr, port);
         pTask->length = sizeof(TrackerHeader);
         return ENOENT;
@@ -3501,7 +3501,7 @@ static int tracker_deal_storage_df_report(struct fast_task_info *pTask)
 	tracker_find_max_free_space_group();
 
 	/*
-	//logInfo("storage: %s:%d, total_mb=%dMB, free_mb=%dMB\n", \
+	//logInfo("storage: %s:%u, total_mb=%dMB, free_mb=%dMB\n", \
 		pClientInfo->pStorage->ip_addr, \
 		pClientInfo->pGroup->storage_port, \
 		pClientInfo->pStorage->total_mb, \

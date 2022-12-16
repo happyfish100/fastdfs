@@ -111,7 +111,7 @@ void storage_sync_connect_storage_server_ex(const FDFSStorageBrief *pStorage,
                 }
                 logInfo("file: "__FILE__", line: %d, "
                         "successfully connect to "
-                        "storage server %s:%d%s", __LINE__,
+                        "storage server %s:%u%s", __LINE__,
                         conn->ip_addr, SF_G_INNER_PORT, szFailPrompt);
                 nContinuousFail = 0;
                 break;
@@ -121,7 +121,7 @@ void storage_sync_connect_storage_server_ex(const FDFSStorageBrief *pStorage,
             if (previousCodes[i] != conn_results[i])
             {
                 logError("file: "__FILE__", line: %d, "
-                        "connect to storage server %s:%d fail, "
+                        "connect to storage server %s:%u fail, "
                         "errno: %d, error info: %s",
                         __LINE__, conn->ip_addr, SF_G_INNER_PORT,
                         conn_results[i], STRERROR(conn_results[i]));
@@ -147,7 +147,7 @@ void storage_sync_connect_storage_server_ex(const FDFSStorageBrief *pStorage,
         for (i=0; i<ip_addrs.count; i++)
         {
             logError("file: "__FILE__", line: %d, "
-                    "connect to storage server %s:%d fail, "
+                    "connect to storage server %s:%u fail, "
                     "try count: %d, errno: %d, error info: %s",
                     __LINE__, ip_addrs.ips[i].address, SF_G_INNER_PORT, avg_fails,
                     conn_results[i], STRERROR(conn_results[i]));

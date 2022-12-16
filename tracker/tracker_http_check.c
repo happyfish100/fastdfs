@@ -85,7 +85,7 @@ static void *http_check_entrance(void *arg)
 				{
 					logInfo("file: "__FILE__", line: %d, " \
 						"http check alive success " \
-						"after %d times, server: %s:%d",
+						"after %d times, server: %s:%u",
 						__LINE__, \
 						(*ppServer)->http_check_fail_count, 
 						(*ppServer)->ip_addr, \
@@ -102,7 +102,7 @@ static void *http_check_entrance(void *arg)
 					logError("file: "__FILE__", line: %d, "\
 						"http check alive fail after " \
 						"%d times, storage server: " \
-						"%s:%d, error info: %s", \
+						"%s:%u, error info: %s", \
 						__LINE__, \
 						(*ppServer)->http_check_fail_count, \
 						(*ppServer)->ip_addr, \
@@ -112,7 +112,7 @@ static void *http_check_entrance(void *arg)
 
 				sprintf((*ppServer)->http_check_error_info, 
 					"http check alive, connect to http " \
-					"server %s:%d fail, " \
+					"server %s:%u fail, " \
 					"errno: %d, error info: %s", \
 					(*ppServer)->ip_addr, \
 					(*ppGroup)->storage_http_port, result, \
@@ -132,7 +132,7 @@ static void *http_check_entrance(void *arg)
 		}
 		else  //http
 		{
-		sprintf(url, "http://%s:%d%s", (*ppServer)->ip_addr, \
+		sprintf(url, "http://%s:%u%s", (*ppServer)->ip_addr, \
 			(*ppGroup)->storage_http_port, g_http_check_uri);
 
 		result = get_url_content(url, SF_G_CONNECT_TIMEOUT, \
@@ -176,7 +176,7 @@ static void *http_check_entrance(void *arg)
 					logError("file: "__FILE__", line: %d, "\
 						"http check alive fail after " \
 						"%d times, storage server: " \
-						"%s:%d, error info: %s", \
+						"%s:%u, error info: %s", \
 						__LINE__, \
 						(*ppServer)->http_check_fail_count, \
 						(*ppServer)->ip_addr, \
@@ -211,7 +211,7 @@ static void *http_check_entrance(void *arg)
 					logError("file: "__FILE__", line: %d, "\
 						"http check alive fail after " \
 						"%d times, storage server: " \
-						"%s:%d, error info: %s", \
+						"%s:%u, error info: %s", \
 						__LINE__, \
 						(*ppServer)->http_check_fail_count, \
 						(*ppServer)->ip_addr, \
@@ -264,7 +264,7 @@ static void *http_check_entrance(void *arg)
 		{
 			logError("file: "__FILE__", line: %d, " \
 				"http check alive fail " \
-				"after %d times, storage server: %s:%d, " \
+				"after %d times, storage server: %s:%u, " \
 				"error info: %s", \
 				__LINE__, (*ppServer)->http_check_fail_count, \
 				(*ppServer)->ip_addr, \

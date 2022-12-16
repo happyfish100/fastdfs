@@ -146,7 +146,7 @@ static int storage_sync_copy_file(ConnectionInfo *pStorageServer, \
 			{
 				logDebug("file: "__FILE__", line: %d, " \
 					"sync data file, logic file: %s " \
-					"on dest server %s:%d already exists, "\
+					"on dest server %s:%u already exists, "\
 					"and same as mine, ignore it", \
 					__LINE__, pRecord->filename, \
 					pStorageServer->ip_addr, \
@@ -157,7 +157,7 @@ static int storage_sync_copy_file(ConnectionInfo *pStorageServer, \
 			{
 				logWarning("file: "__FILE__", line: %d, " \
 					"sync data file, logic file: %s " \
-					"on dest server %s:%d already exists, "\
+					"on dest server %s:%u already exists, "\
 					"but file size: %"PRId64 \
 					" not same as mine: %"PRId64 \
 					", need re-sync it", __LINE__, \
@@ -230,7 +230,7 @@ static int storage_sync_copy_file(ConnectionInfo *pStorageServer, \
 			p - out_buff, SF_G_NETWORK_TIMEOUT)) != 0)
 		{
 			logError("file: "__FILE__", line: %d, " \
-				"sync data to storage server %s:%d fail, " \
+				"sync data to storage server %s:%u fail, " \
 				"errno: %d, error info: %s", \
 				__LINE__, pStorageServer->ip_addr, \
 				pStorageServer->port, \
@@ -245,7 +245,7 @@ static int storage_sync_copy_file(ConnectionInfo *pStorageServer, \
 			SF_G_NETWORK_TIMEOUT, &total_send_bytes)) != 0))
 		{
 			logError("file: "__FILE__", line: %d, " \
-				"sync data to storage server %s:%d fail, " \
+				"sync data to storage server %s:%u fail, " \
 				"errno: %d, error info: %s", \
 				__LINE__, pStorageServer->ip_addr, \
 				pStorageServer->port, \
@@ -279,7 +279,7 @@ static int storage_sync_copy_file(ConnectionInfo *pStorageServer, \
 			STORAGE_OP_TYPE_SOURCE_CREATE_FILE)
 		{
 			logWarning("file: "__FILE__", line: %d, " \
-				"storage server ip: %s:%d, data file: %s " \
+				"storage server ip: %s:%u, data file: %s " \
 				"already exists, maybe some mistake?", \
 				__LINE__, pStorageServer->ip_addr, \
 				pStorageServer->port, pRecord->filename);
@@ -427,7 +427,7 @@ static int storage_sync_modify_file(ConnectionInfo *pStorageServer, \
 			p - out_buff, SF_G_NETWORK_TIMEOUT)) != 0)
 		{
 			logError("file: "__FILE__", line: %d, " \
-				"sync data to storage server %s:%d fail, " \
+				"sync data to storage server %s:%u fail, " \
 				"errno: %d, error info: %s", \
 				__LINE__, pStorageServer->ip_addr, \
 				pStorageServer->port, \
@@ -441,7 +441,7 @@ static int storage_sync_modify_file(ConnectionInfo *pStorageServer, \
 			SF_G_NETWORK_TIMEOUT, &total_send_bytes)) != 0)
 		{
 			logError("file: "__FILE__", line: %d, " \
-				"sync data to storage server %s:%d fail, " \
+				"sync data to storage server %s:%u fail, " \
 				"errno: %d, error info: %s", \
 				__LINE__, pStorageServer->ip_addr, \
 				pStorageServer->port, \
@@ -592,7 +592,7 @@ static int storage_sync_truncate_file(ConnectionInfo *pStorageServer, \
 			p - out_buff, SF_G_NETWORK_TIMEOUT)) != 0)
 		{
 			logError("file: "__FILE__", line: %d, " \
-				"sync data to storage server %s:%d fail, " \
+				"sync data to storage server %s:%u fail, " \
 				"errno: %d, error info: %s", \
 				__LINE__, pStorageServer->ip_addr, \
 				pStorageServer->port, \
@@ -666,7 +666,7 @@ static int storage_sync_delete_file(ConnectionInfo *pStorageServer, \
 		pRecord->filename_len, SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("FILE: "__FILE__", line: %d, " \
-			"send data to storage server %s:%d fail, " \
+			"send data to storage server %s:%u fail, " \
 			"errno: %d, error info: %s", \
 			__LINE__, pStorageServer->ip_addr, \
 			pStorageServer->port, \
@@ -716,7 +716,7 @@ static int storage_report_my_server_id(ConnectionInfo *pStorageServer)
 		SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("FILE: "__FILE__", line: %d, " \
-			"send data to storage server %s:%d fail, " \
+			"send data to storage server %s:%u fail, " \
 			"errno: %d, error info: %s", \
 			__LINE__, pStorageServer->ip_addr, \
 			pStorageServer->port, \
@@ -941,7 +941,7 @@ static int storage_sync_link_file(ConnectionInfo *pStorageServer, \
 		SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("FILE: "__FILE__", line: %d, " \
-			"send data to storage server %s:%d fail, " \
+			"send data to storage server %s:%u fail, " \
 			"errno: %d, error info: %s", \
 			__LINE__, pStorageServer->ip_addr, \
 			pStorageServer->port, \
@@ -1049,7 +1049,7 @@ static int storage_sync_rename_file(ConnectionInfo *pStorageServer,
 		SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("FILE: "__FILE__", line: %d, "
-			"send data to storage server %s:%d fail, "
+			"send data to storage server %s:%u fail, "
 			"errno: %d, error info: %s",
 			__LINE__, pStorageServer->ip_addr,
 			pStorageServer->port, result, STRERROR(result));
@@ -1069,7 +1069,7 @@ static int storage_sync_rename_file(ConnectionInfo *pStorageServer,
         else if (result == EEXIST)
         {
 			logDebug("file: "__FILE__", line: %d, "
-				"storage server ip: %s:%d, data file: %s "
+				"storage server ip: %s:%u, data file: %s "
 				"already exists", __LINE__, pStorageServer->ip_addr,
 				pStorageServer->port, pRecord->filename);
             return 0;
@@ -2060,7 +2060,7 @@ int storage_report_storage_status(const char *storage_id, \
         if (conn == NULL)
         {
             logError("file: "__FILE__", line: %d, "
-                    "connect to tracker server %s:%d fail, "
+                    "connect to tracker server %s:%u fail, "
                     "errno: %d, error info: %s",
                     __LINE__, pTServer->connections[0].ip_addr,
                     pTServer->connections[0].port,
@@ -2882,14 +2882,14 @@ static void storage_sync_thread_exit(ConnectionInfo *pStorage)
 
 	if ((result=pthread_mutex_unlock(&sync_thread_lock)) != 0)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"call pthread_mutex_unlock fail, " \
-			"errno: %d, error info: %s", \
+		logError("file: "__FILE__", line: %d, "
+			"call pthread_mutex_unlock fail, "
+			"errno: %d, error info: %s",
 			__LINE__, result, STRERROR(result));
 	}
 
-	logDebug("file: "__FILE__", line: %d, " \
-		"sync thread to storage server %s:%d exit", 
+	logDebug("file: "__FILE__", line: %d, "
+		"sync thread to storage server %s:%u exit",
 		__LINE__, pStorage->ip_addr, pStorage->port);
 }
 
@@ -2937,8 +2937,8 @@ static void* storage_sync_thread_entrance(void* arg)
 	start_time = 0;
 	end_time = 0;
 
-	logDebug("file: "__FILE__", line: %d, " \
-		"sync thread to storage server %s:%d started", \
+	logDebug("file: "__FILE__", line: %d, "
+		"sync thread to storage server %s:%u started",
 		__LINE__, storage_server.ip_addr, storage_server.port);
  
 	while (SF_G_CONTINUE_FLAG && \

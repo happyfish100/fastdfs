@@ -143,7 +143,7 @@ static int storage_do_fetch_binlog(ConnectionInfo *pSrcStorage, \
 		sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, "
-			"storage server %s:%d, send data fail, "
+			"storage server %s:%u, send data fail, "
 			"errno: %d, error info: %s.",
 			__LINE__, pSrcStorage->ip_addr, pSrcStorage->port,
 			result, STRERROR(result));
@@ -171,7 +171,7 @@ static int storage_do_fetch_binlog(ConnectionInfo *pSrcStorage, \
 				in_bytes, 0, network_timeout, &file_bytes)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, "
-			"storage server %s:%d, tcprecvfile fail, "
+			"storage server %s:%u, tcprecvfile fail, "
 			"errno: %d, error info: %s.",
 			__LINE__, pSrcStorage->ip_addr, pSrcStorage->port,
 			result, STRERROR(result));
@@ -179,7 +179,7 @@ static int storage_do_fetch_binlog(ConnectionInfo *pSrcStorage, \
 	}
 
 	logInfo("file: "__FILE__", line: %d, "
-		"recovery binlog from %s:%d, file size: %"PRId64, __LINE__,
+		"recovery binlog from %s:%u, file size: %"PRId64, __LINE__,
         pSrcStorage->ip_addr, pSrcStorage->port, file_bytes);
 
 	return 0;
@@ -357,7 +357,7 @@ static int recovery_get_src_storage_server(ConnectionInfo *pSrcStorage)
 	}
 
 	logDebug("file: "__FILE__", line: %d, "
-		"disk recovery: get source storage server %s:%d",
+		"disk recovery: get source storage server %s:%u",
 		__LINE__, pSrcStorage->ip_addr, pSrcStorage->port);
 	return 0;
 }
@@ -738,7 +738,7 @@ static int storage_do_recovery(RecoveryThreadData *pThreadData,
 	result = 0;
 
 	logInfo("file: "__FILE__", line: %d, "
-		"disk recovery thread #%d, src storage server %s:%d, "
+		"disk recovery thread #%d, src storage server %s:%u, "
         "recovering files of data path: %s ...", __LINE__,
         pThreadData->thread_index, pSrcStorage->ip_addr,
         pSrcStorage->port, pThreadData->base_path);
@@ -925,7 +925,7 @@ static int storage_do_recovery(RecoveryThreadData *pThreadData,
 	if (pThreadData->done)
 	{
 		logInfo("file: "__FILE__", line: %d, "
-			"disk recovery thread #%d, src storage server %s:%d, "
+			"disk recovery thread #%d, src storage server %s:%u, "
             "recover files of data path: %s done", __LINE__,
             pThreadData->thread_index, pSrcStorage->ip_addr,
             pSrcStorage->port, pThreadData->base_path);
@@ -1749,7 +1749,7 @@ int storage_disk_recovery_prepare(const int store_path_index)
 	}
 
 	logInfo("file: "__FILE__", line: %d, "
-            "try to fetch binlog from %s:%d ...", __LINE__,
+            "try to fetch binlog from %s:%u ...", __LINE__,
             pStorageConn->ip_addr, pStorageConn->port);
 
 	result = storage_do_fetch_binlog(pStorageConn, store_path_index);
@@ -1760,7 +1760,7 @@ int storage_disk_recovery_prepare(const int store_path_index)
 	}
 
     logInfo("file: "__FILE__", line: %d, "
-            "fetch binlog from %s:%d successfully.", __LINE__,
+            "fetch binlog from %s:%u successfully.", __LINE__,
             pStorageConn->ip_addr, pStorageConn->port);
 
 	if ((result=storage_disk_recovery_split_trunk_binlog(

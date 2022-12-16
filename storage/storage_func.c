@@ -155,7 +155,7 @@ static int storage_do_get_group_name(ConnectionInfo *pTrackerServer)
 			sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%d, send data fail, " \
+			"tracker server %s:%u, send data fail, " \
 			"errno: %d, error info: %s.", \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, \
@@ -176,7 +176,7 @@ static int storage_do_get_group_name(ConnectionInfo *pTrackerServer)
 	if (in_bytes != FDFS_GROUP_NAME_MAX_LEN)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%d, recv body length: " \
+			"tracker server %s:%u, recv body length: " \
 			"%"PRId64" != %d",  \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, in_bytes, FDFS_GROUP_NAME_MAX_LEN);
@@ -1353,11 +1353,11 @@ static int storage_check_tracker_ipaddr(const char *filename)
         conn_end = pServer->connections + pServer->count;
         for (conn=pServer->connections; conn<conn_end; conn++)
         {
-            //logInfo("server=%s:%d\n", conn->ip_addr, conn->port);
+            //logInfo("server=%s:%u\n", conn->ip_addr, conn->port);
             if (strcmp(conn->ip_addr, "127.0.0.1") == 0)
             {
                 logError("file: "__FILE__", line: %d, "
-                        "conf file \"%s\", tracker: \"%s:%d\" is invalid, "
+                        "conf file \"%s\", tracker: \"%s:%u\" is invalid, "
                         "tracker server ip can't be 127.0.0.1",
                         __LINE__, filename, conn->ip_addr, conn->port);
                 return EINVAL;
@@ -2201,7 +2201,7 @@ static int storage_get_my_ip_from_tracker(ConnectionInfo *conn,
 		sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, "
-			"tracker server %s:%d, send data fail, "
+			"tracker server %s:%u, send data fail, "
 			"errno: %d, error info: %s.",
 			__LINE__, conn->ip_addr, conn->port,
 			result, STRERROR(result));
@@ -2212,7 +2212,7 @@ static int storage_get_my_ip_from_tracker(ConnectionInfo *conn,
                     buff_size - 1, &in_bytes)) != 0)
     {
 		logError("file: "__FILE__", line: %d, "
-			"tracker server %s:%d, recv response fail, "
+			"tracker server %s:%u, recv response fail, "
 			"errno: %d, error info: %s.",
 			__LINE__, conn->ip_addr, conn->port,
 			result, STRERROR(result));
@@ -2259,7 +2259,7 @@ int storage_set_tracker_client_ips(ConnectionInfo *conn,
                         error_info, sizeof(error_info))) != 0)
             {
                 logCrit("file: "__FILE__", line: %d, "
-                        "as a client of tracker server %s:%d, "
+                        "as a client of tracker server %s:%u, "
                         "my ip: %s not valid, error info: %s. "
                         "program exit!", __LINE__,
                         conn->ip_addr, conn->port,
@@ -2277,7 +2277,7 @@ int storage_set_tracker_client_ips(ConnectionInfo *conn,
             fdfs_multi_ips_to_string(&g_tracker_client_ip,
                     ip_str, sizeof(ip_str));
             logError("file: "__FILE__", line: %d, "
-                    "as a client of tracker server %s:%d, "
+                    "as a client of tracker server %s:%u, "
                     "my ip: %s not consistent with client ips: %s "
                     "of other tracker client. program exit!", __LINE__,
                     conn->ip_addr, conn->port,

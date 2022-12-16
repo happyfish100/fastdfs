@@ -48,7 +48,7 @@ static int storage_do_changelog_req(ConnectionInfo *pTrackerServer)
 		sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%d, send data fail, " \
+			"tracker server %s:%u, send data fail, " \
 			"errno: %d, error info: %s.", \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, \
@@ -84,7 +84,7 @@ static int storage_report_ip_changed(ConnectionInfo *pTrackerServer)
 		sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%d, send data fail, " \
+			"tracker server %s:%u, send data fail, " \
 			"errno: %d, error info: %s", \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, result, STRERROR(result));
@@ -109,7 +109,7 @@ static int storage_report_ip_changed(ConnectionInfo *pTrackerServer)
 	else
 	{
 		logError("file: "__FILE__", line: %d, "
-			"tracker server %s:%d, recv data fail or "
+			"tracker server %s:%u, recv data fail or "
 			"response status != 0, "
 			"errno: %d, error info: %s",
 			__LINE__, pTrackerServer->ip_addr,
@@ -146,7 +146,8 @@ int storage_get_my_tracker_client_ip()
 		for (i=0; i < 3; i++)
 		{
             conn = tracker_connect_server_no_pool_ex(pTServer,
-                    g_client_bind_addr ? SF_G_INNER_BIND_ADDR : NULL, &result, false);
+                    g_client_bind_addr ? SF_G_INNER_BIND_ADDR : NULL,
+                    &result, false);
             if (conn != NULL)
             {
 				break;
@@ -158,7 +159,7 @@ int storage_get_my_tracker_client_ip()
 		if (conn == NULL)
 		{
 			logError("file: "__FILE__", line: %d, "
-				"connect to tracker server %s:%d fail, "
+				"connect to tracker server %s:%u fail, "
 				"errno: %d, error info: %s",
 				__LINE__, pTServer->connections[0].ip_addr,
                 pTServer->connections[0].port,
@@ -233,7 +234,8 @@ static int storage_report_storage_ip_addr()
 		for (i=0; i < 3; i++)
 		{
             conn = tracker_connect_server_no_pool_ex(pTServer,
-                    g_client_bind_addr ? SF_G_INNER_BIND_ADDR : NULL, &result, false);
+                    g_client_bind_addr ? SF_G_INNER_BIND_ADDR : NULL,
+                    &result, false);
             if (conn != NULL)
             {
 				break;
@@ -245,7 +247,7 @@ static int storage_report_storage_ip_addr()
         if (conn == NULL)
 		{
 			logError("file: "__FILE__", line: %d, "
-				"connect to tracker server %s:%d fail, "
+				"connect to tracker server %s:%u fail, "
 				"errno: %d, error info: %s",
 				__LINE__, pTServer->connections[0].ip_addr,
                 pTServer->connections[0].port,
@@ -302,7 +304,8 @@ int storage_changelog_req()
 		for (i=0; i < 3; i++)
 		{
             conn = tracker_connect_server_no_pool_ex(pTServer,
-                    g_client_bind_addr ? SF_G_INNER_BIND_ADDR : NULL, &result, false);
+                    g_client_bind_addr ? SF_G_INNER_BIND_ADDR : NULL,
+                    &result, false);
             if (conn != NULL)
             {
 				break;
@@ -314,7 +317,7 @@ int storage_changelog_req()
         if (conn == NULL)
 		{
 			logError("file: "__FILE__", line: %d, "
-				"connect to tracker server %s:%d fail, "
+				"connect to tracker server %s:%u fail, "
 				"errno: %d, error info: %s",
 				__LINE__, pTServer->connections[0].ip_addr,
                 pTServer->connections[0].port,

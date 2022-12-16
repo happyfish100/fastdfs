@@ -556,7 +556,7 @@ int fdht_load_groups_ex(IniContext *pIniContext, \
 			{
 				logError("file: "__FILE__", line: %d, " \
 					"group: \"%s\",  duplicate server: " \
-					"%s:%d", __LINE__, item_name, \
+					"%s:%u", __LINE__, item_name, \
 					(*ppServer)->ip_addr, \
 					(*ppServer)->port);
 				return EINVAL;

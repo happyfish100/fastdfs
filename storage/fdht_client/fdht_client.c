@@ -404,7 +404,7 @@ int fdht_get_ex1(GroupArray *pGroupArray, const bool bKeepAlive, \
 		if ((result=tcpsenddata_nb(pServer->sock, buff, p - buff, \
 			g_fdht_network_timeout)) != 0)
 		{
-			logError("send data to server %s:%d fail, " \
+			logError("send data to server %s:%u fail, " \
 				"errno: %d, error info: %s", \
 				pServer->ip_addr, pServer->port, \
 				result, STRERROR(result));
@@ -418,7 +418,7 @@ int fdht_get_ex1(GroupArray *pGroupArray, const bool bKeepAlive, \
 
 		if (in_bytes < 4)
 		{
-			logError("server %s:%d reponse bytes: %d < 4", \
+			logError("server %s:%u reponse bytes: %d < 4", \
 				pServer->ip_addr, pServer->port, in_bytes);
 			result = EINVAL;
 			break;
@@ -428,7 +428,7 @@ int fdht_get_ex1(GroupArray *pGroupArray, const bool bKeepAlive, \
 			4, g_fdht_network_timeout)) != 0)
 		{
 			logError("file: "__FILE__", line: %d, " \
-				"server: %s:%d, recv data fail, " \
+				"server: %s:%u, recv data fail, " \
 				"errno: %d, error info: %s", \
 				__LINE__, pServer->ip_addr, \
 				pServer->port, \
@@ -439,7 +439,7 @@ int fdht_get_ex1(GroupArray *pGroupArray, const bool bKeepAlive, \
 		vlen = buff2int(buff);
 		if (vlen != in_bytes - 4)
 		{
-			logError("server %s:%d reponse bytes: %d " \
+			logError("server %s:%u reponse bytes: %d " \
 				"is not correct, %d != %d", pServer->ip_addr, \
 				pServer->port, in_bytes, vlen, in_bytes - 4);
 			result = EINVAL;
@@ -476,7 +476,7 @@ int fdht_get_ex1(GroupArray *pGroupArray, const bool bKeepAlive, \
 			*value_len, g_fdht_network_timeout)) != 0)
 		{
 			logError("file: "__FILE__", line: %d, " \
-				"server: %s:%d, recv data fail, " \
+				"server: %s:%u, recv data fail, " \
 				"errno: %d, error info: %s", \
 				__LINE__, pServer->ip_addr, \
 				pServer->port, \
@@ -613,7 +613,7 @@ int fdht_batch_set_ex(GroupArray *pGroupArray, const bool bKeepAlive, \
 		if ((result=tcpsenddata_nb(pServer->sock, pBuff, pkg_total_len, \
 			g_fdht_network_timeout)) != 0)
 		{
-			logError("send data to server %s:%d fail, " \
+			logError("send data to server %s:%u fail, " \
 				"errno: %d, error info: %s", \
 				pServer->ip_addr, pServer->port, \
 				result, STRERROR(result));
@@ -627,7 +627,7 @@ int fdht_batch_set_ex(GroupArray *pGroupArray, const bool bKeepAlive, \
 
 		if (in_bytes != 8 + 5 * key_count + total_key_len)
 		{
-			logError("server %s:%d reponse bytes: %d != %d", \
+			logError("server %s:%u reponse bytes: %d != %d", \
 				pServer->ip_addr, pServer->port, in_bytes, \
 				8 + 5 * key_count + total_key_len);
 			result = EINVAL;
@@ -638,7 +638,7 @@ int fdht_batch_set_ex(GroupArray *pGroupArray, const bool bKeepAlive, \
 			in_bytes, g_fdht_network_timeout)) != 0)
 		{
 			logError("file: "__FILE__", line: %d, " \
-				"server: %s:%d, recv data fail, " \
+				"server: %s:%u, recv data fail, " \
 				"errno: %d, error info: %s", \
 				__LINE__, pServer->ip_addr, pServer->port, \
 				result, STRERROR(result));
@@ -649,7 +649,7 @@ int fdht_batch_set_ex(GroupArray *pGroupArray, const bool bKeepAlive, \
 		{
 			result = EINVAL;
 			logError("file: "__FILE__", line: %d, " \
-				"server: %s:%d, invalid key_count: %d, " \
+				"server: %s:%u, invalid key_count: %d, " \
 				"expect key count: %d", \
 				__LINE__, pServer->ip_addr, pServer->port, \
 				buff2int(pBuff), key_count);
@@ -766,7 +766,7 @@ int fdht_batch_delete_ex(GroupArray *pGroupArray, const bool bKeepAlive, \
 		if ((result=tcpsenddata_nb(pServer->sock, buff, p - buff, \
 			g_fdht_network_timeout)) != 0)
 		{
-			logError("send data to server %s:%d fail, " \
+			logError("send data to server %s:%u fail, " \
 				"errno: %d, error info: %s", \
 				pServer->ip_addr, pServer->port, \
 				result, STRERROR(result));
@@ -780,7 +780,7 @@ int fdht_batch_delete_ex(GroupArray *pGroupArray, const bool bKeepAlive, \
 
 		if (in_bytes != 8 + 5 * key_count + total_key_len)
 		{
-			logError("server %s:%d reponse bytes: %d != %d", \
+			logError("server %s:%u reponse bytes: %d != %d", \
 				pServer->ip_addr, pServer->port, in_bytes, \
 				8 + 5 * key_count + total_key_len);
 			result = EINVAL;
@@ -791,7 +791,7 @@ int fdht_batch_delete_ex(GroupArray *pGroupArray, const bool bKeepAlive, \
 			in_bytes, g_fdht_network_timeout)) != 0)
 		{
 			logError("file: "__FILE__", line: %d, " \
-				"server: %s:%d, recv data fail, " \
+				"server: %s:%u, recv data fail, " \
 				"errno: %d, error info: %s", \
 				__LINE__, pServer->ip_addr, pServer->port, \
 				result, STRERROR(result));
@@ -802,7 +802,7 @@ int fdht_batch_delete_ex(GroupArray *pGroupArray, const bool bKeepAlive, \
 		{
 			result = EINVAL;
 			logError("file: "__FILE__", line: %d, " \
-				"server: %s:%d, invalid key_count: %d, " \
+				"server: %s:%u, invalid key_count: %d, " \
 				"expect key count: %d", \
 				__LINE__, pServer->ip_addr, pServer->port, \
 				buff2int(buff), key_count);
@@ -917,7 +917,7 @@ int fdht_batch_get_ex1(GroupArray *pGroupArray, const bool bKeepAlive, \
 		if ((result=tcpsenddata_nb(pServer->sock, buff, p - buff, \
 			g_fdht_network_timeout)) != 0)
 		{
-			logError("send data to server %s:%d fail, " \
+			logError("send data to server %s:%u fail, " \
 				"errno: %d, error info: %s", \
 				pServer->ip_addr, pServer->port, \
 				result, STRERROR(result));
@@ -931,7 +931,7 @@ int fdht_batch_get_ex1(GroupArray *pGroupArray, const bool bKeepAlive, \
 
 		if (in_bytes < 17)
 		{
-			logError("server %s:%d reponse bytes: %d < 17", \
+			logError("server %s:%u reponse bytes: %d < 17", \
 				pServer->ip_addr, pServer->port, in_bytes);
 			result = EINVAL;
 			break;
@@ -956,7 +956,7 @@ int fdht_batch_get_ex1(GroupArray *pGroupArray, const bool bKeepAlive, \
 			in_bytes, g_fdht_network_timeout)) != 0)
 		{
 			logError("file: "__FILE__", line: %d, " \
-				"server: %s:%d, recv data fail, " \
+				"server: %s:%u, recv data fail, " \
 				"errno: %d, error info: %s", \
 				__LINE__, pServer->ip_addr, pServer->port, \
 				result, STRERROR(result));
@@ -967,7 +967,7 @@ int fdht_batch_get_ex1(GroupArray *pGroupArray, const bool bKeepAlive, \
 		{
 			result = EINVAL;
 			logError("file: "__FILE__", line: %d, " \
-				"server: %s:%d, invalid key_count: %d, " \
+				"server: %s:%u, invalid key_count: %d, " \
 				"expect key count: %d", \
 				__LINE__, pServer->ip_addr, pServer->port, \
 				buff2int(pInBuff), key_count);
@@ -1038,7 +1038,7 @@ int fdht_batch_get_ex1(GroupArray *pGroupArray, const bool bKeepAlive, \
 		if (in_bytes != p - pInBuff)
 		{
 			*success_count = 0;
-			logError("server %s:%d reponse bytes: %d != %d", \
+			logError("server %s:%u reponse bytes: %d != %d", \
 				pServer->ip_addr, pServer->port, \
 				in_bytes, (int)(p - pInBuff));
 			result = EINVAL;
@@ -1193,7 +1193,7 @@ int fdht_inc_ex(GroupArray *pGroupArray, const bool bKeepAlive, \
 		if ((result=tcpsenddata_nb(pServer->sock, buff, p - buff, \
 			g_fdht_network_timeout)) != 0)
 		{
-			logError("send data to server %s:%d fail, " \
+			logError("send data to server %s:%u fail, " \
 				"errno: %d, error info: %s", \
 				pServer->ip_addr, pServer->port, \
 				result, STRERROR(result));
@@ -1204,7 +1204,7 @@ int fdht_inc_ex(GroupArray *pGroupArray, const bool bKeepAlive, \
 		if ((result=fdht_recv_response(pServer, &in_buff, \
 			sizeof(buff), &in_bytes)) != 0)
 		{
-			logError("recv data from server %s:%d fail, " \
+			logError("recv data from server %s:%u fail, " \
 				"errno: %d, error info: %s", \
 				pServer->ip_addr, pServer->port, \
 				result, STRERROR(result));
@@ -1213,7 +1213,7 @@ int fdht_inc_ex(GroupArray *pGroupArray, const bool bKeepAlive, \
 
 		if (in_bytes < 4)
 		{
-			logError("server %s:%d reponse bytes: %d < 4!", \
+			logError("server %s:%u reponse bytes: %d < 4!", \
 				pServer->ip_addr, pServer->port, in_bytes);
 			result = EINVAL;
 			break;
@@ -1415,7 +1415,7 @@ int fdht_stat_ex(GroupArray *pGroupArray, const bool bKeepAlive, \
 		if ((result=tcpsenddata_nb(pServer->sock, &header, \
 			sizeof(header), g_fdht_network_timeout)) != 0)
 		{
-			logError("send data to server %s:%d fail, " \
+			logError("send data to server %s:%u fail, " \
 				"errno: %d, error info: %s", \
 				pServer->ip_addr, pServer->port, \
 				result, STRERROR(result));
@@ -1429,7 +1429,7 @@ int fdht_stat_ex(GroupArray *pGroupArray, const bool bKeepAlive, \
 
 		if (in_bytes >= size)
 		{
-			logError("server %s:%d reponse bytes: %d >= " \
+			logError("server %s:%u reponse bytes: %d >= " \
 				"buff size: %d", pServer->ip_addr, \
 				pServer->port, in_bytes, size);
 			result = ENOSPC;
@@ -1440,7 +1440,7 @@ int fdht_stat_ex(GroupArray *pGroupArray, const bool bKeepAlive, \
 			in_bytes, g_fdht_network_timeout)) != 0)
 		{
 			logError("file: "__FILE__", line: %d, " \
-				"server: %s:%d, recv data fail, " \
+				"server: %s:%u, recv data fail, " \
 				"errno: %d, error info: %s", \
 				__LINE__, pServer->ip_addr, \
 				pServer->port, \

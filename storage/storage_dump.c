@@ -115,7 +115,7 @@ static int fdfs_dump_global_vars(char *buff, const int buffSize)
 		"g_store_path_index=%d\n"
 		"g_current_trunk_file_id=%d\n"
 		"g_trunk_sync_thread_count=%d\n"
-		"g_trunk_server=%s:%d\n"
+		"g_trunk_server=%s:%u\n"
 		"g_trunk_total_free_space=%"PRId64"\n"
 		"g_use_connection_pool=%d\n"
 		"g_connection_pool_max_idle_time=%d\n"
@@ -286,7 +286,7 @@ static int fdfs_dump_tracker_servers(char *buff, const int buffSize)
 		pTrackerServer<pTrackerEnd; pTrackerServer++)
 	{
 		total_len += snprintf(buff + total_len, buffSize - total_len,
-			"\t%d. tracker server=%s:%d\n",
+			"\t%d. tracker server=%s:%u\n",
 			(int)(pTrackerServer - g_tracker_group.servers) + 1,
 			pTrackerServer->connections[0].ip_addr,
             pTrackerServer->connections[0].port);

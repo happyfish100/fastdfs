@@ -298,7 +298,7 @@ int tracker_list_servers(ConnectionInfo *pTrackerServer, \
 		SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-		        "send data to tracker server %s:%d fail, " \
+		        "send data to tracker server %s:%u fail, " \
 			"errno: %d, error info: %s", __LINE__, \
 			pTrackerServer->ip_addr, \
 			pTrackerServer->port, \
@@ -331,7 +331,7 @@ int tracker_list_servers(ConnectionInfo *pTrackerServer, \
 	if (in_bytes % sizeof(TrackerStorageStat) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%d response data " \
+			"tracker server %s:%u response data " \
 			"length: %"PRId64" is invalid", \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, in_bytes);
@@ -343,7 +343,7 @@ int tracker_list_servers(ConnectionInfo *pTrackerServer, \
 	if (*storage_count > max_storages)
 	{
 		logError("file: "__FILE__", line: %d, " \
-		 	"tracker server %s:%d insufficent space, " \
+		 	"tracker server %s:%u insufficent space, " \
 			"max storage count: %d, expect count: %d", \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, max_storages, *storage_count);
@@ -501,7 +501,7 @@ int tracker_list_one_group(ConnectionInfo *pTrackerServer, \
 			sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"send data to tracker server %s:%d fail, " \
+			"send data to tracker server %s:%u fail, " \
 			"errno: %d, error info: %s", __LINE__, \
 			pTrackerServer->ip_addr, \
 			pTrackerServer->port, \
@@ -533,7 +533,7 @@ int tracker_list_one_group(ConnectionInfo *pTrackerServer, \
 	if (in_bytes != sizeof(TrackerGroupStat))
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%d response data " \
+			"tracker server %s:%u response data " \
 			"length: %"PRId64" is invalid", \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, in_bytes);
@@ -581,7 +581,7 @@ int tracker_list_groups(ConnectionInfo *pTrackerServer, \
 			sizeof(header), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"send data to tracker server %s:%d fail, " \
+			"send data to tracker server %s:%u fail, " \
 			"errno: %d, error info: %s", __LINE__, \
 			pTrackerServer->ip_addr, \
 			pTrackerServer->port, \
@@ -614,7 +614,7 @@ int tracker_list_groups(ConnectionInfo *pTrackerServer, \
 	if (in_bytes % sizeof(TrackerGroupStat) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%d response data " \
+			"tracker server %s:%u response data " \
 			"length: %"PRId64" is invalid", \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, in_bytes);
@@ -626,7 +626,7 @@ int tracker_list_groups(ConnectionInfo *pTrackerServer, \
 	if (*group_count > max_groups)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%d insufficent space, " \
+			"tracker server %s:%u insufficent space, " \
 			"max group count: %d, expect count: %d", \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, max_groups, *group_count);
@@ -698,7 +698,7 @@ int tracker_do_query_storage(ConnectionInfo *pTrackerServer, \
 		filename_len, SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"send data to tracker server %s:%d fail, " \
+			"send data to tracker server %s:%u fail, " \
 			"errno: %d, error info: %s", __LINE__, \
 			pTrackerServer->ip_addr, \
 			pTrackerServer->port, \
@@ -730,7 +730,7 @@ int tracker_do_query_storage(ConnectionInfo *pTrackerServer, \
 	if (in_bytes != TRACKER_QUERY_STORAGE_FETCH_BODY_LEN)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%d response data " \
+			"tracker server %s:%u response data " \
 			"length: %"PRId64" is invalid, " \
 			"expect length: %d", __LINE__, \
 			pTrackerServer->ip_addr, \
@@ -782,7 +782,7 @@ int tracker_query_storage_list(ConnectionInfo *pTrackerServer, \
 		filename_len, SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"send data to tracker server %s:%d fail, " \
+			"send data to tracker server %s:%u fail, " \
 			"errno: %d, error info: %s", __LINE__, \
 			pTrackerServer->ip_addr, \
 			pTrackerServer->port, \
@@ -815,7 +815,7 @@ int tracker_query_storage_list(ConnectionInfo *pTrackerServer, \
 		(IP_ADDRESS_SIZE - 1) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%d response data " \
+			"tracker server %s:%u response data " \
 			"length: %"PRId64" is invalid", \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, in_bytes);
@@ -827,7 +827,7 @@ int tracker_query_storage_list(ConnectionInfo *pTrackerServer, \
 	if (nMaxServerCount < *server_count)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%d response storage server " \
+			"tracker server %s:%u response storage server " \
 			 "count: %d, exceeds max server count: %d!", __LINE__, \
 			pTrackerServer->ip_addr, pTrackerServer->port, \
 			*server_count, nMaxServerCount);
@@ -881,7 +881,7 @@ int tracker_query_storage_store_without_group(ConnectionInfo *pTrackerServer,
 			sizeof(header), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"send data to tracker server %s:%d fail, " \
+			"send data to tracker server %s:%u fail, " \
 			"errno: %d, error info: %s", __LINE__, \
 			pTrackerServer->ip_addr, \
 			pTrackerServer->port, \
@@ -913,7 +913,7 @@ int tracker_query_storage_store_without_group(ConnectionInfo *pTrackerServer,
 	if (in_bytes != TRACKER_QUERY_STORAGE_STORE_BODY_LEN)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%d response data " \
+			"tracker server %s:%u response data " \
 			"length: %"PRId64" is invalid, " \
 			"expect length: %d", __LINE__, \
 			pTrackerServer->ip_addr, pTrackerServer->port, \
@@ -964,7 +964,7 @@ int tracker_query_storage_store_with_group(ConnectionInfo *pTrackerServer, \
 			SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"send data to tracker server %s:%d fail, " \
+			"send data to tracker server %s:%u fail, " \
 			"errno: %d, error info: %s", __LINE__, \
 			pTrackerServer->ip_addr, \
 			pTrackerServer->port, \
@@ -996,7 +996,7 @@ int tracker_query_storage_store_with_group(ConnectionInfo *pTrackerServer, \
 	if (in_bytes != TRACKER_QUERY_STORAGE_STORE_BODY_LEN)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%d response data " \
+			"tracker server %s:%u response data " \
 			"length: %"PRId64" is invalid, " \
 			"expect length: %d", __LINE__, \
 			pTrackerServer->ip_addr, pTrackerServer->port, \
@@ -1059,7 +1059,7 @@ int tracker_query_storage_store_list_with_group( \
 		sizeof(TrackerHeader) + out_len, SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"send data to tracker server %s:%d fail, " \
+			"send data to tracker server %s:%u fail, " \
 			"errno: %d, error info: %s", __LINE__, \
 			pTrackerServer->ip_addr, \
 			pTrackerServer->port, \
@@ -1091,7 +1091,7 @@ int tracker_query_storage_store_list_with_group( \
 	if (in_bytes < TRACKER_QUERY_STORAGE_STORE_BODY_LEN)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%d response data " \
+			"tracker server %s:%u response data " \
 			"length: %"PRId64" is invalid, " \
 			"expect length >= %d", __LINE__, \
 			pTrackerServer->ip_addr, pTrackerServer->port, \
@@ -1105,7 +1105,7 @@ int tracker_query_storage_store_list_with_group( \
 	if (ipPortsLen % RECORD_LENGTH != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%d response data " \
+			"tracker server %s:%u response data " \
 			"length: %"PRId64" is invalid", \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, in_bytes);
@@ -1116,7 +1116,7 @@ int tracker_query_storage_store_list_with_group( \
 	if (nMaxServerCount < *storage_count)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%d response storage server " \
+			"tracker server %s:%u response storage server " \
 			 "count: %d, exceeds max server count: %d!", \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, *storage_count, nMaxServerCount);
@@ -1229,7 +1229,7 @@ int tracker_delete_storage(TrackerServerGroup *pTrackerGroup, \
 			storage_id_len, SF_G_NETWORK_TIMEOUT)) != 0)
 		{
 			logError("file: "__FILE__", line: %d, "
-				"send data to tracker server %s:%d fail, "
+				"send data to tracker server %s:%u fail, "
 				"errno: %d, error info: %s", __LINE__,
 				conn->ip_addr, conn->port,
 				result, STRERROR(result));
@@ -1309,7 +1309,7 @@ int tracker_delete_group(TrackerServerGroup *pTrackerGroup, \
             SF_G_NETWORK_TIMEOUT)) != 0)
 		{
 			logError("file: "__FILE__", line: %d, "
-				"send data to tracker server %s:%d fail, "
+				"send data to tracker server %s:%u fail, "
 				"errno: %d, error info: %s", __LINE__,
 				conn->ip_addr, conn->port,
 				result, STRERROR(result));
@@ -1385,7 +1385,7 @@ int tracker_set_trunk_server(TrackerServerGroup *pTrackerGroup, \
 			storage_id_len, SF_G_NETWORK_TIMEOUT)) != 0)
 		{
 			logError("file: "__FILE__", line: %d, "
-				"send data to tracker server %s:%d fail, "
+				"send data to tracker server %s:%u fail, "
 				"errno: %d, error info: %s", __LINE__,
 				conn->ip_addr, conn->port,
 				result, STRERROR(result));
@@ -1471,7 +1471,7 @@ int tracker_get_storage_status(ConnectionInfo *pTrackerServer,
 			p - out_buff, SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"send data to tracker server %s:%d fail, " \
+			"send data to tracker server %s:%u fail, " \
 			"errno: %d, error info: %s", __LINE__, \
 			pTrackerServer->ip_addr, \
 			pTrackerServer->port, \
@@ -1503,7 +1503,7 @@ int tracker_get_storage_status(ConnectionInfo *pTrackerServer,
 	if (in_bytes != sizeof(FDFSStorageBrief))
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%d response data " \
+			"tracker server %s:%u response data " \
 			"length: %"PRId64" is invalid", \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, in_bytes);
@@ -1559,7 +1559,7 @@ int tracker_get_storage_id(ConnectionInfo *pTrackerServer, \
 			p - out_buff, SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"send data to tracker server %s:%d fail, " \
+			"send data to tracker server %s:%u fail, " \
 			"errno: %d, error info: %s", __LINE__, \
 			pTrackerServer->ip_addr, \
 			pTrackerServer->port, \
@@ -1590,7 +1590,7 @@ int tracker_get_storage_id(ConnectionInfo *pTrackerServer, \
 	if (in_bytes == 0 || in_bytes >= FDFS_STORAGE_ID_MAX_SIZE)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%d response data " \
+			"tracker server %s:%u response data " \
 			"length: %"PRId64" is invalid", \
 			__LINE__, pTrackerServer->ip_addr, \
 			pTrackerServer->port, in_bytes);

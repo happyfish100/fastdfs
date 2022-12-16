@@ -255,7 +255,7 @@ int storage_get_metadata(ConnectionInfo *pTrackerServer, \
 			filename_len, SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"send data to storage server %s:%d fail, " \
+			"send data to storage server %s:%u fail, " \
 			"errno: %d, error info: %s", __LINE__, \
 			pStorageServer->ip_addr, pStorageServer->port, \
 			result, STRERROR(result));
@@ -355,7 +355,7 @@ int storage_query_file_info_ex(ConnectionInfo *pTrackerServer, \
 			filename_len, SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"send data to storage server %s:%d fail, " \
+			"send data to storage server %s:%u fail, " \
 			"errno: %d, error info: %s", __LINE__, \
 			pStorageServer->ip_addr, pStorageServer->port, \
 			result, STRERROR(result));
@@ -376,7 +376,7 @@ int storage_query_file_info_ex(ConnectionInfo *pTrackerServer, \
 	if (in_bytes != sizeof(in_buff))
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"recv data from storage server %s:%d fail, " \
+			"recv data from storage server %s:%u fail, " \
 			"recv bytes: %"PRId64" != %d", __LINE__, \
 			pStorageServer->ip_addr, pStorageServer->port, \
 			in_bytes, (int)sizeof(in_buff));
@@ -485,7 +485,7 @@ int storage_delete_file(ConnectionInfo *pTrackerServer, \
 		filename_len, SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"send data to storage server %s:%d fail, " \
+			"send data to storage server %s:%u fail, " \
 			"errno: %d, error info: %s", __LINE__, \
 			pStorageServer->ip_addr, pStorageServer->port, \
 			result, STRERROR(result));
@@ -581,7 +581,7 @@ int storage_do_download_file_ex(ConnectionInfo *pTrackerServer, \
 		out_bytes, SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"send data to storage server %s:%d fail, " \
+			"send data to storage server %s:%u fail, " \
 			"errno: %d, error info: %s", __LINE__, \
 			pStorageServer->ip_addr, pStorageServer->port, \
 			result, STRERROR(result));
@@ -653,7 +653,7 @@ int storage_do_download_file_ex(ConnectionInfo *pTrackerServer, \
 			{
 				logError("file: "__FILE__", line: %d, " \
 					"recv data from storage server " \
-					"%s:%d fail, " \
+					"%s:%u fail, " \
 					"errno: %d, error info: %s", __LINE__, \
 					pStorageServer->ip_addr, \
 					pStorageServer->port, \
@@ -870,7 +870,7 @@ int storage_do_upload_file(ConnectionInfo *pTrackerServer, \
 	*group_name = '\0';
 
 	/*
-	//logInfo("upload to storage %s:%d\n", \
+	//logInfo("upload to storage %s:%u\n", \
 		pStorageServer->ip_addr, pStorageServer->port);
 	*/
 
@@ -941,7 +941,7 @@ int storage_do_upload_file(ConnectionInfo *pTrackerServer, \
 		p - out_buff, SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"send data to storage server %s:%d fail, " \
+			"send data to storage server %s:%u fail, " \
 			"errno: %d, error info: %s", __LINE__, \
 			pStorageServer->ip_addr, pStorageServer->port, \
 			result, STRERROR(result));
@@ -964,7 +964,7 @@ int storage_do_upload_file(ConnectionInfo *pTrackerServer, \
 			SF_G_NETWORK_TIMEOUT)) != 0)
 		{
 			logError("file: "__FILE__", line: %d, " \
-				"send data to storage server %s:%d fail, " \
+				"send data to storage server %s:%u fail, " \
 				"errno: %d, error info: %s", __LINE__, \
 				pStorageServer->ip_addr, pStorageServer->port, \
 				result, STRERROR(result));
@@ -994,7 +994,7 @@ int storage_do_upload_file(ConnectionInfo *pTrackerServer, \
 	if (in_bytes <= FDFS_GROUP_NAME_MAX_LEN)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"storage server %s:%d response data " \
+			"storage server %s:%u response data " \
 			"length: %"PRId64" is invalid, " \
 			"should > %d", __LINE__, \
 			pStorageServer->ip_addr, pStorageServer->port, \
@@ -1222,7 +1222,7 @@ int storage_set_metadata(ConnectionInfo *pTrackerServer, \
 			p - out_buff, SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"send data to storage server %s:%d fail, " \
+			"send data to storage server %s:%u fail, " \
 			"errno: %d, error info: %s", __LINE__, \
 			pStorageServer->ip_addr, pStorageServer->port, \
 			result, STRERROR(result));
@@ -1234,7 +1234,7 @@ int storage_set_metadata(ConnectionInfo *pTrackerServer, \
 			meta_buff, meta_bytes, SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"send data to storage server %s:%d fail, " \
+			"send data to storage server %s:%u fail, " \
 			"errno: %d, error info: %s", __LINE__, \
 			pStorageServer->ip_addr, pStorageServer->port, \
 			result, STRERROR(result));
@@ -1436,7 +1436,7 @@ int storage_client_create_link(ConnectionInfo *pTrackerServer, \
 		p - out_buff, SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"send data to storage server %s:%d fail, " \
+			"send data to storage server %s:%u fail, " \
 			"errno: %d, error info: %s", __LINE__, \
 			pStorageServer->ip_addr, pStorageServer->port, \
 			result, STRERROR(result));
@@ -1456,7 +1456,7 @@ int storage_client_create_link(ConnectionInfo *pTrackerServer, \
 	if (in_bytes <= FDFS_GROUP_NAME_MAX_LEN)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"storage server %s:%d response data " \
+			"storage server %s:%u response data " \
 			"length: %"PRId64" is invalid, " \
 			"should > %d", __LINE__, \
 			pStorageServer->ip_addr, pStorageServer->port, \
@@ -1706,7 +1706,7 @@ int storage_do_append_file(ConnectionInfo *pTrackerServer, \
 	}
 
 	/*
-	//printf("upload to storage %s:%d\n", \
+	//printf("upload to storage %s:%u\n", \
 		pStorageServer->ip_addr, pStorageServer->port);
 	*/
 
@@ -1732,7 +1732,7 @@ int storage_do_append_file(ConnectionInfo *pTrackerServer, \
 		p - out_buff, SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"send data to storage server %s:%d fail, " \
+			"send data to storage server %s:%u fail, " \
 			"errno: %d, error info: %s", __LINE__, \
 			pStorageServer->ip_addr, pStorageServer->port, \
 			result, STRERROR(result));
@@ -1755,7 +1755,7 @@ int storage_do_append_file(ConnectionInfo *pTrackerServer, \
 			SF_G_NETWORK_TIMEOUT)) != 0)
 		{
 			logError("file: "__FILE__", line: %d, " \
-				"send data to storage server %s:%d fail, " \
+				"send data to storage server %s:%u fail, " \
 				"errno: %d, error info: %s", __LINE__, \
 				pStorageServer->ip_addr, pStorageServer->port, \
 				result, STRERROR(result));
@@ -1783,7 +1783,7 @@ int storage_do_append_file(ConnectionInfo *pTrackerServer, \
 	if (in_bytes != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"storage server %s:%d response data " \
+			"storage server %s:%u response data " \
 			"length: %"PRId64" is invalid, " \
 			"should == 0", __LINE__, pStorageServer->ip_addr, \
 			pStorageServer->port, in_bytes);
@@ -1834,7 +1834,7 @@ int storage_do_modify_file(ConnectionInfo *pTrackerServer, \
 	}
 
 	/*
-	//printf("upload to storage %s:%d\n", \
+	//printf("upload to storage %s:%u\n", \
 		pStorageServer->ip_addr, pStorageServer->port);
 	*/
 
@@ -1863,7 +1863,7 @@ int storage_do_modify_file(ConnectionInfo *pTrackerServer, \
 		p - out_buff, SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"send data to storage server %s:%d fail, " \
+			"send data to storage server %s:%u fail, " \
 			"errno: %d, error info: %s", __LINE__, \
 			pStorageServer->ip_addr, pStorageServer->port, \
 			result, STRERROR(result));
@@ -1886,7 +1886,7 @@ int storage_do_modify_file(ConnectionInfo *pTrackerServer, \
 			SF_G_NETWORK_TIMEOUT)) != 0)
 		{
 			logError("file: "__FILE__", line: %d, " \
-				"send data to storage server %s:%d fail, " \
+				"send data to storage server %s:%u fail, " \
 				"errno: %d, error info: %s", __LINE__, \
 				pStorageServer->ip_addr, pStorageServer->port, \
 				result, STRERROR(result));
@@ -1914,7 +1914,7 @@ int storage_do_modify_file(ConnectionInfo *pTrackerServer, \
 	if (in_bytes != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"storage server %s:%d response data " \
+			"storage server %s:%u response data " \
 			"length: %"PRId64" is invalid, " \
 			"should == 0", __LINE__, pStorageServer->ip_addr, \
 			pStorageServer->port, in_bytes);
@@ -2301,7 +2301,7 @@ int storage_truncate_file(ConnectionInfo *pTrackerServer, \
 	}
 
 	/*
-	//printf("upload to storage %s:%d\n", \
+	//printf("upload to storage %s:%u\n", \
 		pStorageServer->ip_addr, pStorageServer->port);
 	*/
 
@@ -2327,7 +2327,7 @@ int storage_truncate_file(ConnectionInfo *pTrackerServer, \
 		p - out_buff, SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"send data to storage server %s:%d fail, " \
+			"send data to storage server %s:%u fail, " \
 			"errno: %d, error info: %s", __LINE__, \
 			pStorageServer->ip_addr, pStorageServer->port, \
 			result, STRERROR(result));
@@ -2345,7 +2345,7 @@ int storage_truncate_file(ConnectionInfo *pTrackerServer, \
 	if (in_bytes != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"storage server %s:%d response data " \
+			"storage server %s:%u response data " \
 			"length: %"PRId64" is invalid, " \
 			"should == 0", __LINE__, pStorageServer->ip_addr, \
 			pStorageServer->port, in_bytes);
@@ -2403,7 +2403,7 @@ int storage_regenerate_appender_filename(ConnectionInfo *pTrackerServer,
 		p - out_buff, SF_G_NETWORK_TIMEOUT)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, "
-			"send data to storage server %s:%d fail, "
+			"send data to storage server %s:%u fail, "
 			"errno: %d, error info: %s", __LINE__,
 			pStorageServer->ip_addr, pStorageServer->port,
 			result, STRERROR(result));
@@ -2423,7 +2423,7 @@ int storage_regenerate_appender_filename(ConnectionInfo *pTrackerServer,
 	if (in_bytes <= FDFS_GROUP_NAME_MAX_LEN)
 	{
 		logError("file: "__FILE__", line: %d, "
-			"storage server %s:%d response data "
+			"storage server %s:%u response data "
 			"length: %"PRId64" is invalid, "
 			"should > %d", __LINE__,
 			pStorageServer->ip_addr, pStorageServer->port,

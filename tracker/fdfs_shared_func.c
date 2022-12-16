@@ -499,7 +499,7 @@ int fdfs_server_info_to_string_ex(const TrackerServerInfo *pServer,
     }
     if (pServer->count == 1)
     {
-        return snprintf(buff, buffSize, "%s:%d",
+        return snprintf(buff, buffSize, "%s:%u",
                 pServer->connections[0].ip_addr, port);
     }
 
