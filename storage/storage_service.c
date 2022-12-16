@@ -2885,8 +2885,8 @@ static int storage_do_set_metadata(struct fast_task_info *pTask)
      'M' for merge, insert when the meta item not exist, otherwise update it
 FDFS_GROUP_NAME_MAX_LEN bytes: group_name
 filename
-meta data bytes: each meta data seperated by \x01,
-		 name and value seperated by \x02
+meta data bytes: each meta data separated by \x01,
+		 name and value separated by \x02
 **/
 static int storage_server_set_metadata(struct fast_task_info *pTask)
 {
