@@ -1649,7 +1649,7 @@ int storage_service_init()
         return result;
     }
 
-    result = sf_service_init("fdfs_storaged", alloc_thread_extra_data_func,
+    result = sf_service_init("storage", alloc_thread_extra_data_func,
             NULL, sock_accept_done_callback, storage_set_body_length,
             sock_send_done_callback, storage_deal_task, task_finish_clean_up,
             NULL, 1000, sizeof(TrackerHeader), sizeof(StorageClientInfo));

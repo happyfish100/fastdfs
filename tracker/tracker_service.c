@@ -93,7 +93,7 @@ int tracker_service_init()
         return result;
     }
 
-    result = sf_service_init("fdfs_trackerd", NULL, NULL,
+    result = sf_service_init("tracker", NULL, NULL,
             sock_accept_done_callback, fdfs_set_body_length, NULL,
             tracker_deal_task, task_finish_clean_up, NULL, 1000,
             sizeof(TrackerHeader), sizeof(TrackerClientInfo));
