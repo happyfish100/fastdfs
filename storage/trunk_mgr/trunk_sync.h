@@ -42,7 +42,7 @@ typedef struct
 	FDFSTrunkFullInfo trunk;
 } TrunkBinLogRecord;
 
-extern int g_trunk_sync_thread_count;
+extern volatile int g_trunk_sync_thread_count;
 
 int trunk_sync_init();
 int trunk_sync_destroy();

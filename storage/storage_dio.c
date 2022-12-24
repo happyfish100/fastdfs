@@ -25,6 +25,7 @@
 #include "fastcommon/logger.h"
 #include "fastcommon/sockopt.h"
 #include "fastcommon/ioevent_loop.h"
+#include "fastcommon/fc_atomic.h"
 #include "sf/sf_service.h"
 #include "storage_global.h"
 #include "storage_service.h"
@@ -87,13 +88,13 @@ int storage_dio_init()
 	for (pThreadData=g_dio_thread_data; pThreadData<pDataEnd; pThreadData++)
 	{
 		pThreadData->count = threads_count_per_path;
-		pThreadData->contexts = g_dio_contexts + (pThreadData - \
+		pThreadData->contexts = g_dio_contexts + (pThreadData -
 				g_dio_thread_data) * threads_count_per_path;
 		pThreadData->reader = pThreadData->contexts;
 		pThreadData->writer = pThreadData->contexts+g_disk_reader_threads;
 
 		pContextEnd = pThreadData->contexts + pThreadData->count;
-		for (pContext=pThreadData->contexts; pContext<pContextEnd; \
+		for (pContext=pThreadData->contexts; pContext<pContextEnd;
 			pContext++)
 		{
 			if ((result=blocked_queue_init(&(pContext->queue))) != 0)
@@ -101,7 +102,25 @@ int storage_dio_init()
 				return result;
 			}
 
-			if ((result=pthread_create(&tid, &thread_attr, \
+            pContext->path_index = pThreadData - g_dio_thread_data;
+            pContext->thread_index = pContext - pThreadData->contexts;
+            if (g_disk_rw_separated)
+            {
+                if (pContext->thread_index < g_disk_reader_threads)
+                {
+                    pContext->rw = "r";
+                }
+                else
+                {
+                    pContext->rw = "w";
+                    pContext->thread_index -= g_disk_reader_threads;
+                }
+            }
+            else
+            {
+                pContext->rw = "rw";
+            }
+			if ((result=pthread_create(&tid, &thread_attr,
 					dio_thread_entrance, pContext)) != 0)
 			{
 				logError("file: "__FILE__", line: %d, " \
@@ -723,12 +742,22 @@ void dio_trunk_write_finish_clean_up(struct fast_task_info *pTask)
 	}
 }
 
-static void *dio_thread_entrance(void* arg) 
+static void *dio_thread_entrance(void* arg)
 {
 	struct storage_dio_context *pContext; 
 	struct fast_task_info *pTask;
 
 	pContext = (struct storage_dio_context *)arg; 
+
+#ifdef OS_LINUX
+    {
+        char thread_name[32];
+        snprintf(thread_name, sizeof(thread_name), "dio-p%02d-%s[%d]",
+                pContext->path_index, pContext->rw, pContext->thread_index);
+        prctl(PR_SET_NAME, thread_name);
+    }
+#endif
+
 	while (SF_G_CONTINUE_FLAG)
 	{
 		while ((pTask=blocked_queue_pop(&(pContext->queue))) != NULL)
@@ -740,9 +769,9 @@ static void *dio_thread_entrance(void* arg)
 
     __sync_sub_and_fetch(&g_dio_thread_count, 1);
 
-	logDebug("file: "__FILE__", line: %d, " \
-		"dio thread exited, thread count: %d", \
-		__LINE__, g_dio_thread_count);
+	logDebug("file: "__FILE__", line: %d, "
+		"dio thread exited, thread count: %d", __LINE__,
+        FC_ATOMIC_GET(g_dio_thread_count));
 
 	return NULL;
 }

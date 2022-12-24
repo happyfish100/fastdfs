@@ -224,6 +224,15 @@ static void *tracker_report_thread_entrance(void *arg)
     fdfs_server_sock_reset(pTrackerServer);
 	tracker_index = pTrackerServer - g_tracker_group.servers;
 
+#ifdef OS_LINUX
+    {
+        char thread_name[32];
+        snprintf(thread_name, sizeof(thread_name),
+                "tracker-cli[%d]", tracker_index);
+        prctl(PR_SET_NAME, thread_name);
+    }
+#endif
+
 	logDebug("file: "__FILE__", line: %d, "
 		"report thread to tracker server %s:%u started",
 		__LINE__, pTrackerServer->connections[0].ip_addr,

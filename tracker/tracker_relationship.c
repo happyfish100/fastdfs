@@ -561,6 +561,12 @@ static void *relationship_thread_entrance(void* arg)
 	int fail_count;
 	int sleep_seconds;
 
+#ifdef OS_LINUX
+    {
+        prctl(PR_SET_NAME, "relationship");
+    }
+#endif
+
 	fail_count = 0;
     sleep_seconds = 1;
 	while (SF_G_CONTINUE_FLAG)

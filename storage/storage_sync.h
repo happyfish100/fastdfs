@@ -74,7 +74,7 @@ typedef struct
 extern int g_binlog_fd;
 extern int g_binlog_index;
 
-extern int g_storage_sync_thread_count;
+extern volatile int g_storage_sync_thread_count;
 
 int storage_sync_init();
 int storage_sync_destroy();

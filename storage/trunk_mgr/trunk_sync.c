@@ -21,14 +21,15 @@
 #include <string.h>
 #include <errno.h>
 #include <time.h>
-#include "fdfs_define.h"
-#include "fastcommon/logger.h"
-#include "fdfs_global.h"
 #include "fastcommon/sockopt.h"
 #include "fastcommon/shared_func.h"
 #include "fastcommon/pthread_func.h"
 #include "fastcommon/sched_thread.h"
 #include "fastcommon/ini_file_reader.h"
+#include "fastcommon/fc_atomic.h"
+#include "fdfs_define.h"
+#include "fastcommon/logger.h"
+#include "fdfs_global.h"
 #include "tracker_types.h"
 #include "tracker_proto.h"
 #include "storage_global.h"
@@ -49,7 +50,7 @@
 
 static int trunk_binlog_fd = -1;
 
-int g_trunk_sync_thread_count = 0;
+volatile int g_trunk_sync_thread_count = 0;
 static pthread_mutex_t trunk_sync_thread_lock;
 static char *trunk_binlog_write_cache_buff = NULL;
 static int trunk_binlog_write_cache_len = 0;
@@ -59,6 +60,7 @@ typedef struct
 {
     bool running;
     bool reset_binlog_offset;
+    int thread_index;
     const FDFSStorageBrief *pStorage;
     pthread_t tid;
 } TrunkSyncThreadInfo;
@@ -288,7 +290,7 @@ int kill_trunk_sync_threads()
 			__LINE__, result, STRERROR(result));
 	}
 
-	while (g_trunk_sync_thread_count > 0)
+	while (FC_ATOMIC_GET(g_trunk_sync_thread_count) > 0)
 	{
 		usleep(50000);
 	}
@@ -1961,7 +1963,7 @@ static void trunk_sync_thread_exit(TrunkSyncThreadInfo *thread_data,
 	}
 	
     thread_data->running = false;
-	g_trunk_sync_thread_count--;
+	FC_ATOMIC_DEC(g_trunk_sync_thread_count);
 
 	if ((result=pthread_mutex_unlock(&trunk_sync_thread_lock)) != 0)
 	{
@@ -2060,7 +2062,17 @@ static void *trunk_sync_thread_entrance(void* arg)
 	int result;
 	time_t current_time;
 	time_t last_keep_alive_time;
-	
+
+    thread_data = (TrunkSyncThreadInfo *)arg;
+#ifdef OS_LINUX
+    {
+        char thread_name[32];
+        snprintf(thread_name, sizeof(thread_name),
+                "trunk-sync[%d]", thread_data->thread_index);
+        prctl(PR_SET_NAME, thread_name);
+    }
+#endif
+
 	memset(local_ip_addr, 0, sizeof(local_ip_addr));
 	memset(&reader, 0, sizeof(reader));
 	reader.binlog_fd = -1;
@@ -2068,9 +2080,7 @@ static void *trunk_sync_thread_entrance(void* arg)
 	current_time =  g_current_time;
 	last_keep_alive_time = 0;
 
-    thread_data = (TrunkSyncThreadInfo *)arg;
 	pStorage = thread_data->pStorage;
-
 	strcpy(storage_server.ip_addr, pStorage->ip_addr);
 	storage_server.port = SF_G_INNER_PORT;
 	storage_server.sock = -1;
@@ -2289,7 +2299,8 @@ TrunkSyncThreadInfo *trunk_sync_alloc_thread_data()
     int alloc_count;
     int bytes;
 
-    if (g_trunk_sync_thread_count + 1 < sync_thread_info_array.alloc_count)
+    if (FC_ATOMIC_GET(g_trunk_sync_thread_count) + 1 <
+            sync_thread_info_array.alloc_count)
     {
         info_end = sync_thread_info_array.thread_data +
             sync_thread_info_array.alloc_count;
@@ -2351,6 +2362,7 @@ TrunkSyncThreadInfo *trunk_sync_alloc_thread_data()
         }
 
         memset(*thread_info, 0, sizeof(TrunkSyncThreadInfo));
+        (*thread_info)->thread_index = thread_info - new_thread_data;
     }
 
     old_thread_data = sync_thread_info_array.thread_data;
@@ -2420,7 +2432,7 @@ int trunk_sync_thread_start(const FDFSStorageBrief *pStorage)
             break;
         }
 
-        g_trunk_sync_thread_count++;
+        FC_ATOMIC_INC(g_trunk_sync_thread_count);
     } while (0);
 
 	if ((lock_res=pthread_mutex_unlock(&trunk_sync_thread_lock)) != 0)
@@ -2440,7 +2452,7 @@ void trunk_waiting_sync_thread_exit()
     int saved_trunk_sync_thread_count;
     int count;
 
-    saved_trunk_sync_thread_count = g_trunk_sync_thread_count;
+    saved_trunk_sync_thread_count = FC_ATOMIC_GET(g_trunk_sync_thread_count);
     if (saved_trunk_sync_thread_count > 0)
     {
         logInfo("file: "__FILE__", line: %d, "
@@ -2449,17 +2461,17 @@ void trunk_waiting_sync_thread_exit()
     }
 
     count = 0;
-    while (g_trunk_sync_thread_count > 0 && count < 60)
+    while (FC_ATOMIC_GET(g_trunk_sync_thread_count) > 0 && count < 60)
     {
         usleep(50000);
         count++;
     }
 
-    if (g_trunk_sync_thread_count > 0)
+    if (FC_ATOMIC_GET(g_trunk_sync_thread_count) > 0)
     {
         logWarning("file: "__FILE__", line: %d, "
                 "kill %d trunk sync threads.",
-                __LINE__, g_trunk_sync_thread_count);
+                __LINE__, FC_ATOMIC_GET(g_trunk_sync_thread_count));
         kill_trunk_sync_threads();
     }
 

@@ -21,6 +21,9 @@
 
 struct storage_dio_context
 {
+    int path_index;
+    int thread_index;
+    const char *rw;
 	struct fast_blocked_queue queue;
 };
 

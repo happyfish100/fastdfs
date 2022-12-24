@@ -19,14 +19,15 @@
 #include <string.h>
 #include <errno.h>
 #include <time.h>
-#include "fdfs_define.h"
 #include "fastcommon/logger.h"
-#include "fdfs_global.h"
 #include "fastcommon/sockopt.h"
 #include "fastcommon/shared_func.h"
 #include "fastcommon/pthread_func.h"
 #include "fastcommon/sched_thread.h"
 #include "fastcommon/ini_file_reader.h"
+#include "fastcommon/fc_atomic.h"
+#include "fdfs_define.h"
+#include "fdfs_global.h"
 #include "tracker_types.h"
 #include "tracker_proto.h"
 #include "storage_global.h"
@@ -62,7 +63,7 @@ int g_binlog_index = 0;
 static int64_t binlog_file_size = 0;
 static int binlog_compress_index = 0;
 
-int g_storage_sync_thread_count = 0;
+volatile int g_storage_sync_thread_count = 0;
 static pthread_mutex_t sync_thread_lock;
 static char *binlog_write_cache_buff = NULL;
 static int binlog_write_cache_len = 0;
@@ -1551,7 +1552,8 @@ int kill_storage_sync_threads()
 			__LINE__, result, STRERROR(result));
 	}
 
-	kill_res = kill_work_threads(sync_tids, g_storage_sync_thread_count);
+	kill_res = kill_work_threads(sync_tids, FC_ATOMIC_GET(
+                g_storage_sync_thread_count));
 
 	if ((result=pthread_mutex_unlock(&sync_thread_lock)) != 0)
 	{
@@ -1561,7 +1563,7 @@ int kill_storage_sync_threads()
 			__LINE__, result, STRERROR(result));
 	}
 
-	while (g_storage_sync_thread_count > 0)
+	while (FC_ATOMIC_GET(g_storage_sync_thread_count) > 0)
 	{
 		usleep(50000);
 	}
@@ -2853,6 +2855,7 @@ static void storage_sync_thread_exit(ConnectionInfo *pStorage)
 {
 	int result;
 	int i;
+    int thread_count;
 	pthread_t tid;
 
 	if ((result=pthread_mutex_lock(&sync_thread_lock)) != 0)
@@ -2863,8 +2866,9 @@ static void storage_sync_thread_exit(ConnectionInfo *pStorage)
 			__LINE__, result, STRERROR(result));
 	}
 
+    thread_count = FC_ATOMIC_GET(g_storage_sync_thread_count);
 	tid = pthread_self();
-	for (i=0; i<g_storage_sync_thread_count; i++)
+	for (i=0; i<thread_count; i++)
 	{
 		if (pthread_equal(sync_tids[i], tid))
 		{
@@ -2872,13 +2876,13 @@ static void storage_sync_thread_exit(ConnectionInfo *pStorage)
 		}
 	}
 
-	while (i < g_storage_sync_thread_count - 1)
+	while (i < thread_count - 1)
 	{
 		sync_tids[i] = sync_tids[i + 1];
 		i++;
 	}
-	
-	g_storage_sync_thread_count--;
+
+	FC_ATOMIC_DEC(g_storage_sync_thread_count);
 
 	if ((result=pthread_mutex_unlock(&sync_thread_lock)) != 0)
 	{
@@ -2908,11 +2912,20 @@ static void* storage_sync_thread_entrance(void* arg)
 	time_t start_time;
 	time_t end_time;
 	time_t last_keep_alive_time;
-	
+
 	pStorage = (FDFSStorageBrief *)arg;
 	strcpy(storage_server.ip_addr, pStorage->ip_addr);
 	storage_server.port = SF_G_INNER_PORT;
 	storage_server.sock = -1;
+
+#ifdef OS_LINUX
+    {
+        char thread_name[32];
+        snprintf(thread_name, sizeof(thread_name), "data-sync[%d]",
+                FC_ATOMIC_GET(g_storage_sync_thread_count));
+        prctl(PR_SET_NAME, thread_name);
+    }
+#endif
 
 	memset(local_ip_addr, 0, sizeof(local_ip_addr));
     pReader = (StorageBinLogReader *)malloc(sizeof(StorageBinLogReader));
@@ -3253,6 +3266,7 @@ static void* storage_sync_thread_entrance(void* arg)
 int storage_sync_thread_start(const FDFSStorageBrief *pStorage)
 {
 	int result;
+    int thread_count;
 	pthread_attr_t pattr;
 	pthread_t tid;
 
@@ -3286,13 +3300,12 @@ int storage_sync_thread_start(const FDFSStorageBrief *pStorage)
 			pStorage->ip_addr, g_storage_sync_thread_count);
 	*/
 
-	if ((result=pthread_create(&tid, &pattr, storage_sync_thread_entrance, \
-		(void *)pStorage)) != 0)
+	if ((result=pthread_create(&tid, &pattr, storage_sync_thread_entrance,
+                    (void *)pStorage)) != 0)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"create thread failed, errno: %d, " \
-			"error info: %s", \
-			__LINE__, result, STRERROR(result));
+		logError("file: "__FILE__", line: %d, "
+			"create thread failed, errno: %d, error info: %s",
+            __LINE__, result, STRERROR(result));
 
 		pthread_attr_destroy(&pattr);
 		return result;
@@ -3306,21 +3319,19 @@ int storage_sync_thread_start(const FDFSStorageBrief *pStorage)
 			__LINE__, result, STRERROR(result));
 	}
 
-	g_storage_sync_thread_count++;
-	sync_tids = (pthread_t *)realloc(sync_tids, sizeof(pthread_t) * \
-					g_storage_sync_thread_count);
+    thread_count = FC_ATOMIC_INC(g_storage_sync_thread_count);
+	sync_tids = (pthread_t *)realloc(sync_tids,
+            sizeof(pthread_t) * thread_count);
 	if (sync_tids == NULL)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"malloc %d bytes fail, " \
-			"errno: %d, error info: %s", \
-			__LINE__, (int)sizeof(pthread_t) * \
-			g_storage_sync_thread_count, \
-			errno, STRERROR(errno));
+		logError("file: "__FILE__", line: %d, "
+			"malloc %d bytes fail, errno: %d, error info: %s",
+			__LINE__, (int)sizeof(pthread_t) * thread_count,
+            errno, STRERROR(errno));
 	}
 	else
 	{
-		sync_tids[g_storage_sync_thread_count - 1] = tid;
+		sync_tids[thread_count - 1] = tid;
 	}
 
 	if ((result=pthread_mutex_unlock(&sync_thread_lock)) != 0)
