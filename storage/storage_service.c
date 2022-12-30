@@ -1593,7 +1593,6 @@ static int sock_send_done_callback(struct fast_task_info *pTask,
 
     pClientInfo = (StorageClientInfo *)pTask->arg;
     pClientInfo->total_offset += length;
-
     if (pClientInfo->total_offset >= pClientInfo->total_length)
     {
         if (pClientInfo->total_length == sizeof(TrackerHeader)
@@ -1653,7 +1652,7 @@ int storage_service_init()
             NULL, sock_accept_done_callback, storage_set_body_length,
             sock_send_done_callback, storage_deal_task, task_finish_clean_up,
             NULL, 1000, sizeof(TrackerHeader), sizeof(StorageClientInfo));
-    sf_enable_thread_notify(true);
+    sf_enable_thread_notify(false);
     sf_set_remove_from_ready_list(false);
 
 	return result;
