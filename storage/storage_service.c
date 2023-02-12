@@ -1648,6 +1648,7 @@ int storage_service_init()
         return result;
     }
 
+    SF_G_EPOLL_EDGE_TRIGGER = true;
     result = sf_service_init("storage", alloc_thread_extra_data_func,
             NULL, sock_accept_done_callback, storage_set_body_length,
             sock_send_done_callback, storage_deal_task, task_finish_clean_up,

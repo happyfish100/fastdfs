@@ -21,6 +21,7 @@
 
 #include "fastcommon/logger.h"
 #include "fastcommon/fast_task_queue.h"
+#include "fastcommon/fc_atomic.h"
 #include "sf/sf_service.h"
 #include "fdfs_define.h"
 #include "storage_types.h"
@@ -47,13 +48,14 @@ static inline void storage_clear_task(struct fast_task_info *pTask)
     if (pClientInfo->clean_func != NULL)
     {
         pClientInfo->clean_func(pTask);
+        pClientInfo->clean_func = NULL;
     }
     memset(pTask->arg, 0, sizeof(StorageClientInfo));
 }
 
 static inline void storage_release_task(struct fast_task_info *pTask)
 {
-    if (__sync_sub_and_fetch(&pTask->reffer_count, 0) == 1)
+    if (FC_ATOMIC_GET(pTask->reffer_count) == 1)
     {
         storage_clear_task(pTask);
     }
