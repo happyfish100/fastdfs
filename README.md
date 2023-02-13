@@ -6,7 +6,7 @@ Please visit the FastDFS Home Page for more detail.
 Chinese language: http://www.fastken.com/
 
 
-FastDFS is an open source high performance distributed file system. It's major 
+FastDFS is an open source high performance distributed file system. Its major 
 functions include: file storing, file syncing and file accessing (file uploading
 and file downloading), and it can resolve the high capacity and load balancing 
 problem. FastDFS should meet the requirement of the website whose service based
