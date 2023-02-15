@@ -2314,12 +2314,12 @@ static int tracker_heart_beat(ConnectionInfo *pTrackerServer,
 		pStatBuff = (FDFSStorageStatBuff *)( \
 				out_buff + sizeof(TrackerHeader));
 
-		int2buff(free_queue_alloc_connections(), \
+		int2buff(free_queue_alloc_connections(),
 			pStatBuff->connection.sz_alloc_count);
-		int2buff(g_storage_stat.connection.current_count, \
+		int2buff(SF_G_CONN_CURRENT_COUNT,
 			pStatBuff->connection.sz_current_count);
-		int2buff(g_storage_stat.connection.max_count, \
-			pStatBuff->connection.sz_max_count);
+		int2buff(SF_G_CONN_MAX_COUNT, pStatBuff->
+                connection.sz_max_count);
 
 		long2buff(g_storage_stat.total_upload_count, \
 			pStatBuff->sz_total_upload_count);
