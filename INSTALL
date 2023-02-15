@@ -11,7 +11,7 @@ Chinese language: http://www.fastken.com/
 # command lines as:
 
    git clone https://github.com/happyfish100/libfastcommon.git
-   cd libfastcommon; git checkout V1.0.65
+   cd libfastcommon; git checkout V1.0.66
    ./make.sh clean && ./make.sh && ./make.sh install
 
 
@@ -21,7 +21,7 @@ Chinese language: http://www.fastken.com/
 # command lines as:
 
    git clone https://github.com/happyfish100/libserverframe.git
-   cd libserverframe; git checkout V1.1.24
+   cd libserverframe; git checkout V1.1.25
    ./make.sh clean && ./make.sh && ./make.sh install
 
 # step 3. download fastdfs source codes and install it, 
@@ -30,7 +30,7 @@ Chinese language: http://www.fastken.com/
 # command lines as:
 
    git clone https://github.com/happyfish100/fastdfs.git
-   cd fastdfs; git checkout V6.9.3
+   cd fastdfs; git checkout V6.9.4
    ./make.sh clean && ./make.sh && ./make.sh install
 
 

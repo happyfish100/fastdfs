@@ -1,4 +1,8 @@
 
+Version 6.9.4  2023-02-15
+ * use epoll edge trigger to resolve github issues #608
+ * bugfixed: report connections' current_count and max_count correctly
+
 Version 6.9.3  2022-12-24
  * use prctl to set pthread name under Linux
 
