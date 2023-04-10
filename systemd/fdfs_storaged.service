@@ -6,6 +6,7 @@ After=network-online.target
 Type=forking
 PIDFile=/opt/fastdfs/data/fdfs_storaged.pid
 ExecStart=/usr/bin/fdfs_storaged /etc/fdfs/storage.conf start
+ExecStartPost=/bin/sleep 0.1
 ExecStop=/usr/bin/fdfs_storaged /etc/fdfs/storage.conf stop
 
 # No artificial start/stop timeout
