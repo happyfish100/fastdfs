@@ -157,7 +157,7 @@ int main(int argc, char **argv)
 			}
 		}
 
-		if (files[file_index].upload_count >= files[file_index].count)
+		if (file_index >= FILE_TYPE_COUNT || files[file_index].upload_count >= files[file_index].count)
 		{
 			continue;
 		}
