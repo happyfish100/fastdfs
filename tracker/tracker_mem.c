@@ -655,18 +655,21 @@ static int tracker_load_groups_new(FDFSGroups *pGroups, const char *data_path,
 		if (nStorageSyncSize <= *nTrunkServerCount)
 		{
 			nStorageSyncSize += 8;
-			*ppTrunkServers = (FDFSStorageSync *)realloc( \
-				*ppTrunkServers, \
-				sizeof(FDFSStorageSync) * nStorageSyncSize);
-			if (*ppTrunkServers == NULL)
+            FDFSStorageSync *new_trunk_servers = (FDFSStorageSync *)
+                    realloc(*ppTrunkServers, \
+                    sizeof(FDFSStorageSync) * nStorageSyncSize);
+			if (new_trunk_servers == NULL)
 			{
 				result = errno != 0 ? errno : ENOMEM;
 				logError("file: "__FILE__", line: %d, " \
 					"realloc %d bytes fail", __LINE__, \
 					(int)sizeof(FDFSStorageSync) * \
 					nStorageSyncSize);
+                free(*ppTrunkServers);
+                *ppTrunkServers = NULL;
 				break;
 			}
+            *ppTrunkServers = new_trunk_servers;
 		}
 
 		strcpy((*ppTrunkServers)[*nTrunkServerCount].group_name, \
@@ -991,18 +994,21 @@ static int tracker_load_storages_old(FDFSGroups *pGroups, const char *data_path)
 		if (nStorageSyncSize <= nStorageSyncCount)
 		{
 			nStorageSyncSize += 8;
-			pStorageSyncs = (FDFSStorageSync *)realloc( \
-				pStorageSyncs, \
-				sizeof(FDFSStorageSync) * nStorageSyncSize);
-			if (pStorageSyncs == NULL)
+            FDFSStorageSync *pNewStorageSyncs = (FDFSStorageSync *)
+                    realloc(pStorageSyncs, \
+                    sizeof(FDFSStorageSync) * nStorageSyncSize);
+			if (pNewStorageSyncs == NULL)
 			{
 				result = errno != 0 ? errno : ENOMEM;
 				logError("file: "__FILE__", line: %d, " \
 					"realloc %d bytes fail", __LINE__, \
 					(int)sizeof(FDFSStorageSync) * \
 					nStorageSyncSize);
+                free(pStorageSyncs);
+                pStorageSyncs = NULL;
 				break;
 			}
+            pStorageSyncs = pNewStorageSyncs;
 		}
 
 		strcpy(pStorageSyncs[nStorageSyncCount].group_name, \
@@ -1274,18 +1280,21 @@ static int tracker_load_storages_new(FDFSGroups *pGroups, const char *data_path)
 			{
 				nStorageSyncSize *= 2;
 			}
-			pStorageSyncs = (FDFSStorageSync *)realloc( \
-				pStorageSyncs, \
-				sizeof(FDFSStorageSync) * nStorageSyncSize);
-			if (pStorageSyncs == NULL)
+            FDFSStorageSync *pNewStorageSyncs = (FDFSStorageSync *)
+                    realloc(pStorageSyncs, \
+                    sizeof(FDFSStorageSync) * nStorageSyncSize);
+			if (pNewStorageSyncs == NULL)
 			{
 				result = errno != 0 ? errno : ENOMEM;
 				logError("file: "__FILE__", line: %d, " \
 					"realloc %d bytes fail", __LINE__, \
 					(int)sizeof(FDFSStorageSync) * \
 					nStorageSyncSize);
+                free(pStorageSyncs);
+                pStorageSyncs = NULL;
 				break;
 			}
+            pStorageSyncs = pNewStorageSyncs;
 		}
 
 		strcpy(pStorageSyncs[nStorageSyncCount].group_name, \

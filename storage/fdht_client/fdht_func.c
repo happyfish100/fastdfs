@@ -226,9 +226,9 @@ int fdht_split_ids(const char *szIds, int **ppIds, int *id_count)
 		if (alloc_count < *id_count + (count + 1))
 		{
 			alloc_count += count + 1;
-			*ppIds = (int *)realloc(*ppIds, \
+            int *new_ids = (int *)realloc(*ppIds, \
 				sizeof(int) * alloc_count);
-			if (*ppIds == NULL)
+			if (new_ids == NULL)
 			{
 				result = errno != 0 ? errno : ENOMEM;
 				logError("file: "__FILE__", line: %d, "\
@@ -237,9 +237,11 @@ int fdht_split_ids(const char *szIds, int **ppIds, int *id_count)
 					__LINE__, \
 					(int)sizeof(int) * alloc_count,\
 					result, STRERROR(result));
-
+                free(*ppIds)
+                *ppIds = NULL;
 				break;
 			}
+            *ppIds = new_ids;
 		}
 
 		for (i=nStart; i<=nEnd; i++)
@@ -498,11 +500,11 @@ int fdht_load_groups_ex(IniContext *pIniContext, \
 					alloc_server_count = \
 						pGroupArray->server_count + \
 						pGroupArray->group_count + 8;
-					pGroupArray->servers = (FDHTServerInfo*)
+                    FDHTServerInfo* new_servers = (FDHTServerInfo*)
 						realloc(pGroupArray->servers, \
 						sizeof(FDHTServerInfo) * \
 						alloc_server_count);
-					if (pGroupArray->servers == NULL)
+					if (new_servers == NULL)
 					{
 						logError("file: "__FILE__", " \
 							"line: %d, malloc " \
@@ -513,8 +515,11 @@ int fdht_load_groups_ex(IniContext *pIniContext, \
 							(int)sizeof(FDHTServerInfo) \
 							 * alloc_server_count, \
 							errno, STRERROR(errno));
+                        free(pGroupArray->servers);
+                        pGroupArray->servers = NULL;
 						return errno!=0 ? errno:ENOMEM;
 					}
+                    pGroupArray->servers = new_servers;
 				}
 
 				fdht_insert_sorted_servers( \
@@ -574,10 +579,10 @@ int fdht_load_groups_ex(IniContext *pIniContext, \
 
 	if (alloc_server_count > pGroupArray->server_count)
 	{
-		pGroupArray->servers = (FDHTServerInfo*)realloc( \
+		FDHTServerInfo* new_servers= (FDHTServerInfo*)realloc( \
 				pGroupArray->servers, sizeof(FDHTServerInfo) \
 				* pGroupArray->server_count);
-		if (pGroupArray->servers == NULL)
+		if (new_servers == NULL)
 		{
 			logError("file: "__FILE__", line: %d, " \
 				"malloc %d bytes fail, " \
@@ -585,8 +590,11 @@ int fdht_load_groups_ex(IniContext *pIniContext, \
 				__LINE__, (int)sizeof(FDHTServerInfo) * \
 				pGroupArray->server_count, \
 				errno, STRERROR(errno));
+            free(pGroupArray->servers);
+            pGroupArray->servers = NULL;
 			return errno != 0 ? errno : ENOMEM;
 		}
+        pGroupArray->servers = new_servers;
 	}
 
 	memset(&pGroupArray->proxy_server, 0, sizeof(FDHTServerInfo));

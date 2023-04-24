@@ -3320,17 +3320,20 @@ int storage_sync_thread_start(const FDFSStorageBrief *pStorage)
 	}
 
     thread_count = FC_ATOMIC_INC(g_storage_sync_thread_count);
-	sync_tids = (pthread_t *)realloc(sync_tids,
+    pthread_t *new_sync_tids = (pthread_t *)realloc(sync_tids,
             sizeof(pthread_t) * thread_count);
-	if (sync_tids == NULL)
+	if (new_sync_tids == NULL)
 	{
 		logError("file: "__FILE__", line: %d, "
 			"malloc %d bytes fail, errno: %d, error info: %s",
 			__LINE__, (int)sizeof(pthread_t) * thread_count,
             errno, STRERROR(errno));
+        free(sync_tids);
+        sync_tids = NULL;
 	}
 	else
 	{
+        sync_tids = new_sync_tids;
 		sync_tids[thread_count - 1] = tid;
 	}
 
