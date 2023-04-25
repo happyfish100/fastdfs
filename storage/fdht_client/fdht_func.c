@@ -225,8 +225,10 @@ int fdht_split_ids(const char *szIds, int **ppIds, int *id_count)
 		}
 		if (alloc_count < *id_count + (count + 1))
 		{
+            int *new_ids;
+
 			alloc_count += count + 1;
-            int *new_ids = (int *)realloc(*ppIds, \
+            new_ids = (int *)realloc(*ppIds,
 				sizeof(int) * alloc_count);
 			if (new_ids == NULL)
 			{
@@ -237,7 +239,7 @@ int fdht_split_ids(const char *szIds, int **ppIds, int *id_count)
 					__LINE__, \
 					(int)sizeof(int) * alloc_count,\
 					result, STRERROR(result));
-                free(*ppIds)
+                free(*ppIds);
                 *ppIds = NULL;
 				break;
 			}
@@ -497,12 +499,14 @@ int fdht_load_groups_ex(IniContext *pIniContext, \
 				if (pGroupArray->server_count >= \
 						alloc_server_count)
 				{
-					alloc_server_count = \
-						pGroupArray->server_count + \
+                    FDHTServerInfo *new_servers;
+
+					alloc_server_count =
+						pGroupArray->server_count +
 						pGroupArray->group_count + 8;
-                    FDHTServerInfo* new_servers = (FDHTServerInfo*)
-						realloc(pGroupArray->servers, \
-						sizeof(FDHTServerInfo) * \
+                    new_servers = (FDHTServerInfo *)
+						realloc(pGroupArray->servers,
+						sizeof(FDHTServerInfo) *
 						alloc_server_count);
 					if (new_servers == NULL)
 					{
@@ -579,8 +583,8 @@ int fdht_load_groups_ex(IniContext *pIniContext, \
 
 	if (alloc_server_count > pGroupArray->server_count)
 	{
-		FDHTServerInfo* new_servers= (FDHTServerInfo*)realloc( \
-				pGroupArray->servers, sizeof(FDHTServerInfo) \
+		FDHTServerInfo *new_servers= (FDHTServerInfo*)realloc(
+				pGroupArray->servers, sizeof(FDHTServerInfo)
 				* pGroupArray->server_count);
 		if (new_servers == NULL)
 		{
