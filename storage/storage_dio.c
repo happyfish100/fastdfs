@@ -762,6 +762,11 @@ static void *dio_thread_entrance(void* arg)
 	{
 		while ((pTask=blocked_queue_pop(&(pContext->queue))) != NULL)
         {
+			if (FC_ATOMIC_GET(pTask->nio_stages.notify) != SF_NIO_STAGE_NONE) {
+				if ((blocked_queue_push(&(pContext->queue), pTask)) == 0) {
+					continue;
+				}
+			}
             ((StorageClientInfo *)pTask->arg)->deal_func(pTask);
             storage_release_task(pTask);
         }
