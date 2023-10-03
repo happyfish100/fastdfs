@@ -709,7 +709,7 @@ static int storage_report_my_server_id(ConnectionInfo *pStorageServer)
 	pHeader = (TrackerHeader *)out_buff;
 	memset(out_buff, 0, sizeof(out_buff));
 	
-	long2buff(IP_ADDRESS_SIZE, pHeader->pkg_len);
+	long2buff(FDFS_STORAGE_ID_MAX_SIZE, pHeader->pkg_len);
 	pHeader->cmd = STORAGE_PROTO_CMD_REPORT_SERVER_ID;
 	strcpy(out_buff + sizeof(TrackerHeader), g_my_server_id_str);
 	if ((result=tcpsenddata_nb(pStorageServer->sock, out_buff, \
