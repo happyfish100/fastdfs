@@ -1,10 +1,12 @@
 
+Version 6.10.0  2023-09-07
+ * use libfastcommon V1.70 and libserverframe 1.2.0
+
 Version 6.9.5  2023-06-05
  * fix possible out-of-bounds issues with array access
  * fix realloc mistakes to avoid memory leaks
  * add ExecStartPost=/bin/sleep 0.1 to systemd service files
  * fdht_client/fdht_func.c: fixed compile error
-
 
 Version 6.9.4  2023-02-15
  * use epoll edge trigger to resolve github issues #608

@@ -2314,7 +2314,7 @@ static int tracker_heart_beat(ConnectionInfo *pTrackerServer,
 		pStatBuff = (FDFSStorageStatBuff *)( \
 				out_buff + sizeof(TrackerHeader));
 
-		int2buff(free_queue_alloc_connections(),
+		int2buff(free_queue_alloc_connections(&g_sf_context.free_queue),
 			pStatBuff->connection.sz_alloc_count);
 		int2buff(SF_G_CONN_CURRENT_COUNT,
 			pStatBuff->connection.sz_current_count);

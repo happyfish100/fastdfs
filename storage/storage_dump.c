@@ -365,7 +365,7 @@ static int fdfs_dump_storage_stat(char *buff, const int buffSize)
 		"last_synced_timestamp=%s\n"
 		"last_heart_beat_time=%s\n",
 		g_stat_change_count, g_sync_change_count,
-        free_queue_alloc_connections(),
+        free_queue_alloc_connections(&g_sf_context.free_queue),
 		SF_G_CONN_CURRENT_COUNT,
 		SF_G_CONN_MAX_COUNT,
 		g_storage_stat.total_upload_count,

@@ -26,12 +26,13 @@
 
 int fdfs_set_body_length(struct fast_task_info *pTask)
 {
-    pTask->length = buff2long(((TrackerHeader *)pTask->data)->pkg_len);
-    if (pTask->length < 0)
+    pTask->recv.ptr->length = buff2long(((TrackerHeader *)
+                pTask->recv.ptr->data)->pkg_len);
+    if (pTask->recv.ptr->length < 0)
     {
         logError("file: "__FILE__", line: %d, "
-                "client ip: %s, pkg length: %d < 0",
-                __LINE__, pTask->client_ip, pTask->length);
+                "client ip: %s, pkg length: %d < 0", __LINE__,
+                pTask->client_ip, pTask->recv.ptr->length);
         return EINVAL;
     }
 

@@ -250,7 +250,7 @@ int dio_discard_file(struct fast_task_info *pTask)
 	StorageFileContext *pFileContext;
 
 	pFileContext = &(((StorageClientInfo *)pTask->arg)->file_context);
-	pFileContext->offset += pTask->length - pFileContext->buff_offset;
+	pFileContext->offset += pTask->recv.ptr->length - pFileContext->buff_offset;
 	if (pFileContext->offset >= pFileContext->end)
 	{
 		pFileContext->done_callback(pTask, 0);
@@ -331,16 +331,16 @@ int dio_read_file(struct fast_task_info *pTask)
 	}
 
 	remain_bytes = pFileContext->end - pFileContext->offset;
-	capacity_bytes = pTask->size - pTask->length;
+	capacity_bytes = pTask->send.ptr->size - pTask->send.ptr->length;
 	read_bytes = (capacity_bytes < remain_bytes) ? \
 				capacity_bytes : remain_bytes;
 
 	/*
 	logInfo("###before dio read bytes: %d, pTask->length=%d, file offset=%ld", \
-		read_bytes, pTask->length, pFileContext->offset);
+		read_bytes, pTask->send.ptr->length, pFileContext->offset);
 	*/
 
-	if (fc_safe_read(pFileContext->fd, pTask->data + pTask->length, \
+	if (fc_safe_read(pFileContext->fd, pTask->send.ptr->data + pTask->send.ptr->length, \
 		read_bytes) != read_bytes)
 	{
 		result = errno != 0 ? errno : EIO;
@@ -364,17 +364,17 @@ int dio_read_file(struct fast_task_info *pTask)
 
 	if (pFileContext->calc_crc32)
 	{
-		pFileContext->crc32 = CRC32_ex(pTask->data + pTask->length,
+		pFileContext->crc32 = CRC32_ex(pTask->send.ptr->data + pTask->send.ptr->length,
                 read_bytes, pFileContext->crc32);
 	}
 
-	pTask->length += read_bytes;
+	pTask->send.ptr->length += read_bytes;
 	pFileContext->offset += read_bytes;
 
     /*
 	logInfo("###after dio read bytes: %d, pTask->length=%d, "
             "file offset=%"PRId64", file size: %"PRId64, read_bytes,
-            pTask->length, pFileContext->offset, pFileContext->end);
+            pTask->send.ptr->length, pFileContext->offset, pFileContext->end);
             */
 
 	if (pFileContext->offset < pFileContext->end)
@@ -441,8 +441,8 @@ int dio_write_file(struct fast_task_info *pTask)
 		}
 	}
 
-	pDataBuff = pTask->data + pFileContext->buff_offset;
-	write_bytes = pTask->length - pFileContext->buff_offset;
+	pDataBuff = pTask->recv.ptr->data + pFileContext->buff_offset;
+	write_bytes = pTask->recv.ptr->length - pFileContext->buff_offset;
 	if (fc_safe_write(pFileContext->fd, pDataBuff, write_bytes) != write_bytes)
 	{
 		result = errno != 0 ? errno : EIO;
@@ -488,7 +488,7 @@ int dio_write_file(struct fast_task_info *pTask)
     /*
 	logInfo("###dio fd: %d, write bytes: %d, pTask->length=%d, "
             "buff_offset=%d", pFileContext->fd, write_bytes,
-            pTask->length, pFileContext->buff_offset);
+            pTask->recv.ptr->length, pFileContext->buff_offset);
             */
 
 	pFileContext->offset += write_bytes;

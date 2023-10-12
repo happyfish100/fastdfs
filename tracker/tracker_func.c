@@ -126,6 +126,7 @@ static int tracker_load_storage_id_info(const char *config_filename, \
 
 int tracker_load_from_conf_file(const char *filename)
 {
+    const int fixed_buffer_size = 0;
     const int task_buffer_extra_size = 0;
     const bool need_set_run_by = false;
 	char *pSlotMinSize;
@@ -171,11 +172,11 @@ int tracker_load_from_conf_file(const char *filename)
 
         sf_set_current_time();
 
-        SF_SET_CONTEXT_INI_CONFIG_EX(config, filename, &iniContext,
-                NULL, FDFS_TRACKER_SERVER_DEF_PORT,
+        SF_SET_CONTEXT_INI_CONFIG_EX(config, fc_comm_type_sock, filename,
+                &iniContext, NULL, FDFS_TRACKER_SERVER_DEF_PORT,
                 FDFS_TRACKER_SERVER_DEF_PORT, DEFAULT_WORK_THREADS,
                 "buff_size");
-        if ((result=sf_load_config_ex("trackerd", &config,
+        if ((result=sf_load_config_ex("trackerd", &config, fixed_buffer_size,
                         task_buffer_extra_size, need_set_run_by)) != 0)
         {
             return result;
