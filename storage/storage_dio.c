@@ -762,8 +762,11 @@ static void *dio_thread_entrance(void* arg)
 	{
 		while ((pTask=blocked_queue_pop(&(pContext->queue))) != NULL)
         {
-            ((StorageClientInfo *)pTask->arg)->deal_func(pTask);
-            storage_release_task(pTask);
+            if (!FC_ATOMIC_GET(pTask->canceled))
+            {
+                ((StorageClientInfo *)pTask->arg)->deal_func(pTask);
+            }
+            sf_release_task(pTask);
         }
 	}
 

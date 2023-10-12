@@ -1525,16 +1525,6 @@ static void storage_set_metadata_done_callback( \
 	sf_nio_notify(pTask, SF_NIO_STAGE_SEND);
 }
 
-void task_finish_clean_up(struct fast_task_info *pTask)
-{
-    if (__sync_sub_and_fetch(&pTask->reffer_count, 0) == 1)
-    {
-        storage_clear_task(pTask);
-    }
-    ++g_stat_change_count;
-    sf_task_finish_clean_up(pTask);
-}
-
 int storage_set_body_length(struct fast_task_info *pTask)
 {
     StorageClientInfo *pClientInfo;
@@ -1638,6 +1628,19 @@ static void *alloc_thread_extra_data_func(const int thread_index)
     }
 }
 
+static void storage_clear_task(struct fast_task_info *pTask)
+{
+    StorageClientInfo *pClientInfo;
+
+    pClientInfo = (StorageClientInfo *)pTask->arg;
+    if (pClientInfo->clean_func != NULL)
+    {
+        pClientInfo->clean_func(pTask);
+    }
+    memset(pTask->arg, 0, sizeof(StorageClientInfo));
+    ++g_stat_change_count;
+}
+
 int storage_service_init()
 {
 	int result;
@@ -1652,10 +1655,12 @@ int storage_service_init()
     SF_G_EPOLL_EDGE_TRIGGER = true;
     result = sf_service_init("storage", alloc_thread_extra_data_func,
             NULL, sock_accept_done_callback, storage_set_body_length,
-            sock_send_done_callback, storage_deal_task, task_finish_clean_up,
+            sock_send_done_callback, storage_deal_task, sf_task_finish_clean_up,
             NULL, 1000, sizeof(TrackerHeader), sizeof(StorageClientInfo));
     sf_enable_thread_notify(false);
     sf_set_remove_from_ready_list(false);
+    free_queue_set_release_callback(&g_sf_context.
+            free_queue, storage_clear_task);
 
 	return result;
 }
