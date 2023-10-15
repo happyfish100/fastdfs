@@ -1665,7 +1665,7 @@ void storage_service_destroy()
 
 int storage_get_storage_path_index(int *store_path_index)
 {
-	int i;
+	int i, t;
 
 	*store_path_index = g_store_path_index;
 	if (g_store_path_mode == FDFS_STORE_PATH_LOAD_BALANCE)
@@ -1687,7 +1687,12 @@ int storage_get_storage_path_index(int *store_path_index)
 			[*store_path_index].total_mb, g_fdfs_store_paths.paths \
 			[*store_path_index].free_mb, g_avg_storage_reserved_mb))
 		{
-			for (i=0; i<g_fdfs_store_paths.count; i++)
+			t = g_store_path_index + 1;
+			if (t >= g_fdfs_store_paths.count)
+			{
+				t = 0;
+			}
+			for (i=t; i<g_fdfs_store_paths.count; i++)
 			{
 				if (storage_check_reserved_space_path( \
 					g_fdfs_store_paths.paths[i].total_mb, \
