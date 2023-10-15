@@ -2683,8 +2683,13 @@ static int tracker_deal_service_query_storage( \
 		path_total_mbs[write_path_index], pStorageServer-> \
 		path_free_mbs[write_path_index], avg_reserved_mb))
 	{
-		int i;
-		for (i=0; i<pStoreGroup->store_path_count; i++)
+		int i, t;
+		t = write_path_index + 1;
+		if (t >= pStoreGroup->store_path_count)
+		{
+			t = 0;
+		}
+		for (i=t; i<pStoreGroup->store_path_count; i++)
 		{
 			if (tracker_check_reserved_space_path( \
 				pStorageServer->path_total_mbs[i], \
