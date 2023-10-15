@@ -2677,32 +2677,34 @@ static int tracker_deal_service_query_storage( \
 		write_path_index = 0;
 	}
 
-	avg_reserved_mb = g_storage_reserved_space.rs.mb / \
+	avg_reserved_mb = g_storage_reserved_space.rs.mb /
 			  pStoreGroup->store_path_count;
-	if (!tracker_check_reserved_space_path(pStorageServer-> \
-		path_total_mbs[write_path_index], pStorageServer-> \
+	if (!tracker_check_reserved_space_path(pStorageServer->
+		path_total_mbs[write_path_index], pStorageServer->
 		path_free_mbs[write_path_index], avg_reserved_mb))
 	{
-		int i, t;
-		t = write_path_index + 1;
-		if (t >= pStoreGroup->store_path_count)
-		{
-			t = 0;
-		}
-		for (i=t; i<pStoreGroup->store_path_count; i++)
-		{
-			if (tracker_check_reserved_space_path( \
-				pStorageServer->path_total_mbs[i], \
-				pStorageServer->path_free_mbs[i], \
-				avg_reserved_mb))
-			{
-				pStorageServer->current_write_path = i;
-				write_path_index = i;
-				break;
-			}
-		}
+		int i;
+        int start;
+        int end;
+        int index;
 
-		if (i == pStoreGroup->store_path_count)
+		start = (write_path_index + 1) % pStoreGroup->store_path_count;
+        end = start + pStoreGroup->store_path_count - 1;
+		for (i=start; i<end; i++)
+        {
+            index = i % pStoreGroup->store_path_count;
+            if (tracker_check_reserved_space_path(
+                        pStorageServer->path_total_mbs[index],
+                        pStorageServer->path_free_mbs[index],
+                        avg_reserved_mb))
+            {
+                pStorageServer->current_write_path = index;
+                write_path_index = index;
+                break;
+            }
+        }
+
+		if (i == end)
 		{
 			if (!g_if_use_trunk_file)
 			{
@@ -2710,43 +2712,27 @@ static int tracker_deal_service_query_storage( \
 				return ENOSPC;
 			}
 
-			for (i=write_path_index; i<pStoreGroup-> \
-				store_path_count; i++)
+            start = write_path_index % pStoreGroup->store_path_count;
+            end = start + pStoreGroup->store_path_count;
+            for (i=start; i<end; i++)
 			{
-				if (tracker_check_reserved_space_path( \
-				  pStorageServer->path_total_mbs[i], \
-				  pStorageServer->path_free_mbs[i] + \
-				  pStoreGroup->trunk_free_mb, \
-				  avg_reserved_mb))
-				{
-					pStorageServer->current_write_path = i;
-					write_path_index = i;
+                index = i % pStoreGroup->store_path_count;
+                if (tracker_check_reserved_space_path(
+                            pStorageServer->path_total_mbs[index],
+                            pStorageServer->path_free_mbs[index] +
+                            pStoreGroup->trunk_free_mb, avg_reserved_mb))
+                {
+					pStorageServer->current_write_path = index;
+					write_path_index = index;
 					break;
 				}
 			}
-			if ( i == pStoreGroup->store_path_count)
-			{
-				for (i=0; i<write_path_index; i++)
-				{
-				if (tracker_check_reserved_space_path( \
-				  pStorageServer->path_total_mbs[i], \
-				  pStorageServer->path_free_mbs[i] + \
-				  pStoreGroup->trunk_free_mb, \
-				  avg_reserved_mb))
-				{
-					pStorageServer->current_write_path = i;
-					write_path_index = i;
-					break;
-				}
-				}
-
-				if (i == write_path_index)
-				{
-					pTask->send.ptr->length = sizeof(TrackerHeader);
-					return ENOSPC;
-				}
-			}
-		}
+            if (i == end)
+            {
+                pTask->send.ptr->length = sizeof(TrackerHeader);
+                return ENOSPC;
+            }
+        }
 	}
 
 	if (g_groups.store_path == FDFS_STORE_PATH_ROUND_ROBIN)

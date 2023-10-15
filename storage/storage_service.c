@@ -1666,7 +1666,10 @@ void storage_service_destroy()
 
 int storage_get_storage_path_index(int *store_path_index)
 {
-	int i, t;
+	int i;
+    int start;
+    int end;
+    int index;
 
 	*store_path_index = g_store_path_index;
 	if (g_store_path_mode == FDFS_STORE_PATH_LOAD_BALANCE)
@@ -1688,27 +1691,25 @@ int storage_get_storage_path_index(int *store_path_index)
 			[*store_path_index].total_mb, g_fdfs_store_paths.paths \
 			[*store_path_index].free_mb, g_avg_storage_reserved_mb))
 		{
-			t = g_store_path_index + 1;
-			if (t >= g_fdfs_store_paths.count)
-			{
-				t = 0;
-			}
-			for (i=t; i<g_fdfs_store_paths.count; i++)
-			{
-				if (storage_check_reserved_space_path( \
-					g_fdfs_store_paths.paths[i].total_mb, \
-					g_fdfs_store_paths.paths[i].free_mb, \
-			 		g_avg_storage_reserved_mb))
-				{
-					*store_path_index = i;
-					g_store_path_index = i;
-					break;
-				}
-			}
+			start = (*store_path_index + 1) % g_fdfs_store_paths.count;
+            end = start + g_fdfs_store_paths.count - 1;
+			for (i=start; i<end; i++)
+            {
+                index = i % g_fdfs_store_paths.count;
+                if (storage_check_reserved_space_path(
+                            g_fdfs_store_paths.paths[index].total_mb,
+                            g_fdfs_store_paths.paths[index].free_mb,
+                            g_avg_storage_reserved_mb))
+                {
+                    *store_path_index = index;
+                    g_store_path_index = index;
+                    break;
+                }
+            }
 
-			if (i == g_fdfs_store_paths.count)
+			if (i == end)
 			{
-				return ENOSPC;
+                return ENOSPC;
 			}
 		}
 
