@@ -501,7 +501,7 @@ ConnectionInfo *tracker_connect_server_no_pool_ex(TrackerServerInfo *pServerInfo
 	}
 
 	*err_no = conn_pool_connect_server_ex(pServerInfo->connections
-            + pServerInfo->index, SF_G_CONNECT_TIMEOUT,
+            + pServerInfo->index, SF_G_CONNECT_TIMEOUT * 1000,
             bind_addr, log_connect_error);
     if (*err_no == 0)
     {
@@ -520,7 +520,7 @@ ConnectionInfo *tracker_connect_server_no_pool_ex(TrackerServerInfo *pServerInfo
         if (current_index != pServerInfo->index)
         {
             if ((*err_no=conn_pool_connect_server_ex(conn,
-                            SF_G_CONNECT_TIMEOUT, bind_addr,
+                            SF_G_CONNECT_TIMEOUT * 1000, bind_addr,
                             log_connect_error)) == 0)
             {
                 pServerInfo->index = current_index;
@@ -542,7 +542,7 @@ ConnectionInfo *tracker_make_connection_ex(ConnectionInfo *conn,
 	}
 	else
 	{
-		*err_no = conn_pool_connect_server(conn, connect_timeout);
+		*err_no = conn_pool_connect_server(conn, connect_timeout * 1000);
 		if (*err_no != 0)
 		{
 			return NULL;

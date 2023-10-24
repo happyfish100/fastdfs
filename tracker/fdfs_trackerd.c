@@ -434,7 +434,7 @@ static void sigAlarmHandler(int sig)
 	server.port = SF_G_INNER_PORT;
 	server.sock = -1;
 
-	if (conn_pool_connect_server(&server, SF_G_CONNECT_TIMEOUT) != 0)
+	if (conn_pool_connect_server(&server, SF_G_CONNECT_TIMEOUT * 1000) != 0)
 	{
 		return;
 	}

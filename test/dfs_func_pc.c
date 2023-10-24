@@ -27,8 +27,8 @@ static ConnectionInfo *getConnectedStorageServer(
 		{
 			if (pServer->sock < 0)
 			{
-				*err_no = conn_pool_connect_server(pServer, \
-					SF_G_CONNECT_TIMEOUT);
+				*err_no = conn_pool_connect_server(pServer,
+					SF_G_CONNECT_TIMEOUT * 1000);
 				if (*err_no != 0)
 				{
 					return NULL;
@@ -46,8 +46,8 @@ static ConnectionInfo *getConnectedStorageServer(
 	pServer = pEnd;
 	memcpy(pServer, pStorageServer, sizeof(ConnectionInfo));
 	pServer->sock = -1;
-	if ((*err_no=conn_pool_connect_server(pServer, \
-		SF_G_CONNECT_TIMEOUT)) != 0)
+	if ((*err_no=conn_pool_connect_server(pServer,
+		SF_G_CONNECT_TIMEOUT * 1000)) != 0)
 	{
 		return NULL;
 	}
