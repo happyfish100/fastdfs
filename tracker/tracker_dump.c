@@ -361,8 +361,8 @@ static int fdfs_dump_global_vars(char *buff, const int buffSize)
 		, fdfs_storage_reserved_space_to_string( \
 		    &g_storage_reserved_space, reserved_space_str) \
 		, g_allow_ip_count
-		, g_sf_global_vars.run_by_group
-		, g_sf_global_vars.run_by_user
+		, g_sf_global_vars.run_by.group
+		, g_sf_global_vars.run_by.user
 		, g_storage_ip_changed_auto_adjust
 		, SF_G_THREAD_STACK_SIZE
 		, g_if_use_trunk_file

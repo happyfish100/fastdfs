@@ -289,8 +289,8 @@ int main(int argc, char *argv[])
 	}
 #endif
 
-	if ((result=set_run_by(g_sf_global_vars.run_by_group,
-                    g_sf_global_vars.run_by_user)) != 0)
+	if ((result=set_run_by(g_sf_global_vars.run_by.group,
+                    g_sf_global_vars.run_by.user)) != 0)
 	{
 		logCrit("exit abnormally!\n");
 		log_destroy();
