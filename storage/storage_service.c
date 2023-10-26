@@ -1578,7 +1578,7 @@ static int sock_accept_done_callback(struct fast_task_info *task,
 }
 
 static int sock_send_done_callback(struct fast_task_info *pTask,
-        const int length)
+        const int length, int *next_stage)
 {
     StorageClientInfo *pClientInfo;
 
@@ -1599,10 +1599,13 @@ static int sock_send_done_callback(struct fast_task_info *pTask,
         /*  response done, try to recv again */
         pClientInfo->total_length = 0;
         pClientInfo->total_offset = 0;
+        *next_stage = SF_NIO_STAGE_RECV;
         return 0;
     }
     else  //continue to send file content
     {
+        *next_stage = SF_NIO_STAGE_SEND;
+
         /* continue read from file */
         return storage_dio_queue_push(pTask);
     }
