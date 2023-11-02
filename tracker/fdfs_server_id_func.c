@@ -319,6 +319,7 @@ int fdfs_load_storage_ids(char *content, const char *pStorageIdsFilename)
 	char *group_name;
 	char *pHost;
 	char *pPort;
+	char *pTmp;
 	FDFSStorageIdInfo *pStorageIdInfo;
     char error_info[256];
 	int alloc_bytes;
@@ -428,18 +429,33 @@ int fdfs_load_storage_ids(char *content, const char *pStorageIdsFilename)
 			{
 				pHost++;
 			}
+			
+			// 处理IPv6的前'['括号的问题
+            pTmp = strchr(pHost, '[');
+			if (pTmp != NULL)
+			{
+				pHost++;
+			}
 
-            pPort = strchr(pHost, ':');
-            if (pPort != NULL)
-            {
-                *pPort = '\0';
-                pStorageIdInfo->port = atoi(pPort + 1);
-            }
-            else
-            {
-                pStorageIdInfo->port = 0;
-            }
-
+			pPort = strchr(pHost, ']'); 
+			if(pPort != NULL){
+				*pPort = '\0';
+				pPort++;   // ]
+				pPort++;   // :
+				pStorageIdInfo->port = atoi(pPort + 1);
+			}else {
+	            pPort = strchr(pHost, ':');
+     	    	if (pPort != NULL)
+     	    	{
+     	           *pPort = '\0';
+     	           pStorageIdInfo->port = atoi(pPort + 1);
+     	    	}
+     	    	else
+      	    	{
+      	          pStorageIdInfo->port = 0;
+      	    	}
+			}
+			
             if ((result=fdfs_parse_multi_ips(pHost, &pStorageIdInfo->ip_addrs,
                             error_info, sizeof(error_info))) != 0)
             {

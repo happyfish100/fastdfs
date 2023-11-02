@@ -69,7 +69,7 @@ FDFSMultiIP g_last_storage_ip = {0, 0};	  //the last storage ip address
 
 LogContext g_access_log_context = {LOG_INFO, STDERR_FILENO, NULL};
 
-in_addr_t g_server_id_in_filename = 0;
+in_addr_64_t g_server_id_in_filename = 0;
 bool g_use_access_log = false;    //if log to access log
 bool g_rotate_access_log = false; //if rotate the access log every day
 bool g_compress_old_access_log = false; //if compress the old access log
@@ -82,7 +82,7 @@ byte g_file_signature_method = STORAGE_FILE_SIGNATURE_METHOD_HASH;
 char g_key_namespace[FDHT_MAX_NAMESPACE_LEN+1] = {0};
 int g_namespace_len = 0;
 int g_allow_ip_count = 0;
-in_addr_t *g_allow_ip_addrs = NULL;
+in_addr_64_t *g_allow_ip_addrs = NULL;
 StorageStatusPerTracker *g_my_report_status = NULL;  //returned by tracker server
 
 TimeInfo g_access_log_rotate_time = {0, 0}; //rotate access log time base

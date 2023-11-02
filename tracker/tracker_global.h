@@ -43,7 +43,7 @@ extern FDFSStorageReservedSpace g_storage_reserved_space;
 extern int g_check_active_interval; //check storage server alive every interval seconds
 
 extern int g_allow_ip_count;  /* -1 means match any ip address */
-extern in_addr_t *g_allow_ip_addrs;  /* sorted array, asc order */
+extern in_addr_64_t *g_allow_ip_addrs;  /* sorted array, asc order */
 extern struct base64_context g_base64_context;
 
 extern bool g_storage_ip_changed_auto_adjust;

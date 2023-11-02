@@ -221,21 +221,36 @@ static int storage_get_group_name_from_tracker()
 
 static int tracker_get_my_server_id()
 {
-	struct in_addr ip_addr;
+	struct in_addr ipv4_addr;
+	struct in6_addr ipv6_addr;
     char ip_str[256];
+	bool flag = false;
 
-	if (inet_pton(AF_INET, g_tracker_client_ip.ips[0].address, &ip_addr) == 1)
+	if (inet_pton(AF_INET, g_tracker_client_ip.ips[0].address, &ipv4_addr) == 1)
 	{
-		g_server_id_in_filename = ip_addr.s_addr;
+		g_server_id_in_filename = ipv4_addr.s_addr;
+		flag = true;
 	}
-	else
+	else if(inet_pton(AF_INET6, g_tracker_client_ip.ips[0].address, &ipv6_addr) == 1)
+	{
+		char buffer[INET6_ADDRSTRLEN];
+        const char *result = inet_ntop(AF_INET6, &ipv6_addr, buffer, INET6_ADDRSTRLEN);
+        
+        if (result != NULL) {
+			memcpy(&g_server_id_in_filename, &ipv6_addr, sizeof(in_addr_64_t));
+
+			flag = true;
+        }
+	}
+	
+	if(!flag)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"call inet_pton for ip: %s fail", \
 		__LINE__, g_tracker_client_ip.ips[0].address);
 		g_server_id_in_filename = INADDR_NONE;
 	}
-
+    
 	if (g_use_storage_id)
 	{
 		ConnectionInfo *pTrackerServer;
@@ -246,7 +261,7 @@ static int tracker_get_my_server_id()
 		{
 			return errno != 0 ? errno : ECONNREFUSED;
 		}
-
+		
 		result = tracker_get_storage_id(pTrackerServer,
 			g_group_name, g_tracker_client_ip.ips[0].address,
             g_my_server_id_str);
@@ -267,11 +282,17 @@ static int tracker_get_my_server_id()
 			g_tracker_client_ip.ips[0].address);
 	}
 
+	// 当IP地址为IPv6时，其storage_id值为IP地址的short code
+	if(is_ipv6_addr(g_tracker_client_ip.ips[0].address)){
+		snprintf(g_my_server_id_str, sizeof(g_my_server_id_str), "%s",
+			fdfs_ip_to_shortcode(g_tracker_client_ip.ips[0].address, FDFS_DEFAULT_STORAGE_ID_LEN));		
+	}
+
     fdfs_multi_ips_to_string(&g_tracker_client_ip,
             ip_str, sizeof(ip_str));
 	logInfo("file: "__FILE__", line: %d, "
 		"tracker_client_ip: %s, my_server_id_str: %s, "
-		"g_server_id_in_filename: %d", __LINE__,
+		"g_server_id_in_filename: %lu", __LINE__,
 		ip_str, g_my_server_id_str, g_server_id_in_filename);
 	return 0;
 }

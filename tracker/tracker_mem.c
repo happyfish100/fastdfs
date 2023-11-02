@@ -3182,6 +3182,10 @@ static FDFSStorageDetail *tracker_mem_get_active_http_server_by_ip( \
 	if (!g_use_storage_id)
 	{
 		strcpy(target_storage.id, ip_addr);
+		// 当IP地址为IPv6时，其storage_id值为IP地址的short code
+		if(is_ipv6_addr(ip_addr)){
+			strcpy(target_storage.id, fdfs_ip_to_shortcode(ip_addr, FDFS_DEFAULT_STORAGE_ID_LEN));
+		}
 	}
 	else
 	{
@@ -3255,6 +3259,10 @@ FDFSStorageDetail *tracker_mem_get_storage_by_ip(FDFSGroupInfo *pGroup, \
 	else
 	{
 		storage_id = ip_addr;
+		// 当IP地址为IPv6时，其storage_id值为IP地址的short code
+		if(is_ipv6_addr(ip_addr)){
+			storage_id = fdfs_ip_to_shortcode(ip_addr, FDFS_DEFAULT_STORAGE_ID_LEN);
+		}
 	}
 
 	return tracker_mem_get_storage(pGroup, storage_id);
@@ -3719,6 +3727,10 @@ static int _tracker_mem_add_storage(FDFSGroupInfo *pGroup,
 	else
 	{
 		storage_id = ip_addr;
+		// 当IP地址为IPv6时，其storage_id值为IP地址的short code
+		if(is_ipv6_addr(ip_addr)){
+			storage_id = fdfs_ip_to_shortcode(ip_addr, FDFS_DEFAULT_STORAGE_ID_LEN);
+		}		
 	}
 
 	if (bNeedLock && (result=pthread_mutex_lock(&mem_thread_lock)) != 0)
@@ -4496,6 +4508,11 @@ int tracker_mem_add_group_and_storage(TrackerClientInfo *pClientInfo, \
 	{
 		pStorageIdInfo = NULL;
 		storage_id = ip_addr;
+		// 当IP地址为IPv6时，其storage_id值为IP地址的short code
+		if(is_ipv6_addr(ip_addr)){
+			storage_id = fdfs_ip_to_shortcode(ip_addr, FDFS_DEFAULT_STORAGE_ID_LEN);
+		}
+
 	}
 
 	if (pClientInfo->pGroup->storage_port == 0)

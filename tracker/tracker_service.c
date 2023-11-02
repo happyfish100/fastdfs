@@ -66,12 +66,12 @@ static void task_finish_clean_up(struct fast_task_info *pTask)
 }
 
 static int sock_accept_done_callback(struct fast_task_info *task,
-        const in_addr_t client_addr, const bool bInnerPort)
+        const in_addr_64_t client_addr, const bool bInnerPort)
 {
     if (g_allow_ip_count >= 0)
     {
         if (bsearch(&client_addr, g_allow_ip_addrs,
-                    g_allow_ip_count, sizeof(in_addr_t),
+                    g_allow_ip_count, sizeof(in_addr_64_t),
                     cmp_by_ip_addr_t) == NULL)
         {
             logError("file: "__FILE__", line: %d, "
@@ -899,6 +899,10 @@ static int tracker_deal_get_storage_id(struct fast_task_info *pTask)
 	else
 	{
 		storage_id = ip_addr;
+		// 当IP地址为IPv6时，其storage_id值为IP地址的short code
+		if(is_ipv6_addr(ip_addr)){
+			storage_id = fdfs_ip_to_shortcode(ip_addr, FDFS_DEFAULT_STORAGE_ID_LEN);			
+		}
 	}
 
 	id_len = strlen(storage_id);
@@ -1108,8 +1112,13 @@ static int tracker_deal_fetch_storage_ids(struct fast_task_info *pTask)
 
         fdfs_multi_ips_to_string(&pIdInfo->ip_addrs,
                 ip_str, sizeof(ip_str));
-		p += sprintf(p, "%s %s %s%s\n", pIdInfo->id,
-			pIdInfo->group_name, ip_str, szPortPart);
+		if(strchr(ip_str,':')!=NULL){
+			p += sprintf(p, "%s %s [%s]%s\n", pIdInfo->id,
+				pIdInfo->group_name, ip_str, szPortPart);
+		}else{
+			p += sprintf(p, "%s %s %s%s\n", pIdInfo->id,
+				pIdInfo->group_name, ip_str, szPortPart);
+		}
 	}
 
 	int2buff((int)(pIdInfo - pIdsStart), (char *)pCurrentCount);
