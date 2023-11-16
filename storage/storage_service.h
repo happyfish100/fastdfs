@@ -40,28 +40,6 @@ int storage_get_storage_path_index(int *store_path_index);
 void storage_get_store_path(const char *filename, const int filename_len,
 		int *sub_path_high, int *sub_path_low);
 
-static inline void storage_clear_task(struct fast_task_info *pTask)
-{
-    StorageClientInfo *pClientInfo;
-
-    pClientInfo = (StorageClientInfo *)pTask->arg;
-    if (pClientInfo->clean_func != NULL)
-    {
-        pClientInfo->clean_func(pTask);
-        pClientInfo->clean_func = NULL;
-    }
-    memset(pTask->arg, 0, sizeof(StorageClientInfo));
-}
-
-static inline void storage_release_task(struct fast_task_info *pTask)
-{
-    if (FC_ATOMIC_GET(pTask->reffer_count) == 1)
-    {
-        storage_clear_task(pTask);
-    }
-    sf_release_task(pTask);
-}
-
 #ifdef __cplusplus
 }
 #endif

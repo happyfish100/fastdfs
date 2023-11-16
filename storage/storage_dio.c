@@ -332,7 +332,7 @@ int dio_read_file(struct fast_task_info *pTask)
 
 	remain_bytes = pFileContext->end - pFileContext->offset;
 	capacity_bytes = pTask->send.ptr->size - pTask->send.ptr->length;
-	read_bytes = (capacity_bytes < remain_bytes) ? \
+	read_bytes = (capacity_bytes < remain_bytes) ?
 				capacity_bytes : remain_bytes;
 
 	/*
@@ -340,8 +340,8 @@ int dio_read_file(struct fast_task_info *pTask)
 		read_bytes, pTask->send.ptr->length, pFileContext->offset);
 	*/
 
-	if (fc_safe_read(pFileContext->fd, pTask->send.ptr->data + pTask->send.ptr->length, \
-		read_bytes) != read_bytes)
+	if (fc_safe_read(pFileContext->fd, pTask->send.ptr->data +
+                pTask->send.ptr->length, read_bytes) != read_bytes)
 	{
 		result = errno != 0 ? errno : EIO;
 		logError("file: "__FILE__", line: %d, " \
@@ -364,8 +364,8 @@ int dio_read_file(struct fast_task_info *pTask)
 
 	if (pFileContext->calc_crc32)
 	{
-		pFileContext->crc32 = CRC32_ex(pTask->send.ptr->data + pTask->send.ptr->length,
-                read_bytes, pFileContext->crc32);
+		pFileContext->crc32 = CRC32_ex(pTask->send.ptr->data + pTask->
+                send.ptr->length, read_bytes, pFileContext->crc32);
 	}
 
 	pTask->send.ptr->length += read_bytes;
@@ -486,8 +486,8 @@ int dio_write_file(struct fast_task_info *pTask)
 	}
 
     /*
-	logInfo("###dio fd: %d, write bytes: %d, pTask->length=%d, "
-            "buff_offset=%d", pFileContext->fd, write_bytes,
+	logInfo("###dio fd: %d, write bytes: %d, task length: %d, "
+            "buff_offset: %d", pFileContext->fd, write_bytes,
             pTask->recv.ptr->length, pFileContext->buff_offset);
             */
 
@@ -762,8 +762,11 @@ static void *dio_thread_entrance(void* arg)
 	{
 		while ((pTask=blocked_queue_pop(&(pContext->queue))) != NULL)
         {
-            ((StorageClientInfo *)pTask->arg)->deal_func(pTask);
-            storage_release_task(pTask);
+            if (!FC_ATOMIC_GET(pTask->canceled))
+            {
+                ((StorageClientInfo *)pTask->arg)->deal_func(pTask);
+            }
+            sf_release_task(pTask);
         }
 	}
 

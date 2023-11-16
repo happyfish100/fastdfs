@@ -249,8 +249,8 @@ int main(int argc, char *argv[])
 		return result;
     }
 
-	if ((result=set_run_by(g_sf_global_vars.run_by_group,
-                    g_sf_global_vars.run_by_user)) != 0)
+	if ((result=set_run_by(g_sf_global_vars.run_by.group,
+                    g_sf_global_vars.run_by.user)) != 0)
 	{
 		logCrit("exit abnormally!\n");
 		log_destroy();
@@ -362,7 +362,7 @@ static void sigAlarmHandler(int sig)
 	server.port = SF_G_INNER_PORT;
 	server.sock = -1;
 
-	if (conn_pool_connect_server(&server, SF_G_CONNECT_TIMEOUT) != 0)
+	if (conn_pool_connect_server(&server, SF_G_CONNECT_TIMEOUT * 1000) != 0)
 	{
 		return;
 	}

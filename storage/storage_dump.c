@@ -150,8 +150,8 @@ static int fdfs_dump_global_vars(char *buff, const int buffSize)
 		, g_last_server_port 
 		, g_last_http_port
 		, g_allow_ip_count
-		, g_sf_global_vars.run_by_group
-		, g_sf_global_vars.run_by_user
+		, g_sf_global_vars.run_by.group
+		, g_sf_global_vars.run_by.user
 		, g_http_domain
 		, g_file_distribute_path_mode
 		, g_file_distribute_rotate_count

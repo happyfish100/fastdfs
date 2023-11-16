@@ -943,7 +943,7 @@ static void php_fdfs_connect_server_impl(INTERNAL_FUNCTION_PARAMETERS, \
 	server_info.sock = -1;
 
 	if ((pContext->err_no=conn_pool_connect_server(&server_info, \
-			SF_G_NETWORK_TIMEOUT)) == 0)
+			SF_G_NETWORK_TIMEOUT * 1000)) == 0)
 	{
 		array_init(return_value);
 		zend_add_assoc_stringl_ex(return_value, "ip_addr", \
