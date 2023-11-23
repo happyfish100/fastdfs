@@ -36,6 +36,8 @@
 #define FDFS_TRUNK_FILE_INFO_LEN  16
 #define FDFS_MAX_SERVER_ID        ((1 << 24) - 1)
 
+#define FDFS_DEFAULT_STORAGE_ID_LEN  6
+
 #define FDFS_ID_TYPE_SERVER_ID    1
 #define FDFS_ID_TYPE_IP_ADDRESS   2
 

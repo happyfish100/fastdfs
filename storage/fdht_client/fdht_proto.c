@@ -172,7 +172,15 @@ int fdht_connect_server_nb(FDHTServerInfo *pServer, const int connect_timeout)
 	{
 		close(pServer->sock);
 	}
-	pServer->sock = socket(AF_INET, SOCK_STREAM, 0);
+
+    // 通过判断IP地址是IPv4或者IPv6，根据结果进行初始化
+    if (is_ipv6_addr(pServer->ip_addr))     
+    {
+        pServer->sock = socket(AF_INET6, SOCK_STREAM, 0);
+    }else{
+        pServer->sock = socket(AF_INET, SOCK_STREAM, 0);
+    }
+
 	if(pServer->sock < 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
@@ -213,7 +221,15 @@ int fdht_connect_server(FDHTServerInfo *pServer)
 	{
 		close(pServer->sock);
 	}
-	pServer->sock = socket(AF_INET, SOCK_STREAM, 0);
+
+    // 通过判断IP地址是IPv4或者IPv6，根据结果进行初始化
+    if (is_ipv6_addr(pServer->ip_addr))     
+    {
+        pServer->sock = socket(AF_INET6, SOCK_STREAM, 0);
+    }else{
+        pServer->sock = socket(AF_INET, SOCK_STREAM, 0);
+    }
+
 	if(pServer->sock < 0)
 	{
 		logError("file: "__FILE__", line: %d, " \

@@ -10,10 +10,12 @@
 #include <string.h>
 #include <limits.h>
 #include <netdb.h>
+#include <ctype.h>
 #include "fastcommon/logger.h"
 #include "fastcommon/sockopt.h"
 #include "fastcommon/shared_func.h"
 #include "fastcommon/local_ip_func.h"
+#include "fastcommon/md5.h"
 #include "tracker_proto.h"
 #include "fdfs_global.h"
 #include "fdfs_shared_func.h"
@@ -434,27 +436,52 @@ void fdfs_set_log_rotate_size(LogContext *pContext, const int64_t log_rotate_siz
 	}
 }
 
+
+void deleteChar(char* str, int index) {
+    int len = strlen(str);
+    int i=0;
+    
+    if (index >= 0 && index < len) {
+        for (i = index; i < len - 1; i++) {
+            str[i] = str[i + 1];
+        }
+        str[len - 1] = '\0';
+    }
+}
+
 int fdfs_parse_server_info_ex(char *server_str, const int default_port,
         TrackerServerInfo *pServer, const bool resolve)
 {
 	char *pColon;
+    char *pTmp;
     char *hosts[FDFS_MULTI_IP_MAX_COUNT];
     ConnectionInfo *conn;
     int port;
     int i;
 
     memset(pServer, 0, sizeof(TrackerServerInfo));
-    if ((pColon=strrchr(server_str, ':')) == NULL)
-    {
-        logInfo("file: "__FILE__", line: %d, "
-                "no port part in %s, set port to %d",
-                __LINE__, server_str, default_port);
-        port = default_port;
+
+    if((pTmp=strchr(server_str,'[') )!=NULL){
+        deleteChar(server_str,0);
     }
-    else
-    {
-        *pColon = '\0';
-        port = atoi(pColon + 1);
+
+	if((pColon=strchr(server_str, ']') ) != NULL){
+		*pColon = '\0';
+		pColon++;   // ]
+		port = atoi(pColon + 1);  
+	}else {
+        if ((pColon=strrchr(server_str, ':')) == NULL)
+        {
+            logInfo("file: "__FILE__", line: %d, "
+                    "no port part in %s, set port to %d",
+                    __LINE__, server_str, default_port);
+            port = default_port;
+        }
+        else
+        {
+            *pColon = '\0';
+            port = atoi(pColon + 1);
+        }
     }
 
     conn = pServer->connections;
@@ -781,3 +808,40 @@ void fdfs_set_server_info_ex(TrackerServerInfo *pServer,
     }
 }
 
+char* fdfs_ip_to_shortcode(const char* ipAddr, int shortCodeLength){
+    char* shortCode = (char*) malloc(sizeof(char) * (shortCodeLength + 1));
+    memset(shortCode, 0, sizeof(char) * (shortCodeLength + 1));
+
+    char md5Hex[33];
+    memset(md5Hex, 0, sizeof(char) * 33);
+    int nLen = 0;
+    int i = 0;
+    int j = 0;
+    while (nLen < shortCodeLength) {
+	    MD5_CTX	context;
+
+	    my_md5_init(&context);
+	    my_md5_update(&context,  (unsigned char*)md5Hex, strlen(md5Hex));
+        my_md5_update(&context,  (unsigned char*)ipAddr, strlen(ipAddr));
+        unsigned char digest[16];
+	    my_md5_final(digest, &context);
+
+        for (i = 0; i < 16; i++) {
+            char hex[3];
+            sprintf(hex, "%02x", digest[i]);
+            for (j = 0; j < 2; j++) {
+                char c = hex[j];
+                if (c != '/' && c != '+') {
+                    shortCode[nLen++] = tolower(c);
+                    if (nLen == shortCodeLength) {
+                        break;
+                    }
+                }
+            }
+            if (nLen == shortCodeLength) {
+                break;
+            }
+        }
+    }
+    return shortCode;
+}

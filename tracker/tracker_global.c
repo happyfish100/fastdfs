@@ -17,7 +17,7 @@ FDFSStorageReservedSpace g_storage_reserved_space = { \
 		TRACKER_STORAGE_RESERVED_SPACE_FLAG_MB};
 
 int g_allow_ip_count = 0;
-in_addr_t *g_allow_ip_addrs = NULL;
+in_addr_64_t *g_allow_ip_addrs = NULL;
 
 struct base64_context g_base64_context;
 

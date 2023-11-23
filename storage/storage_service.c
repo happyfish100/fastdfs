@@ -1559,12 +1559,12 @@ int storage_set_body_length(struct fast_task_info *pTask)
 }
 
 static int sock_accept_done_callback(struct fast_task_info *task,
-        const in_addr_t client_addr, const bool bInnerPort)
+        const in_addr_64_t client_addr, const bool bInnerPort)
 {
     if (g_allow_ip_count >= 0)
     {
         if (bsearch(&client_addr, g_allow_ip_addrs,
-                    g_allow_ip_count, sizeof(in_addr_t),
+                    g_allow_ip_count, sizeof(in_addr_64_t),
                     cmp_by_ip_addr_t) == NULL)
         {
             logError("file: "__FILE__", line: %d, "

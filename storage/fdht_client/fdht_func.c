@@ -22,6 +22,7 @@
 #include <time.h>
 #include "fastcommon/logger.h"
 #include "fastcommon/sockopt.h"
+#include "fastcommon/local_ip_func.h"
 #include "fastcommon/shared_func.h"
 #include "fastcommon/ini_file_reader.h"
 #include "fdht_func.h"
@@ -448,7 +449,7 @@ int fdht_load_groups_ex(IniContext *pIniContext, \
 		pItemEnd = pItemInfo + pServerArray->count;
 		for (; pItemInfo<pItemEnd; pItemInfo++)
 		{
-			if (splitEx(pItemInfo->value, ':', ip_port, 2) != 2)
+			if (parseAddress(pItemInfo->value, ip_port) !=2 )
 			{
 				logError("file: "__FILE__", line: %d, " \
 					"\"%s\" 's value \"%s\" is invalid, "\
@@ -468,12 +469,13 @@ int fdht_load_groups_ex(IniContext *pIniContext, \
 				return EINVAL;
 			}
 
-			if (strcmp(pServerInfo->ip_addr, "127.0.0.1") == 0)
+			if (strcmp(pServerInfo->ip_addr, LOCAL_LOOPBACK_IPv4) == 0 ||
+				strcmp(pServerInfo->ip_addr, LOCAL_LOOPBACK_IPv6) ==0 )
 			{
 				logError("file: "__FILE__", line: %d, " \
 					"group%d: invalid hostname \"%s\", " \
-					"ip address can not be 127.0.0.1!", \
-					__LINE__, group_id, pItemInfo->value);
+					"ip address can not be %s!", \
+					__LINE__, group_id, pItemInfo->value, pServerInfo->ip_addr);
 				return EINVAL;
 			}
 
