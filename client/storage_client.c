@@ -31,8 +31,7 @@
 #include "client_global.h"
 #include "fastcommon/base64.h"
 
-static struct base64_context the_base64_context;
-static int the_base64_context_inited = 0;
+static int g_base64_context_inited = 0;
 
 #define FDFS_SPLIT_GROUP_NAME_AND_FILENAME(file_id) \
 	char in_file_id[FDFS_GROUP_NAME_MAX_LEN + 128]; \
@@ -383,17 +382,17 @@ int storage_query_file_info_ex(ConnectionInfo *pTrackerServer, \
 		result = EINVAL;
 	}
 
-	if (!the_base64_context_inited)
+	if (!g_base64_context_inited)
 	{
-		the_base64_context_inited = 1;
-		base64_init_ex(&the_base64_context, 0, '-', '_', '.');
+		g_base64_context_inited = 1;
+		base64_init_ex(&g_fdfs_base64_context, 0, '-', '_', '.');
 	}
 
 	memset(buff, 0, sizeof(buff));
 	if (filename_len >= FDFS_LOGIC_FILE_PATH_LEN \
 		+ FDFS_FILENAME_BASE64_LENGTH + FDFS_FILE_EXT_NAME_MAX_LEN + 1)
 	{
-		base64_decode_auto(&the_base64_context, (char *)filename + \
+		base64_decode_auto(&g_fdfs_base64_context, (char *)filename + \
 			FDFS_LOGIC_FILE_PATH_LEN, FDFS_FILENAME_BASE64_LENGTH, \
 			buff, &buff_len);
 	}
@@ -2139,10 +2138,10 @@ int fdfs_get_file_info_ex(const char *group_name, const char *remote_filename, \
 	char buff[64];
 
 	memset(pFileInfo, 0, sizeof(FDFSFileInfo));
-	if (!the_base64_context_inited)
+	if (!g_base64_context_inited)
 	{
-		the_base64_context_inited = 1;
-		base64_init_ex(&the_base64_context, 0, '-', '_', '.');
+		g_base64_context_inited = 1;
+		base64_init_ex(&g_fdfs_base64_context, 0, '-', '_', '.');
 	}
 
 	filename_len = strlen(remote_filename);
@@ -2156,7 +2155,7 @@ int fdfs_get_file_info_ex(const char *group_name, const char *remote_filename, \
 	}
 
 	memset(buff, 0, sizeof(buff));
-	base64_decode_auto(&the_base64_context, (char *)remote_filename + \
+	base64_decode_auto(&g_fdfs_base64_context, (char *)remote_filename + \
 		FDFS_LOGIC_FILE_PATH_LEN, FDFS_FILENAME_BASE64_LENGTH, \
 		buff, &buff_len);
 

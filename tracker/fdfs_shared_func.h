@@ -167,7 +167,7 @@ void fdfs_set_server_info(TrackerServerInfo *pServer,
 void fdfs_set_server_info_ex(TrackerServerInfo *pServer,
         const FDFSMultiIP *ip_addrs, const int port);
 
-char* fdfs_ip_to_shortcode(const char* ipAddr, int shortCodeLength);
+char *fdfs_ip_to_shortcode(const char *ipAddr, char *shortCode);
 
 #ifdef __cplusplus
 }

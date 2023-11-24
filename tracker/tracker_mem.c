@@ -3180,13 +3180,17 @@ static FDFSStorageDetail *tracker_mem_get_active_http_server_by_ip( \
 
 	memset(&target_storage, 0, sizeof(target_storage));
 	if (!g_use_storage_id)
-	{
-		strcpy(target_storage.id, ip_addr);
-		// 当IP地址为IPv6时，其storage_id值为IP地址的short code
-		if(is_ipv6_addr(ip_addr)){
-			strcpy(target_storage.id, fdfs_ip_to_shortcode(ip_addr, FDFS_DEFAULT_STORAGE_ID_LEN));
-		}
-	}
+    {
+        // 当IP地址为IPv6时，其storage_id值为IP地址的short code
+        if (is_ipv6_addr(ip_addr))
+        {
+            fdfs_ip_to_shortcode(ip_addr, target_storage.id);
+        }
+        else
+        {
+            strcpy(target_storage.id, ip_addr);
+        }
+    }
 	else
 	{
 		FDFSStorageIdInfo *pStorageId;
@@ -3243,7 +3247,7 @@ static FDFSStorageDetail *tracker_mem_get_active_http_server_by_id( \
 FDFSStorageDetail *tracker_mem_get_storage_by_ip(FDFSGroupInfo *pGroup, \
 				const char *ip_addr)
 {
-	const char *storage_id;
+	FDFSStorageId storage_id;
 
 	if (g_use_storage_id)
 	{
@@ -3254,18 +3258,23 @@ FDFSStorageDetail *tracker_mem_get_storage_by_ip(FDFSGroupInfo *pGroup, \
 		{
 			return NULL;
 		}
-		storage_id = pStorageIdInfo->id;
+		storage_id.ptr = pStorageIdInfo->id;
 	}
 	else
-	{
-		storage_id = ip_addr;
-		// 当IP地址为IPv6时，其storage_id值为IP地址的short code
-		if(is_ipv6_addr(ip_addr)){
-			storage_id = fdfs_ip_to_shortcode(ip_addr, FDFS_DEFAULT_STORAGE_ID_LEN);
-		}
-	}
+    {
+        // 当IP地址为IPv6时，其storage_id值为IP地址的short code
+        if (is_ipv6_addr(ip_addr))
+        {
+            storage_id.ptr = fdfs_ip_to_shortcode(ip_addr,
+                    storage_id.holder);
+        }
+        else
+        {
+            storage_id.ptr = (char *)ip_addr;
+        }
+    }
 
-	return tracker_mem_get_storage(pGroup, storage_id);
+	return tracker_mem_get_storage(pGroup, storage_id.ptr);
 }
 
 FDFSStorageDetail *tracker_mem_get_storage(FDFSGroupInfo *pGroup, \
@@ -3658,7 +3667,7 @@ static int _tracker_mem_add_storage(FDFSGroupInfo *pGroup,
 	const bool bNeedLock, bool *bInserted)
 {
 	int result;
-	const char *storage_id;
+	FDFSStorageId storage_id;
     FDFSStorageIdInfo *pStorageIdInfo;
     FDFSMultiIP multi_ip;
 
@@ -3706,7 +3715,7 @@ static int _tracker_mem_add_storage(FDFSGroupInfo *pGroup,
              multi_ip = pStorageIdInfo->ip_addrs;
 		}
 
-		storage_id = id;
+		storage_id.ptr = (char *)id;
 	}
 	else if (g_use_storage_id)
 	{
@@ -3722,15 +3731,19 @@ static int _tracker_mem_add_storage(FDFSGroupInfo *pGroup,
 		}
 
         multi_ip = pStorageIdInfo->ip_addrs;
-		storage_id = pStorageIdInfo->id;
+		storage_id.ptr = pStorageIdInfo->id;
 	}
 	else
 	{
-		storage_id = ip_addr;
 		// 当IP地址为IPv6时，其storage_id值为IP地址的short code
-		if(is_ipv6_addr(ip_addr)){
-			storage_id = fdfs_ip_to_shortcode(ip_addr, FDFS_DEFAULT_STORAGE_ID_LEN);
-		}		
+		if (is_ipv6_addr(ip_addr))
+        {
+            storage_id.ptr = fdfs_ip_to_shortcode(ip_addr, storage_id.holder);
+        }
+        else
+        {
+            storage_id.ptr = (char *)ip_addr;
+        }
 	}
 
 	if (bNeedLock && (result=pthread_mutex_lock(&mem_thread_lock)) != 0)
@@ -3746,13 +3759,13 @@ static int _tracker_mem_add_storage(FDFSGroupInfo *pGroup,
 	{
 		result = 0;
 		*bInserted = false;
-		*ppStorageServer = tracker_mem_get_storage(pGroup, storage_id);
+		*ppStorageServer = tracker_mem_get_storage(pGroup, storage_id.ptr);
 		if (*ppStorageServer != NULL)
 		{
 			if (g_use_storage_id)
-			{
+            {
                 fdfs_set_multi_ip_index(&(*ppStorageServer)->ip_addrs, ip_addr);
-			}
+            }
 
 			if ((*ppStorageServer)->status==FDFS_STORAGE_STATUS_DELETED \
 			 || (*ppStorageServer)->status==FDFS_STORAGE_STATUS_IP_CHANGED)
@@ -3775,7 +3788,7 @@ static int _tracker_mem_add_storage(FDFSGroupInfo *pGroup,
 
 		*ppStorageServer = *(pGroup->all_servers + pGroup->count);
 		snprintf((*ppStorageServer)->id, FDFS_STORAGE_ID_MAX_SIZE,
-				"%s", storage_id);
+				"%s", storage_id.ptr);
         (*ppStorageServer)->ip_addrs = multi_ip;
         if (g_use_storage_id)
         {
@@ -4406,7 +4419,7 @@ int tracker_mem_add_group_and_storage(TrackerClientInfo *pClientInfo, \
 	FDFSStorageDetail **ppServer;
 	FDFSStorageDetail **ppEnd;
 	FDFSStorageIdInfo *pStorageIdInfo;
-	const char *storage_id;
+	FDFSStorageId storage_id;
 
 	tracker_mem_file_lock();
 
@@ -4502,17 +4515,20 @@ int tracker_mem_add_group_and_storage(TrackerClientInfo *pClientInfo, \
 				pClientInfo->pGroup->group_name, ip_addr);
 			return ENOENT;
 		}
-		storage_id = pStorageIdInfo->id;
+		storage_id.ptr = pStorageIdInfo->id;
 	}
 	else
 	{
 		pStorageIdInfo = NULL;
-		storage_id = ip_addr;
 		// 当IP地址为IPv6时，其storage_id值为IP地址的short code
-		if(is_ipv6_addr(ip_addr)){
-			storage_id = fdfs_ip_to_shortcode(ip_addr, FDFS_DEFAULT_STORAGE_ID_LEN);
+		if (is_ipv6_addr(ip_addr))
+        {
+            storage_id.ptr = fdfs_ip_to_shortcode(ip_addr, storage_id.holder);
 		}
-
+        else
+        {
+            storage_id.ptr = (char *)ip_addr;
+        }
 	}
 
 	if (pClientInfo->pGroup->storage_port == 0)
@@ -4533,7 +4549,7 @@ int tracker_mem_add_group_and_storage(TrackerClientInfo *pClientInfo, \
 			for (ppServer=pClientInfo->pGroup->all_servers; \
 				ppServer<ppEnd; ppServer++)
 			{
-				if (strcmp((*ppServer)->id, storage_id) == 0)
+				if (strcmp((*ppServer)->id, storage_id.ptr) == 0)
 				{
 					(*ppServer)->storage_port = \
 						pJoinBody->storage_port;
@@ -4591,7 +4607,7 @@ int tracker_mem_add_group_and_storage(TrackerClientInfo *pClientInfo, \
 			for (ppServer=pClientInfo->pGroup->all_servers; \
 				ppServer<ppEnd; ppServer++)
 			{
-				if (strcmp((*ppServer)->id, storage_id) == 0)
+				if (strcmp((*ppServer)->id, storage_id.ptr) == 0)
 				{
 					(*ppServer)->storage_http_port = \
 						pJoinBody->storage_http_port;
@@ -4641,7 +4657,8 @@ int tracker_mem_add_group_and_storage(TrackerClientInfo *pClientInfo, \
 			__LINE__, result, STRERROR(result));
 		return result;
 	}
-	pStorageServer = tracker_mem_get_storage(pClientInfo->pGroup, storage_id);
+	pStorageServer = tracker_mem_get_storage(pClientInfo->pGroup,
+            storage_id.ptr);
 	if (pthread_mutex_unlock(&mem_thread_lock) != 0)
 	{
 		logError("file: "__FILE__", line: %d, "   \
@@ -4670,8 +4687,8 @@ int tracker_mem_add_group_and_storage(TrackerClientInfo *pClientInfo, \
 		}
 	}
 
-	if ((result=tracker_mem_add_storage(pClientInfo, storage_id, ip_addr,
-			bNeedSleep, true, &bStorageInserted)) != 0)
+	if ((result=tracker_mem_add_storage(pClientInfo, storage_id.ptr,
+                    ip_addr, bNeedSleep, true, &bStorageInserted)) != 0)
 	{
 		return result;
 	}
@@ -5666,7 +5683,7 @@ int tracker_mem_get_storage_by_filename(const byte cmd,FDFS_DOWNLOAD_TYPE_PARAM\
 		char name_buff[64];
 		int decoded_len;
 
-		base64_decode_auto(&g_base64_context, (char *)filename + \
+		base64_decode_auto(&g_fdfs_base64_context, (char *)filename + \
 			FDFS_LOGIC_FILE_PATH_LEN, FDFS_FILENAME_BASE64_LENGTH, \
 			name_buff, &decoded_len);
 		storage_ip = ntohl(buff2int(name_buff));

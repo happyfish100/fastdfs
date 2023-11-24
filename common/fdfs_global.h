@@ -12,9 +12,10 @@
 #define _FDFS_GLOBAL_H
 
 #include "fastcommon/common_define.h"
+#include "fastcommon/base64.h"
+#include "fastcommon/connection_pool.h"
 #include "sf/sf_global.h"
 #include "fdfs_define.h"
-#include "fastcommon/connection_pool.h"
 
 #define FDFS_FILE_EXT_NAME_MAX_LEN	6
 
@@ -26,6 +27,7 @@ extern Version g_fdfs_version;
 extern bool g_use_connection_pool;
 extern ConnectionPool g_connection_pool;
 extern int g_connection_pool_max_idle_time;
+extern struct base64_context g_fdfs_base64_context;
 
 int fdfs_check_data_filename(const char *filename, const int len);
 int fdfs_gen_slave_filename(const char *master_filename, \

@@ -319,7 +319,7 @@ int fdfs_load_storage_ids(char *content, const char *pStorageIdsFilename)
 	char *group_name;
 	char *pHost;
 	char *pPort;
-	char *pTmp;
+    char *pSquare;
 	FDFSStorageIdInfo *pStorageIdInfo;
     char error_info[256];
 	int alloc_bytes;
@@ -430,32 +430,45 @@ int fdfs_load_storage_ids(char *content, const char *pStorageIdsFilename)
 				pHost++;
 			}
 			
-			// 处理IPv6的前'['括号的问题
-            pTmp = strchr(pHost, '[');
-			if (pTmp != NULL)
-			{
-				pHost++;
-			}
+			if (*pHost == '[') //IPv6 address
+            {
+                pHost++;  //skip [
+                pSquare = strchr(pHost, ']');
+                if (pSquare == NULL)
+                {
+                    result = EINVAL;
+                    logError("file: "__FILE__", line: %d, "
+                            "config file: %s, line no: %d, invalid IPv6 "
+                            "address: %s", __LINE__, pStorageIdsFilename,
+                            i + 1, pHost - 1);
+                    break;
+                }
 
-			pPort = strchr(pHost, ']'); 
-			if(pPort != NULL){
-				*pPort = '\0';
-				pPort++;   // ]
-				pPort++;   // :
-				pStorageIdInfo->port = atoi(pPort + 1);
-			}else {
-	            pPort = strchr(pHost, ':');
-     	    	if (pPort != NULL)
-     	    	{
-     	           *pPort = '\0';
-     	           pStorageIdInfo->port = atoi(pPort + 1);
-     	    	}
-     	    	else
-      	    	{
-      	          pStorageIdInfo->port = 0;
-      	    	}
-			}
-			
+                *pSquare = '\0';
+                pPort = pSquare + 1;
+                if (*pPort == ':')
+                {
+                    pStorageIdInfo->port = atoi(pPort + 1);
+                }
+                else
+                {
+                    pStorageIdInfo->port = 0;
+                }
+            }
+            else
+            {
+                pPort = strchr(pHost, ':');
+                if (pPort != NULL)
+                {
+                    *pPort = '\0';
+                    pStorageIdInfo->port = atoi(pPort + 1);
+                }
+                else
+                {
+                    pStorageIdInfo->port = 0;
+                }
+            }
+
             if ((result=fdfs_parse_multi_ips(pHost, &pStorageIdInfo->ip_addrs,
                             error_info, sizeof(error_info))) != 0)
             {

@@ -845,7 +845,7 @@ static int tracker_deal_get_storage_id(struct fast_task_info *pTask)
 	char group_name[FDFS_GROUP_NAME_MAX_LEN + 1];
 	char ip_addr[IP_ADDRESS_SIZE];
 	FDFSStorageIdInfo *pFDFSStorageIdInfo;
-	char *storage_id;
+    FDFSStorageId storage_id;
 	int nPkgLen;
 	int id_len;
 
@@ -897,21 +897,23 @@ static int tracker_deal_get_storage_id(struct fast_task_info *pTask)
 			return ENOENT;
 		}
 
-		storage_id = pFDFSStorageIdInfo->id;
+		storage_id.ptr = pFDFSStorageIdInfo->id;
 	}
 	else
-	{
-		storage_id = ip_addr;
-		// 当IP地址为IPv6时，其storage_id值为IP地址的short code
-		if(is_ipv6_addr(ip_addr)){
-			storage_id = fdfs_ip_to_shortcode(ip_addr, FDFS_DEFAULT_STORAGE_ID_LEN);			
-		}
-	}
+    {
+        // 当IP地址为IPv6时，其storage_id值为IP地址的short code
+        if (is_ipv6_addr(ip_addr)) {
+            storage_id.ptr = fdfs_ip_to_shortcode(ip_addr,
+                    storage_id.holder);
+        } else {
+            storage_id.ptr = ip_addr;
+        }
+    }
 
-	id_len = strlen(storage_id);
+	id_len = strlen(storage_id.ptr);
 	pTask->send.ptr->length = sizeof(TrackerHeader) + id_len; 
-	memcpy(pTask->send.ptr->data + sizeof(TrackerHeader), storage_id, id_len);
-
+	memcpy(pTask->send.ptr->data + sizeof(TrackerHeader),
+            storage_id.ptr, id_len);
 	return 0;
 }
 
@@ -1115,13 +1117,16 @@ static int tracker_deal_fetch_storage_ids(struct fast_task_info *pTask)
 
         fdfs_multi_ips_to_string(&pIdInfo->ip_addrs,
                 ip_str, sizeof(ip_str));
-		if(strchr(ip_str,':')!=NULL){
-			p += sprintf(p, "%s %s [%s]%s\n", pIdInfo->id,
-				pIdInfo->group_name, ip_str, szPortPart);
-		}else{
-			p += sprintf(p, "%s %s %s%s\n", pIdInfo->id,
-				pIdInfo->group_name, ip_str, szPortPart);
-		}
+		if (strchr(ip_str, ':') != NULL)
+        {
+            p += sprintf(p, "%s %s [%s]%s\n", pIdInfo->id,
+                    pIdInfo->group_name, ip_str, szPortPart);
+        }
+        else
+        {
+            p += sprintf(p, "%s %s %s%s\n", pIdInfo->id,
+                    pIdInfo->group_name, ip_str, szPortPart);
+        }
 	}
 
 	int2buff((int)(pIdInfo - pIdsStart), (char *)pCurrentCount);

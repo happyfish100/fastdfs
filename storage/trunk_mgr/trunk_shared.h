@@ -67,7 +67,6 @@ extern "C" {
 #endif
 
 extern FDFSStorePaths g_fdfs_store_paths;  //file store paths
-extern struct base64_context g_fdfs_base64_context;   //base64 context
 extern BufferInfo g_zero_buffer;   //zero buffer for reset
 
 typedef int (*stat_func)(const char *filename, struct stat *buf);

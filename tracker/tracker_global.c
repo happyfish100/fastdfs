@@ -19,8 +19,6 @@ FDFSStorageReservedSpace g_storage_reserved_space = { \
 int g_allow_ip_count = 0;
 in_addr_64_t *g_allow_ip_addrs = NULL;
 
-struct base64_context g_base64_context;
-
 bool g_storage_ip_changed_auto_adjust = true;
 bool g_use_storage_id = false;  //if use storage ID instead of IP address
 byte g_id_type_in_filename = FDFS_ID_TYPE_IP_ADDRESS; //id type of the storage server in the filename

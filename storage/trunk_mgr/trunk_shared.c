@@ -25,7 +25,6 @@
 #include "tracker_proto.h"
 
 FDFSStorePaths g_fdfs_store_paths = {0, NULL};
-struct base64_context g_fdfs_base64_context;
 BufferInfo g_zero_buffer = {NULL, 0, 0};
 
 int trunk_shared_init()

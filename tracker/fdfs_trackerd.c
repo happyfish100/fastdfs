@@ -220,7 +220,7 @@ int main(int argc, char *argv[])
 		return result;
 	}
 
-	base64_init_ex(&g_base64_context, 0, '-', '_', '.');
+	base64_init_ex(&g_fdfs_base64_context, 0, '-', '_', '.');
 	if ((result=set_rand_seed()) != 0)
 	{
 		logCrit("file: "__FILE__", line: %d, " \
