@@ -351,14 +351,30 @@ static void sigAlarmHandler(int sig)
 	logDebug("file: "__FILE__", line: %d, " \
 		"signal server to quit...", __LINE__);
 
-	if (*SF_G_INNER_BIND_ADDR != '\0')
-	{
-		strcpy(server.ip_addr, SF_G_INNER_BIND_ADDR);
-	}
-	else
-	{
-		strcpy(server.ip_addr, "127.0.0.1");
-	}
+    if (SF_G_IPV4_ENABLED)
+    {
+        server.af = AF_INET;
+        if (*SF_G_INNER_BIND_ADDR4 != '\0')
+        {
+            strcpy(server.ip_addr, SF_G_INNER_BIND_ADDR4);
+        }
+        else
+        {
+            strcpy(server.ip_addr, LOCAL_LOOPBACK_IPv4);
+        }
+    }
+    else
+    {
+        server.af = AF_INET6;
+        if (*SF_G_INNER_BIND_ADDR6 != '\0')
+        {
+            strcpy(server.ip_addr, SF_G_INNER_BIND_ADDR6);
+        }
+        else
+        {
+            strcpy(server.ip_addr, LOCAL_LOOPBACK_IPv6);
+        }
+    }
 	server.port = SF_G_INNER_PORT;
 	server.sock = -1;
 

@@ -39,6 +39,7 @@ void storage_sync_connect_storage_server_ex(const FDFSStorageBrief *pStorage,
     int i;
     FDFSMultiIP ip_addrs;
     FDFSMultiIP *multi_ip;
+    const char *bind_addr;
 
     multi_ip = NULL;
     if (g_use_storage_id)
@@ -83,9 +84,17 @@ void storage_sync_connect_storage_server_ex(const FDFSStorageBrief *pStorage,
         for (i=0; i<ip_addrs.count; i++)
         {
             strcpy(conn->ip_addr, ip_addrs.ips[i].address);
+            if (g_client_bind_addr)
+            {
+                bind_addr = is_ipv6_addr(conn->ip_addr) ?
+                    SF_G_INNER_BIND_ADDR6 : SF_G_INNER_BIND_ADDR4;
+            }
+            else
+            {
+                bind_addr = NULL;
+            }
             conn->sock = socketCreateExAuto(conn->ip_addr,
-                    O_NONBLOCK, g_client_bind_addr ?
-                    SF_G_INNER_BIND_ADDR : NULL, &result);
+                    O_NONBLOCK, bind_addr, &result);
             if (conn->sock < 0)
             {
                 logCrit("file: "__FILE__", line: %d, "

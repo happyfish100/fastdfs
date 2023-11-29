@@ -488,7 +488,8 @@ ConnectionInfo *tracker_connect_server_ex(TrackerServerInfo *pServerInfo,
 }
 
 ConnectionInfo *tracker_connect_server_no_pool_ex(TrackerServerInfo *pServerInfo,
-        const char *bind_addr, int *err_no, const bool log_connect_error)
+        const char *bind_addr4, const char *bind_addr6, int *err_no,
+        const bool log_connect_error)
 {
 	ConnectionInfo *conn;
 	ConnectionInfo *end;
@@ -500,12 +501,12 @@ ConnectionInfo *tracker_connect_server_no_pool_ex(TrackerServerInfo *pServerInfo
 		return pServerInfo->connections + pServerInfo->index;
 	}
 
-	*err_no = conn_pool_connect_server_ex(pServerInfo->connections
-            + pServerInfo->index, SF_G_CONNECT_TIMEOUT * 1000,
-            bind_addr, log_connect_error);
+    conn = pServerInfo->connections + pServerInfo->index;
+	*err_no = conn_pool_connect_server_ex(conn, SF_G_CONNECT_TIMEOUT * 1000,
+            conn->af == AF_INET ? bind_addr4 : bind_addr6, log_connect_error);
     if (*err_no == 0)
     {
-		return pServerInfo->connections + pServerInfo->index;
+        return conn;
     }
 
     if (pServerInfo->count == 1)
@@ -520,11 +521,12 @@ ConnectionInfo *tracker_connect_server_no_pool_ex(TrackerServerInfo *pServerInfo
         if (current_index != pServerInfo->index)
         {
             if ((*err_no=conn_pool_connect_server_ex(conn,
-                            SF_G_CONNECT_TIMEOUT * 1000, bind_addr,
-                            log_connect_error)) == 0)
+                            SF_G_CONNECT_TIMEOUT * 1000,
+                            conn->af == AF_INET ? bind_addr4 :
+                            bind_addr6, log_connect_error)) == 0)
             {
                 pServerInfo->index = current_index;
-                return pServerInfo->connections + pServerInfo->index;
+                return conn;
             }
         }
     }
@@ -633,9 +635,10 @@ static int fdfs_do_parameter_req(ConnectionInfo *pTrackerServer, \
 	return 0;
 }
 
-int fdfs_get_ini_context_from_tracker(TrackerServerGroup *pTrackerGroup, \
-		IniContext *iniContext, bool * volatile continue_flag, \
-		const bool client_bind_addr, const char *bind_addr)
+int fdfs_get_ini_context_from_tracker_ex(TrackerServerGroup *pTrackerGroup,
+                IniContext *iniContext, bool * volatile continue_flag,
+                const bool client_bind_addr, const char *bind_addr4,
+                const char *bind_addr6)
 {
     ConnectionInfo *conn;
 	TrackerServerInfo *pGlobalServer;
@@ -664,7 +667,14 @@ int fdfs_get_ini_context_from_tracker(TrackerServerGroup *pTrackerGroup, \
 
     if (!client_bind_addr)
     {
-        bind_addr = NULL;
+        if (bind_addr4 != NULL)
+        {
+            bind_addr4 = NULL;
+        }
+        if (bind_addr6 != NULL)
+        {
+            bind_addr6 = NULL;
+        }
     }
 
 	do
@@ -678,7 +688,7 @@ int fdfs_get_ini_context_from_tracker(TrackerServerGroup *pTrackerGroup, \
             for (i=0; i < 3; i++)
             {
                 conn = tracker_connect_server_no_pool_ex(pTServer,
-                        bind_addr, &result, false);
+                        bind_addr4, bind_addr6, &result, false);
                 if (conn != NULL)
                 {
                     break;

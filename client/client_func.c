@@ -241,7 +241,7 @@ static int fdfs_get_params_from_tracker(bool *use_storage_id)
 
 	continue_flag = false;
 	if ((result=fdfs_get_ini_context_from_tracker(&g_tracker_group,
-		&iniContext, &continue_flag, false, NULL)) != 0)
+                    &iniContext, &continue_flag)) != 0)
     {
         return result;
     }

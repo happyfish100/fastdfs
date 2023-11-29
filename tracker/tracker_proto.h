@@ -240,13 +240,15 @@ ConnectionInfo *tracker_connect_server_ex(TrackerServerInfo *pServerInfo,
 * connect to the tracker server directly without connection pool
 * params:
 *	pTrackerServer: tracker server
-*   bind_ipaddr: the ip address to bind, NULL or empty for any
+*   bind_addr4: the ipv4 address to bind, NULL or empty for any
+*   bind_addr6: the ipv6 address to bind, NULL or empty for any
 *	err_no: return the error no
 *   log_connect_error: if log error info when connect fail
 * return: ConnectionInfo pointer for success, NULL for fail
 **/
 ConnectionInfo *tracker_connect_server_no_pool_ex(TrackerServerInfo *pServerInfo,
-        const char *bind_addr, int *err_no, const bool log_connect_error);
+        const char *bind_addr4, const char *bind_addr6, int *err_no,
+        const bool log_connect_error);
 
 /**
 * connect to the tracker server directly without connection pool
@@ -258,9 +260,10 @@ ConnectionInfo *tracker_connect_server_no_pool_ex(TrackerServerInfo *pServerInfo
 static inline ConnectionInfo *tracker_connect_server_no_pool(
         TrackerServerInfo *pServerInfo, int *err_no)
 {
-    const char *bind_addr = NULL;
+    const char *bind_addr4 = NULL;
+    const char *bind_addr6 = NULL;
     return tracker_connect_server_no_pool_ex(pServerInfo,
-            bind_addr, err_no, true);
+            bind_addr4, bind_addr6, err_no, true);
 }
 
 #define tracker_close_connection(pTrackerServer) \
@@ -316,15 +319,21 @@ int fdfs_deal_no_body_cmd_ex(const char *ip_addr, const int port, const int cmd)
 		fdfs_split_metadata_ex(meta_buff, FDFS_RECORD_SEPERATOR, \
 		FDFS_FIELD_SEPERATOR, meta_count, err_no)
 
-char *fdfs_pack_metadata(const FDFSMetaData *meta_list, const int meta_count, \
+char *fdfs_pack_metadata(const FDFSMetaData *meta_list, const int meta_count,
 			char *meta_buff, int *buff_bytes);
-FDFSMetaData *fdfs_split_metadata_ex(char *meta_buff, \
-		const char recordSeperator, const char filedSeperator, \
+FDFSMetaData *fdfs_split_metadata_ex(char *meta_buff,
+		const char recordSeperator, const char filedSeperator,
 		int *meta_count, int *err_no);
 
-int fdfs_get_ini_context_from_tracker(TrackerServerGroup *pTrackerGroup, \
-                IniContext *iniContext, bool * volatile continue_flag, \
-                const bool client_bind_addr, const char *bind_addr);
+int fdfs_get_ini_context_from_tracker_ex(TrackerServerGroup *pTrackerGroup,
+                IniContext *iniContext, bool * volatile continue_flag,
+                const bool client_bind_addr, const char *bind_addr4,
+                const char *bind_addr6);
+
+#define fdfs_get_ini_context_from_tracker(pTrackerGroup, \
+        iniContext, continue_flag) \
+        fdfs_get_ini_context_from_tracker_ex(pTrackerGroup, \
+        iniContext, continue_flag, false, NULL, NULL)
 
 int fdfs_get_tracker_status(TrackerServerInfo *pTrackerServer,
 		TrackerRunningStatus *pStatus);

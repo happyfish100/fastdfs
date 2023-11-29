@@ -257,9 +257,10 @@ static void *tracker_report_thread_entrance(void *arg)
         }
 
         conn = tracker_connect_server_no_pool_ex(pTrackerServer,
-                g_client_bind_addr ? SF_G_INNER_BIND_ADDR : NULL,
+                (g_client_bind_addr ? SF_G_INNER_BIND_ADDR4 : NULL),
+                (g_client_bind_addr ? SF_G_INNER_BIND_ADDR6 : NULL),
                 &result, false);
-		if (conn == NULL)
+        if (conn == NULL)
 		{
 			if (previousCode != result)
 			{

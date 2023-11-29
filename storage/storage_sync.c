@@ -2050,7 +2050,9 @@ int storage_report_storage_status(const char *storage_id, \
 		for (i=0; i < 3; i++)
 		{
             conn = tracker_connect_server_no_pool_ex(pTServer,
-                    g_client_bind_addr ? SF_G_INNER_BIND_ADDR : NULL, &result, false);
+                    (g_client_bind_addr ? SF_G_INNER_BIND_ADDR4 : NULL),
+                    (g_client_bind_addr ? SF_G_INNER_BIND_ADDR6 : NULL),
+                    &result, false);
             if (conn != NULL)
             {
 				break;
@@ -2146,7 +2148,9 @@ static int storage_reader_sync_init_req(StorageBinLogReader *pReader)
 		while (SF_G_CONTINUE_FLAG)
 		{
             conn = tracker_connect_server_no_pool_ex(pTServer,
-                    g_client_bind_addr ? SF_G_INNER_BIND_ADDR : NULL, &result, true);
+                    (g_client_bind_addr ? SF_G_INNER_BIND_ADDR4 : NULL),
+                    (g_client_bind_addr ? SF_G_INNER_BIND_ADDR6 : NULL),
+                    &result, true);
             if (conn != NULL)
             {
 				break;

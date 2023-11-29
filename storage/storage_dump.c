@@ -93,7 +93,8 @@ static int fdfs_dump_global_vars(char *buff, const int buffSize)
 		"g_check_file_duplicate=%d\n"
 		"g_key_namespace=%s\n"
 		"g_namespace_len=%d\n"
-		"SF_G_INNER_BIND_ADDR=%s\n"
+		"bind_addr_ipv4=%s\n"
+		"bind_addr_ipv6=%s\n"
 		"g_client_bind_addr=%d\n"
 		"g_storage_ip_changed_auto_adjust=%d\n"
 		"g_thread_kill_done=%d\n"
@@ -188,7 +189,8 @@ static int fdfs_dump_global_vars(char *buff, const int buffSize)
 		, g_check_file_duplicate
 		, g_key_namespace
 		, g_namespace_len
-		, SF_G_INNER_BIND_ADDR
+		, SF_G_INNER_BIND_ADDR4
+		, SF_G_INNER_BIND_ADDR6
 		, g_client_bind_addr
 		, g_storage_ip_changed_auto_adjust
 		, g_thread_kill_done

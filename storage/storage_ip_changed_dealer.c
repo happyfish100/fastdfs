@@ -146,7 +146,8 @@ int storage_get_my_tracker_client_ip()
 		for (i=0; i < 3; i++)
 		{
             conn = tracker_connect_server_no_pool_ex(pTServer,
-                    g_client_bind_addr ? SF_G_INNER_BIND_ADDR : NULL,
+                    (g_client_bind_addr ? SF_G_INNER_BIND_ADDR4 : NULL),
+                    (g_client_bind_addr ? SF_G_INNER_BIND_ADDR6 : NULL),
                     &result, false);
             if (conn != NULL)
             {
@@ -234,7 +235,8 @@ static int storage_report_storage_ip_addr()
 		for (i=0; i < 3; i++)
 		{
             conn = tracker_connect_server_no_pool_ex(pTServer,
-                    g_client_bind_addr ? SF_G_INNER_BIND_ADDR : NULL,
+                    (g_client_bind_addr ? SF_G_INNER_BIND_ADDR4 : NULL),
+                    (g_client_bind_addr ? SF_G_INNER_BIND_ADDR6 : NULL),
                     &result, false);
             if (conn != NULL)
             {
@@ -304,7 +306,8 @@ int storage_changelog_req()
 		for (i=0; i < 3; i++)
 		{
             conn = tracker_connect_server_no_pool_ex(pTServer,
-                    g_client_bind_addr ? SF_G_INNER_BIND_ADDR : NULL,
+                    (g_client_bind_addr ? SF_G_INNER_BIND_ADDR4 : NULL),
+                    (g_client_bind_addr ? SF_G_INNER_BIND_ADDR6 : NULL),
                     &result, false);
             if (conn != NULL)
             {

@@ -13,7 +13,6 @@
 #define FILENAME_FILE_ID     "file_id"
 #define FILENAME_FAIL        "fail"
 
-#define IP_ADDRESS_SIZE		16
 #define SRAND_SEED		1225420780
 
 #define TIME_SUB_MS(tv1, tv2)  ((tv1.tv_sec - tv2.tv_sec) * 1000 + (tv1.tv_usec - tv2.tv_usec) / 1000)
