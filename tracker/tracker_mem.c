@@ -3459,7 +3459,7 @@ int tracker_mem_delete_storage(FDFSGroupInfo *pGroup, const char *id)
 	return 0;
 }
 
-int tracker_mem_storage_ip_changed(FDFSGroupInfo *pGroup, \
+int tracker_mem_storage_ip_changed(FDFSGroupInfo *pGroup,
 		const char *old_storage_ip, const char *new_storage_ip)
 {
 	FDFSStorageDetail *pOldStorageServer;

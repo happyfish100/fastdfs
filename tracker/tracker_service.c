@@ -902,10 +902,13 @@ static int tracker_deal_get_storage_id(struct fast_task_info *pTask)
 	else
     {
         // 当IP地址为IPv6时，其storage_id值为IP地址的short code
-        if (is_ipv6_addr(ip_addr)) {
+        if (is_ipv6_addr(ip_addr))
+        {
             storage_id.ptr = fdfs_ip_to_shortcode(ip_addr,
                     storage_id.holder);
-        } else {
+        }
+        else
+        {
             storage_id.ptr = ip_addr;
         }
     }
@@ -2005,7 +2008,7 @@ static int tracker_deal_storage_report_ip_changed(struct fast_task_info *pTask)
 	}
 
 	pTask->send.ptr->length = sizeof(TrackerHeader);
-	return tracker_mem_storage_ip_changed(pGroup, \
+	return tracker_mem_storage_ip_changed(pGroup,
 			pOldIpAddr, pNewIpAddr);
 }
 

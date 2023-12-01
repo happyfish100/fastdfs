@@ -293,7 +293,6 @@ static void *tracker_report_thread_entrance(void *arg)
 
         tcpsetserveropt(conn->sock, SF_G_NETWORK_TIMEOUT);
 		getSockIpaddr(conn->sock, tracker_client_ip, IP_ADDRESS_SIZE);
-
 		if (nContinuousFail == 0)
 		{
 			*szFailPrompt = '\0';

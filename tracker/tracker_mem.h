@@ -59,16 +59,16 @@ FDFSStorageDetail *tracker_mem_get_storage(FDFSGroupInfo *pGroup, \
 FDFSStorageDetail *tracker_mem_get_storage_by_ip(FDFSGroupInfo *pGroup, \
 				const char *ip_addr);
 
-const FDFSStorageDetail *tracker_mem_set_trunk_server( \
+const FDFSStorageDetail *tracker_mem_set_trunk_server(
 	FDFSGroupInfo *pGroup, const char *pStroageId, int *result);
 int tracker_mem_delete_group(const char *group_name);
 int tracker_mem_delete_storage(FDFSGroupInfo *pGroup, const char *id);
 
-int tracker_mem_storage_ip_changed(FDFSGroupInfo *pGroup, \
+int tracker_mem_storage_ip_changed(FDFSGroupInfo *pGroup,
 		const char *old_storage_ip, const char *new_storage_ip);
 
-int tracker_mem_add_group_and_storage(TrackerClientInfo *pClientInfo, \
-		const char *ip_addr, FDFSStorageJoinBody *pJoinBody, \
+int tracker_mem_add_group_and_storage(TrackerClientInfo *pClientInfo,
+		const char *ip_addr, FDFSStorageJoinBody *pJoinBody,
 		const bool bNeedSleep);
 
 int tracker_mem_offline_store_server(FDFSGroupInfo *pGroup, \

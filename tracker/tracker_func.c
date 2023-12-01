@@ -89,7 +89,7 @@ static int tracker_load_store_lookup(const char *filename, \
 	if (fdfs_validate_group_name(g_groups.store_group) != 0) \
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"conf file \"%s\", " \
+			"config file \"%s\", " \
 			"the group name \"%s\" is invalid!", \
 			__LINE__, filename, g_groups.store_group);
 		return EINVAL;
@@ -98,7 +98,7 @@ static int tracker_load_store_lookup(const char *filename, \
 	return 0;
 }
 
-static int tracker_load_storage_id_info(const char *config_filename, \
+static int tracker_load_storage_id_info(const char *config_filename,
 		IniContext *pItemContext)
 {
 	char *pIdType;
@@ -107,19 +107,33 @@ static int tracker_load_storage_id_info(const char *config_filename, \
 				pItemContext, false);
 	if (!g_use_storage_id)
 	{
+        if (SF_G_IPV6_ENABLED)
+        {
+            logError("file: "__FILE__", line: %d, "
+                    "config file: %s, use_storage_id MUST set to true "
+                    "when IPv6 enabled!", __LINE__, config_filename);
+            return EINVAL;
+        }
+
 		return 0;
 	}
 
-	pIdType = iniGetStrValue(NULL, "id_type_in_filename", \
-			pItemContext);
+	pIdType = iniGetStrValue(NULL, "id_type_in_filename", pItemContext);
 	if (pIdType != NULL && strcasecmp(pIdType, "id") == 0)
 	{
 		g_id_type_in_filename = FDFS_ID_TYPE_SERVER_ID;
 	}
 	else
-	{
-		g_id_type_in_filename = FDFS_ID_TYPE_IP_ADDRESS;
-	}
+    {
+        if (SF_G_IPV6_ENABLED)
+        {
+            logError("file: "__FILE__", line: %d, "
+                    "config file: %s, id_type_in_filename MUST set to id "
+                    "when IPv6 enabled!", __LINE__, config_filename);
+            return EINVAL;
+        }
+        g_id_type_in_filename = FDFS_ID_TYPE_IP_ADDRESS;
+    }
 
 	return fdfs_load_storage_ids_from_file(config_filename, pItemContext);
 }

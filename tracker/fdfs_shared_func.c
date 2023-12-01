@@ -490,8 +490,8 @@ int fdfs_parse_server_info_ex(char *server_str, const int default_port,
     {
         if (resolve)
         {
-            if (getIpaddrByName(hosts[i], conn->ip_addr,
-                        sizeof(conn->ip_addr)) == INADDR_NONE)
+            if (getIpaddrByNameEx(hosts[i], conn->ip_addr,
+                        sizeof(conn->ip_addr), &conn->af) == INADDR_NONE)
             {
                 logError("file: "__FILE__", line: %d, "
                         "host \"%s\" is invalid, error info: %s",
@@ -503,6 +503,7 @@ int fdfs_parse_server_info_ex(char *server_str, const int default_port,
         {
             snprintf(conn->ip_addr, sizeof(conn->ip_addr), "%s", hosts[i]);
         }
+
         conn->port = port;
         conn->sock = -1;
         conn++;
