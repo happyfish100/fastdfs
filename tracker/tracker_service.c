@@ -2551,9 +2551,9 @@ static int tracker_deal_service_query_storage( \
 		if (pStoreGroup == NULL)
 		{
 			FDFSGroupInfo **ppGroupEnd;
-			ppGroupEnd = g_groups.sorted_groups + \
+			ppGroupEnd = g_groups.sorted_groups +
 				     g_groups.count;
-			for (ppGroup=ppFoundGroup+1; \
+			for (ppGroup=ppFoundGroup+1;
 					ppGroup<ppGroupEnd; ppGroup++)
 			{
 				if ((*ppGroup)->active_count == 0)
@@ -2565,7 +2565,7 @@ static int tracker_deal_service_query_storage( \
 				if (tracker_check_reserved_space(*ppGroup))
 				{
 					pStoreGroup = *ppGroup;
-					g_groups.current_write_group = \
+					g_groups.current_write_group =
 					       ppGroup-g_groups.sorted_groups;
 					break;
 				}
@@ -2573,7 +2573,7 @@ static int tracker_deal_service_query_storage( \
 
 			if (pStoreGroup == NULL)
 			{
-				for (ppGroup=g_groups.sorted_groups; \
+				for (ppGroup=g_groups.sorted_groups;
 						ppGroup<ppFoundGroup; ppGroup++)
 				{
 					if ((*ppGroup)->active_count == 0)
@@ -2585,7 +2585,7 @@ static int tracker_deal_service_query_storage( \
 					if (tracker_check_reserved_space(*ppGroup))
 					{
 						pStoreGroup = *ppGroup;
-						g_groups.current_write_group = \
+						g_groups.current_write_group =
 						 ppGroup-g_groups.sorted_groups;
 						break;
 					}
@@ -2606,7 +2606,7 @@ static int tracker_deal_service_query_storage( \
 					return ENOSPC;
 				}
 
-				for (ppGroup=g_groups.sorted_groups; \
+				for (ppGroup=g_groups.sorted_groups;
 						ppGroup<ppGroupEnd; ppGroup++)
 				{
 					if ((*ppGroup)->active_count == 0)
@@ -2616,7 +2616,7 @@ static int tracker_deal_service_query_storage( \
 					if (tracker_check_reserved_space_trunk(*ppGroup))
 					{
 						pStoreGroup = *ppGroup;
-						g_groups.current_write_group = \
+						g_groups.current_write_group =
 						 ppGroup-g_groups.sorted_groups;
 						break;
 					}
@@ -2641,7 +2641,7 @@ static int tracker_deal_service_query_storage( \
 	}
 	else if (g_groups.store_lookup == FDFS_STORE_LOOKUP_SPEC_GROUP)
 	{
-		if (g_groups.pStoreGroup == NULL || \
+		if (g_groups.pStoreGroup == NULL ||
 				g_groups.pStoreGroup->active_count == 0)
 		{
 			pTask->send.ptr->length = sizeof(TrackerHeader);
@@ -2650,8 +2650,8 @@ static int tracker_deal_service_query_storage( \
 
 		if (!tracker_check_reserved_space(g_groups.pStoreGroup))
 		{
-			if (!(g_if_use_trunk_file && \
-				tracker_check_reserved_space_trunk( \
+			if (!(g_if_use_trunk_file &&
+				tracker_check_reserved_space_trunk(
 						g_groups.pStoreGroup)))
 			{
 				pTask->send.ptr->length = sizeof(TrackerHeader);
@@ -2755,7 +2755,7 @@ static int tracker_deal_service_query_storage( \
 	if (g_groups.store_path == FDFS_STORE_PATH_ROUND_ROBIN)
 	{
 		pStorageServer->current_write_path++;
-		if (pStorageServer->current_write_path >= \
+		if (pStorageServer->current_write_path >=
 				pStoreGroup->store_path_count)
 		{
 			pStorageServer->current_write_path = 0;
