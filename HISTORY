@@ -1,4 +1,7 @@
 
+Version 6.11.0  2023-12-05
+ * support IPv6, config item: address_family in tracker.conf and storage.conf
+
 Version 6.10.0  2023-09-07
  * use libfastcommon V1.70 and libserverframe 1.2.0
 
