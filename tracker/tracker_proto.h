@@ -149,7 +149,7 @@ typedef struct
 typedef struct
 {
     unsigned char my_status;   //storage server status
-	char src_id[FDFS_STORAGE_ID_MAX_SIZE];  //src storage id
+    char src_id[FDFS_STORAGE_ID_MAX_SIZE];  //src storage id
 } TrackerStorageJoinBodyResp;
 
 typedef struct
