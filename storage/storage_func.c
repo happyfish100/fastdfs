@@ -219,7 +219,32 @@ static int storage_get_group_name_from_tracker()
 	return result;
 }
 
-static int tracker_get_my_server_id()
+static int get_my_server_id_by_local_ip()
+{
+    FDFSStorageIdInfo *idInfo;
+    const char *ip_addr;
+
+    ip_addr = get_first_local_ip();
+    while (ip_addr != NULL) {
+        if ((idInfo=fdfs_get_storage_id_by_ip(g_group_name,
+                        ip_addr)) != NULL)
+        {
+            snprintf(g_my_server_id_str, sizeof(g_my_server_id_str),
+                    "%s", idInfo->id);
+            return 0;
+        }
+
+        ip_addr = get_next_local_ip(ip_addr);
+    }
+
+    logError("file: "__FILE__", line: %d, "
+            "can't find my server id by local ip address, "
+            "local ip count: %d", __LINE__, g_local_host_ip_count);
+    return ENOENT;
+}
+
+static int tracker_get_my_server_id(const char *conf_filename,
+        const char *server_id_in_conf)
 {
 	struct in_addr ipv4_addr;
 	struct in6_addr ipv6_addr;
@@ -241,7 +266,7 @@ static int tracker_get_my_server_id()
 
 	if (!flag)
     {
-        logError("file: "__FILE__", line: %d, "
+        logWarning("file: "__FILE__", line: %d, "
                 "call inet_pton for ip: %s fail",
                 __LINE__, g_tracker_client_ip.ips[0].address);
         g_server_id_in_filename = INADDR_NONE;
@@ -252,20 +277,39 @@ static int tracker_get_my_server_id()
 		ConnectionInfo *pTrackerServer;
 		int result;
 
-		pTrackerServer = tracker_get_connection();
-		if (pTrackerServer == NULL)
-		{
-			return errno != 0 ? errno : ECONNREFUSED;
-		}
-		
-		result = tracker_get_storage_id(pTrackerServer,
-			g_group_name, g_tracker_client_ip.ips[0].address,
-            g_my_server_id_str);
-		tracker_close_connection_ex(pTrackerServer, result != 0);
-		if (result != 0)
-		{
-			return result;
-		}
+        if (g_trust_storage_server_id) {
+            if (server_id_in_conf == NULL) {
+                if ((result=get_my_server_id_by_local_ip()) != 0) {
+                    return result;
+                }
+            } else if (*server_id_in_conf != '\0') {
+                if (!fdfs_is_server_id_valid(server_id_in_conf)) {
+                    logError("file: "__FILE__", line: %d, "
+                            "config file: %s, server_id: %s is invalid",
+                            __LINE__, conf_filename, server_id_in_conf);
+                    return EINVAL;
+                }
+                snprintf(g_my_server_id_str, sizeof(g_my_server_id_str),
+                        "%s", server_id_in_conf);
+            }
+        }
+
+        if (*g_my_server_id_str == '\0') {
+            pTrackerServer = tracker_get_connection();
+            if (pTrackerServer == NULL)
+            {
+                return errno != 0 ? errno : ECONNREFUSED;
+            }
+
+            result = tracker_get_storage_id(pTrackerServer,
+                    g_group_name, g_tracker_client_ip.ips[0].address,
+                    g_my_server_id_str);
+            tracker_close_connection_ex(pTrackerServer, result != 0);
+            if (result != 0)
+            {
+                return result;
+            }
+        }
 
 		if (g_id_type_in_filename == FDFS_ID_TYPE_SERVER_ID)
 		{
@@ -1431,6 +1475,7 @@ int storage_func_init(const char *filename)
 	char *pIfAliasPrefix;
 	char *pHttpDomain;
 	char *pRotateAccessLogSize;
+    char *server_id_in_conf;
 	IniContext iniContext;
     SFContextIniConfig config;
 	int result;
@@ -1949,6 +1994,9 @@ int storage_func_init(const char *filename)
 			break;
 		}
 
+        server_id_in_conf = iniGetStrValue(NULL,
+                "server_id", &iniContext);
+
 #ifdef WITH_HTTPD
 		{
 		char *pHttpTrunkSize;
@@ -2097,22 +2145,22 @@ int storage_func_init(const char *filename)
 		return result;
 	}
 
-	if ((result=tracker_get_my_server_id()) != 0)
+	if (g_use_storage_id)
+    {
+        if ((result=fdfs_get_storage_ids_from_tracker_group(
+                        &g_tracker_group)) != 0)
+        {
+            return result;
+        }
+    }
+
+	if ((result=tracker_get_my_server_id(filename, server_id_in_conf)) != 0)
 	{
 		logCrit("file: "__FILE__", line: %d, " \
 			"get my server id from tracker server fail, " \
 			"errno: %d, error info: %s", __LINE__, \
 			result, STRERROR(result));
 		return result;
-	}
-
-	if (g_use_storage_id)
-	{
-		if ((result=fdfs_get_storage_ids_from_tracker_group( \
-				&g_tracker_group)) != 0)
-		{
-			return result;
-		}
 	}
 
 	if ((result=storage_check_ip_changed()) != 0)

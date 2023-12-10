@@ -592,47 +592,46 @@ void tracker_disconnect_server_no_pool(TrackerServerInfo *pServerInfo)
     }
 }
 
-static int fdfs_do_parameter_req(ConnectionInfo *pTrackerServer, \
-	char *buff, const int buff_size)
+static int fdfs_do_parameter_req(ConnectionInfo *pTrackerServer,
+        char *buff, const int buff_size)
 {
-	char out_buff[sizeof(TrackerHeader)];
-	TrackerHeader *pHeader;
-	int64_t in_bytes;
-	int result;
+    char out_buff[sizeof(TrackerHeader)];
+    TrackerHeader *pHeader;
+    int64_t in_bytes;
+    int result;
 
-	memset(out_buff, 0, sizeof(out_buff));
-	pHeader = (TrackerHeader *)out_buff;
-	pHeader->cmd = TRACKER_PROTO_CMD_STORAGE_PARAMETER_REQ;
-	if((result=tcpsenddata_nb(pTrackerServer->sock, out_buff, \
-		sizeof(TrackerHeader), SF_G_NETWORK_TIMEOUT)) != 0)
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%u, send data fail, " \
-			"errno: %d, error info: %s.", \
-			__LINE__, pTrackerServer->ip_addr, \
-			pTrackerServer->port, \
-			result, STRERROR(result));
-		return result;
-	}
+    memset(out_buff, 0, sizeof(out_buff));
+    pHeader = (TrackerHeader *)out_buff;
+    pHeader->cmd = TRACKER_PROTO_CMD_STORAGE_PARAMETER_REQ;
+    if((result=tcpsenddata_nb(pTrackerServer->sock, out_buff,
+                    sizeof(TrackerHeader), SF_G_NETWORK_TIMEOUT)) != 0)
+    {
+        logError("file: "__FILE__", line: %d, "
+                "tracker server %s:%u, send data fail, "
+                "errno: %d, error info: %s.", __LINE__,
+                pTrackerServer->ip_addr, pTrackerServer->port,
+                result, STRERROR(result));
+        return result;
+    }
 
-	result = fdfs_recv_response(pTrackerServer, &buff, buff_size, &in_bytes);
-	if (result != 0)
-	{
-		return result;
-	}
+    result = fdfs_recv_response(pTrackerServer, &buff, buff_size, &in_bytes);
+    if (result != 0)
+    {
+        return result;
+    }
 
-	if (in_bytes >= buff_size)
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"server: %s:%u, recv body bytes: " \
-			"%"PRId64" exceed max: %d", \
-			__LINE__, pTrackerServer->ip_addr, \
-			pTrackerServer->port, in_bytes, buff_size);
-		return ENOSPC;
-	}
+    if (in_bytes >= buff_size)
+    {
+        logError("file: "__FILE__", line: %d, "
+                "server: %s:%u, recv body bytes: "
+                "%"PRId64" exceed max: %d", __LINE__,
+                pTrackerServer->ip_addr, pTrackerServer->port,
+                in_bytes, buff_size);
+        return ENOSPC;
+    }
 
-	*(buff + in_bytes) = '\0';
-	return 0;
+    *(buff + in_bytes) = '\0';
+    return 0;
 }
 
 int fdfs_get_ini_context_from_tracker_ex(TrackerServerGroup *pTrackerGroup,

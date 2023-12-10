@@ -448,6 +448,7 @@ static int tracker_deal_parameter_req(struct fast_task_info *pTask)
     body_len = sprintf(pTask->send.ptr->data + sizeof(TrackerHeader),
             "use_storage_id=%d\n"
             "id_type_in_filename=%s\n"
+            "trust_storage_server_id=%d\n"
             "storage_ip_changed_auto_adjust=%d\n"
             "storage_sync_file_max_delay=%d\n"
             "store_path=%d\n"
@@ -472,6 +473,7 @@ static int tracker_deal_parameter_req(struct fast_task_info *pTask)
             "store_slave_file_use_link=%d\n",
         g_use_storage_id, g_id_type_in_filename ==
             FDFS_ID_TYPE_SERVER_ID ? "id" : "ip",
+        g_trust_storage_server_id,
         g_storage_ip_changed_auto_adjust,
         g_storage_sync_file_max_delay, g_groups.store_path,
         fdfs_storage_reserved_space_to_string(
@@ -1244,7 +1246,7 @@ static int tracker_deal_storage_join(struct fast_task_info *pTask)
 
 	pClientInfo = (TrackerClientInfo *)pTask->arg;
 
-	if (pTask->recv.ptr->length - sizeof(TrackerHeader) < \
+	if (pTask->recv.ptr->length - sizeof(TrackerHeader) <
 			sizeof(TrackerStorageJoinBody))
 	{
 		logError("file: "__FILE__", line: %d, " \
@@ -1377,6 +1379,7 @@ static int tracker_deal_storage_join(struct fast_task_info *pTask)
 	strcpy(joinBody.domain_name, pBody->domain_name);
 	joinBody.init_flag = pBody->init_flag;
 	joinBody.status = pBody->status;
+	memcpy(joinBody.storage_id, pBody->storage_id, FDFS_STORAGE_ID_MAX_SIZE);
 
     pBody->current_tracker_ip[IP_ADDRESS_SIZE - 1] = '\0';
 

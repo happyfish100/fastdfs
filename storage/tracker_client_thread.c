@@ -2027,6 +2027,9 @@ int tracker_report_join(ConnectionInfo *pTrackerServer, \
 	long2buff(g_sf_global_vars.up_time, pReqBody->up_time);
 	pReqBody->init_flag = sync_old_done ? 0 : 1;
 	strcpy(pReqBody->current_tracker_ip, pTrackerServer->ip_addr);
+    if (g_use_storage_id) {
+        strcpy(pReqBody->storage_id, g_my_server_id_str);
+    }
 
 	memset(&targetServer, 0, sizeof(targetServer));
 	pTargetServer = &targetServer;

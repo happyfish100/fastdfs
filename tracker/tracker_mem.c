@@ -3568,8 +3568,8 @@ static int tracker_mem_add_storage(TrackerClientInfo *pClientInfo,
 	FDFSStorageDetail *pStorageServer;
 
 	pStorageServer = NULL;
-	result = _tracker_mem_add_storage(pClientInfo->pGroup, \
-			&pStorageServer, id, ip_addr, bNeedSleep, \
+	result = _tracker_mem_add_storage(pClientInfo->pGroup,
+			&pStorageServer, id, ip_addr, bNeedSleep,
 			bNeedLock, bInserted);
 	if (result == 0)
 	{
@@ -4408,8 +4408,8 @@ static int tracker_mem_get_sys_files_from_others(FDFSStorageJoinBody *pJoinBody,
 	return tracker_open_changlog_file();
 }
 
-int tracker_mem_add_group_and_storage(TrackerClientInfo *pClientInfo, \
-		const char *ip_addr, FDFSStorageJoinBody *pJoinBody, \
+int tracker_mem_add_group_and_storage(TrackerClientInfo *pClientInfo,
+		const char *ip_addr, FDFSStorageJoinBody *pJoinBody,
 		const bool bNeedSleep)
 {
 	int result;
@@ -4418,7 +4418,6 @@ int tracker_mem_add_group_and_storage(TrackerClientInfo *pClientInfo, \
 	FDFSStorageDetail *pStorageServer;
 	FDFSStorageDetail **ppServer;
 	FDFSStorageDetail **ppEnd;
-	FDFSStorageIdInfo *pStorageIdInfo;
 	FDFSStorageId storage_id;
 
 	tracker_mem_file_lock();
@@ -4489,7 +4488,7 @@ int tracker_mem_add_group_and_storage(TrackerClientInfo *pClientInfo, \
 
 	tracker_mem_file_unlock();
 
-	if ((result=tracker_mem_add_group_ex(&g_groups, pClientInfo, \
+	if ((result=tracker_mem_add_group_ex(&g_groups, pClientInfo,
 		pJoinBody->group_name, bNeedSleep, &bGroupInserted)) != 0)
 	{
 		return result;
@@ -4505,21 +4504,36 @@ int tracker_mem_add_group_and_storage(TrackerClientInfo *pClientInfo, \
 
 	if (g_use_storage_id)
 	{
-		pStorageIdInfo = fdfs_get_storage_id_by_ip(
-				pClientInfo->pGroup->group_name, ip_addr);
-		if (pStorageIdInfo == NULL)
-		{
-			logError("file: "__FILE__", line: %d, " \
-				"get storage id info fail, group_name: %s, " \
-				"storage ip: %s", __LINE__, \
-				pClientInfo->pGroup->group_name, ip_addr);
-			return ENOENT;
-		}
+        FDFSStorageIdInfo *pStorageIdInfo;
+
+        if (g_trust_storage_server_id && *(pJoinBody->storage_id) != '\0')
+        {
+            pStorageIdInfo = fdfs_get_storage_by_id(pJoinBody->storage_id);
+            if (pStorageIdInfo == NULL)
+            {
+                logError("file: "__FILE__", line: %d, "
+                        "get storage id info fail, storage id: %s",
+                        __LINE__, pJoinBody->storage_id);
+                return ENOENT;
+            }
+        }
+        else
+        {
+            pStorageIdInfo = fdfs_get_storage_id_by_ip(
+                    pClientInfo->pGroup->group_name, ip_addr);
+            if (pStorageIdInfo == NULL)
+            {
+                logError("file: "__FILE__", line: %d, "
+                        "get storage id info fail, group_name: %s, "
+                        "storage ip: %s", __LINE__,
+                        pClientInfo->pGroup->group_name, ip_addr);
+                return ENOENT;
+            }
+        }
 		storage_id.ptr = pStorageIdInfo->id;
 	}
 	else
 	{
-		pStorageIdInfo = NULL;
 		// 当IP地址为IPv6时，其storage_id值为IP地址的short code
 		if (is_ipv6_addr(ip_addr))
         {

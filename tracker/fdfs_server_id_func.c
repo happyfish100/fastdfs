@@ -489,9 +489,9 @@ int fdfs_load_storage_ids(char *content, const char *pStorageIdsFilename)
 
 			if (!fdfs_is_server_id_valid(id))
 			{
-				logError("file: "__FILE__", line: %d, " \
-					"invalid server id: \"%s\", " \
-					"which must be a none zero start " \
+				logError("file: "__FILE__", line: %d, "
+					"invalid server id: \"%s\", "
+					"which must be a none zero start "
 					"integer, such as 100001", __LINE__, id);
 				result = EINVAL;
 				break;

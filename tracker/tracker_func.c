@@ -99,12 +99,12 @@ static int tracker_load_store_lookup(const char *filename, \
 }
 
 static int tracker_load_storage_id_info(const char *config_filename,
-		IniContext *pItemContext)
+		IniContext *iniContext)
 {
 	char *pIdType;
 
-	g_use_storage_id = iniGetBoolValue(NULL, "use_storage_id", \
-				pItemContext, false);
+	g_use_storage_id = iniGetBoolValue(NULL, "use_storage_id",
+				iniContext, false);
 	if (!g_use_storage_id)
 	{
         if (SF_G_IPV6_ENABLED)
@@ -118,7 +118,7 @@ static int tracker_load_storage_id_info(const char *config_filename,
 		return 0;
 	}
 
-	pIdType = iniGetStrValue(NULL, "id_type_in_filename", pItemContext);
+	pIdType = iniGetStrValue(NULL, "id_type_in_filename", iniContext);
 	if (pIdType != NULL && strcasecmp(pIdType, "id") == 0)
 	{
 		g_id_type_in_filename = FDFS_ID_TYPE_SERVER_ID;
@@ -135,7 +135,9 @@ static int tracker_load_storage_id_info(const char *config_filename,
         g_id_type_in_filename = FDFS_ID_TYPE_IP_ADDRESS;
     }
 
-	return fdfs_load_storage_ids_from_file(config_filename, pItemContext);
+    g_trust_storage_server_id = iniGetBoolValue(NULL,
+            "trust_storage_server_id", iniContext, true);
+	return fdfs_load_storage_ids_from_file(config_filename, iniContext);
 }
 
 int tracker_load_from_conf_file(const char *filename)
@@ -534,6 +536,7 @@ int tracker_load_from_conf_file(const char *filename)
 			"trunk_binlog_max_backups=%d, "
 			"use_storage_id=%d, "
 			"id_type_in_filename=%s, "
+			"trust_storage_server_id=%d, "
 			"storage_id/ip_count=%d / %d, "
 			"store_slave_file_use_link=%d, "
 			"use_connection_pool=%d, "
@@ -569,6 +572,7 @@ int tracker_load_from_conf_file(const char *filename)
             g_trunk_binlog_max_backups,
 			g_use_storage_id, g_id_type_in_filename ==
 			FDFS_ID_TYPE_SERVER_ID ? "id" : "ip",
+            g_trust_storage_server_id,
             g_storage_ids_by_id.count, g_storage_ids_by_ip.count,
 			g_store_slave_file_use_link,
 			g_use_connection_pool, g_connection_pool_max_idle_time);

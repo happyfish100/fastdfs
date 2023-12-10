@@ -74,6 +74,7 @@ bool g_use_access_log = false;    //if log to access log
 bool g_rotate_access_log = false; //if rotate the access log every day
 bool g_compress_old_access_log = false; //if compress the old access log
 bool g_use_storage_id = false;    //identify storage by ID instead of IP address
+bool g_trust_storage_server_id = false;
 byte g_id_type_in_filename = FDFS_ID_TYPE_IP_ADDRESS; //id type of the storage server in the filename
 bool g_store_slave_file_use_link = false; //if store slave file use symbol link
 

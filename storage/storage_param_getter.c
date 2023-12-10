@@ -179,6 +179,8 @@ int storage_get_params_from_tracker()
 	{
 		g_id_type_in_filename = FDFS_ID_TYPE_IP_ADDRESS;
 	}
+	g_trust_storage_server_id = iniGetBoolValue(NULL,
+			"trust_storage_server_id", &iniContext, false);
 
 	iniFreeContext(&iniContext);
 
@@ -194,6 +196,7 @@ int storage_get_params_from_tracker()
 	logInfo("file: "__FILE__", line: %d, "
 		"use_storage_id=%d, "
 		"id_type_in_filename=%s, "
+        "trust_storage_server_id=%d, "
 		"storage_ip_changed_auto_adjust=%d, "
 		"store_path=%d, "
 		"reserved_storage_space=%s, "
@@ -217,6 +220,7 @@ int storage_get_params_from_tracker()
 		"store_slave_file_use_link=%d",
 		__LINE__, g_use_storage_id,
 		g_id_type_in_filename == FDFS_ID_TYPE_SERVER_ID ? "id" : "ip",
+        g_trust_storage_server_id,
 		g_storage_ip_changed_auto_adjust,
 		g_store_path_mode, fdfs_storage_reserved_space_to_string(
 			&g_storage_reserved_space, reserved_space_str),

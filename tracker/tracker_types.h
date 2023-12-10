@@ -427,6 +427,7 @@ typedef struct
     char version[FDFS_VERSION_SIZE];   //storage version
     char group_name[FDFS_GROUP_NAME_MAX_LEN + 1];
     char domain_name[FDFS_DOMAIN_NAME_MAX_SIZE];
+    char storage_id[FDFS_STORAGE_ID_MAX_SIZE];
     char init_flag;
     signed char status;
     int tracker_count;

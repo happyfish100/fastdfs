@@ -21,6 +21,7 @@ in_addr_64_t *g_allow_ip_addrs = NULL;
 
 bool g_storage_ip_changed_auto_adjust = true;
 bool g_use_storage_id = false;  //if use storage ID instead of IP address
+bool g_trust_storage_server_id = true;
 byte g_id_type_in_filename = FDFS_ID_TYPE_IP_ADDRESS; //id type of the storage server in the filename
 
 int g_storage_sync_file_max_delay = DEFAULT_STORAGE_SYNC_FILE_MAX_DELAY;
