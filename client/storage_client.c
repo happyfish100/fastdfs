@@ -64,7 +64,7 @@ static int g_base64_context_inited = 0;
 		ppStorageServer, TRACKER_PROTO_CMD_SERVICE_QUERY_UPDATE, \
 		group_name, filename, pNewStorage, new_connection)
 
-static ConnectionInfo *storage_make_connection(
+static ConnectionInfo *make_connection_by_tracker(
         ConnectionInfo *pStorageServer, int *err_no)
 {
     ConnectionInfo *conn;
@@ -100,6 +100,65 @@ static ConnectionInfo *storage_make_connection(
         strcpy(pStorageServer->ip_addr, idInfo->ip_addrs.ips[0].address);
     }
     return tracker_make_connection(pStorageServer, err_no);
+}
+
+static ConnectionInfo *make_connection_by_last_connected(
+        ConnectionInfo *pStorageServer, int *err_no)
+{
+    ConnectionInfo *conn;
+    FDFSStorageIdInfo *idInfo;
+    int index;
+
+    if (!g_multi_storage_ips)
+    {
+        return tracker_make_connection(pStorageServer, err_no);
+    }
+
+    if ((idInfo=fdfs_get_storage_id_by_ip_port(pStorageServer->ip_addr,
+                    pStorageServer->port)) == NULL)
+    {
+        return tracker_make_connection(pStorageServer, err_no);
+    }
+    if (idInfo->ip_addrs.count < 2)
+    {
+        return tracker_make_connection(pStorageServer, err_no);
+    }
+
+    index = idInfo->ip_addrs.index;
+    if (strcmp(pStorageServer->ip_addr, idInfo->ip_addrs.
+                ips[index].address) != 0)
+    {
+        strcpy(pStorageServer->ip_addr, idInfo->ip_addrs.
+                ips[index].address);
+    }
+    if ((conn=tracker_make_connection(pStorageServer, err_no)) != NULL)
+    {
+        return conn;
+    }
+
+    if (++index == idInfo->ip_addrs.count)
+    {
+        index = 0;
+    }
+    strcpy(pStorageServer->ip_addr, idInfo->ip_addrs.ips[index].address);
+    if ((conn=tracker_make_connection(pStorageServer, err_no)) != NULL)
+    {
+        idInfo->ip_addrs.index = index;
+    }
+    return conn;
+}
+
+static inline ConnectionInfo *storage_make_connection(
+        ConnectionInfo *pStorageServer, int *err_no)
+{
+    if (g_connect_first_by == fdfs_connect_first_by_tracker)
+    {
+        return make_connection_by_tracker(pStorageServer, err_no);
+    }
+    else
+    {
+        return make_connection_by_last_connected(pStorageServer, err_no);
+    }
 }
 
 static int storage_get_connection(ConnectionInfo *pTrackerServer, \

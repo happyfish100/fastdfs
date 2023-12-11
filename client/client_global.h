@@ -15,6 +15,11 @@
 #include "tracker_types.h"
 #include "fdfs_shared_func.h"
 
+typedef enum {
+    fdfs_connect_first_by_tracker,
+    fdfs_connect_first_by_last_connected
+} FDFSConnectFirstBy;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -23,6 +28,7 @@ extern int g_tracker_server_http_port;
 extern TrackerServerGroup g_tracker_group;
 
 extern bool g_multi_storage_ips;
+extern FDFSConnectFirstBy g_connect_first_by;
 extern bool g_anti_steal_token;
 extern BufferInfo g_anti_steal_secret_key;
 

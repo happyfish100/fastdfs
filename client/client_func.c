@@ -376,6 +376,7 @@ static int fdfs_client_do_init_ex(TrackerServerGroup *pTrackerGroup, \
     {
         FDFSStorageIdInfo *idInfo;
         FDFSStorageIdInfo *end;
+        char *connect_first_by;
 
         end = g_storage_ids_by_id.ids + g_storage_ids_by_id.count;
         for (idInfo=g_storage_ids_by_id.ids; idInfo<end; idInfo++)
@@ -384,6 +385,17 @@ static int fdfs_client_do_init_ex(TrackerServerGroup *pTrackerGroup, \
             {
                 g_multi_storage_ips = true;
                 break;
+            }
+        }
+
+        if (g_multi_storage_ips)
+        {
+            connect_first_by = iniGetStrValue(NULL,
+                    "connect_first_by", iniContext);
+            if (connect_first_by != NULL && strncasecmp(connect_first_by,
+                        "last", 4) == 0)
+            {
+                g_connect_first_by = fdfs_connect_first_by_last_connected;
             }
         }
     }
@@ -397,13 +409,16 @@ static int fdfs_client_do_init_ex(TrackerServerGroup *pTrackerGroup, \
 		"anti_steal_secret_key length=%d, "
 		"use_connection_pool=%d, "
 		"g_connection_pool_max_idle_time=%ds, "
-		"use_storage_id=%d, storage server id count: %d, "
+		"use_storage_id=%d, connect_first_by=%s, "
+        "storage server id count: %d, "
         "multi storage ips: %d\n",
 		SF_G_BASE_PATH_STR, SF_G_CONNECT_TIMEOUT,
 		SF_G_NETWORK_TIMEOUT, pTrackerGroup->server_count,
 		g_anti_steal_token, g_anti_steal_secret_key.length,
 		g_use_connection_pool, g_connection_pool_max_idle_time,
-		use_storage_id, g_storage_ids_by_id.count, g_multi_storage_ips);
+		use_storage_id, g_connect_first_by == fdfs_connect_first_by_tracker ?
+        "tracker" : "last-connected", g_storage_ids_by_id.count,
+        g_multi_storage_ips);
 #endif
 
 	return 0;
