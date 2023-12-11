@@ -64,6 +64,44 @@ static int g_base64_context_inited = 0;
 		ppStorageServer, TRACKER_PROTO_CMD_SERVICE_QUERY_UPDATE, \
 		group_name, filename, pNewStorage, new_connection)
 
+static ConnectionInfo *storage_make_connection(
+        ConnectionInfo *pStorageServer, int *err_no)
+{
+    ConnectionInfo *conn;
+    FDFSStorageIdInfo *idInfo;
+
+    if ((conn=tracker_make_connection(pStorageServer, err_no)) != NULL)
+    {
+        return conn;
+    }
+
+    if (!g_multi_storage_ips)
+    {
+        return NULL;
+    }
+
+    if ((idInfo=fdfs_get_storage_id_by_ip_port(pStorageServer->ip_addr,
+                    pStorageServer->port)) == NULL)
+    {
+        return NULL;
+    }
+
+    if (idInfo->ip_addrs.count < 2)
+    {
+        return NULL;
+    }
+
+    if (strcmp(pStorageServer->ip_addr, idInfo->ip_addrs.ips[0].address) == 0)
+    {
+        strcpy(pStorageServer->ip_addr, idInfo->ip_addrs.ips[1].address);
+    }
+    else
+    {
+        strcpy(pStorageServer->ip_addr, idInfo->ip_addrs.ips[0].address);
+    }
+    return tracker_make_connection(pStorageServer, err_no);
+}
+
 static int storage_get_connection(ConnectionInfo *pTrackerServer, \
 		ConnectionInfo **ppStorageServer, const byte cmd, \
 		const char *group_name, const char *filename, \
@@ -97,7 +135,7 @@ static int storage_get_connection(ConnectionInfo *pTrackerServer, \
 			return result;
 		}
 
-		if ((*ppStorageServer=tracker_make_connection(pNewStorage,
+		if ((*ppStorageServer=storage_make_connection(pNewStorage,
 			&result)) == NULL)
 		{
 			return result;
@@ -113,7 +151,7 @@ static int storage_get_connection(ConnectionInfo *pTrackerServer, \
 		}
 		else
 		{
-			if ((*ppStorageServer=tracker_make_connection(
+			if ((*ppStorageServer=storage_make_connection(
 				*ppStorageServer, &result)) == NULL)
 			{
 				return result;
@@ -162,7 +200,7 @@ static int storage_get_upload_connection(ConnectionInfo *pTrackerServer, \
 			return result;
 		}
 
-		if ((*ppStorageServer=tracker_make_connection(pNewStorage,
+		if ((*ppStorageServer=storage_make_connection(pNewStorage,
 			&result)) == NULL)
 		{
 			return result;
@@ -178,7 +216,7 @@ static int storage_get_upload_connection(ConnectionInfo *pTrackerServer, \
 		}
 		else
 		{
-			if ((*ppStorageServer=tracker_make_connection(
+			if ((*ppStorageServer=storage_make_connection(
 				*ppStorageServer, &result)) == NULL)
 			{
 				return result;

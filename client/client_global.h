@@ -22,6 +22,7 @@ extern "C" {
 extern int g_tracker_server_http_port;
 extern TrackerServerGroup g_tracker_group;
 
+extern bool g_multi_storage_ips;
 extern bool g_anti_steal_token;
 extern BufferInfo g_anti_steal_secret_key;
 

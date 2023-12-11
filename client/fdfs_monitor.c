@@ -96,7 +96,7 @@ int main(int argc, char *argv[])
 	}
 
 	log_init();
-	g_log_context.log_level = LOG_DEBUG;
+	//g_log_context.log_level = LOG_DEBUG;
 	ignore_signal_pipe();
 
 	if ((result=fdfs_client_init(conf_filename)) != 0)
