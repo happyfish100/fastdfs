@@ -213,6 +213,13 @@ typedef struct
 	char size[4];
 } FDFSTrunkInfoBuff;
 
+
+typedef struct
+{
+    char start_index[4];
+    char allow_empty;
+} FDFSFetchStorageIdsBody;
+
 #ifdef __cplusplus
 extern "C" {
 #endif

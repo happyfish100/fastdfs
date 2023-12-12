@@ -1054,6 +1054,7 @@ static int tracker_deal_get_storage_group_name(struct fast_task_info *pTask)
 
 static int tracker_deal_fetch_storage_ids(struct fast_task_info *pTask)
 {
+    FDFSFetchStorageIdsBody *req_body;
 	FDFSStorageIdInfo *pIdsStart;
 	FDFSStorageIdInfo *pIdsEnd;
 	FDFSStorageIdInfo *pIdInfo;
@@ -1063,37 +1064,45 @@ static int tracker_deal_fetch_storage_ids(struct fast_task_info *pTask)
 	int start_index;
     char ip_str[256];
 
-	if (!g_use_storage_id)
+	nPkgLen = pTask->recv.ptr->length - sizeof(TrackerHeader);
+	if (nPkgLen != sizeof(*req_body))
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"client ip addr: %s, operation not supported", \
+		logError("file: "__FILE__", line: %d, "
+			"cmd=%d, client ip addr: %s, package size %d "
+            "is not correct, expect %d bytes", __LINE__,
+			TRACKER_PROTO_CMD_STORAGE_FETCH_STORAGE_IDS,
+			pTask->client_ip, nPkgLen, (int)sizeof(*req_body));
+		pTask->send.ptr->length = sizeof(TrackerHeader);
+		return EINVAL;
+	}
+
+    req_body = (FDFSFetchStorageIdsBody *)(pTask->recv.ptr->data +
+            sizeof(TrackerHeader));
+    if (!g_use_storage_id)
+	{
+        if (req_body->allow_empty)
+        {
+            pTask->send.ptr->length = sizeof(TrackerHeader) + 8;
+            memset(pTask->send.ptr->data + sizeof(TrackerHeader), 0, 8);
+            return 0;
+        }
+
+		logError("file: "__FILE__", line: %d, "
+			"client ip addr: %s, operation not supported",
 			__LINE__, pTask->client_ip);
 		pTask->send.ptr->length = sizeof(TrackerHeader);
 		return EOPNOTSUPP;
 	}
 
-	nPkgLen = pTask->recv.ptr->length - sizeof(TrackerHeader);
-	if (nPkgLen != sizeof(int))
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"cmd=%d, client ip addr: %s, " \
-			"package size %d is not correct, " \
-			"expect %d bytes", __LINE__, \
-			TRACKER_PROTO_CMD_STORAGE_FETCH_STORAGE_IDS, \
-			pTask->client_ip, nPkgLen, (int)sizeof(int));
-		pTask->send.ptr->length = sizeof(TrackerHeader);
-		return EINVAL;
-	}
-
-	start_index = buff2int(pTask->recv.ptr->data + sizeof(TrackerHeader));
+	start_index = buff2int(req_body->start_index);
 	if (start_index < 0 || start_index >= g_storage_ids_by_id.count)
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"client ip addr: %s, invalid offset: %d", \
-			__LINE__, pTask->client_ip, start_index);
-		pTask->send.ptr->length = sizeof(TrackerHeader);
-		return EINVAL;
-	}
+    {
+        logError("file: "__FILE__", line: %d, "
+                "client ip addr: %s, invalid offset: %d",
+                __LINE__, pTask->client_ip, start_index);
+        pTask->send.ptr->length = sizeof(TrackerHeader);
+        return EINVAL;
+    }
 
 	p = pTask->send.ptr->data + sizeof(TrackerHeader);
 	int2buff(g_storage_ids_by_id.count, p);

@@ -406,18 +406,17 @@ int fdfs_load_storage_ids(char *content, const char *pStorageIdsFilename)
 			}
 		
 			pHost = group_name;
-			while (!(*pHost == ' ' || *pHost == '\t' \
-				|| *pHost == '\0'))
+			while (!(*pHost == ' ' || *pHost == '\t' || *pHost == '\0'))
 			{
 				pHost++;
 			}
 
 			if (*pHost == '\0')
 			{
-				logError("file: "__FILE__", line: %d, " \
-					"config file: %s, line no: %d, " \
-					"content: %s, invalid format, " \
-					"expect ip address!", __LINE__, \
+				logError("file: "__FILE__", line: %d, "
+					"config file: %s, line no: %d, "
+					"content: %s, invalid format, "
+					"expect ip address!", __LINE__,
 					pStorageIdsFilename, i + 1, line);
 				result = EINVAL;
 				break;
@@ -567,7 +566,7 @@ int fdfs_get_storage_ids_from_tracker_server(TrackerServerInfo *pTrackerServer)
 #define MAX_REQUEST_LOOP   32
 	TrackerHeader *pHeader;
 	ConnectionInfo *conn;
-	char out_buff[sizeof(TrackerHeader) + sizeof(int)];
+	char out_buff[sizeof(TrackerHeader) + sizeof(FDFSFetchStorageIdsBody)];
 	char *p;
 	char *response;
 	struct data_info {
@@ -593,7 +592,7 @@ int fdfs_get_storage_ids_from_tracker_server(TrackerServerInfo *pTrackerServer)
 	pHeader = (TrackerHeader *)out_buff;
 	p = out_buff + sizeof(TrackerHeader);
 	pHeader->cmd = TRACKER_PROTO_CMD_STORAGE_FETCH_STORAGE_IDS;
-	long2buff(sizeof(int), pHeader->pkg_len);
+	long2buff(sizeof(FDFSFetchStorageIdsBody), pHeader->pkg_len);
 
 	start_index = 0;
 	list_count = 0;
