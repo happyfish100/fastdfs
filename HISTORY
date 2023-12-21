@@ -1,4 +1,7 @@
 
+Version 6.12.0  2023-12-21
+ * bugfixed: parse ip and port use parseAddress instead of splitEx
+
 Version 6.11.0  2023-12-10
  * support IPv6, config item: address_family in tracker.conf and storage.conf
    use libfastcommon V1.71 and libserverframe 1.2.1

@@ -663,7 +663,7 @@ static int tracker_deal_notify_next_leader(struct fast_task_info *pTask)
 
 	*(pTask->recv.ptr->data + pTask->recv.ptr->length) = '\0';
 	pIpAndPort = pTask->recv.ptr->data + sizeof(TrackerHeader);
-	if (splitEx(pIpAndPort, ':', ipAndPort, 2) != 2)
+	if (parseAddress(pIpAndPort, ipAndPort) != 2)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"client ip: %s, invalid ip and port: %s", \
@@ -729,7 +729,7 @@ static int tracker_deal_commit_next_leader(struct fast_task_info *pTask)
 
 	*(pTask->recv.ptr->data + pTask->recv.ptr->length) = '\0';
 	pIpAndPort = pTask->recv.ptr->data + sizeof(TrackerHeader);
-	if (splitEx(pIpAndPort, ':', ipAndPort, 2) != 2)
+	if (parseAddress(pIpAndPort, ipAndPort) != 2)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"client ip: %s, invalid ip and port: %s", \
