@@ -492,9 +492,9 @@ static int setup_schedule_tasks()
 
 	if (g_compress_binlog)
 	{
-		INIT_SCHEDULE_ENTRY_EX(scheduleEntries[scheduleArray.count],
+		INIT_SCHEDULE_ENTRY_EX1(scheduleEntries[scheduleArray.count],
 			sched_generate_next_id(), g_compress_binlog_time,
-			24 * 3600, fdfs_binlog_compress_func, NULL);
+			24 * 3600, fdfs_binlog_compress_func, NULL, true);
 		scheduleArray.count++;
     }
 

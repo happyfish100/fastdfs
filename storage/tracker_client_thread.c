@@ -1236,21 +1236,19 @@ static int do_set_trunk_server_myself(ConnectionInfo *pTrackerServer)
     if (g_trunk_create_file_advance &&
             g_trunk_create_file_interval > 0)
     {
-        INIT_SCHEDULE_ENTRY_EX(*entry, TRUNK_FILE_CREATOR_TASK_ID,
+        INIT_SCHEDULE_ENTRY_EX1(*entry, TRUNK_FILE_CREATOR_TASK_ID,
                 g_trunk_create_file_time_base,
                 g_trunk_create_file_interval,
-                trunk_create_trunk_file_advance, NULL);
-        entry->new_thread = true;
+                trunk_create_trunk_file_advance, NULL, true);
         entry++;
     }
 
     if (g_trunk_compress_binlog_interval > 0)
     {
-        INIT_SCHEDULE_ENTRY_EX(*entry, TRUNK_BINLOG_COMPRESS_TASK_ID,
+        INIT_SCHEDULE_ENTRY_EX1(*entry, TRUNK_BINLOG_COMPRESS_TASK_ID,
                 g_trunk_compress_binlog_time_base,
                 g_trunk_compress_binlog_interval,
-                trunk_binlog_compress_func, NULL);
-        entry->new_thread = true;
+                trunk_binlog_compress_func, NULL, true);
         entry++;
     }
 
