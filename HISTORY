@@ -1,6 +1,7 @@
 
-Version 6.12.0  2023-12-21
+Version 6.12.0  2024-01-11
  * bugfixed: parse ip and port use parseAddress instead of splitEx
+ * bugfixed: fdfs_server_info_to_string support IPv6 correctly
 
 Version 6.11.0  2023-12-10
  * support IPv6, config item: address_family in tracker.conf and storage.conf

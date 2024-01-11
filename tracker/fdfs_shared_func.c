@@ -500,6 +500,7 @@ int fdfs_parse_server_info_ex(char *server_str, const int default_port,
         else
         {
             snprintf(conn->ip_addr, sizeof(conn->ip_addr), "%s", hosts[i]);
+            conn->af = is_ipv6_addr(conn->ip_addr) ? AF_INET6 : AF_INET;
         }
 
         conn->port = port;
@@ -516,23 +517,58 @@ int fdfs_server_info_to_string_ex(const TrackerServerInfo *pServer,
 	const ConnectionInfo *conn;
 	const ConnectionInfo *end;
     int len;
+    bool is_ipv6;
 
     if (pServer->count <= 0)
     {
         *buff = '\0';
         return 0;
     }
+
     if (pServer->count == 1)
     {
-        return snprintf(buff, buffSize, "%s:%u",
-                pServer->connections[0].ip_addr, port);
+        if (is_ipv6_addr(pServer->connections[0].ip_addr))
+        {
+            return snprintf(buff, buffSize, "[%s]:%u",
+                    pServer->connections[0].ip_addr, port);
+        }
+        else
+        {
+            return snprintf(buff, buffSize, "%s:%u",
+                    pServer->connections[0].ip_addr, port);
+        }
     }
 
-    len = snprintf(buff, buffSize, "%s", pServer->connections[0].ip_addr);
+    is_ipv6 = false;
 	end = pServer->connections + pServer->count;
+	for (conn=pServer->connections; conn<end; conn++)
+    {
+        if (is_ipv6_addr(conn->ip_addr))
+        {
+            is_ipv6 = true;
+            break;
+        }
+    }
+
+    if (is_ipv6)
+    {
+        *buff = '[';
+        len = 1;
+    }
+    else
+    {
+        len = 0;
+    }
+
+    len += snprintf(buff + len, buffSize - len, "%s",
+            pServer->connections[0].ip_addr);
 	for (conn=pServer->connections + 1; conn<end; conn++)
     {
         len += snprintf(buff + len, buffSize - len, ",%s", conn->ip_addr);
+    }
+    if (is_ipv6 && len < buffSize - 2)
+    {
+        *(buff + len++) = ']';
     }
     len += snprintf(buff + len, buffSize - len, ":%d", port);
     return len;
