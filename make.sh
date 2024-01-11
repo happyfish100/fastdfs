@@ -22,9 +22,9 @@ else
 fi
 
 if [ -f /usr/include/fastcommon/_os_define.h ]; then
-  OS_BITS=$(fgrep OS_BITS /usr/include/fastcommon/_os_define.h | awk '{print $NF;}')
+  OS_BITS=$(grep -F OS_BITS /usr/include/fastcommon/_os_define.h | awk '{print $NF;}')
 elif [ -f /usr/local/include/fastcommon/_os_define.h ]; then
-  OS_BITS=$(fgrep OS_BITS /usr/local/include/fastcommon/_os_define.h | awk '{print $NF;}')
+  OS_BITS=$(grep -F OS_BITS /usr/local/include/fastcommon/_os_define.h | awk '{print $NF;}')
 else
   OS_BITS=64
 fi
@@ -105,7 +105,7 @@ elif [ "$uname" = "FreeBSD" ]; then
 fi
 
 if [ $have_pthread -eq 0 ] && [ "$uname" != "Darwin" ]; then
-   /sbin/ldconfig -p | fgrep libpthread.so > /dev/null
+   /sbin/ldconfig -p | grep -F libpthread.so > /dev/null
    if [ $? -eq 0 ]; then
       LIBS="$LIBS -lpthread"
    else
