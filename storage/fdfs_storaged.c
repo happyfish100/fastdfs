@@ -42,6 +42,7 @@
 #include "trunk_mem.h"
 #include "trunk_sync.h"
 #include "trunk_shared.h"
+#include "file_id_hashtable.h"
 
 #ifdef WITH_HTTPD
 #include "storage_httpd.h"
@@ -243,6 +244,13 @@ int main(int argc, char *argv[])
     }
 
     if ((result=setup_schedule_tasks()) != 0)
+    {
+		logCrit("exit abnormally!\n");
+		log_destroy();
+		return result;
+    }
+
+    if ((result=file_id_hashtable_init()) != 0)
     {
 		logCrit("exit abnormally!\n");
 		log_destroy();

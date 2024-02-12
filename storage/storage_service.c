@@ -40,6 +40,7 @@
 #include "storage_global.h"
 #include "fastcommon/base64.h"
 #include "fastcommon/hash.h"
+#include "fastcommon/ioevent_loop.h"
 #include "fdht_client.h"
 #include "fdfs_global.h"
 #include "tracker_client.h"
@@ -49,7 +50,7 @@
 #include "trunk_mem.h"
 #include "trunk_sync.h"
 #include "trunk_client.h"
-#include "fastcommon/ioevent_loop.h"
+#include "file_id_hashtable.h"
 
 //storage access log actions
 #define ACCESS_LOG_ACTION_UPLOAD_FILE    "upload"
@@ -1801,18 +1802,30 @@ static int storage_gen_filename(StorageClientInfo *pClientInfo,
 	int2buff(htonl(g_server_id_in_filename), buff);
 	int2buff(timestamp, buff+sizeof(int));
 	if ((file_size >> 32) != 0)
-	{
-		masked_file_size = file_size;
-	}
+    {
+        if (IS_TRUNK_FILE(file_size))
+        {
+            COMBINE_RAND_FILE_SIZE(file_size & 0xFFFFFFFF, masked_file_size);
+            masked_file_size |= FDFS_TRUNK_FILE_MARK_SIZE;
+        }
+        else if (IS_APPENDER_FILE(file_size))
+        {
+            COMBINE_RAND_FILE_SIZE(0, masked_file_size);
+            masked_file_size |= FDFS_APPENDER_FILE_SIZE;
+        }
+        else
+        {
+            masked_file_size = file_size;
+        }
+    }
 	else
 	{
 		COMBINE_RAND_FILE_SIZE(file_size, masked_file_size);
 	}
 	long2buff(masked_file_size, buff+sizeof(int)*2);
 	int2buff(crc32, buff+sizeof(int)*4);
-
-	base64_encode_ex(&g_fdfs_base64_context, buff, sizeof(int) * 5, encoded, \
-			filename_len, false);
+	base64_encode_ex(&g_fdfs_base64_context, buff, sizeof(int) * 5,
+            encoded, filename_len, false);
 
 	if (!pClientInfo->file_context.extra_info.upload.if_sub_path_alloced)
 	{
@@ -1903,9 +1916,12 @@ static int storage_get_filename(StorageClientInfo *pClientInfo,
 	int i;
 	int result;
 	int store_path_index;
+    string_t file_id;
+    char buff[128];
 
 	store_path_index = pClientInfo->file_context.extra_info.upload.
 				trunk_info.path.store_path_index;
+    file_id.str = buff;
 	for (i=0; i<10; i++)
 	{
 		if ((result=storage_gen_filename(pClientInfo, file_size,
@@ -1915,26 +1931,28 @@ static int storage_get_filename(StorageClientInfo *pClientInfo,
 			return result;
 		}
 
-		sprintf(full_filename, "%s/data/%s",
-			g_fdfs_store_paths.paths[store_path_index].path, filename);
-		if (!fileExists(full_filename))
-		{
-			break;
-		}
-
-		*full_filename = '\0';
+        file_id.len = snprintf(buff, sizeof(buff),
+                "%c"FDFS_STORAGE_DATA_DIR_FORMAT"/%s",
+                FDFS_STORAGE_STORE_PATH_PREFIX_CHAR,
+                store_path_index, filename);
+        if ((result=file_id_hashtable_add(&file_id)) == 0) //check duplicate
+        {
+            sprintf(full_filename, "%s/data/%s", g_fdfs_store_paths.
+                    paths[store_path_index].path, filename);
+            break;
+        }
 	}
 
-	if (*full_filename == '\0')
-	{
-		logError("file: "__FILE__", line: %d, "
-			"Can't generate uniq filename", __LINE__);
-		*filename = '\0';
-		*filename_len = 0;
-		return ENOENT;
-	}
+	if (result != 0)
+    {
+        logError("file: "__FILE__", line: %d, "
+                "Can't generate uniq filename", __LINE__);
+        *filename = '\0';
+        *filename_len = 0;
+        *full_filename = '\0';
+    }
 
-	return 0;
+	return result;
 }
 
 static int storage_client_create_link_wrapper(struct fast_task_info *pTask, \
@@ -2072,11 +2090,10 @@ static int storage_service_upload_file_done(struct fast_task_info *pTask)
 	*new_filename = '\0';
 	new_filename_len = 0;
 	if (pFileContext->extra_info.upload.file_type & _FILE_TYPE_TRUNK)
-	{
-		end_time = pFileContext->extra_info.upload.start_time;
-		COMBINE_RAND_FILE_SIZE(file_size, file_size_in_name);
-		file_size_in_name |= FDFS_TRUNK_FILE_MARK_SIZE;
-	}
+    {
+        end_time = pFileContext->extra_info.upload.start_time;
+        file_size_in_name = FDFS_TRUNK_FILE_MARK_SIZE | file_size;
+    }
 	else
 	{
 		struct stat stat_buf;
@@ -2093,10 +2110,9 @@ static int storage_service_upload_file_done(struct fast_task_info *pTask)
 		}
 
 		if (pFileContext->extra_info.upload.file_type & _FILE_TYPE_APPENDER)
-		{
-			COMBINE_RAND_FILE_SIZE(0, file_size_in_name);
-			file_size_in_name |= FDFS_APPENDER_FILE_SIZE;
-		}
+        {
+            file_size_in_name = FDFS_APPENDER_FILE_SIZE;
+        }
 		else
 		{
 			file_size_in_name = file_size;

@@ -27,6 +27,10 @@
 #define FDFS_STORAGE_FILE_OP_DELETE   'D'
 #define FDFS_STORAGE_FILE_OP_DISCARD  'd'
 
+#define FDFS_TRUNK_FILE_CREATOR_TASK_ID     88
+#define FDFS_TRUNK_BINLOG_COMPRESS_TASK_ID  89
+#define FDFS_CLEAR_EXPIRED_FILE_ID_TASK_ID  90
+
 typedef int (*TaskDealFunc)(struct fast_task_info *pTask);
 
 /* this clean func will be called when connection disconnected */

@@ -37,9 +37,6 @@
 #include "trunk_sync.h"
 #include "storage_param_getter.h"
 
-#define TRUNK_FILE_CREATOR_TASK_ID     88
-#define TRUNK_BINLOG_COMPRESS_TASK_ID  89
-
 static pthread_mutex_t reporter_thread_lock;
 
 /* save report thread ids */
@@ -1236,7 +1233,7 @@ static int do_set_trunk_server_myself(ConnectionInfo *pTrackerServer)
     if (g_trunk_create_file_advance &&
             g_trunk_create_file_interval > 0)
     {
-        INIT_SCHEDULE_ENTRY_EX1(*entry, TRUNK_FILE_CREATOR_TASK_ID,
+        INIT_SCHEDULE_ENTRY_EX1(*entry, FDFS_TRUNK_FILE_CREATOR_TASK_ID,
                 g_trunk_create_file_time_base,
                 g_trunk_create_file_interval,
                 trunk_create_trunk_file_advance, NULL, true);
@@ -1245,7 +1242,7 @@ static int do_set_trunk_server_myself(ConnectionInfo *pTrackerServer)
 
     if (g_trunk_compress_binlog_interval > 0)
     {
-        INIT_SCHEDULE_ENTRY_EX1(*entry, TRUNK_BINLOG_COMPRESS_TASK_ID,
+        INIT_SCHEDULE_ENTRY_EX1(*entry, FDFS_TRUNK_BINLOG_COMPRESS_TASK_ID,
                 g_trunk_compress_binlog_time_base,
                 g_trunk_compress_binlog_interval,
                 trunk_binlog_compress_func, NULL, true);
@@ -1273,12 +1270,12 @@ static void do_unset_trunk_server_myself(ConnectionInfo *pTrackerServer)
     if (g_trunk_create_file_advance &&
             g_trunk_create_file_interval > 0)
     {
-        sched_del_entry(TRUNK_FILE_CREATOR_TASK_ID);
+        sched_del_entry(FDFS_TRUNK_FILE_CREATOR_TASK_ID);
     }
 
     if (g_trunk_compress_binlog_interval > 0)
     {
-        sched_del_entry(TRUNK_BINLOG_COMPRESS_TASK_ID);
+        sched_del_entry(FDFS_TRUNK_BINLOG_COMPRESS_TASK_ID);
     }
 }
 

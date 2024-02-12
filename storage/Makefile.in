@@ -12,6 +12,7 @@ SHARED_OBJS = ../common/fdfs_global.o ../tracker/fdfs_shared_func.o \
               storage_sync_func.o storage_service.o storage_sync.o \
               storage_dio.o storage_ip_changed_dealer.o \
               storage_param_getter.o storage_disk_recovery.o \
+              file_id_hashtable.o  \
               trunk_mgr/trunk_mem.o trunk_mgr/trunk_shared.o \
               trunk_mgr/trunk_sync.o trunk_mgr/trunk_client.o \
               trunk_mgr/trunk_free_block_checker.o \
