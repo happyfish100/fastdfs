@@ -32,7 +32,9 @@ typedef struct file_id_info {
 typedef struct {
     FileIdInfo **buckets;
     uint32_t capacity;
+#if defined(DEBUG_FLAG)
     volatile uint32_t count;
+#endif
 } FileIdHashtable;
 
 typedef struct {
@@ -53,7 +55,7 @@ typedef struct {
 } FileIdHTableContext;
 
 static FileIdHTableContext file_id_ctx = {
-    {NULL, NULL}, {NULL, 0, 0}, {NULL, 0}
+    {NULL, NULL}, {NULL, 0}, {NULL, 0}
 };
 
 static int clear_expired_file_id_func(void *args);
@@ -102,8 +104,8 @@ int file_id_hashtable_init()
         return result;
     }
 
-    FAST_ALLOCATOR_INIT_REGION(regions[0],  0,  48, 48, 8 * 1024);
-    FAST_ALLOCATOR_INIT_REGION(regions[1], 48, 128,  8, 8 * 1024);
+    FAST_ALLOCATOR_INIT_REGION(regions[0],  0,  48, 48, 16 * 1024);
+    FAST_ALLOCATOR_INIT_REGION(regions[1], 48, 128,  8,  8 * 1024);
     if ((result=fast_allocator_init_ex(&file_id_ctx.acontext, "file-id",
                     obj_size, NULL, regions, 2, 0, 0.00, 0, true)) != 0)
     {
@@ -211,7 +213,10 @@ int file_id_hashtable_add(const string_t *file_id)
                 finfo->nexts.htable = current;
                 previous->nexts.htable = finfo;
             }
+
+#if defined(DEBUG_FLAG)
             FC_ATOMIC_INC(file_id_ctx.htable.count);
+#endif
 
         } while (0);
     } else {
@@ -248,7 +253,9 @@ static int file_id_hashtable_del(FileIdInfo *finfo)
             fc_string_equal(&finfo->file_id, &(*bucket)->file_id))
     {
         *bucket = (*bucket)->nexts.htable;
+#if defined(DEBUG_FLAG)
         FC_ATOMIC_DEC(file_id_ctx.htable.count);
+#endif
         result = 0;
     } else {
         result = ENOENT;
@@ -260,7 +267,9 @@ static int file_id_hashtable_del(FileIdInfo *finfo)
                     fc_string_equal(&finfo->file_id, &current->file_id))
             {
                 previous->nexts.htable = current->nexts.htable;
+#if defined(DEBUG_FLAG)
                 FC_ATOMIC_DEC(file_id_ctx.htable.count);
+#endif
                 result = 0;
                 break;
             }

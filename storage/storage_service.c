@@ -5299,7 +5299,7 @@ static int storage_upload_slave_file(struct fast_task_info *pTask)
 			store_path_index, filename);
 	}
 
-	snprintf(pFileContext->filename, sizeof(pFileContext->filename), \
+	snprintf(pFileContext->filename, sizeof(pFileContext->filename),
 		"%s/data/%s", g_fdfs_store_paths.paths[store_path_index].path, filename);
 	if (fileExists(pFileContext->filename))
 	{
