@@ -191,7 +191,7 @@ int tracker_load_from_conf_file(const char *filename)
         SF_SET_CONTEXT_INI_CONFIG_EX(config, fc_comm_type_sock, filename,
                 &iniContext, NULL, FDFS_TRACKER_SERVER_DEF_PORT,
                 FDFS_TRACKER_SERVER_DEF_PORT, DEFAULT_WORK_THREADS,
-                "buff_size");
+                "buff_size", 0);
         if ((result=sf_load_config_ex("trackerd", &config, fixed_buffer_size,
                         task_buffer_extra_size, need_set_run_by)) != 0)
         {

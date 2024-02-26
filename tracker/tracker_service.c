@@ -2908,9 +2908,9 @@ static int tracker_deal_server_list_all_groups(struct fast_task_info *pTask)
 
     expect_size = sizeof(TrackerHeader) + g_groups.count *
         sizeof(TrackerGroupStat);
-    if (expect_size > g_sf_global_vars.min_buff_size)
+    if (expect_size > g_sf_global_vars.net_buffer_cfg.min_buff_size)
     {
-        if (expect_size <= g_sf_global_vars.max_buff_size)
+        if (expect_size <= g_sf_global_vars.net_buffer_cfg.max_buff_size)
         {
             if ((result=free_queue_set_send_buffer_size(pTask, expect_size)) != 0)
             {
@@ -2926,7 +2926,7 @@ static int tracker_deal_server_list_all_groups(struct fast_task_info *pTask)
                     "you should increase max_buff_size in tracker.conf",
                     __LINE__, TRACKER_PROTO_CMD_SERVER_LIST_ALL_GROUPS,
                     pTask->client_ip, expect_size,
-                    g_sf_global_vars.max_buff_size);
+                    g_sf_global_vars.net_buffer_cfg.max_buff_size);
             pTask->send.ptr->length = sizeof(TrackerHeader);
             return ENOSPC;
         }

@@ -1,4 +1,7 @@
 
+Version 6.12.1  2024-02-26
+ * adapt to libserverframe 1.2.3
+
 Version 6.12.0  2024-02-12
  * bugfixed: parse ip and port use parseAddress instead of splitEx
  * bugfixed: fdfs_server_info_to_string support IPv6 correctly

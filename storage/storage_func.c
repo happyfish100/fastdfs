@@ -1508,7 +1508,7 @@ int storage_func_init(const char *filename)
         SF_SET_CONTEXT_INI_CONFIG_EX(config, fc_comm_type_sock, filename,
                 &iniContext, NULL, FDFS_STORAGE_SERVER_DEF_PORT,
                 FDFS_STORAGE_SERVER_DEF_PORT, DEFAULT_WORK_THREADS,
-                "buff_size");
+                "buff_size", 0);
         if ((result=sf_load_config_ex("storaged", &config, fixed_buffer_size,
                         task_buffer_extra_size, need_set_run_by)) != 0)
         {
@@ -1668,12 +1668,12 @@ int storage_func_init(const char *filename)
 				(g_sync_end_time.hour == 23 && \
 				g_sync_end_time.minute == 59));
 
-        if (g_sf_global_vars.min_buff_size < sizeof(TrackerHeader) +
-                TRUNK_BINLOG_BUFFER_SIZE)
+        if (g_sf_global_vars.net_buffer_cfg.min_buff_size <
+                sizeof(TrackerHeader) + TRUNK_BINLOG_BUFFER_SIZE)
         {
             logError("file: "__FILE__", line: %d, "
                     "item \"buff_size\" is too small, value: %d < %d!",
-                    __LINE__, g_sf_global_vars.min_buff_size,
+                    __LINE__, g_sf_global_vars.net_buffer_cfg.min_buff_size,
                     (int)sizeof(TrackerHeader) + TRUNK_BINLOG_BUFFER_SIZE);
             result = EINVAL;
             break;
