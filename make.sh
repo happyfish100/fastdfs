@@ -6,7 +6,7 @@ TARGET_SYSTEMD_PATH=$DESTDIR/usr/lib/systemd/system
 
 WITH_LINUX_SERVICE=1
 
-DEBUG_FLAG=1
+DEBUG_FLAG=0
 
 export CC=gcc
 CFLAGS='-Wall'
