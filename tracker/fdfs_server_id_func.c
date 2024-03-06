@@ -567,6 +567,7 @@ int fdfs_get_storage_ids_from_tracker_server(TrackerServerInfo *pTrackerServer)
 	TrackerHeader *pHeader;
 	ConnectionInfo *conn;
 	char out_buff[sizeof(TrackerHeader) + sizeof(FDFSFetchStorageIdsBody)];
+    char formatted_ip[FORMATTED_IP_SIZE];
 	char *p;
 	char *response;
 	struct data_info {
@@ -603,10 +604,11 @@ int fdfs_get_storage_ids_from_tracker_server(TrackerServerInfo *pTrackerServer)
 		if ((result=tcpsenddata_nb(conn->sock, out_buff,
 			sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
 		{
+            format_ip_address(conn->ip_addr, formatted_ip);
 			logError("file: "__FILE__", line: %d, "
 				"send data to tracker server %s:%u fail, "
 				"errno: %d, error info: %s", __LINE__,
-				conn->ip_addr, conn->port,
+				formatted_ip, conn->port,
 				result, STRERROR(result));
 		}
 		else
@@ -628,9 +630,10 @@ int fdfs_get_storage_ids_from_tracker_server(TrackerServerInfo *pTrackerServer)
 
 		if (in_bytes < 2 * sizeof(int))
 		{
+            format_ip_address(conn->ip_addr, formatted_ip);
 			logError("file: "__FILE__", line: %d, "
 				"tracker server %s:%u, recv data length: %d "
-				"is invalid", __LINE__, conn->ip_addr,
+				"is invalid", __LINE__, formatted_ip,
                 conn->port, (int)in_bytes);
 			result = EINVAL;
 			break;
@@ -640,10 +643,11 @@ int fdfs_get_storage_ids_from_tracker_server(TrackerServerInfo *pTrackerServer)
 		current_count = buff2int(response + sizeof(int));
 		if (total_count <= start_index)
 		{
+            format_ip_address(conn->ip_addr, formatted_ip);
 			logError("file: "__FILE__", line: %d, "
 				"tracker server %s:%u, total storage "
 				"count: %d is invalid, which <= start "
-				"index: %d", __LINE__, conn->ip_addr,
+				"index: %d", __LINE__, formatted_ip,
 				conn->port, total_count, start_index);
 			result = EINVAL;
 			break;
@@ -651,10 +655,11 @@ int fdfs_get_storage_ids_from_tracker_server(TrackerServerInfo *pTrackerServer)
 
 		if (current_count <= 0)
 		{
+            format_ip_address(conn->ip_addr, formatted_ip);
 			logError("file: "__FILE__", line: %d, "
 				"tracker server %s:%u, current storage "
 				"count: %d is invalid, which <= 0", __LINE__,
-                conn->ip_addr, conn->port, current_count);
+                formatted_ip, conn->port, current_count);
 			result = EINVAL;
 			break;
 		}
@@ -677,10 +682,11 @@ int fdfs_get_storage_ids_from_tracker_server(TrackerServerInfo *pTrackerServer)
 
 		if (list_count == MAX_REQUEST_LOOP)
 		{
+            format_ip_address(conn->ip_addr, formatted_ip);
 			logError("file: "__FILE__", line: %d, "
-				"response data from tracker "
-				"server %s:%u is too large",
-				__LINE__, conn->ip_addr, conn->port);
+				"response data from tracker server "
+				"%s:%u is too large", __LINE__,
+                formatted_ip, conn->port);
 			result = ENOSPC;
 			break;
 		}

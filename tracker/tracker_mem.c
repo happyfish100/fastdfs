@@ -1787,6 +1787,7 @@ int tracker_save_storages()
 	char trueFilename[MAX_PATH_SIZE];
 	char buff[4096];
 	char id_buff[128];
+    char formatted_ip[FORMATTED_IP_SIZE];
 	int fd;
 	int len;
 	FDFSGroupInfo **ppGroup;
@@ -1838,6 +1839,7 @@ int tracker_save_storages()
 			}
 
 			count++;
+            format_ip_address(FDFS_CURRENT_IP_ADDR(pStorage), formatted_ip);
 			len = sprintf(buff, \
 				"# storage %s:%u\n" \
 				"[%s"STORAGE_SECTION_NO_FORMAT"]\n" \
@@ -1894,8 +1896,7 @@ int tracker_save_storages()
 				"\t%s=%d\n" \
 				"\t%s=%d\n" \
 				"\t%s=%"PRId64"\n\n", \
-                FDFS_CURRENT_IP_ADDR(pStorage), \
-				pStorage->storage_port, \
+                formatted_ip, pStorage->storage_port, \
 				STORAGE_SECTION_NAME_PREFIX, count, id_buff, \
 				STORAGE_ITEM_GROUP_NAME, \
 				(*ppGroup)->group_name, \
@@ -3415,6 +3416,7 @@ int tracker_mem_delete_storage(FDFSGroupInfo *pGroup, const char *id)
 	FDFSStorageDetail *pStorageServer;
 	FDFSStorageDetail **ppServer;
 	FDFSStorageDetail **ppEnd;
+    char formatted_ip[FORMATTED_IP_SIZE];
 
 	pStorageServer = tracker_mem_get_storage(pGroup, id);
 	if (pStorageServer == NULL || pStorageServer->status == \
@@ -3445,10 +3447,14 @@ int tracker_mem_delete_storage(FDFSGroupInfo *pGroup, const char *id)
 		}
 	}
 
-    logDebug("file: "__FILE__", line: %d, "
-            "delete storage server: %s:%u, group: %s",
-            __LINE__, pStorageServer->ip_addrs.ips[0].address,
-            pStorageServer->storage_port, pGroup->group_name);
+    if (FC_LOG_BY_LEVEL(LOG_DEBUG)) {
+        format_ip_address(pStorageServer->ip_addrs.
+                ips[0].address, formatted_ip);
+        logDebug("file: "__FILE__", line: %d, "
+                "delete storage server: %s:%u, group: %s", __LINE__,
+                formatted_ip, pStorageServer->storage_port,
+                pGroup->group_name);
+    }
 
 	tracker_mem_clear_storage_fields(pStorageServer);
 
@@ -3840,6 +3846,7 @@ static int tracker_mem_get_sys_file_piece(ConnectionInfo *pTrackerServer, \
 {
 	char out_buff[sizeof(TrackerHeader) + 1 + FDFS_PROTO_PKG_LEN_SIZE];
 	char in_buff[TRACKER_MAX_PACKAGE_SIZE];
+    char formatted_ip[FORMATTED_IP_SIZE];
 	TrackerHeader *pHeader;
 	char *p;
 	char *pInBuff;
@@ -3859,13 +3866,12 @@ static int tracker_mem_get_sys_file_piece(ConnectionInfo *pTrackerServer, \
 	if ((result=tcpsenddata_nb(pTrackerServer->sock, out_buff, \
 			sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"send data to tracker server %s:%u fail, " \
-			"errno: %d, error info: %s", __LINE__, \
-			pTrackerServer->ip_addr, \
-			pTrackerServer->port, \
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+		logError("file: "__FILE__", line: %d, "
+			"send data to tracker server %s:%u fail, "
+			"errno: %d, error info: %s", __LINE__,
+            formatted_ip, pTrackerServer->port,
 			result, STRERROR(result));
-
 		return (result == ENOENT ? EACCES : result);
 	}
 
@@ -3882,11 +3888,12 @@ static int tracker_mem_get_sys_file_piece(ConnectionInfo *pTrackerServer, \
 
 	if (in_bytes < FDFS_PROTO_PKG_LEN_SIZE)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%u response data " \
-			"length: %"PRId64" is invalid, " \
-			"expect length >= %d.", __LINE__, \
-			pTrackerServer->ip_addr, pTrackerServer->port, \
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+		logError("file: "__FILE__", line: %d, "
+			"tracker server %s:%u response data "
+			"length: %"PRId64" is invalid, "
+			"expect length >= %d.", __LINE__,
+			formatted_ip, pTrackerServer->port,
 			in_bytes, FDFS_PROTO_PKG_LEN_SIZE);
 		return EINVAL;
 	}
@@ -3896,20 +3903,21 @@ static int tracker_mem_get_sys_file_piece(ConnectionInfo *pTrackerServer, \
 
 	if (*file_size < 0)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%u, file size: %"PRId64\
-			" < 0", __LINE__, pTrackerServer->ip_addr, \
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+		logError("file: "__FILE__", line: %d, "
+			"tracker server %s:%u, file size: %"PRId64
+			" < 0", __LINE__, formatted_ip,
 			pTrackerServer->port, *file_size);
 		return EINVAL;
 	}
 
 	if (*file_size > 0 && write_bytes == 0)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%u, file size: %"PRId64\
-			" > 0, but file content is empty", __LINE__, \
-			pTrackerServer->ip_addr, pTrackerServer->port, \
-			*file_size);
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+		logError("file: "__FILE__", line: %d, "
+			"tracker server %s:%u, file size: %"PRId64
+			" > 0, but file content is empty", __LINE__,
+			formatted_ip, pTrackerServer->port, *file_size);
 		return EINVAL;
 	}
 
@@ -4268,6 +4276,7 @@ static int tracker_mem_get_tracker_server(FDFSStorageJoinBody *pJoinBody, \
 	TrackerServerInfo *pTrackerEnd;
 	TrackerRunningStatus *pStatus;
 	TrackerRunningStatus trackerStatus[FDFS_MAX_TRACKERS];
+    char formatted_ip[FORMATTED_IP_SIZE];
 	int count;
 	int result;
 	int r;
@@ -4309,17 +4318,20 @@ static int tracker_mem_get_tracker_server(FDFSStorageJoinBody *pJoinBody, \
 			tracker_mem_cmp_tracker_running_status);
 	}
 
-	for (i=0; i<count; i++)
-	{
-		logDebug("file: "__FILE__", line: %d, "
-			"%s:%u leader: %d, running time: %d, "
-			"restart interval: %d", __LINE__,
-			trackerStatus[i].pTrackerServer->connections[0].ip_addr,
-			trackerStatus[i].pTrackerServer->connections[0].port,
-			trackerStatus[i].if_leader,
-			trackerStatus[i].running_time,
-			trackerStatus[i].restart_interval);
-	}
+    if (FC_LOG_BY_LEVEL(LOG_DEBUG)) {
+        for (i=0; i<count; i++)
+        {
+            format_ip_address(trackerStatus[i].pTrackerServer->
+                    connections[0].ip_addr, formatted_ip);
+            logDebug("file: "__FILE__", line: %d, "
+                    "%s:%u leader: %d, running time: %d, "
+                    "restart interval: %d", __LINE__, formatted_ip,
+                    trackerStatus[i].pTrackerServer->connections[0].port,
+                    trackerStatus[i].if_leader,
+                    trackerStatus[i].running_time,
+                    trackerStatus[i].restart_interval);
+        }
+    }
 
 	//copy the last
 	memcpy(pTrackerStatus, trackerStatus + (count - 1), \
@@ -4335,6 +4347,7 @@ static int tracker_mem_get_sys_files_from_others(FDFSStorageJoinBody *pJoinBody,
 	TrackerServerInfo *pTrackerServer;
 	FDFSGroups newGroups;
 	FDFSGroups tempGroups;
+    char formatted_ip[FORMATTED_IP_SIZE];
 
 	if (pJoinBody->tracker_count == 0)
 	{
@@ -4352,11 +4365,12 @@ static int tracker_mem_get_sys_files_from_others(FDFSStorageJoinBody *pJoinBody,
 		if (tracker_mem_cmp_tracker_running_status(pRunningStatus,
 							&trackerStatus) >= 0)
 		{
+            format_ip_address(trackerStatus.pTrackerServer->
+                    connections[0].ip_addr, formatted_ip);
 			logDebug("file: "__FILE__", line: %d, "
 				"%s:%u running time: %d, restart interval: %d, "
 				"my running time: %d, restart interval: %d, "
-				"do not need sync system files", __LINE__,
-				trackerStatus.pTrackerServer->connections[0].ip_addr,
+				"do not need sync system files", __LINE__, formatted_ip,
 				trackerStatus.pTrackerServer->connections[0].port,
 				trackerStatus.running_time,
 				trackerStatus.restart_interval,
@@ -4374,10 +4388,10 @@ static int tracker_mem_get_sys_files_from_others(FDFSStorageJoinBody *pJoinBody,
 		return result;
 	}
 
+    format_ip_address(pTrackerServer->connections[0].ip_addr, formatted_ip);
 	logInfo("file: "__FILE__", line: %d, "
-		"sys files loaded from tracker server %s:%u",
-		__LINE__, pTrackerServer->connections[0].ip_addr,
-		pTrackerServer->connections[0].port);
+		"sys files loaded from tracker server %s:%u", __LINE__,
+        formatted_ip, pTrackerServer->connections[0].port);
 
 	memset(&newGroups, 0, sizeof(newGroups));
 	newGroups.store_lookup = g_groups.store_lookup;
@@ -4419,6 +4433,7 @@ int tracker_mem_add_group_and_storage(TrackerClientInfo *pClientInfo,
 	FDFSStorageDetail **ppServer;
 	FDFSStorageDetail **ppEnd;
 	FDFSStorageId storage_id;
+    char formatted_ip[FORMATTED_IP_SIZE];
 
 	tracker_mem_file_lock();
 
@@ -4689,12 +4704,13 @@ int tracker_mem_add_group_and_storage(TrackerClientInfo *pClientInfo,
 			pJoinBody->status == FDFS_STORAGE_STATUS_IP_CHANGED || \
 			pJoinBody->status == FDFS_STORAGE_STATUS_NONE)
 			{
-				logError("file: "__FILE__", line: %d, " \
-					"client ip: %s:%u, invalid storage " \
-					"status %d, in the group \"%s\"", \
-					__LINE__, ip_addr, \
-					pJoinBody->storage_port, \
-					pJoinBody->status, \
+                format_ip_address(ip_addr, formatted_ip);
+				logError("file: "__FILE__", line: %d, "
+					"client ip: %s:%u, invalid storage "
+					"status %d, in the group \"%s\"",
+					__LINE__, formatted_ip,
+					pJoinBody->storage_port,
+					pJoinBody->status,
 					pJoinBody->group_name);
 				return EFAULT;
 			}
@@ -4891,6 +4907,7 @@ int tracker_mem_sync_storages(FDFSGroupInfo *pGroup, \
 	FDFSStorageDetail target_storage;
 	FDFSStorageDetail *pTargetStorage;
 	FDFSStorageDetail **ppFound;
+    char formatted_ip[FORMATTED_IP_SIZE];
 
 	if ((result=pthread_mutex_lock(&mem_thread_lock)) != 0)
 	{
@@ -4938,11 +4955,12 @@ int tracker_mem_sync_storages(FDFSGroupInfo *pGroup, \
 					continue;
 				}
 
+                format_ip_address(FDFS_CURRENT_IP_ADDR(*ppFound),
+                        formatted_ip);
                 logWarning("file: "__FILE__", line: %d, "
                         "storage server: %s:%u, dest status: %d, "
                         "my status: %d, should change my status!",
-                        __LINE__, FDFS_CURRENT_IP_ADDR(*ppFound),
-                        (*ppFound)->storage_port,
+                        __LINE__, formatted_ip, (*ppFound)->storage_port,
                         pServer->status, (*ppFound)->status);
 
 				if (pServer->status == \
@@ -5036,6 +5054,7 @@ static int _storage_get_trunk_binlog_size(
 	ConnectionInfo *pStorageServer, int64_t *file_size)
 {
 	char out_buff[sizeof(TrackerHeader)];
+    char formatted_ip[FORMATTED_IP_SIZE];
 	char in_buff[8];
 	TrackerHeader *pHeader;
 	char *pInBuff;
@@ -5048,11 +5067,11 @@ static int _storage_get_trunk_binlog_size(
 	if ((result=tcpsenddata_nb(pStorageServer->sock, out_buff, \
 			sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"storage server %s:%u, send data fail, " \
-			"errno: %d, error info: %s.", \
-			__LINE__, pStorageServer->ip_addr, \
-			pStorageServer->port, \
+        format_ip_address(pStorageServer->ip_addr, formatted_ip);
+		logError("file: "__FILE__", line: %d, "
+			"storage server %s:%u, send data fail, "
+			"errno: %d, error info: %s.", __LINE__,
+            formatted_ip, pStorageServer->port,
 			result, STRERROR(result));
 		return result;
 	}
@@ -5069,10 +5088,10 @@ static int _storage_get_trunk_binlog_size(
 
 	if (in_bytes != sizeof(in_buff))
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"storage server %s:%u, recv body length: " \
-			"%"PRId64" != %d",  \
-			__LINE__, pStorageServer->ip_addr, \
+        format_ip_address(pStorageServer->ip_addr, formatted_ip);
+		logError("file: "__FILE__", line: %d, "
+			"storage server %s:%u, recv body length: "
+			"%"PRId64" != %d", __LINE__, formatted_ip,
 			pStorageServer->port, in_bytes, (int)sizeof(in_buff));
 		return EINVAL;
 	}
@@ -5086,6 +5105,7 @@ static int tracker_mem_get_trunk_binlog_size(
 {
 	ConnectionInfo storage_server;
 	ConnectionInfo *conn;
+    char formatted_ip[FORMATTED_IP_SIZE];
 	int result;
 
 	*file_size = 0;
@@ -5100,11 +5120,13 @@ static int tracker_mem_get_trunk_binlog_size(
 	result = _storage_get_trunk_binlog_size(conn, file_size);
 	tracker_close_connection_ex(conn, result != 0);
 
+    if (FC_LOG_BY_LEVEL(LOG_DEBUG)) {
+        format_ip_address(storage_server.ip_addr, formatted_ip);
+        logDebug("file: "__FILE__", line: %d, "
+                "storage %s:%u, trunk binlog file size: %"PRId64,
+                __LINE__, formatted_ip, storage_server.port, *file_size);
+    }
 
-	logDebug("file: "__FILE__", line: %d, " \
-		"storage %s:%u, trunk binlog file size: %"PRId64, \
-		__LINE__, storage_server.ip_addr, storage_server.port, \
-		*file_size);
 	return result;
 }
 
@@ -5240,6 +5262,7 @@ static int tracker_set_trunk_server_and_log(FDFSGroupInfo *pGroup, \
 static int tracker_mem_do_set_trunk_server(FDFSGroupInfo *pGroup, 
 	FDFSStorageDetail *pTrunkServer, const bool save)
 {
+    char formatted_ip[FORMATTED_IP_SIZE];
 	int result;
 
 	if (*(pGroup->last_trunk_server_id) != '\0' && 
@@ -5261,11 +5284,12 @@ static int tracker_mem_do_set_trunk_server(FDFSGroupInfo *pGroup,
 	pGroup->trunk_chg_count++;
 	g_trunk_server_chg_count++;
 
+    format_ip_address(FDFS_CURRENT_IP_ADDR(pGroup->
+                pTrunkServer), formatted_ip);
 	logInfo("file: "__FILE__", line: %d, "
 		"group: %s, trunk server set to %s(%s:%u)", __LINE__,
 		pGroup->group_name, pGroup->pTrunkServer->id,
-		FDFS_CURRENT_IP_ADDR(pGroup->pTrunkServer),
-        pGroup->storage_port);
+        formatted_ip, pGroup->storage_port);
 	if (save)
 	{
 		return tracker_save_groups();
@@ -6108,6 +6132,7 @@ int tracker_mem_check_alive(void *arg)
 	FDFSGroupInfo **ppGroup;
 	FDFSGroupInfo **ppGroupEnd;
 	FDFSStorageDetail *deactiveServers[FDFS_MAX_SERVERS_EACH_GROUP];
+    char formatted_ip[FORMATTED_IP_SIZE];
 	int deactiveCount;
 	time_t current_time;
 
@@ -6139,6 +6164,7 @@ int tracker_mem_check_alive(void *arg)
 	ppServerEnd = deactiveServers + deactiveCount;
 	for (ppServer=deactiveServers; ppServer<ppServerEnd; ppServer++)
 	{
+        format_ip_address(FDFS_CURRENT_IP_ADDR(*ppServer), formatted_ip);
 		(*ppServer)->status = FDFS_STORAGE_STATUS_OFFLINE;
 		tracker_mem_deactive_store_server(*ppGroup, *ppServer);
 		if (g_use_storage_id)
@@ -6146,7 +6172,7 @@ int tracker_mem_check_alive(void *arg)
 			logInfo("file: "__FILE__", line: %d, "
 				"storage server %s(%s:%u) idle too long, "
 				"status change to offline!", __LINE__,
-				(*ppServer)->id, FDFS_CURRENT_IP_ADDR(*ppServer),
+				(*ppServer)->id, formatted_ip,
 				(*ppGroup)->storage_port);
 		}
 		else
@@ -6154,8 +6180,7 @@ int tracker_mem_check_alive(void *arg)
 			logInfo("file: "__FILE__", line: %d, "
 				"storage server %s:%u idle too long, "
 				"status change to offline!", __LINE__,
-				FDFS_CURRENT_IP_ADDR(*ppServer),
-                (*ppGroup)->storage_port);
+                formatted_ip, (*ppGroup)->storage_port);
 		}
 	}
 	}
@@ -6201,12 +6226,13 @@ int tracker_mem_check_alive(void *arg)
 					g_check_active_interval;
 	    	if (last_beat_interval > check_trunk_interval)
 		{
+            format_ip_address(FDFS_CURRENT_IP_ADDR((*ppGroup)->
+                        pTrunkServer), formatted_ip);
 			logInfo("file: "__FILE__", line: %d, "
 				"trunk server %s(%s:%u) offline because idle "
 				"time: %d s > threshold: %d s, should "
 				"re-select trunk server", __LINE__,
-				(*ppGroup)->pTrunkServer->id,
-				FDFS_CURRENT_IP_ADDR((*ppGroup)->pTrunkServer),
+				(*ppGroup)->pTrunkServer->id, formatted_ip,
 				(*ppGroup)->storage_port, last_beat_interval,
 				check_trunk_interval);
 

@@ -43,27 +43,27 @@ int fdfs_recv_header_ex(ConnectionInfo *pTrackerServer,
         const int network_timeout, int64_t *in_bytes)
 {
 	TrackerHeader resp;
+    char formatted_ip[FORMATTED_IP_SIZE];
 	int result;
 
 	if ((result=tcprecvdata_nb(pTrackerServer->sock, &resp,
 		sizeof(resp), network_timeout)) != 0)
-	{
-		logError("file: "__FILE__", line: %d, "
-			"server: %s:%u, recv data fail, "
-			"errno: %d, error info: %s",
-			__LINE__, pTrackerServer->ip_addr,
-			pTrackerServer->port,
-			result, STRERROR(result));
-		*in_bytes = 0;
-		return result;
-	}
+    {
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+        logError("file: "__FILE__", line: %d, "
+                "server: %s:%u, recv data fail, errno: %d, error info: %s",
+                __LINE__, formatted_ip, pTrackerServer->port,
+                result, STRERROR(result));
+        *in_bytes = 0;
+        return result;
+    }
 
 	if (resp.status != 0)
 	{
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
 		logError("file: "__FILE__", line: %d, "
-			"server: %s:%u, response status %d != 0",
-			__LINE__, pTrackerServer->ip_addr,
-			pTrackerServer->port, resp.status);
+			"server: %s:%u, response status %d != 0", __LINE__,
+            formatted_ip, pTrackerServer->port, resp.status);
 
 		*in_bytes = 0;
 		return resp.status;
@@ -71,15 +71,14 @@ int fdfs_recv_header_ex(ConnectionInfo *pTrackerServer,
 
 	*in_bytes = buff2long(resp.pkg_len);
 	if (*in_bytes < 0)
-	{
-		logError("file: "__FILE__", line: %d, "
-			"server: %s:%u, recv package size "
-			"%"PRId64" is not correct",
-			__LINE__, pTrackerServer->ip_addr,
-			pTrackerServer->port, *in_bytes);
-		*in_bytes = 0;
-		return EINVAL;
-	}
+    {
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+        logError("file: "__FILE__", line: %d, "
+                "server: %s:%u, recv package size %"PRId64" is not correct",
+                __LINE__, formatted_ip, pTrackerServer->port, *in_bytes);
+        *in_bytes = 0;
+        return EINVAL;
+    }
 
 	return resp.status;
 }
@@ -90,6 +89,7 @@ int fdfs_recv_response(ConnectionInfo *pTrackerServer, \
 {
 	int result;
 	bool bMalloced;
+    char formatted_ip[FORMATTED_IP_SIZE];
 
 	result = fdfs_recv_header(pTrackerServer, in_bytes);
 	if (result != 0)
@@ -120,36 +120,35 @@ int fdfs_recv_response(ConnectionInfo *pTrackerServer, \
 	else 
 	{
 		if (*in_bytes > buff_size)
-		{
-			logError("file: "__FILE__", line: %d, " \
-				"server: %s:%u, recv body bytes: " \
-				"%"PRId64" exceed max: %d", \
-				__LINE__, pTrackerServer->ip_addr, \
-				pTrackerServer->port, *in_bytes, buff_size);
-			*in_bytes = 0;
-			return ENOSPC;
-		}
+        {
+            format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+            logError("file: "__FILE__", line: %d, "
+                    "server: %s:%u, recv body bytes: %"PRId64" exceed "
+                    "max: %d", __LINE__, formatted_ip, pTrackerServer->port,
+                    *in_bytes, buff_size);
+            *in_bytes = 0;
+            return ENOSPC;
+        }
 
 		bMalloced = false;
 	}
 
-	if ((result=tcprecvdata_nb(pTrackerServer->sock, *buff, \
+	if ((result=tcprecvdata_nb(pTrackerServer->sock, *buff,
 		*in_bytes, SF_G_NETWORK_TIMEOUT)) != 0)
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"tracker server: %s:%u, recv data fail, " \
-			"errno: %d, error info: %s", \
-			__LINE__, pTrackerServer->ip_addr, \
-			pTrackerServer->port, \
-			result, STRERROR(result));
-		*in_bytes = 0;
-		if (bMalloced)
-		{
-			free(*buff);
-			*buff = NULL;
-		}
-		return result;
-	}
+    {
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+        logError("file: "__FILE__", line: %d, "
+                "tracker server: %s:%u, recv data fail, errno: %d, "
+                "error info: %s", __LINE__, formatted_ip,
+                pTrackerServer->port, result, STRERROR(result));
+        *in_bytes = 0;
+        if (bMalloced)
+        {
+            free(*buff);
+            *buff = NULL;
+        }
+        return result;
+    }
 
 	return 0;
 }
@@ -157,20 +156,20 @@ int fdfs_recv_response(ConnectionInfo *pTrackerServer, \
 int fdfs_quit(ConnectionInfo *pTrackerServer)
 {
 	TrackerHeader header;
+    char formatted_ip[FORMATTED_IP_SIZE];
 	int result;
 
 	memset(&header, 0, sizeof(header));
 	header.cmd = FDFS_PROTO_CMD_QUIT;
-	result = tcpsenddata_nb(pTrackerServer->sock, &header, \
+	result = tcpsenddata_nb(pTrackerServer->sock, &header,
 			sizeof(header), SF_G_NETWORK_TIMEOUT);
 	if(result != 0)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"tracker server: %s:%u, send data fail, " \
-			"errno: %d, error info: %s", \
-			__LINE__, pTrackerServer->ip_addr, \
-			pTrackerServer->port, \
-			result, STRERROR(result));
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+		logError("file: "__FILE__", line: %d, "
+			"tracker server: %s:%u, send data fail, errno: %d, "
+            "error info: %s", __LINE__, formatted_ip,
+			pTrackerServer->port, result, STRERROR(result));
 		return result;
 	}
 
@@ -596,6 +595,7 @@ static int fdfs_do_parameter_req(ConnectionInfo *pTrackerServer,
         char *buff, const int buff_size)
 {
     char out_buff[sizeof(TrackerHeader)];
+    char formatted_ip[FORMATTED_IP_SIZE];
     TrackerHeader *pHeader;
     int64_t in_bytes;
     int result;
@@ -606,10 +606,11 @@ static int fdfs_do_parameter_req(ConnectionInfo *pTrackerServer,
     if((result=tcpsenddata_nb(pTrackerServer->sock, out_buff,
                     sizeof(TrackerHeader), SF_G_NETWORK_TIMEOUT)) != 0)
     {
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
         logError("file: "__FILE__", line: %d, "
                 "tracker server %s:%u, send data fail, "
-                "errno: %d, error info: %s.", __LINE__,
-                pTrackerServer->ip_addr, pTrackerServer->port,
+                "errno: %d, error info: %s", __LINE__,
+                formatted_ip, pTrackerServer->port,
                 result, STRERROR(result));
         return result;
     }
@@ -622,10 +623,11 @@ static int fdfs_do_parameter_req(ConnectionInfo *pTrackerServer,
 
     if (in_bytes >= buff_size)
     {
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
         logError("file: "__FILE__", line: %d, "
                 "server: %s:%u, recv body bytes: "
                 "%"PRId64" exceed max: %d", __LINE__,
-                pTrackerServer->ip_addr, pTrackerServer->port,
+                formatted_ip, pTrackerServer->port,
                 in_bytes, buff_size);
         return ENOSPC;
     }
@@ -646,6 +648,7 @@ int fdfs_get_ini_context_from_tracker_ex(TrackerServerGroup *pTrackerGroup,
 	TrackerServerInfo *pTServer;
 	TrackerServerInfo trackerServer;
 	char in_buff[1024];
+    char formatted_ip[FORMATTED_IP_SIZE];
 	int result;
 	int leader_index;
 	int i;
@@ -698,11 +701,13 @@ int fdfs_get_ini_context_from_tracker_ex(TrackerServerGroup *pTrackerGroup,
 
             if (conn == NULL)
             {
+                format_ip_address(pTServer->connections[0].
+                        ip_addr, formatted_ip);
                 logError("file: "__FILE__", line: %d, "
                         "connect to server %s:%u fail, errno: %d, "
-                        "error info: %s", __LINE__, pTServer->connections[0].
-                        ip_addr, pTServer->connections[0].port,
-                        result, STRERROR(result));
+                        "error info: %s", __LINE__, formatted_ip,
+                        pTServer->connections[0].port, result,
+                        STRERROR(result));
                 continue;
             }
 
@@ -715,9 +720,10 @@ int fdfs_get_ini_context_from_tracker_ex(TrackerServerGroup *pTrackerGroup,
                 return result;
             }
 
+            format_ip_address(conn->ip_addr, formatted_ip);
             logError("file: "__FILE__", line: %d, "
                     "get parameters from tracker server %s:%u fail",
-                    __LINE__, conn->ip_addr, conn->port);
+                    __LINE__, formatted_ip, conn->port);
             close(conn->sock);
             sleep(1);
         }
@@ -735,6 +741,7 @@ int fdfs_get_tracker_status(TrackerServerInfo *pTrackerServer,
 		TrackerRunningStatus *pStatus)
 {
 	char in_buff[1 + 2 * FDFS_PROTO_PKG_LEN_SIZE];
+    char formatted_ip[FORMATTED_IP_SIZE];
 	TrackerHeader header;
 	char *pInBuff;
 	ConnectionInfo *conn;
@@ -754,10 +761,10 @@ int fdfs_get_tracker_status(TrackerServerInfo *pTrackerServer,
 	if ((result=tcpsenddata_nb(conn->sock, &header,
 			sizeof(header), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
+        format_ip_address(conn->ip_addr, formatted_ip);
 		logError("file: "__FILE__", line: %d, "
-			"send data to tracker server %s:%u fail, "
-			"errno: %d, error info: %s", __LINE__,
-			conn->ip_addr, conn->port,
+			"send data to tracker server %s:%u fail, errno: %d, "
+			"error info: %s", __LINE__, formatted_ip, conn->port,
 			result, STRERROR(result));
 
 		result = (result == ENOENT ? EACCES : result);
@@ -774,11 +781,11 @@ int fdfs_get_tracker_status(TrackerServerInfo *pTrackerServer,
 
 	if (in_bytes != sizeof(in_buff))
 	{
+        format_ip_address(conn->ip_addr, formatted_ip);
 		logError("file: "__FILE__", line: %d, "
-			"tracker server %s:%u response data "
-			"length: %"PRId64" is invalid, "
-			"expect length: %d.", __LINE__,
-			conn->ip_addr, conn->port,
+			"tracker server %s:%u response data length: "
+			"%"PRId64" is invalid, expect length: %d",
+            __LINE__, formatted_ip, conn->port,
 			in_bytes, (int)sizeof(in_buff));
 		result = EINVAL;
 		break;

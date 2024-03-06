@@ -645,6 +645,7 @@ static int tracker_deal_notify_next_leader(struct fast_task_info *pTask)
 	char *pIpAndPort;
 	char *ipAndPort[2];
 	ConnectionInfo leader;
+    char formatted_ip[FORMATTED_IP_SIZE];
 	int server_index;
 	
 	if (pTask->recv.ptr->length - sizeof(TrackerHeader) !=
@@ -675,14 +676,15 @@ static int tracker_deal_notify_next_leader(struct fast_task_info *pTask)
 	pTask->send.ptr->length = sizeof(TrackerHeader);
 	strcpy(leader.ip_addr, ipAndPort[0]);
 	leader.port = atoi(ipAndPort[1]);
-	server_index = fdfs_get_tracker_leader_index_ex(&g_tracker_servers, \
+	server_index = fdfs_get_tracker_leader_index_ex(&g_tracker_servers,
 					leader.ip_addr, leader.port);
 	if (server_index < 0)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"client ip: %s, leader %s:%u not exist", \
-			__LINE__, pTask->client_ip, \
-			leader.ip_addr, leader.port);
+        format_ip_address(leader.ip_addr, formatted_ip);
+		logError("file: "__FILE__", line: %d, "
+			"client ip: %s, leader %s:%u not exist",
+			__LINE__, pTask->client_ip,
+			formatted_ip, leader.port);
 		return ENOENT;
 	}
 
@@ -693,11 +695,11 @@ static int tracker_deal_notify_next_leader(struct fast_task_info *pTask)
 		g_tracker_servers.leader_index = -1;
 		g_tracker_leader_chg_count++;
 
-		logError("file: "__FILE__", line: %d, " \
-			"client ip: %s, two leaders occur, " \
-			"new leader is %s:%u", \
-			__LINE__, pTask->client_ip, \
-			leader.ip_addr, leader.port);
+        format_ip_address(leader.ip_addr, formatted_ip);
+		logError("file: "__FILE__", line: %d, "
+			"client ip: %s, two leaders occur, new leader "
+			"is %s:%u", __LINE__, pTask->client_ip,
+            formatted_ip, leader.port);
 		return EINVAL;
 	}
 
@@ -710,6 +712,7 @@ static int tracker_deal_commit_next_leader(struct fast_task_info *pTask)
 	char *pIpAndPort;
 	char *ipAndPort[2];
 	ConnectionInfo leader;
+    char formatted_ip[FORMATTED_IP_SIZE];
 	int server_index;
     bool leader_self;
 	
@@ -745,18 +748,20 @@ static int tracker_deal_commit_next_leader(struct fast_task_info *pTask)
 					leader.ip_addr, leader.port);
 	if (server_index < 0)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"client ip: %s, leader %s:%u not exist", \
-			__LINE__, pTask->client_ip, \
-			leader.ip_addr, leader.port);
+        format_ip_address(leader.ip_addr, formatted_ip);
+		logError("file: "__FILE__", line: %d, "
+			"client ip: %s, leader %s:%u not exist",
+			__LINE__, pTask->client_ip,
+			formatted_ip, leader.port);
 		return ENOENT;
 	}
 	if (server_index != g_next_leader_index)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"client ip: %s, can't commit leader %s:%u", \
-			__LINE__, pTask->client_ip, \
-			leader.ip_addr, leader.port);
+        format_ip_address(leader.ip_addr, formatted_ip);
+		logError("file: "__FILE__", line: %d, "
+			"client ip: %s, can't commit leader %s:%u",
+			__LINE__, pTask->client_ip,
+			formatted_ip, leader.port);
 		return EINVAL;
 	}
 
@@ -984,6 +989,7 @@ static int tracker_deal_get_my_ip(struct fast_task_info *pTask)
 static int tracker_deal_get_storage_group_name(struct fast_task_info *pTask)
 {
 	char ip_addr[IP_ADDRESS_SIZE];
+    char formatted_ip[FORMATTED_IP_SIZE];
 	FDFSStorageIdInfo *pFDFSStorageIdInfo;
     char *pPort;
     int port;
@@ -1038,9 +1044,10 @@ static int tracker_deal_get_storage_group_name(struct fast_task_info *pTask)
     pFDFSStorageIdInfo = fdfs_get_storage_id_by_ip_port(ip_addr, port);
     if (pFDFSStorageIdInfo == NULL)
     {
+        format_ip_address(ip_addr, formatted_ip);
         logError("file: "__FILE__", line: %d, "
                 "client ip: %s, can't get group name for storage %s:%u",
-                __LINE__, pTask->client_ip, ip_addr, port);
+                __LINE__, pTask->client_ip, formatted_ip, port);
         pTask->send.ptr->length = sizeof(TrackerHeader);
         return ENOENT;
     }

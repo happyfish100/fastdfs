@@ -1,6 +1,8 @@
 
-Version 6.12.1  2024-02-26
+Version 6.12.1  2024-03-06
  * adapt to libserverframe 1.2.3
+ * bugfixed: notify_leader_changed support IPv6 correctly
+ * log square quoted IPv6 address
 
 Version 6.12.0  2024-02-12
  * bugfixed: parse ip and port use parseAddress instead of splitEx

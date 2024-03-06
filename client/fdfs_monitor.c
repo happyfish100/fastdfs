@@ -35,12 +35,13 @@ static void usage(char *argv[])
 
 int main(int argc, char *argv[])
 {
+    char formatted_ip[FORMATTED_IP_SIZE];
 	char *conf_filename;
-	int result;
 	char *op_type;
+	char *group_name;
 	char *tracker_server;
 	int arg_index;
-	char *group_name;
+	int result;
 
 	if (argc < 2)
 	{
@@ -155,7 +156,9 @@ int main(int argc, char *argv[])
 		fdfs_client_destroy();
 		return errno != 0 ? errno : ECONNREFUSED;
 	}
-	printf("\ntracker server is %s:%u\n\n", pTrackerServer->ip_addr, pTrackerServer->port);
+    format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+	printf("\ntracker server is %s:%u\n\n", formatted_ip,
+            pTrackerServer->port);
 
 	if (arg_index < argc)
 	{

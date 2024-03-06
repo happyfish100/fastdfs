@@ -40,6 +40,7 @@ void storage_sync_connect_storage_server_ex(const FDFSStorageBrief *pStorage,
     FDFSMultiIP ip_addrs;
     FDFSMultiIP *multi_ip;
     const char *bind_addr;
+    char formatted_ip[FORMATTED_IP_SIZE];
 
     multi_ip = NULL;
     if (g_use_storage_id)
@@ -118,10 +119,12 @@ void storage_sync_connect_storage_server_ex(const FDFSStorageBrief *pStorage,
                             ", continuous fail count: %d",
                             nContinuousFail);
                 }
+
+                format_ip_address(conn->ip_addr, formatted_ip);
                 logInfo("file: "__FILE__", line: %d, "
                         "successfully connect to "
                         "storage server %s:%u%s", __LINE__,
-                        conn->ip_addr, SF_G_INNER_PORT, szFailPrompt);
+                        formatted_ip, SF_G_INNER_PORT, szFailPrompt);
                 nContinuousFail = 0;
                 break;
             }
@@ -129,10 +132,11 @@ void storage_sync_connect_storage_server_ex(const FDFSStorageBrief *pStorage,
             nContinuousFail++;
             if (previousCodes[i] != conn_results[i])
             {
+                format_ip_address(conn->ip_addr, formatted_ip);
                 logError("file: "__FILE__", line: %d, "
                         "connect to storage server %s:%u fail, "
                         "errno: %d, error info: %s",
-                        __LINE__, conn->ip_addr, SF_G_INNER_PORT,
+                        __LINE__, formatted_ip, SF_G_INNER_PORT,
                         conn_results[i], STRERROR(conn_results[i]));
                 previousCodes[i] = conn_results[i];
             }
@@ -155,10 +159,11 @@ void storage_sync_connect_storage_server_ex(const FDFSStorageBrief *pStorage,
         avg_fails = (nContinuousFail + ip_addrs.count - 1) / ip_addrs.count;
         for (i=0; i<ip_addrs.count; i++)
         {
+            format_ip_address(ip_addrs.ips[i].address, formatted_ip);
             logError("file: "__FILE__", line: %d, "
                     "connect to storage server %s:%u fail, "
                     "try count: %d, errno: %d, error info: %s",
-                    __LINE__, ip_addrs.ips[i].address, SF_G_INNER_PORT, avg_fails,
+                    __LINE__, formatted_ip, SF_G_INNER_PORT, avg_fails,
                     conn_results[i], STRERROR(conn_results[i]));
         }
     }

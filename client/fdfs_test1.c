@@ -63,6 +63,7 @@ int main(int argc, char *argv[])
 	int meta_count;
 	int i;
 	FDFSMetaData *pMetaList;
+    char formatted_ip[FORMATTED_IP_SIZE];
 	char token[32 + 1];
 	char file_id[128];
 	char master_file_id[128];
@@ -71,7 +72,7 @@ int main(int argc, char *argv[])
 	char szPortPart[16];
 	int url_len;
 	time_t ts;
-        char *file_buff;
+    char *file_buff;
 	int64_t file_size;
 	char *operation;
 	char *meta_buff;
@@ -432,8 +433,9 @@ g_fdfs_version.patch);
 				printf("server list (%d):\n", server_count);
 				for (i=0; i<server_count; i++)
 				{
-					printf("\t%s:%u\n", \
-						storageServers[i].ip_addr, \
+                    format_ip_address(storageServers[i].
+                            ip_addr, formatted_ip);
+					printf("\t%s:%u\n", formatted_ip,
 						storageServers[i].port);
 				}
 				printf("\n");
@@ -455,8 +457,8 @@ g_fdfs_version.patch);
 			return result;
 		}
 
-		printf("storage=%s:%u\n", storageServer.ip_addr, \
-			storageServer.port);
+        format_ip_address(storageServer.ip_addr, formatted_ip);
+		printf("storage=%s:%u\n", formatted_ip, storageServer.port);
 
 		if ((pStorageServer=tracker_make_connection(&storageServer, \
 			&result)) == NULL)
@@ -637,15 +639,17 @@ g_fdfs_version.patch);
 	/* for test only */
 	if ((result=fdfs_active_test(pTrackerServer)) != 0)
 	{
-		printf("active_test to tracker server %s:%u fail, errno: %d\n", \
-			pTrackerServer->ip_addr, pTrackerServer->port, result);
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+		printf("active_test to tracker server %s:%u fail, errno: %d\n",
+			formatted_ip, pTrackerServer->port, result);
 	}
 
 	/* for test only */
 	if ((result=fdfs_active_test(pStorageServer)) != 0)
 	{
-		printf("active_test to storage server %s:%u fail, errno: %d\n", \
-			pStorageServer->ip_addr, pStorageServer->port, result);
+        format_ip_address(pStorageServer->ip_addr, formatted_ip);
+		printf("active_test to storage server %s:%u fail, errno: %d\n",
+			formatted_ip, pStorageServer->port, result);
 	}
 
 	tracker_close_connection_ex(pStorageServer, true);

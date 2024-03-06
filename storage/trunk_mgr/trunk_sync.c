@@ -1953,6 +1953,7 @@ static void trunk_sync_thread_exit(TrunkSyncThreadInfo *thread_data,
         const int port)
 {
 	int result;
+    char formatted_ip[FORMATTED_IP_SIZE];
 
 	if ((result=pthread_mutex_lock(&trunk_sync_thread_lock)) != 0)
 	{
@@ -1973,9 +1974,10 @@ static void trunk_sync_thread_exit(TrunkSyncThreadInfo *thread_data,
 			__LINE__, result, STRERROR(result));
 	}
 
+    format_ip_address(thread_data->pStorage->ip_addr, formatted_ip);
 	logInfo("file: "__FILE__", line: %d, "
 		"trunk sync thread to storage server %s:%u exit",
-		__LINE__, thread_data->pStorage->ip_addr, port);
+		__LINE__, formatted_ip, port);
 }
 
 static int trunk_sync_data(TrunkBinLogReader *pReader, \
@@ -1985,6 +1987,7 @@ static int trunk_sync_data(TrunkBinLogReader *pReader, \
 	char *p;
 	int result;
 	TrackerHeader header;
+    char formatted_ip[FORMATTED_IP_SIZE];
 	char in_buff[1];
 	char *pBuff;
 	int64_t in_bytes;
@@ -2009,25 +2012,25 @@ static int trunk_sync_data(TrunkBinLogReader *pReader, \
 	memset(&header, 0, sizeof(header));
 	long2buff(length, header.pkg_len);
 	header.cmd = STORAGE_PROTO_CMD_TRUNK_SYNC_BINLOG;
-	if ((result=tcpsenddata_nb(pStorage->sock, &header, \
+	if ((result=tcpsenddata_nb(pStorage->sock, &header,
 		sizeof(TrackerHeader), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
-		logError("FILE: "__FILE__", line: %d, " \
-			"send data to storage server %s:%u fail, " \
-			"errno: %d, error info: %s", \
-			__LINE__, pStorage->ip_addr, pStorage->port, \
-			result, STRERROR(result));
+        format_ip_address(pStorage->ip_addr, formatted_ip);
+		logError("FILE: "__FILE__", line: %d, "
+			"send data to storage server %s:%u fail, errno: %d, "
+			"error info: %s", __LINE__, formatted_ip,
+            pStorage->port, result, STRERROR(result));
 		return result;
 	}
 
-	if ((result=tcpsenddata_nb(pStorage->sock, pReader->binlog_buff.buffer,\
+	if ((result=tcpsenddata_nb(pStorage->sock, pReader->binlog_buff.buffer,
 		length, SF_G_NETWORK_TIMEOUT)) != 0)
 	{
-		logError("FILE: "__FILE__", line: %d, " \
-			"send data to storage server %s:%u fail, " \
-			"errno: %d, error info: %s", \
-			__LINE__, pStorage->ip_addr, pStorage->port, \
-			result, STRERROR(result));
+        format_ip_address(pStorage->ip_addr, formatted_ip);
+		logError("FILE: "__FILE__", line: %d, "
+			"send data to storage server %s:%u fail, errno: %d, "
+			"error info: %s", __LINE__, formatted_ip, 
+            pStorage->port, result, STRERROR(result));
 		return result;
 	}
 
@@ -2057,6 +2060,7 @@ static void *trunk_sync_thread_entrance(void* arg)
 	TrunkBinLogReader reader;
 	ConnectionInfo storage_server;
 	char local_ip_addr[IP_ADDRESS_SIZE];
+    char formatted_ip[FORMATTED_IP_SIZE];
 	int read_result;
 	int sync_result;
 	int result;
@@ -2085,9 +2089,10 @@ static void *trunk_sync_thread_entrance(void* arg)
 	storage_server.port = SF_G_INNER_PORT;
 	storage_server.sock = -1;
 
-	logInfo("file: "__FILE__", line: %d, " \
+    format_ip_address(storage_server.ip_addr, formatted_ip);
+	logInfo("file: "__FILE__", line: %d, "
 		"trunk sync thread to storage server %s:%u started",
-		__LINE__, storage_server.ip_addr, storage_server.port);
+		__LINE__, formatted_ip, storage_server.port);
 
 	while (SF_G_CONTINUE_FLAG && g_if_trunker_self && \
 		pStorage->status != FDFS_STORAGE_STATUS_DELETED && \

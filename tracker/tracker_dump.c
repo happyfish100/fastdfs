@@ -298,7 +298,7 @@ static int fdfs_dump_global_vars(char *buff, const int buffSize)
 		"SF_G_CONTINUE_FLAG=%d\n"
 		"g_schedule_flag=%d\n"
 		"SF_G_INNER_PORT=%d\n"
-		"g_max_connections=%d\n"
+		"SF_G_MAX_CONNECTIONS=%d\n"
 		"g_tracker_thread_count=%d\n"
 		"g_sync_log_buff_interval=%ds\n"
 		"g_check_active_interval=%ds\n"
@@ -352,7 +352,7 @@ static int fdfs_dump_global_vars(char *buff, const int buffSize)
         , g_fdfs_version.patch, SF_G_CONTINUE_FLAG
 		, g_schedule_flag
 		, SF_G_INNER_PORT
-		, g_sf_global_vars.max_connections
+		, SF_G_MAX_CONNECTIONS
 		, g_sf_context.thread_count
 		, g_sf_global_vars.error_log.sync_log_buff_interval
 		, g_check_active_interval
@@ -444,9 +444,8 @@ static int fdfs_dump_tracker_servers(char *buff, const int buffSize)
         fdfs_server_info_to_string(pTrackerServer, ip_str, sizeof(ip_str));
 
 		total_len += snprintf(buff + total_len, buffSize - total_len,
-			"\t%d. tracker server=%s:%u\n", \
-			(int)(pTrackerServer - g_tracker_servers.servers) + 1, \
-			ip_str, pTrackerServer->connections[0].port);
+			"\t%d. tracker server=%s\n", (int)(pTrackerServer -
+                g_tracker_servers.servers) + 1, ip_str);
 	}
 
 	return total_len;

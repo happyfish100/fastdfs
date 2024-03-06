@@ -249,6 +249,7 @@ int tracker_list_servers(ConnectionInfo *pTrackerServer, \
 {
 	char out_buff[sizeof(TrackerHeader) + FDFS_GROUP_NAME_MAX_LEN + \
 			IP_ADDRESS_SIZE];
+    char formatted_ip[FORMATTED_IP_SIZE];
 	bool new_connection;
 	TrackerHeader *pHeader;
 	ConnectionInfo *conn;
@@ -293,17 +294,16 @@ int tracker_list_servers(ConnectionInfo *pTrackerServer, \
 
 	long2buff(FDFS_GROUP_NAME_MAX_LEN + id_len, pHeader->pkg_len);
 	pHeader->cmd = TRACKER_PROTO_CMD_SERVER_LIST_STORAGE;
-	if ((result=tcpsenddata_nb(conn->sock, out_buff, \
-		sizeof(TrackerHeader) + FDFS_GROUP_NAME_MAX_LEN + id_len, \
+	if ((result=tcpsenddata_nb(conn->sock, out_buff,
+		sizeof(TrackerHeader) + FDFS_GROUP_NAME_MAX_LEN + id_len,
 		SF_G_NETWORK_TIMEOUT)) != 0)
-	{
-		logError("file: "__FILE__", line: %d, " \
-		        "send data to tracker server %s:%u fail, " \
-			"errno: %d, error info: %s", __LINE__, \
-			pTrackerServer->ip_addr, \
-			pTrackerServer->port, \
-			result, STRERROR(result));
-	}
+    {
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+        logError("file: "__FILE__", line: %d, "
+                "send data to tracker server %s:%u fail, errno: %d, "
+                "error info: %s", __LINE__, formatted_ip,
+                pTrackerServer->port, result, STRERROR(result));
+    }
 	else
 	{
 		pInBuff = (char *)stats;
@@ -330,10 +330,10 @@ int tracker_list_servers(ConnectionInfo *pTrackerServer, \
 
 	if (in_bytes % sizeof(TrackerStorageStat) != 0)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%u response data " \
-			"length: %"PRId64" is invalid", \
-			__LINE__, pTrackerServer->ip_addr, \
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+		logError("file: "__FILE__", line: %d, "
+			"tracker server %s:%u response data length: %"PRId64
+			" is invalid", __LINE__, formatted_ip,
 			pTrackerServer->port, in_bytes);
 		*storage_count = 0;
 		return EINVAL;
@@ -342,11 +342,12 @@ int tracker_list_servers(ConnectionInfo *pTrackerServer, \
 	*storage_count = in_bytes / sizeof(TrackerStorageStat);
 	if (*storage_count > max_storages)
 	{
-		logError("file: "__FILE__", line: %d, " \
-		 	"tracker server %s:%u insufficent space, " \
-			"max storage count: %d, expect count: %d", \
-			__LINE__, pTrackerServer->ip_addr, \
-			pTrackerServer->port, max_storages, *storage_count);
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+		logError("file: "__FILE__", line: %d, "
+		 	"tracker server %s:%u insufficent space, "
+			"max storage count: %d, expect count: %d",
+			__LINE__, formatted_ip, pTrackerServer->port,
+            max_storages, *storage_count);
 		*storage_count = 0;
 		return ENOSPC;
 	}
@@ -484,6 +485,7 @@ int tracker_list_one_group(ConnectionInfo *pTrackerServer, \
 	ConnectionInfo *conn;
 	bool new_connection;
 	char out_buff[sizeof(TrackerHeader) + FDFS_GROUP_NAME_MAX_LEN];
+    char formatted_ip[FORMATTED_IP_SIZE];
 	TrackerGroupStat src;
 	char *pInBuff;
 	int result;
@@ -497,15 +499,14 @@ int tracker_list_one_group(ConnectionInfo *pTrackerServer, \
 			sizeof(TrackerHeader),  "%s", group_name);
 	pHeader->cmd = TRACKER_PROTO_CMD_SERVER_LIST_ONE_GROUP;
 	long2buff(FDFS_GROUP_NAME_MAX_LEN, pHeader->pkg_len);
-	if ((result=tcpsenddata_nb(conn->sock, out_buff, \
+	if ((result=tcpsenddata_nb(conn->sock, out_buff,
 			sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"send data to tracker server %s:%u fail, " \
-			"errno: %d, error info: %s", __LINE__, \
-			pTrackerServer->ip_addr, \
-			pTrackerServer->port, \
-			result, STRERROR(result));
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+		logError("file: "__FILE__", line: %d, "
+			"send data to tracker server %s:%u fail, errno: %d, "
+			"error info: %s", __LINE__, formatted_ip,
+			pTrackerServer->port, result, STRERROR(result));
 	}
 	else
 	{
@@ -532,10 +533,10 @@ int tracker_list_one_group(ConnectionInfo *pTrackerServer, \
 
 	if (in_bytes != sizeof(TrackerGroupStat))
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%u response data " \
-			"length: %"PRId64" is invalid", \
-			__LINE__, pTrackerServer->ip_addr, \
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+		logError("file: "__FILE__", line: %d, "
+			"tracker server %s:%u response data length: %"PRId64" "
+            "is invalid", __LINE__, formatted_ip,
 			pTrackerServer->port, in_bytes);
 		return EINVAL;
 	}
@@ -569,6 +570,7 @@ int tracker_list_groups(ConnectionInfo *pTrackerServer, \
 	TrackerGroupStat *pSrc;
 	TrackerGroupStat *pEnd;
 	FDFSGroupStat *pDest;
+    char formatted_ip[FORMATTED_IP_SIZE];
 	int result;
 	int64_t in_bytes;
 
@@ -577,15 +579,14 @@ int tracker_list_groups(ConnectionInfo *pTrackerServer, \
 	memset(&header, 0, sizeof(header));
 	header.cmd = TRACKER_PROTO_CMD_SERVER_LIST_ALL_GROUPS;
 	header.status = 0;
-	if ((result=tcpsenddata_nb(conn->sock, &header, \
+	if ((result=tcpsenddata_nb(conn->sock, &header,
 			sizeof(header), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"send data to tracker server %s:%u fail, " \
-			"errno: %d, error info: %s", __LINE__, \
-			pTrackerServer->ip_addr, \
-			pTrackerServer->port, \
-			result, STRERROR(result));
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+		logError("file: "__FILE__", line: %d, "
+			"send data to tracker server %s:%u fail, errno: %d, "
+			"error info: %s", __LINE__, formatted_ip,
+			pTrackerServer->port, result, STRERROR(result));
 	}
 	else
 	{
@@ -613,10 +614,10 @@ int tracker_list_groups(ConnectionInfo *pTrackerServer, \
 
 	if (in_bytes % sizeof(TrackerGroupStat) != 0)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%u response data " \
-			"length: %"PRId64" is invalid", \
-			__LINE__, pTrackerServer->ip_addr, \
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+		logError("file: "__FILE__", line: %d, "
+			"tracker server %s:%u response data length: %"PRId64" "
+            "is invalid", __LINE__, formatted_ip,
 			pTrackerServer->port, in_bytes);
 		*group_count = 0;
 		return EINVAL;
@@ -625,11 +626,12 @@ int tracker_list_groups(ConnectionInfo *pTrackerServer, \
 	*group_count = in_bytes / sizeof(TrackerGroupStat);
 	if (*group_count > max_groups)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%u insufficent space, " \
-			"max group count: %d, expect count: %d", \
-			__LINE__, pTrackerServer->ip_addr, \
-			pTrackerServer->port, max_groups, *group_count);
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+		logError("file: "__FILE__", line: %d, "
+			"tracker server %s:%u insufficent space, "
+			"max group count: %d, expect count: %d",
+			__LINE__, formatted_ip, pTrackerServer->port,
+            max_groups, *group_count);
 		*group_count = 0;
 		return ENOSPC;
 	}
@@ -672,6 +674,7 @@ int tracker_do_query_storage(ConnectionInfo *pTrackerServer, \
 	bool new_connection;
 	char out_buff[sizeof(TrackerHeader) + FDFS_GROUP_NAME_MAX_LEN + 128];
 	char in_buff[sizeof(TrackerHeader) + TRACKER_QUERY_STORAGE_FETCH_BODY_LEN];
+    char formatted_ip[FORMATTED_IP_SIZE];
 	char *pInBuff;
 	int64_t in_bytes;
 	int result;
@@ -693,16 +696,15 @@ int tracker_do_query_storage(ConnectionInfo *pTrackerServer, \
 	
 	long2buff(FDFS_GROUP_NAME_MAX_LEN + filename_len, pHeader->pkg_len);
 	pHeader->cmd = cmd;
-	if ((result=tcpsenddata_nb(conn->sock, out_buff, \
+	if ((result=tcpsenddata_nb(conn->sock, out_buff,
 		sizeof(TrackerHeader) + FDFS_GROUP_NAME_MAX_LEN + 
 		filename_len, SF_G_NETWORK_TIMEOUT)) != 0)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"send data to tracker server %s:%u fail, " \
-			"errno: %d, error info: %s", __LINE__, \
-			pTrackerServer->ip_addr, \
-			pTrackerServer->port, \
-			result, STRERROR(result));
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+		logError("file: "__FILE__", line: %d, "
+			"send data to tracker server %s:%u fail, errno: %d, "
+			"error info: %s", __LINE__, formatted_ip,
+			pTrackerServer->port, result, STRERROR(result));
 	}
 	else
 	{
@@ -729,12 +731,11 @@ int tracker_do_query_storage(ConnectionInfo *pTrackerServer, \
 
 	if (in_bytes != TRACKER_QUERY_STORAGE_FETCH_BODY_LEN)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%u response data " \
-			"length: %"PRId64" is invalid, " \
-			"expect length: %d", __LINE__, \
-			pTrackerServer->ip_addr, \
-			pTrackerServer->port, in_bytes, \
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+		logError("file: "__FILE__", line: %d, "
+			"tracker server %s:%u response data length: %"PRId64" "
+            "is invalid, expect length: %d", __LINE__,
+            formatted_ip, pTrackerServer->port, in_bytes,
 			TRACKER_QUERY_STORAGE_FETCH_BODY_LEN);
 		return EINVAL;
 	}
@@ -759,6 +760,7 @@ int tracker_query_storage_list(ConnectionInfo *pTrackerServer, \
 	char in_buff[sizeof(TrackerHeader) + \
 		TRACKER_QUERY_STORAGE_FETCH_BODY_LEN + \
 		FDFS_MAX_SERVERS_EACH_GROUP * IP_ADDRESS_SIZE];
+    char formatted_ip[FORMATTED_IP_SIZE];
 	char *pInBuff;
 	int64_t in_bytes;
 	int result;
@@ -781,12 +783,11 @@ int tracker_query_storage_list(ConnectionInfo *pTrackerServer, \
 		sizeof(TrackerHeader) + FDFS_GROUP_NAME_MAX_LEN + 
 		filename_len, SF_G_NETWORK_TIMEOUT)) != 0)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"send data to tracker server %s:%u fail, " \
-			"errno: %d, error info: %s", __LINE__, \
-			pTrackerServer->ip_addr, \
-			pTrackerServer->port, \
-			result, STRERROR(result));
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+		logError("file: "__FILE__", line: %d, "
+			"send data to tracker server %s:%u fail, "
+			"errno: %d, error info: %s", __LINE__, formatted_ip,
+			pTrackerServer->port, result, STRERROR(result));
 	}
 	else
 	{
@@ -814,10 +815,10 @@ int tracker_query_storage_list(ConnectionInfo *pTrackerServer, \
 	if ((in_bytes - TRACKER_QUERY_STORAGE_FETCH_BODY_LEN) % \
 		(IP_ADDRESS_SIZE - 1) != 0)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%u response data " \
-			"length: %"PRId64" is invalid", \
-			__LINE__, pTrackerServer->ip_addr, \
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+		logError("file: "__FILE__", line: %d, "
+			"tracker server %s:%u response data length: %"PRId64" "
+            "is invalid", __LINE__, formatted_ip,
 			pTrackerServer->port, in_bytes);
 		return EINVAL;
 	}
@@ -826,10 +827,11 @@ int tracker_query_storage_list(ConnectionInfo *pTrackerServer, \
 			(IP_ADDRESS_SIZE - 1);
 	if (nMaxServerCount < *server_count)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%u response storage server " \
-			 "count: %d, exceeds max server count: %d!", __LINE__, \
-			pTrackerServer->ip_addr, pTrackerServer->port, \
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+		logError("file: "__FILE__", line: %d, "
+			"tracker server %s:%u response storage server "
+			 "count: %d, exceeds max server count: %d!", __LINE__,
+			formatted_ip, pTrackerServer->port,
 			*server_count, nMaxServerCount);
 		return ENOSPC;
 	}
@@ -864,6 +866,7 @@ int tracker_query_storage_store_without_group(ConnectionInfo *pTrackerServer,
 	TrackerHeader header;
 	char in_buff[sizeof(TrackerHeader) + \
 		TRACKER_QUERY_STORAGE_STORE_BODY_LEN];
+    char formatted_ip[FORMATTED_IP_SIZE];
 	bool new_connection;
 	ConnectionInfo *conn;
 	char *pInBuff;
@@ -880,12 +883,11 @@ int tracker_query_storage_store_without_group(ConnectionInfo *pTrackerServer,
 	if ((result=tcpsenddata_nb(conn->sock, &header, \
 			sizeof(header), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"send data to tracker server %s:%u fail, " \
-			"errno: %d, error info: %s", __LINE__, \
-			pTrackerServer->ip_addr, \
-			pTrackerServer->port, \
-			result, STRERROR(result));
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+		logError("file: "__FILE__", line: %d, "
+			"send data to tracker server %s:%u fail, "
+			"errno: %d, error info: %s", __LINE__, formatted_ip,
+			pTrackerServer->port, result, STRERROR(result));
 	}
 	else
 	{
@@ -912,12 +914,12 @@ int tracker_query_storage_store_without_group(ConnectionInfo *pTrackerServer,
 
 	if (in_bytes != TRACKER_QUERY_STORAGE_STORE_BODY_LEN)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%u response data " \
-			"length: %"PRId64" is invalid, " \
-			"expect length: %d", __LINE__, \
-			pTrackerServer->ip_addr, pTrackerServer->port, \
-			in_bytes, TRACKER_QUERY_STORAGE_STORE_BODY_LEN);
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+		logError("file: "__FILE__", line: %d, "
+			"tracker server %s:%u response data length: %"PRId64" "
+            "is invalid, expect length: %d", __LINE__,
+            formatted_ip, pTrackerServer->port, in_bytes,
+            TRACKER_QUERY_STORAGE_STORE_BODY_LEN);
 		return EINVAL;
 	}
 
@@ -943,6 +945,7 @@ int tracker_query_storage_store_with_group(ConnectionInfo *pTrackerServer, \
 	char out_buff[sizeof(TrackerHeader) + FDFS_GROUP_NAME_MAX_LEN];
 	char in_buff[sizeof(TrackerHeader) + \
 		TRACKER_QUERY_STORAGE_STORE_BODY_LEN];
+    char formatted_ip[FORMATTED_IP_SIZE];
 	char *pInBuff;
 	int64_t in_bytes;
 	int result;
@@ -959,16 +962,15 @@ int tracker_query_storage_store_with_group(ConnectionInfo *pTrackerServer, \
 	
 	long2buff(FDFS_GROUP_NAME_MAX_LEN, pHeader->pkg_len);
 	pHeader->cmd = TRACKER_PROTO_CMD_SERVICE_QUERY_STORE_WITH_GROUP_ONE;
-	if ((result=tcpsenddata_nb(conn->sock, out_buff, \
-			sizeof(TrackerHeader) + FDFS_GROUP_NAME_MAX_LEN, \
+	if ((result=tcpsenddata_nb(conn->sock, out_buff,
+			sizeof(TrackerHeader) + FDFS_GROUP_NAME_MAX_LEN,
 			SF_G_NETWORK_TIMEOUT)) != 0)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"send data to tracker server %s:%u fail, " \
-			"errno: %d, error info: %s", __LINE__, \
-			pTrackerServer->ip_addr, \
-			pTrackerServer->port, \
-			result, STRERROR(result));
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+		logError("file: "__FILE__", line: %d, "
+			"send data to tracker server %s:%u fail, "
+			"errno: %d, error info: %s", __LINE__, formatted_ip,
+			pTrackerServer->port, result, STRERROR(result));
 	}
 	else
 	{
@@ -995,11 +997,11 @@ int tracker_query_storage_store_with_group(ConnectionInfo *pTrackerServer, \
 
 	if (in_bytes != TRACKER_QUERY_STORAGE_STORE_BODY_LEN)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%u response data " \
-			"length: %"PRId64" is invalid, " \
-			"expect length: %d", __LINE__, \
-			pTrackerServer->ip_addr, pTrackerServer->port, \
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+		logError("file: "__FILE__", line: %d, "
+			"tracker server %s:%u response data "
+			"length: %"PRId64" is invalid, expect length: %d",
+            __LINE__, formatted_ip, pTrackerServer->port,
 			in_bytes, TRACKER_QUERY_STORAGE_STORE_BODY_LEN);
 		return EINVAL;
 	}
@@ -1027,6 +1029,7 @@ int tracker_query_storage_store_list_with_group( \
 	char out_buff[sizeof(TrackerHeader) + FDFS_GROUP_NAME_MAX_LEN];
 	char in_buff[sizeof(TrackerHeader) + FDFS_MAX_SERVERS_EACH_GROUP * \
 			TRACKER_QUERY_STORAGE_STORE_BODY_LEN];
+    char formatted_ip[FORMATTED_IP_SIZE];
 	char returned_group_name[FDFS_GROUP_NAME_MAX_LEN + 1];
 	char *pInBuff;
 	char *p;
@@ -1055,15 +1058,14 @@ int tracker_query_storage_store_list_with_group( \
 	}
 
 	long2buff(out_len, pHeader->pkg_len);
-	if ((result=tcpsenddata_nb(conn->sock, out_buff, \
+	if ((result=tcpsenddata_nb(conn->sock, out_buff,
 		sizeof(TrackerHeader) + out_len, SF_G_NETWORK_TIMEOUT)) != 0)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"send data to tracker server %s:%u fail, " \
-			"errno: %d, error info: %s", __LINE__, \
-			pTrackerServer->ip_addr, \
-			pTrackerServer->port, \
-			result, STRERROR(result));
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+		logError("file: "__FILE__", line: %d, "
+			"send data to tracker server %s:%u fail, "
+			"errno: %d, error info: %s", __LINE__, formatted_ip,
+			pTrackerServer->port, result, STRERROR(result));
 	}
 	else
 	{
@@ -1090,11 +1092,11 @@ int tracker_query_storage_store_list_with_group( \
 
 	if (in_bytes < TRACKER_QUERY_STORAGE_STORE_BODY_LEN)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%u response data " \
-			"length: %"PRId64" is invalid, " \
-			"expect length >= %d", __LINE__, \
-			pTrackerServer->ip_addr, pTrackerServer->port, \
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+		logError("file: "__FILE__", line: %d, "
+			"tracker server %s:%u response data "
+			"length: %"PRId64" is invalid, expect length >= %d",
+            __LINE__, formatted_ip, pTrackerServer->port,
 			in_bytes, TRACKER_QUERY_STORAGE_STORE_BODY_LEN);
 		return EINVAL;
 	}
@@ -1104,22 +1106,23 @@ int tracker_query_storage_store_list_with_group( \
 	ipPortsLen = in_bytes - (FDFS_GROUP_NAME_MAX_LEN + 1);
 	if (ipPortsLen % RECORD_LENGTH != 0)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%u response data " \
-			"length: %"PRId64" is invalid", \
-			__LINE__, pTrackerServer->ip_addr, \
-			pTrackerServer->port, in_bytes);
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+		logError("file: "__FILE__", line: %d, "
+			"tracker server %s:%u response data "
+			"length: %"PRId64" is invalid", __LINE__,
+            formatted_ip, pTrackerServer->port, in_bytes);
 		return EINVAL;
 	}
 
 	*storage_count = ipPortsLen / RECORD_LENGTH;
 	if (nMaxServerCount < *storage_count)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%u response storage server " \
-			 "count: %d, exceeds max server count: %d!", \
-			__LINE__, pTrackerServer->ip_addr, \
-			pTrackerServer->port, *storage_count, nMaxServerCount);
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+		logError("file: "__FILE__", line: %d, "
+			"tracker server %s:%u response storage server "
+			 "count: %d, exceeds max server count: %d!",
+			__LINE__, formatted_ip, pTrackerServer->port,
+            *storage_count, nMaxServerCount);
 		return ENOSPC;
 	}
 
@@ -1157,6 +1160,7 @@ int tracker_delete_storage(TrackerServerGroup *pTrackerGroup, \
 	FDFSStorageInfo storage_infos[1];
 	char out_buff[sizeof(TrackerHeader) + FDFS_GROUP_NAME_MAX_LEN + \
 			FDFS_STORAGE_ID_MAX_SIZE];
+    char formatted_ip[FORMATTED_IP_SIZE];
 	char in_buff[1];
 	char *pInBuff;
 	int64_t in_bytes;
@@ -1228,11 +1232,11 @@ int tracker_delete_storage(TrackerServerGroup *pTrackerGroup, \
 			sizeof(TrackerHeader) + FDFS_GROUP_NAME_MAX_LEN + 
 			storage_id_len, SF_G_NETWORK_TIMEOUT)) != 0)
 		{
+            format_ip_address(conn->ip_addr, formatted_ip);
 			logError("file: "__FILE__", line: %d, "
 				"send data to tracker server %s:%u fail, "
-				"errno: %d, error info: %s", __LINE__,
-				conn->ip_addr, conn->port,
-				result, STRERROR(result));
+				"errno: %d, error info: %s", __LINE__, formatted_ip,
+                conn->port, result, STRERROR(result));
 		}
 		else
 		{
@@ -1280,6 +1284,7 @@ int tracker_delete_group(TrackerServerGroup *pTrackerGroup, \
 	TrackerServerInfo *pServer;
 	TrackerServerInfo *pEnd;
 	char out_buff[sizeof(TrackerHeader) + FDFS_GROUP_NAME_MAX_LEN]; 
+    char formatted_ip[FORMATTED_IP_SIZE];
 	char in_buff[1];
 	char *pInBuff;
 	int64_t in_bytes;
@@ -1308,11 +1313,11 @@ int tracker_delete_group(TrackerServerGroup *pTrackerGroup, \
 			sizeof(TrackerHeader) + FDFS_GROUP_NAME_MAX_LEN,
             SF_G_NETWORK_TIMEOUT)) != 0)
 		{
+            format_ip_address(conn->ip_addr, formatted_ip);
 			logError("file: "__FILE__", line: %d, "
 				"send data to tracker server %s:%u fail, "
-				"errno: %d, error info: %s", __LINE__,
-				conn->ip_addr, conn->port,
-				result, STRERROR(result));
+				"errno: %d, error info: %s", __LINE__, formatted_ip,
+                conn->port, result, STRERROR(result));
             break;
 		}
 
@@ -1343,6 +1348,7 @@ int tracker_set_trunk_server(TrackerServerGroup *pTrackerGroup, \
 	char out_buff[sizeof(TrackerHeader) + FDFS_GROUP_NAME_MAX_LEN + \
 			FDFS_STORAGE_ID_MAX_SIZE];
 	char in_buff[FDFS_STORAGE_ID_MAX_SIZE];
+    char formatted_ip[FORMATTED_IP_SIZE];
 	char *pInBuff;
 	int64_t in_bytes;
 	int result;
@@ -1380,15 +1386,15 @@ int tracker_set_trunk_server(TrackerServerGroup *pTrackerGroup, \
 			continue;
 		}
 
-		if ((result=tcpsenddata_nb(conn->sock, out_buff, \
+		if ((result=tcpsenddata_nb(conn->sock, out_buff,
 			sizeof(TrackerHeader) + FDFS_GROUP_NAME_MAX_LEN + 
 			storage_id_len, SF_G_NETWORK_TIMEOUT)) != 0)
 		{
+            format_ip_address(conn->ip_addr, formatted_ip);
 			logError("file: "__FILE__", line: %d, "
 				"send data to tracker server %s:%u fail, "
-				"errno: %d, error info: %s", __LINE__,
-				conn->ip_addr, conn->port,
-				result, STRERROR(result));
+				"errno: %d, error info: %s", __LINE__, formatted_ip,
+                conn->port, result, STRERROR(result));
 
 			tracker_close_connection_ex(conn, true);
 			continue;
@@ -1438,6 +1444,7 @@ int tracker_get_storage_status(ConnectionInfo *pTrackerServer,
 	bool new_connection;
 	char out_buff[sizeof(TrackerHeader) + FDFS_GROUP_NAME_MAX_LEN + \
 			IP_ADDRESS_SIZE];
+    char formatted_ip[FORMATTED_IP_SIZE];
 	char *pInBuff;
 	char *p;
 	int result;
@@ -1467,15 +1474,14 @@ int tracker_get_storage_status(ConnectionInfo *pTrackerServer,
 	}
 	pHeader->cmd = TRACKER_PROTO_CMD_STORAGE_GET_STATUS;
 	long2buff(FDFS_GROUP_NAME_MAX_LEN + ip_len, pHeader->pkg_len);
-	if ((result=tcpsenddata_nb(conn->sock, out_buff, \
+	if ((result=tcpsenddata_nb(conn->sock, out_buff,
 			p - out_buff, SF_G_NETWORK_TIMEOUT)) != 0)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"send data to tracker server %s:%u fail, " \
-			"errno: %d, error info: %s", __LINE__, \
-			pTrackerServer->ip_addr, \
-			pTrackerServer->port, \
-			result, STRERROR(result));
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+		logError("file: "__FILE__", line: %d, "
+			"send data to tracker server %s:%u fail, "
+			"errno: %d, error info: %s", __LINE__, formatted_ip,
+			pTrackerServer->port, result, STRERROR(result));
 	}
 	else
 	{
@@ -1502,11 +1508,11 @@ int tracker_get_storage_status(ConnectionInfo *pTrackerServer,
 
 	if (in_bytes != sizeof(FDFSStorageBrief))
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%u response data " \
-			"length: %"PRId64" is invalid", \
-			__LINE__, pTrackerServer->ip_addr, \
-			pTrackerServer->port, in_bytes);
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+		logError("file: "__FILE__", line: %d, "
+			"tracker server %s:%u response data "
+			"length: %"PRId64" is invalid", __LINE__,
+            formatted_ip, pTrackerServer->port, in_bytes);
 		return EINVAL;
 	}
 
@@ -1522,6 +1528,7 @@ int tracker_get_storage_id(ConnectionInfo *pTrackerServer, \
 	bool new_connection;
 	char out_buff[sizeof(TrackerHeader) + FDFS_GROUP_NAME_MAX_LEN + \
 			IP_ADDRESS_SIZE];
+    char formatted_ip[FORMATTED_IP_SIZE];
 	char *p;
 	int result;
 	int ip_len;
@@ -1555,15 +1562,14 @@ int tracker_get_storage_id(ConnectionInfo *pTrackerServer, \
 	}
 	pHeader->cmd = TRACKER_PROTO_CMD_STORAGE_GET_SERVER_ID;
 	long2buff(FDFS_GROUP_NAME_MAX_LEN + ip_len, pHeader->pkg_len);
-	if ((result=tcpsenddata_nb(conn->sock, out_buff, \
+	if ((result=tcpsenddata_nb(conn->sock, out_buff,
 			p - out_buff, SF_G_NETWORK_TIMEOUT)) != 0)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"send data to tracker server %s:%u fail, " \
-			"errno: %d, error info: %s", __LINE__, \
-			pTrackerServer->ip_addr, \
-			pTrackerServer->port, \
-			result, STRERROR(result));
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+		logError("file: "__FILE__", line: %d, "
+			"send data to tracker server %s:%u fail, "
+			"errno: %d, error info: %s", __LINE__, formatted_ip,
+			pTrackerServer->port, result, STRERROR(result));
 	}
 	else
 	{
@@ -1589,10 +1595,10 @@ int tracker_get_storage_id(ConnectionInfo *pTrackerServer, \
 
 	if (in_bytes == 0 || in_bytes >= FDFS_STORAGE_ID_MAX_SIZE)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%u response data " \
-			"length: %"PRId64" is invalid", \
-			__LINE__, pTrackerServer->ip_addr, \
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+		logError("file: "__FILE__", line: %d, "
+			"tracker server %s:%u response data length: %"PRId64" "
+            "is invalid", __LINE__, formatted_ip,
 			pTrackerServer->port, in_bytes);
 		return EINVAL;
 	}
@@ -1654,4 +1660,3 @@ int tracker_get_storage_max_status(TrackerServerGroup *pTrackerGroup, \
 
 	return 0;
 }
-

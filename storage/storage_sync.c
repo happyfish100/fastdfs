@@ -96,6 +96,7 @@ static int storage_sync_copy_file(ConnectionInfo *pStorageServer, \
 	char *pBuff;
 	char full_filename[MAX_PATH_SIZE];
 	char out_buff[sizeof(TrackerHeader)+FDFS_GROUP_NAME_MAX_LEN+256];
+    char formatted_ip[FORMATTED_IP_SIZE];
 	char in_buff[1];
 	struct stat stat_buf;
 	FDFSTrunkFullInfo trunkInfo;
@@ -145,26 +146,26 @@ static int storage_sync_copy_file(ConnectionInfo *pStorageServer, \
 		{
 			if (file_info.file_size == stat_buf.st_size)
 			{
-				logDebug("file: "__FILE__", line: %d, " \
-					"sync data file, logic file: %s " \
-					"on dest server %s:%u already exists, "\
-					"and same as mine, ignore it", \
-					__LINE__, pRecord->filename, \
-					pStorageServer->ip_addr, \
-					pStorageServer->port);
+                if (FC_LOG_BY_LEVEL(LOG_DEBUG)) {
+                    format_ip_address(pStorageServer->ip_addr, formatted_ip);
+                    logDebug("file: "__FILE__", line: %d, "
+                            "sync data file, logic file: %s "
+                            "on dest server %s:%u already exists, "
+                            "and same as mine, ignore it", __LINE__,
+                            pRecord->filename, formatted_ip,
+                            pStorageServer->port);
+                }
 				need_sync_file = false;
 			}
 			else
 			{
-				logWarning("file: "__FILE__", line: %d, " \
-					"sync data file, logic file: %s " \
-					"on dest server %s:%u already exists, "\
-					"but file size: %"PRId64 \
-					" not same as mine: %"PRId64 \
-					", need re-sync it", __LINE__, \
-					pRecord->filename, pStorageServer->ip_addr,\
-					pStorageServer->port, \
-					file_info.file_size, \
+                format_ip_address(pStorageServer->ip_addr, formatted_ip);
+				logWarning("file: "__FILE__", line: %d, "
+					"sync data file, logic file: %s "
+					"on dest server %s:%u already exists, "
+					"but file size: %"PRId64" not same as mine: %"PRId64
+					", need re-sync it", __LINE__, pRecord->filename,
+                    formatted_ip, pStorageServer->port, file_info.file_size,
                     (int64_t)stat_buf.st_size);
 
 				proto_cmd = STORAGE_PROTO_CMD_SYNC_UPDATE_FILE;
@@ -227,16 +228,14 @@ static int storage_sync_copy_file(ConnectionInfo *pStorageServer, \
 		memcpy(p, pRecord->filename, pRecord->filename_len);
 		p += pRecord->filename_len;
 
-		if((result=tcpsenddata_nb(pStorageServer->sock, out_buff, \
+		if((result=tcpsenddata_nb(pStorageServer->sock, out_buff,
 			p - out_buff, SF_G_NETWORK_TIMEOUT)) != 0)
 		{
-			logError("file: "__FILE__", line: %d, " \
-				"sync data to storage server %s:%u fail, " \
-				"errno: %d, error info: %s", \
-				__LINE__, pStorageServer->ip_addr, \
-				pStorageServer->port, \
-				result, STRERROR(result));
-
+            format_ip_address(pStorageServer->ip_addr, formatted_ip);
+			logError("file: "__FILE__", line: %d, "
+				"sync data to storage server %s:%u fail, errno: %d, "
+				"error info: %s", __LINE__, formatted_ip,
+				pStorageServer->port, result, STRERROR(result));
 			break;
 		}
 
@@ -245,13 +244,11 @@ static int storage_sync_copy_file(ConnectionInfo *pStorageServer, \
 			full_filename, file_offset, stat_buf.st_size, \
 			SF_G_NETWORK_TIMEOUT, &total_send_bytes)) != 0))
 		{
-			logError("file: "__FILE__", line: %d, " \
-				"sync data to storage server %s:%u fail, " \
-				"errno: %d, error info: %s", \
-				__LINE__, pStorageServer->ip_addr, \
-				pStorageServer->port, \
-				result, STRERROR(result));
-
+            format_ip_address(pStorageServer->ip_addr, formatted_ip);
+			logError("file: "__FILE__", line: %d, "
+				"sync data to storage server %s:%u fail, errno: %d, "
+				"error info: %s", __LINE__, formatted_ip,
+				pStorageServer->port, result, STRERROR(result));
 			break;
 		}
 
@@ -276,13 +273,13 @@ static int storage_sync_copy_file(ConnectionInfo *pStorageServer, \
 
 	if (result == EEXIST)
 	{
-		if (need_sync_file && pRecord->op_type == \
+		if (need_sync_file && pRecord->op_type ==
 			STORAGE_OP_TYPE_SOURCE_CREATE_FILE)
 		{
-			logWarning("file: "__FILE__", line: %d, " \
-				"storage server ip: %s:%u, data file: %s " \
-				"already exists, maybe some mistake?", \
-				__LINE__, pStorageServer->ip_addr, \
+            format_ip_address(pStorageServer->ip_addr, formatted_ip);
+			logWarning("file: "__FILE__", line: %d, "
+				"storage server ip: %s:%u, data file: %s already exists, "
+				"maybe some mistake?", __LINE__, formatted_ip,
 				pStorageServer->port, pRecord->filename);
 		}
 
@@ -320,6 +317,7 @@ static int storage_sync_modify_file(ConnectionInfo *pStorageServer, \
 	char *fields[SYNC_MODIFY_FIELD_COUNT];
 	char full_filename[MAX_PATH_SIZE];
 	char out_buff[sizeof(TrackerHeader)+FDFS_GROUP_NAME_MAX_LEN+256];
+    char formatted_ip[FORMATTED_IP_SIZE];
 	char in_buff[1];
 	struct stat stat_buf;
 	int64_t in_bytes;
@@ -427,13 +425,11 @@ static int storage_sync_modify_file(ConnectionInfo *pStorageServer, \
 		if((result=tcpsenddata_nb(pStorageServer->sock, out_buff, \
 			p - out_buff, SF_G_NETWORK_TIMEOUT)) != 0)
 		{
-			logError("file: "__FILE__", line: %d, " \
-				"sync data to storage server %s:%u fail, " \
-				"errno: %d, error info: %s", \
-				__LINE__, pStorageServer->ip_addr, \
-				pStorageServer->port, \
-				result, STRERROR(result));
-
+            format_ip_address(pStorageServer->ip_addr, formatted_ip);
+			logError("file: "__FILE__", line: %d, "
+				"sync data to storage server %s:%u fail, errno: %d, "
+				"error info: %s", __LINE__, formatted_ip,
+				pStorageServer->port, result, STRERROR(result));
 			break;
 		}
 
@@ -441,13 +437,11 @@ static int storage_sync_modify_file(ConnectionInfo *pStorageServer, \
 			full_filename, start_offset, modify_length, \
 			SF_G_NETWORK_TIMEOUT, &total_send_bytes)) != 0)
 		{
-			logError("file: "__FILE__", line: %d, " \
-				"sync data to storage server %s:%u fail, " \
-				"errno: %d, error info: %s", \
-				__LINE__, pStorageServer->ip_addr, \
-				pStorageServer->port, \
-				result, STRERROR(result));
-
+            format_ip_address(pStorageServer->ip_addr, formatted_ip);
+			logError("file: "__FILE__", line: %d, "
+				"sync data to storage server %s:%u fail, errno: %d, "
+				"error info: %s", __LINE__, formatted_ip,
+				pStorageServer->port, result, STRERROR(result));
 			break;
 		}
 
@@ -491,6 +485,7 @@ static int storage_sync_truncate_file(ConnectionInfo *pStorageServer, \
 	char *fields[SYNC_TRUNCATE_FIELD_COUNT];
 	char full_filename[MAX_PATH_SIZE];
 	char out_buff[sizeof(TrackerHeader)+FDFS_GROUP_NAME_MAX_LEN+256];
+    char formatted_ip[FORMATTED_IP_SIZE];
 	char in_buff[1];
 	struct stat stat_buf;
 	int64_t in_bytes;
@@ -589,16 +584,14 @@ static int storage_sync_truncate_file(ConnectionInfo *pStorageServer, \
 		memcpy(p, pRecord->filename, pRecord->filename_len);
 		p += pRecord->filename_len;
 
-		if((result=tcpsenddata_nb(pStorageServer->sock, out_buff, \
+		if((result=tcpsenddata_nb(pStorageServer->sock, out_buff,
 			p - out_buff, SF_G_NETWORK_TIMEOUT)) != 0)
 		{
-			logError("file: "__FILE__", line: %d, " \
-				"sync data to storage server %s:%u fail, " \
-				"errno: %d, error info: %s", \
-				__LINE__, pStorageServer->ip_addr, \
-				pStorageServer->port, \
-				result, STRERROR(result));
-
+            format_ip_address(pStorageServer->ip_addr, formatted_ip);
+			logError("file: "__FILE__", line: %d, "
+				"sync data to storage server %s:%u fail, errno: %d, "
+				"error info: %s", __LINE__, formatted_ip,
+				pStorageServer->port, result, STRERROR(result));
 			break;
 		}
 
@@ -627,6 +620,7 @@ static int storage_sync_delete_file(ConnectionInfo *pStorageServer, \
 {
 	TrackerHeader *pHeader;
 	char out_buff[sizeof(TrackerHeader)+FDFS_GROUP_NAME_MAX_LEN+256];
+    char formatted_ip[FORMATTED_IP_SIZE];
 	struct stat stat_buf;
 	FDFSTrunkFullInfo trunkInfo;
 	FDFSTrunkHeader trunkHeader;
@@ -666,12 +660,11 @@ static int storage_sync_delete_file(ConnectionInfo *pStorageServer, \
 		sizeof(TrackerHeader) + 4 + FDFS_GROUP_NAME_MAX_LEN + \
 		pRecord->filename_len, SF_G_NETWORK_TIMEOUT)) != 0)
 	{
-		logError("FILE: "__FILE__", line: %d, " \
-			"send data to storage server %s:%u fail, " \
-			"errno: %d, error info: %s", \
-			__LINE__, pStorageServer->ip_addr, \
-			pStorageServer->port, \
-			result, STRERROR(result));
+        format_ip_address(pStorageServer->ip_addr, formatted_ip);
+		logError("FILE: "__FILE__", line: %d, "
+			"send data to storage server %s:%u fail, errno: %d, "
+			"error info: %s", __LINE__, formatted_ip,
+			pStorageServer->port, result, STRERROR(result));
 		return result;
 	}
 
@@ -702,6 +695,7 @@ static int storage_report_my_server_id(ConnectionInfo *pStorageServer)
 	int result;
 	TrackerHeader *pHeader;
 	char out_buff[sizeof(TrackerHeader) + FDFS_STORAGE_ID_MAX_SIZE];
+    char formatted_ip[FORMATTED_IP_SIZE];
 	char in_buff[1];
 	char *pBuff;
 	int64_t in_bytes;
@@ -716,12 +710,11 @@ static int storage_report_my_server_id(ConnectionInfo *pStorageServer)
 		sizeof(TrackerHeader) + FDFS_STORAGE_ID_MAX_SIZE, \
 		SF_G_NETWORK_TIMEOUT)) != 0)
 	{
-		logError("FILE: "__FILE__", line: %d, " \
-			"send data to storage server %s:%u fail, " \
-			"errno: %d, error info: %s", \
-			__LINE__, pStorageServer->ip_addr, \
-			pStorageServer->port, \
-			result, STRERROR(result));
+        format_ip_address(pStorageServer->ip_addr, formatted_ip);
+		logError("FILE: "__FILE__", line: %d, "
+			"send data to storage server %s:%u fail, errno: %d, "
+			"error info: %s", __LINE__, formatted_ip,
+			pStorageServer->port, result, STRERROR(result));
 		return result;
 	}
 
@@ -751,6 +744,7 @@ static int storage_sync_link_file(ConnectionInfo *pStorageServer, \
 	int result;
 	char out_buff[sizeof(TrackerHeader) + 2 * FDFS_PROTO_PKG_LEN_SIZE + \
 			4 + FDFS_GROUP_NAME_MAX_LEN + 256];
+    char formatted_ip[FORMATTED_IP_SIZE];
 	char in_buff[1];
 	FDFSTrunkFullInfo trunkInfo;
 	FDFSTrunkHeader trunkHeader;
@@ -937,16 +931,15 @@ static int storage_sync_link_file(ConnectionInfo *pStorageServer, \
 	long2buff(out_body_len, pHeader->pkg_len);
 	pHeader->cmd = STORAGE_PROTO_CMD_SYNC_CREATE_LINK;
 
-	if ((result=tcpsenddata_nb(pStorageServer->sock, out_buff, \
-		sizeof(TrackerHeader) + out_body_len, \
+	if ((result=tcpsenddata_nb(pStorageServer->sock, out_buff,
+		sizeof(TrackerHeader) + out_body_len,
 		SF_G_NETWORK_TIMEOUT)) != 0)
 	{
-		logError("FILE: "__FILE__", line: %d, " \
-			"send data to storage server %s:%u fail, " \
-			"errno: %d, error info: %s", \
-			__LINE__, pStorageServer->ip_addr, \
-			pStorageServer->port, \
-			result, STRERROR(result));
+        format_ip_address(pStorageServer->ip_addr, formatted_ip);
+		logError("FILE: "__FILE__", line: %d, "
+			"send data to storage server %s:%u fail, errno: %d, "
+			"error info: %s", __LINE__, formatted_ip,
+			pStorageServer->port, result, STRERROR(result));
 		return result;
 	}
 
@@ -984,6 +977,7 @@ static int storage_sync_rename_file(ConnectionInfo *pStorageServer,
 	int result;
 	char out_buff[sizeof(TrackerHeader) + 2 * FDFS_PROTO_PKG_LEN_SIZE +
 			4 + FDFS_GROUP_NAME_MAX_LEN + 256];
+    char formatted_ip[FORMATTED_IP_SIZE];
 	char in_buff[1];
 	int out_body_len;
 	int64_t in_bytes;
@@ -1049,10 +1043,10 @@ static int storage_sync_rename_file(ConnectionInfo *pStorageServer,
 		sizeof(TrackerHeader) + out_body_len,
 		SF_G_NETWORK_TIMEOUT)) != 0)
 	{
+        format_ip_address(pStorageServer->ip_addr, formatted_ip);
 		logError("FILE: "__FILE__", line: %d, "
-			"send data to storage server %s:%u fail, "
-			"errno: %d, error info: %s",
-			__LINE__, pStorageServer->ip_addr,
+			"send data to storage server %s:%u fail, errno: %d, "
+			"error info: %s", __LINE__, formatted_ip,
 			pStorageServer->port, result, STRERROR(result));
 		return result;
 	}
@@ -1069,10 +1063,13 @@ static int storage_sync_rename_file(ConnectionInfo *pStorageServer,
         }
         else if (result == EEXIST)
         {
-			logDebug("file: "__FILE__", line: %d, "
-				"storage server ip: %s:%u, data file: %s "
-				"already exists", __LINE__, pStorageServer->ip_addr,
-				pStorageServer->port, pRecord->filename);
+            if (FC_LOG_BY_LEVEL(LOG_DEBUG)) {
+                format_ip_address(pStorageServer->ip_addr, formatted_ip);
+                logDebug("file: "__FILE__", line: %d, "
+                        "storage server ip: %s:%u, data file: %s "
+                        "already exists", __LINE__, formatted_ip,
+                        pStorageServer->port, pRecord->filename);
+            }
             return 0;
         }
         else
@@ -1997,6 +1994,7 @@ int storage_report_storage_status(const char *storage_id, \
 	TrackerServerInfo *pGlobalServer;
 	TrackerServerInfo *pTServer;
 	TrackerServerInfo *pTServerEnd;
+    char formatted_ip[FORMATTED_IP_SIZE];
     ConnectionInfo *conn;
 	int result;
 	int report_count;
@@ -2063,12 +2061,12 @@ int storage_report_storage_status(const char *storage_id, \
 
         if (conn == NULL)
         {
+            format_ip_address(pTServer->connections[0].
+                    ip_addr, formatted_ip);
             logError("file: "__FILE__", line: %d, "
-                    "connect to tracker server %s:%u fail, "
-                    "errno: %d, error info: %s",
-                    __LINE__, pTServer->connections[0].ip_addr,
-                    pTServer->connections[0].port,
-                    result, STRERROR(result));
+                    "connect to tracker server %s:%u fail, errno: %d, "
+                    "error info: %s", __LINE__, formatted_ip, pTServer->
+                    connections[0].port, result, STRERROR(result));
             continue;
         }
 
@@ -2861,6 +2859,7 @@ static void storage_sync_thread_exit(ConnectionInfo *pStorage)
 	int i;
     int thread_count;
 	pthread_t tid;
+    char formatted_ip[FORMATTED_IP_SIZE];
 
 	if ((result=pthread_mutex_lock(&sync_thread_lock)) != 0)
 	{
@@ -2896,9 +2895,12 @@ static void storage_sync_thread_exit(ConnectionInfo *pStorage)
 			__LINE__, result, STRERROR(result));
 	}
 
-	logDebug("file: "__FILE__", line: %d, "
-		"sync thread to storage server %s:%u exit",
-		__LINE__, pStorage->ip_addr, pStorage->port);
+    if (FC_LOG_BY_LEVEL(LOG_DEBUG)) {
+        format_ip_address(pStorage->ip_addr, formatted_ip);
+        logDebug("file: "__FILE__", line: %d, "
+                "sync thread to storage server %s:%u exit",
+                __LINE__, formatted_ip, pStorage->port);
+    }
 }
 
 static void* storage_sync_thread_entrance(void* arg)
@@ -2908,6 +2910,7 @@ static void* storage_sync_thread_entrance(void* arg)
 	StorageBinLogRecord record;
 	ConnectionInfo storage_server;
 	char local_ip_addr[IP_ADDRESS_SIZE];
+    char formatted_ip[FORMATTED_IP_SIZE];
 	int read_result;
 	int sync_result;
 	int result;
@@ -2954,9 +2957,12 @@ static void* storage_sync_thread_entrance(void* arg)
 	start_time = 0;
 	end_time = 0;
 
-	logDebug("file: "__FILE__", line: %d, "
-		"sync thread to storage server %s:%u started",
-		__LINE__, storage_server.ip_addr, storage_server.port);
+    if (FC_LOG_BY_LEVEL(LOG_DEBUG)) {
+        format_ip_address(storage_server.ip_addr, formatted_ip);
+        logDebug("file: "__FILE__", line: %d, "
+                "sync thread to storage server %s:%u started",
+                __LINE__, formatted_ip, storage_server.port);
+    }
  
 	while (SF_G_CONTINUE_FLAG && \
 		pStorage->status != FDFS_STORAGE_STATUS_DELETED && \

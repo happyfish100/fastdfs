@@ -32,6 +32,7 @@ static int storage_do_changelog_req(ConnectionInfo *pTrackerServer)
 {
 	char out_buff[sizeof(TrackerHeader) + FDFS_GROUP_NAME_MAX_LEN + \
 			FDFS_STORAGE_ID_MAX_SIZE];
+    char formatted_ip[FORMATTED_IP_SIZE];
 	TrackerHeader *pHeader;
 	int result;
 
@@ -44,15 +45,14 @@ static int storage_do_changelog_req(ConnectionInfo *pTrackerServer)
 	strcpy(out_buff + sizeof(TrackerHeader), g_group_name);
 	strcpy(out_buff + sizeof(TrackerHeader) + FDFS_GROUP_NAME_MAX_LEN,
 		g_my_server_id_str);
-	if((result=tcpsenddata_nb(pTrackerServer->sock, out_buff, \
+	if((result=tcpsenddata_nb(pTrackerServer->sock, out_buff,
 		sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%u, send data fail, " \
-			"errno: %d, error info: %s.", \
-			__LINE__, pTrackerServer->ip_addr, \
-			pTrackerServer->port, \
-			result, STRERROR(result));
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+		logError("file: "__FILE__", line: %d, "
+			"tracker server %s:%u, send data fail, "
+			"errno: %d, error info: %s.", __LINE__, formatted_ip,
+			pTrackerServer->port, result, STRERROR(result));
 		return result;
 	}
 
@@ -64,6 +64,7 @@ static int storage_report_ip_changed(ConnectionInfo *pTrackerServer)
 	char out_buff[sizeof(TrackerHeader) + FDFS_GROUP_NAME_MAX_LEN + \
 		2 * IP_ADDRESS_SIZE];
 	char in_buff[1];
+    char formatted_ip[FORMATTED_IP_SIZE];
 	char *pInBuff;
 	TrackerHeader *pHeader;
 	int result;
@@ -83,10 +84,10 @@ static int storage_report_ip_changed(ConnectionInfo *pTrackerServer)
 	if((result=tcpsenddata_nb(pTrackerServer->sock, out_buff, \
 		sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%u, send data fail, " \
-			"errno: %d, error info: %s", \
-			__LINE__, pTrackerServer->ip_addr, \
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+		logError("file: "__FILE__", line: %d, "
+			"tracker server %s:%u, send data fail, "
+			"errno: %d, error info: %s", __LINE__, formatted_ip,
 			pTrackerServer->port, result, STRERROR(result));
 		return result;
 	}
@@ -108,12 +109,12 @@ static int storage_report_ip_changed(ConnectionInfo *pTrackerServer)
 	}
 	else
 	{
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
 		logError("file: "__FILE__", line: %d, "
 			"tracker server %s:%u, recv data fail or "
-			"response status != 0, "
-			"errno: %d, error info: %s",
-			__LINE__, pTrackerServer->ip_addr,
-			pTrackerServer->port, result, STRERROR(result));
+			"response status != 0, errno: %d, error info: %s",
+			__LINE__, formatted_ip, pTrackerServer->port,
+            result, STRERROR(result));
 		return result == EBUSY ? 0 : result;
 	}
 }
@@ -126,6 +127,7 @@ int storage_get_my_tracker_client_ip()
 	TrackerServerInfo trackerServer;
     ConnectionInfo *conn;
 	char tracker_client_ip[IP_ADDRESS_SIZE];
+    char formatted_ip[FORMATTED_IP_SIZE];
 	int success_count;
 	int result;
 	int i;
@@ -159,12 +161,11 @@ int storage_get_my_tracker_client_ip()
 
 		if (conn == NULL)
 		{
+            format_ip_address(pTServer->connections[0].ip_addr, formatted_ip);
 			logError("file: "__FILE__", line: %d, "
 				"connect to tracker server %s:%u fail, "
-				"errno: %d, error info: %s",
-				__LINE__, pTServer->connections[0].ip_addr,
-                pTServer->connections[0].port,
-				result, STRERROR(result));
+				"errno: %d, error info: %s", __LINE__, formatted_ip,
+                pTServer->connections[0].port, result, STRERROR(result));
 
 			continue;
 		}
@@ -199,6 +200,7 @@ static int storage_report_storage_ip_addr()
 	TrackerServerInfo *pTServer;
 	TrackerServerInfo *pTServerEnd;
 	TrackerServerInfo trackerServer;
+    char formatted_ip[FORMATTED_IP_SIZE];
     ConnectionInfo *conn;
 	int success_count;
 	int result;
@@ -248,12 +250,11 @@ static int storage_report_storage_ip_addr()
 
         if (conn == NULL)
 		{
+            format_ip_address(pTServer->connections[0].ip_addr, formatted_ip);
 			logError("file: "__FILE__", line: %d, "
 				"connect to tracker server %s:%u fail, "
-				"errno: %d, error info: %s",
-				__LINE__, pTServer->connections[0].ip_addr,
-                pTServer->connections[0].port,
-				result, STRERROR(result));
+				"errno: %d, error info: %s", __LINE__, formatted_ip,
+                pTServer->connections[0].port, result, STRERROR(result));
 
 			continue;
 		}
@@ -286,6 +287,7 @@ int storage_changelog_req()
 	TrackerServerInfo *pTServer;
 	TrackerServerInfo *pTServerEnd;
 	TrackerServerInfo trackerServer;
+    char formatted_ip[FORMATTED_IP_SIZE];
     ConnectionInfo *conn;
 	int success_count;
 	int result;
@@ -319,12 +321,11 @@ int storage_changelog_req()
 
         if (conn == NULL)
 		{
+            format_ip_address(pTServer->connections[0].ip_addr, formatted_ip);
 			logError("file: "__FILE__", line: %d, "
 				"connect to tracker server %s:%u fail, "
-				"errno: %d, error info: %s",
-				__LINE__, pTServer->connections[0].ip_addr,
-                pTServer->connections[0].port,
-				result, STRERROR(result));
+				"errno: %d, error info: %s", __LINE__, formatted_ip,
+                pTServer->connections[0].port, result, STRERROR(result));
 
 			continue;
 		}

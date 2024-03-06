@@ -119,6 +119,7 @@ static int storage_do_fetch_binlog(ConnectionInfo *pSrcStorage, \
 {
 	char out_buff[sizeof(TrackerHeader) + FDFS_GROUP_NAME_MAX_LEN + 1];
 	char full_binlog_filename[MAX_PATH_SIZE];
+    char formatted_ip[FORMATTED_IP_SIZE];
 	TrackerHeader *pHeader;
 	char *pBasePath;
 	int64_t in_bytes;
@@ -142,10 +143,11 @@ static int storage_do_fetch_binlog(ConnectionInfo *pSrcStorage, \
 	if((result=tcpsenddata_nb(pSrcStorage->sock, out_buff,
 		sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
+        format_ip_address(pSrcStorage->ip_addr, formatted_ip);
 		logError("file: "__FILE__", line: %d, "
 			"storage server %s:%u, send data fail, "
-			"errno: %d, error info: %s.",
-			__LINE__, pSrcStorage->ip_addr, pSrcStorage->port,
+			"errno: %d, error info: %s.", __LINE__,
+            formatted_ip, pSrcStorage->port,
 			result, STRERROR(result));
 		return result;
 	}
@@ -170,17 +172,19 @@ static int storage_do_fetch_binlog(ConnectionInfo *pSrcStorage, \
 	if ((result=tcprecvfile(pSrcStorage->sock, full_binlog_filename,
 				in_bytes, 0, network_timeout, &file_bytes)) != 0)
 	{
+        format_ip_address(pSrcStorage->ip_addr, formatted_ip);
 		logError("file: "__FILE__", line: %d, "
 			"storage server %s:%u, tcprecvfile fail, "
-			"errno: %d, error info: %s.",
-			__LINE__, pSrcStorage->ip_addr, pSrcStorage->port,
+			"errno: %d, error info: %s.", __LINE__,
+            formatted_ip, pSrcStorage->port,
 			result, STRERROR(result));
 		return result;
 	}
 
+    format_ip_address(pSrcStorage->ip_addr, formatted_ip);
 	logInfo("file: "__FILE__", line: %d, "
 		"recovery binlog from %s:%u, file size: %"PRId64, __LINE__,
-        pSrcStorage->ip_addr, pSrcStorage->port, file_bytes);
+        formatted_ip, pSrcStorage->port, file_bytes);
 
 	return 0;
 }
@@ -196,6 +200,7 @@ static int recovery_get_src_storage_server(ConnectionInfo *pSrcStorage)
 	FDFSGroupStat groupStat;
 	FDFSStorageInfo storageStats[FDFS_MAX_SERVERS_EACH_GROUP];
 	FDFSStorageInfo *pStorageStat;
+    char formatted_ip[FORMATTED_IP_SIZE];
     bool found;
 
 	memset(pSrcStorage, 0, sizeof(ConnectionInfo));
@@ -356,9 +361,12 @@ static int recovery_get_src_storage_server(ConnectionInfo *pSrcStorage)
 		return EINTR;
 	}
 
-	logDebug("file: "__FILE__", line: %d, "
-		"disk recovery: get source storage server %s:%u",
-		__LINE__, pSrcStorage->ip_addr, pSrcStorage->port);
+    if (FC_LOG_BY_LEVEL(LOG_DEBUG)) {
+        format_ip_address(pSrcStorage->ip_addr, formatted_ip);
+        logDebug("file: "__FILE__", line: %d, "
+                "disk recovery: get source storage server %s:%u",
+                __LINE__, formatted_ip, pSrcStorage->port);
+    }
 	return 0;
 }
 
@@ -721,6 +729,7 @@ static int storage_do_recovery(RecoveryThreadData *pThreadData,
 	bool bContinueFlag;
 	char local_filename[MAX_PATH_SIZE];
 	char src_filename[MAX_PATH_SIZE];
+    char formatted_ip[FORMATTED_IP_SIZE];
 
 	pTrackerServer = tracker_get_connection_r(&trackerServer, &result);
     if (pTrackerServer == NULL)
@@ -737,10 +746,11 @@ static int storage_do_recovery(RecoveryThreadData *pThreadData,
     noent_count = 0;
 	result = 0;
 
+    format_ip_address(pSrcStorage->ip_addr, formatted_ip);
 	logInfo("file: "__FILE__", line: %d, "
 		"disk recovery thread #%d, src storage server %s:%u, "
         "recovering files of data path: %s ...", __LINE__,
-        pThreadData->thread_index, pSrcStorage->ip_addr,
+        pThreadData->thread_index, formatted_ip,
         pSrcStorage->port, pThreadData->base_path);
 
 	bContinueFlag = true;
@@ -924,10 +934,11 @@ static int storage_do_recovery(RecoveryThreadData *pThreadData,
 
 	if (pThreadData->done)
 	{
+        format_ip_address(pSrcStorage->ip_addr, formatted_ip);
 		logInfo("file: "__FILE__", line: %d, "
 			"disk recovery thread #%d, src storage server %s:%u, "
             "recover files of data path: %s done", __LINE__,
-            pThreadData->thread_index, pSrcStorage->ip_addr,
+            pThreadData->thread_index, formatted_ip,
             pSrcStorage->port, pThreadData->base_path);
 	}
 
@@ -1700,10 +1711,11 @@ static int storage_disk_recovery_split_trunk_binlog(const int store_path_index)
 
 int storage_disk_recovery_prepare(const int store_path_index)
 {
+    char formatted_ip[FORMATTED_IP_SIZE];
 	ConnectionInfo srcStorage;
 	ConnectionInfo *pStorageConn;
-	int result;
 	char *pBasePath;
+	int result;
 
 	pBasePath = g_fdfs_store_paths.paths[store_path_index].path;
 	if ((result=recovery_init_flag_file(pBasePath, false, -1)) != 0)
@@ -1748,9 +1760,10 @@ int storage_disk_recovery_prepare(const int store_path_index)
 		return result;
 	}
 
+    format_ip_address(pStorageConn->ip_addr, formatted_ip);
 	logInfo("file: "__FILE__", line: %d, "
             "try to fetch binlog from %s:%u ...", __LINE__,
-            pStorageConn->ip_addr, pStorageConn->port);
+            formatted_ip, pStorageConn->port);
 
 	result = storage_do_fetch_binlog(pStorageConn, store_path_index);
 	tracker_close_connection_ex(pStorageConn, true);
@@ -1759,9 +1772,10 @@ int storage_disk_recovery_prepare(const int store_path_index)
 		return result;
 	}
 
+    format_ip_address(pStorageConn->ip_addr, formatted_ip);
     logInfo("file: "__FILE__", line: %d, "
             "fetch binlog from %s:%u successfully.", __LINE__,
-            pStorageConn->ip_addr, pStorageConn->port);
+            formatted_ip, pStorageConn->port);
 
 	if ((result=storage_disk_recovery_split_trunk_binlog(
 			store_path_index)) != 0)

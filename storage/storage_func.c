@@ -141,6 +141,7 @@ static int storage_check_and_make_data_dirs();
 static int storage_do_get_group_name(ConnectionInfo *pTrackerServer)
 {
 	char out_buff[sizeof(TrackerHeader) + 4];
+    char formatted_ip[FORMATTED_IP_SIZE];
 	TrackerHeader *pHeader;
 	char *pInBuff;
 	int64_t in_bytes;
@@ -154,12 +155,11 @@ static int storage_do_get_group_name(ConnectionInfo *pTrackerServer)
 	if ((result=tcpsenddata_nb(pTrackerServer->sock, out_buff, \
 			sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%u, send data fail, " \
-			"errno: %d, error info: %s.", \
-			__LINE__, pTrackerServer->ip_addr, \
-			pTrackerServer->port, \
-			result, STRERROR(result));
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+		logError("file: "__FILE__", line: %d, "
+			"tracker server %s:%u, send data fail, errno: %d, "
+			"error info: %s.", __LINE__, formatted_ip,
+			pTrackerServer->port, result, STRERROR(result));
 		return result;
 	}
 
@@ -175,11 +175,11 @@ static int storage_do_get_group_name(ConnectionInfo *pTrackerServer)
 
 	if (in_bytes != FDFS_GROUP_NAME_MAX_LEN)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"tracker server %s:%u, recv body length: " \
-			"%"PRId64" != %d",  \
-			__LINE__, pTrackerServer->ip_addr, \
-			pTrackerServer->port, in_bytes, FDFS_GROUP_NAME_MAX_LEN);
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+		logError("file: "__FILE__", line: %d, "
+			"tracker server %s:%u, recv body length: %"PRId64" != %d",
+            __LINE__, formatted_ip, pTrackerServer->port,
+            in_bytes, FDFS_GROUP_NAME_MAX_LEN);
 		return EINVAL;
 	}
 
@@ -1410,6 +1410,7 @@ static int storage_check_tracker_ipaddr(const char *filename)
     TrackerServerInfo *pEnd;
 	ConnectionInfo *conn;
 	ConnectionInfo *conn_end;
+    char formatted_ip[FORMATTED_IP_SIZE];
 
     pEnd = g_tracker_group.servers + g_tracker_group.server_count;
     for (pServer=g_tracker_group.servers; pServer<pEnd; pServer++)
@@ -1417,13 +1418,13 @@ static int storage_check_tracker_ipaddr(const char *filename)
         conn_end = pServer->connections + pServer->count;
         for (conn=pServer->connections; conn<conn_end; conn++)
         {
-            //logInfo("server=%s:%u\n", conn->ip_addr, conn->port);
-            if (strcmp(conn->ip_addr, "127.0.0.1") == 0)
+            if (is_loopback_ip(conn->ip_addr))
             {
+                format_ip_address(conn->ip_addr, formatted_ip);
                 logError("file: "__FILE__", line: %d, "
                         "conf file \"%s\", tracker: \"%s:%u\" is invalid, "
-                        "tracker server ip can't be 127.0.0.1",
-                        __LINE__, filename, conn->ip_addr, conn->port);
+                        "tracker server ip can't be loopback address",
+                        __LINE__, filename, formatted_ip, conn->port);
                 return EINVAL;
             }
         }
@@ -2256,6 +2257,7 @@ static int storage_get_my_ip_from_tracker(ConnectionInfo *conn,
         char *ip_addrs, const int buff_size)
 {
 	char out_buff[sizeof(TrackerHeader) + FDFS_GROUP_NAME_MAX_LEN];
+    char formatted_ip[FORMATTED_IP_SIZE];
 	TrackerHeader *pHeader;
 	int result;
     int64_t in_bytes;
@@ -2269,21 +2271,21 @@ static int storage_get_my_ip_from_tracker(ConnectionInfo *conn,
 	if((result=tcpsenddata_nb(conn->sock, out_buff,
 		sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
+        format_ip_address(conn->ip_addr, formatted_ip);
 		logError("file: "__FILE__", line: %d, "
-			"tracker server %s:%u, send data fail, "
-			"errno: %d, error info: %s.",
-			__LINE__, conn->ip_addr, conn->port,
-			result, STRERROR(result));
+			"tracker server %s:%u, send data fail, errno: %d, "
+			"error info: %s.", __LINE__, formatted_ip,
+            conn->port, result, STRERROR(result));
 		return result;
 	}
 
     if ((result=fdfs_recv_response(conn, &ip_addrs,
                     buff_size - 1, &in_bytes)) != 0)
     {
+        format_ip_address(conn->ip_addr, formatted_ip);
 		logError("file: "__FILE__", line: %d, "
-			"tracker server %s:%u, recv response fail, "
-			"errno: %d, error info: %s.",
-			__LINE__, conn->ip_addr, conn->port,
+			"tracker server %s:%u, recv response fail, errno: %d, "
+			"error info: %s.", __LINE__, formatted_ip, conn->port,
 			result, STRERROR(result));
 		return result;
     }
@@ -2297,6 +2299,7 @@ int storage_set_tracker_client_ips(ConnectionInfo *conn,
 {
     char my_ip_addrs[256];
     char error_info[256];
+    char formatted_ip[FORMATTED_IP_SIZE];
     FDFSMultiIP multi_ip;
 	int result;
 	int i;
@@ -2327,13 +2330,12 @@ int storage_set_tracker_client_ips(ConnectionInfo *conn,
             if ((result=fdfs_check_and_format_ips(&g_tracker_client_ip,
                         error_info, sizeof(error_info))) != 0)
             {
+                format_ip_address(conn->ip_addr, formatted_ip);
                 logCrit("file: "__FILE__", line: %d, "
                         "as a client of tracker server %s:%u, "
                         "my ip: %s not valid, error info: %s. "
-                        "program exit!", __LINE__,
-                        conn->ip_addr, conn->port,
-                        multi_ip.ips[i].address, error_info);
-
+                        "program exit!", __LINE__, formatted_ip,
+                        conn->port, multi_ip.ips[i].address, error_info);
                 return result;
             }
 
@@ -2345,11 +2347,12 @@ int storage_set_tracker_client_ips(ConnectionInfo *conn,
 
             fdfs_multi_ips_to_string(&g_tracker_client_ip,
                     ip_str, sizeof(ip_str));
+            format_ip_address(conn->ip_addr, formatted_ip);
             logError("file: "__FILE__", line: %d, "
                     "as a client of tracker server %s:%u, "
                     "my ip: %s not consistent with client ips: %s "
-                    "of other tracker client. program exit!", __LINE__,
-                    conn->ip_addr, conn->port,
+                    "of other tracker client. program exit!",
+                    __LINE__, formatted_ip, conn->port,
                     multi_ip.ips[i].address, ip_str);
 
             return result;

@@ -35,6 +35,7 @@ static int trunk_client_trunk_do_alloc_space(ConnectionInfo *pTrunkServer, \
 	char *p;
 	int result;
 	char out_buff[sizeof(TrackerHeader) + FDFS_GROUP_NAME_MAX_LEN + 5];
+    char formatted_ip[FORMATTED_IP_SIZE];
 	FDFSTrunkInfoBuff trunkBuff;
 	int64_t in_bytes;
 
@@ -50,15 +51,14 @@ static int trunk_client_trunk_do_alloc_space(ConnectionInfo *pTrunkServer, \
 	long2buff(FDFS_GROUP_NAME_MAX_LEN + 5, pHeader->pkg_len);
 	pHeader->cmd = STORAGE_PROTO_CMD_TRUNK_ALLOC_SPACE;
 
-	if ((result=tcpsenddata_nb(pTrunkServer->sock, out_buff, \
+	if ((result=tcpsenddata_nb(pTrunkServer->sock, out_buff,
 			sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"send data to storage server %s:%u fail, " \
-			"errno: %d, error info: %s", __LINE__, \
-			pTrunkServer->ip_addr, pTrunkServer->port, \
-			result, STRERROR(result));
-
+        format_ip_address(pTrunkServer->ip_addr, formatted_ip);
+		logError("file: "__FILE__", line: %d, "
+			"send data to storage server %s:%u fail, errno: %d, "
+			"error info: %s", __LINE__, formatted_ip,
+            pTrunkServer->port, result, STRERROR(result));
 		return result;
 	}
 
@@ -74,11 +74,12 @@ static int trunk_client_trunk_do_alloc_space(ConnectionInfo *pTrunkServer, \
 
 	if (in_bytes != sizeof(FDFSTrunkInfoBuff))
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"storage server %s:%u, recv body length: %d invalid, " \
-			"expect body length: %d", __LINE__, \
-			pTrunkServer->ip_addr, pTrunkServer->port, \
-			(int)in_bytes, (int)sizeof(FDFSTrunkInfoBuff));
+        format_ip_address(pTrunkServer->ip_addr, formatted_ip);
+		logError("file: "__FILE__", line: %d, "
+			"storage server %s:%u, recv body length: %d invalid, "
+			"expect body length: %d", __LINE__, formatted_ip,
+            pTrunkServer->port, (int)in_bytes,
+            (int)sizeof(FDFSTrunkInfoBuff));
 		return EINVAL;
 	}
 
@@ -97,6 +98,7 @@ static int trunk_client_connect_trunk_server(TrackerServerInfo *trunk_server,
         ConnectionInfo **conn, const char *prompt)
 {
 	int result;
+    char formatted_ip[FORMATTED_IP_SIZE];
 
 	if (g_trunk_server.count == 0)
 	{
@@ -108,10 +110,11 @@ static int trunk_client_connect_trunk_server(TrackerServerInfo *trunk_server,
 	memcpy(trunk_server, &g_trunk_server, sizeof(TrackerServerInfo));
 	if ((*conn=tracker_connect_server(trunk_server, &result)) == NULL)
 	{
+        format_ip_address(trunk_server->connections[0].
+                ip_addr, formatted_ip);
 		logError("file: "__FILE__", line: %d, "
-			"%s because connect to trunk "
-			"server %s:%u fail, errno: %d", __LINE__,
-			prompt, trunk_server->connections[0].ip_addr,
+			"%s because connect to trunk server %s:%u fail, "
+            "errno: %d", __LINE__, prompt, formatted_ip,
             trunk_server->connections[0].port, result);
 		return result;
 	}
@@ -167,6 +170,7 @@ static int trunk_client_trunk_confirm_or_free(ConnectionInfo *pTrunkServer,\
 	int result;
 	char out_buff[sizeof(TrackerHeader) \
 		+ STORAGE_TRUNK_ALLOC_CONFIRM_REQ_BODY_LEN];
+    char formatted_ip[FORMATTED_IP_SIZE];
 
 	pHeader = (TrackerHeader *)out_buff;
 	pTrunkBuff = (FDFSTrunkInfoBuff *)(out_buff + sizeof(TrackerHeader) \
@@ -185,15 +189,14 @@ static int trunk_client_trunk_confirm_or_free(ConnectionInfo *pTrunkServer,\
 	int2buff(pTrunkInfo->file.offset, pTrunkBuff->offset);
 	int2buff(pTrunkInfo->file.size, pTrunkBuff->size);
 
-	if ((result=tcpsenddata_nb(pTrunkServer->sock, out_buff, \
+	if ((result=tcpsenddata_nb(pTrunkServer->sock, out_buff,
 			sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"send data to storage server %s:%u fail, " \
-			"errno: %d, error info: %s", __LINE__, \
-			pTrunkServer->ip_addr, pTrunkServer->port, \
-			result, STRERROR(result));
-
+        format_ip_address(pTrunkServer->ip_addr, formatted_ip);
+		logError("file: "__FILE__", line: %d, "
+			"send data to storage server %s:%u fail, errno: %d, "
+			"error info: %s", __LINE__, formatted_ip,
+            pTrunkServer->port, result, STRERROR(result));
 		return result;
 	}
 
@@ -207,11 +210,11 @@ static int trunk_client_trunk_confirm_or_free(ConnectionInfo *pTrunkServer,\
 
 	if (in_bytes != 0)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"storage server %s:%u response data " \
-			"length: %"PRId64" is invalid, " \
-			"should == 0", __LINE__, pTrunkServer->ip_addr, \
-			pTrunkServer->port, in_bytes);
+        format_ip_address(pTrunkServer->ip_addr, formatted_ip);
+		logError("file: "__FILE__", line: %d, "
+			"storage server %s:%u response data length: "
+			"%"PRId64" is invalid, should == 0", __LINE__,
+            formatted_ip, pTrunkServer->port, in_bytes);
 		return EINVAL;
 	}
 

@@ -570,7 +570,7 @@ int fdfs_server_info_to_string_ex(const TrackerServerInfo *pServer,
     {
         *(buff + len++) = ']';
     }
-    len += snprintf(buff + len, buffSize - len, ":%d", port);
+    len += snprintf(buff + len, buffSize - len, ":%u", port);
     return len;
 }
 

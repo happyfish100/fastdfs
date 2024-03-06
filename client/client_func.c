@@ -134,17 +134,18 @@ static int copy_tracker_servers(TrackerServerGroup *pTrackerGroup,
 		}
 	}
 
-	/*
+    /*
 	{
 	TrackerServerInfo *pServer;
-	for (pServer=pTrackerGroup->servers; pServer<pTrackerGroup->servers+ \
+    char formatted_ip[FORMATTED_IP_SIZE];
+	for (pServer=pTrackerGroup->servers; pServer<pTrackerGroup->servers+
 		pTrackerGroup->server_count;	pServer++)
 	{
-		//printf("server=%s:%u\n", \
-			pServer->ip_addr, pServer->port);
+        format_ip_address(pServer->connections[0].ip_addr, formatted_ip);
+		printf("server=%s:%u\n", formatted_ip, pServer->connections[0].port);
 	}
 	}
-	*/
+    */
 
 	return 0;
 }
