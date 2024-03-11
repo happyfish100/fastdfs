@@ -923,7 +923,7 @@ int storage_do_upload_file(ConnectionInfo *pTrackerServer, \
     char formatted_ip[FORMATTED_IP_SIZE];
 	char *pInBuff;
 	ConnectionInfo storageServer;
-	bool new_connection;
+	bool new_connection = false;
 	bool bUploadSlave;
 	int new_store_path;
 	int master_filename_len;
@@ -952,20 +952,23 @@ int storage_do_upload_file(ConnectionInfo *pTrackerServer, \
 	bUploadSlave = (strlen(group_name) > 0 && master_filename_len > 0);
 	if (bUploadSlave)
 	{
-		if ((result=storage_get_update_connection(pTrackerServer, \
-			&pStorageServer, group_name, master_filename, \
+		if ((result=storage_get_update_connection(pTrackerServer,
+			&pStorageServer, group_name, master_filename,
 			&storageServer, &new_connection)) != 0)
 		{
 			return result;
 		}
 	}
-	else if ((result=storage_get_upload_connection(pTrackerServer, \
-		&pStorageServer, group_name, &storageServer, \
-		&new_store_path, &new_connection)) != 0)
-	{
-		*group_name = '\0';
-		return result;
-	}
+    else
+    {
+        if ((result=storage_get_upload_connection(pTrackerServer,
+                        &pStorageServer, group_name, &storageServer,
+                        &new_store_path, &new_connection)) != 0)
+        {
+            *group_name = '\0';
+            return result;
+        }
+    }
 
 	*group_name = '\0';
 
@@ -1269,8 +1272,8 @@ int storage_set_metadata(ConnectionInfo *pTrackerServer, \
 	char *pEnd;
 	bool new_connection;
 
-	if ((result=storage_get_update_connection(pTrackerServer, \
-		&pStorageServer, group_name, filename, \
+	if ((result=storage_get_update_connection(pTrackerServer,
+		&pStorageServer, group_name, filename,
 		&storageServer, &new_connection)) != 0)
 	{
 		return result;

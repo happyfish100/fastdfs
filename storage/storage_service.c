@@ -1783,7 +1783,7 @@ void storage_get_store_path(const char *filename, const int filename_len, \
 	{ \
 		int r; \
 		r = (rand() & 0x007FFFFF) | 0x80000000; \
-		masked_file_size = (((int64_t)r) << 32 ) | file_size; \
+		masked_file_size = (((int64_t)r) << 32 ) | (file_size); \
 	} while (0)
 
 
