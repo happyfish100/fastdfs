@@ -3,8 +3,8 @@ Section: admin
 Priority: optional
 Maintainer: YuQing <384681@qq.com>
 Build-Depends: debhelper (>=11~),
-               libfastcommon-dev (>= ${libfastcommon:Version}),
-               libserverframe-dev (>= ${libserverframe:Version})
+               libfastcommon-dev (>= 1.0.73),
+               libserverframe-dev (>= 1.2.3)
 Standards-Version: 4.1.4
 Homepage: http://github.com/happyfish100/fastdfs/
 
