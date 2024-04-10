@@ -1,0 +1,3 @@
+version=3
+opts="mode=git" https://github.com/happyfish100/fastdfs.git \
+   refs/tags/v([\d\.]+) debian uupdate

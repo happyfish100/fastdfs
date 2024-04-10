@@ -1,0 +1,5 @@
+FastDFS is an open source high performance distributed file system. Its major
+functions include: file storing, file syncing and file accessing (file uploading
+and file downloading), and it can resolve the high capacity and load balancing
+problem. FastDFS should meet the requirement of the website whose service based
+on files such as photo sharing site and video sharing site.

@@ -1,0 +1,30 @@
+#!/usr/bin/make -f
+
+export DH_VERBOSE=1
+export DESTDIR=$(CURDIR)/debian/tmp
+
+export CONFDIR=$(DESTDIR)/etc/fdfs/
+
+%:
+	dh $@
+
+
+override_dh_auto_build:
+	./make.sh clean && DESTDIR=$(DESTDIR) ./make.sh
+
+override_dh_auto_install:
+	DESTDIR=$(DESTDIR) ./make.sh install
+	mkdir -p $(CONFDIR)
+	cp conf/*.conf $(CONFDIR)
+	cp systemd/fdfs_storaged.service debian/fastdfs-server.fdfs_storaged.service
+	cp systemd/fdfs_trackerd.service debian/fastdfs-server.fdfs_trackerd.service
+
+	dh_auto_install
+
+override_dh_installsystemd:
+	dh_installsystemd --package=fastdfs-server --name=fdfs_storaged --no-start --no-restart-on-upgrade
+	dh_installsystemd --package=fastdfs-server --name=fdfs_trackerd --no-start --no-restart-on-upgrade
+
+.PHONY: override_dh_gencontrol
+override_dh_gencontrol:
+	dh_gencontrol -- -Tdebian/substvars

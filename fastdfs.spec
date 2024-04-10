@@ -12,13 +12,14 @@ Release: 1%{?dist}
 Summary: FastDFS server and client
 License: GPL
 Group: Arch/Tech
-URL: 	http://perso.orange.fr/sebastien.godard/
-Source: http://perso.orange.fr/sebastien.godard/%{name}-%{version}.tar.gz
+URL: 	https://github.com/happyfish100/fastdfs/
+Source: https://github.com/happyfish100/fastdfs/%{name}-%{version}.tar.gz
 
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n) 
-
-Requires: %__cp %__mv %__chmod %__grep %__mkdir %__install %__id
 BuildRequires: libserverframe-devel >= 1.2.3
+Requires: %__cp %__mv %__chmod %__grep %__mkdir %__install %__id
+Requires: %{FDFSServer} = %{version}-%{release}
+Requires: %{FDFSTool} = %{version}-%{release}
 
 %description
 This package provides tracker & storage of fastdfs

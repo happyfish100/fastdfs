@@ -1,0 +1,56 @@
+Source: fastdfs
+Section: admin
+Priority: optional
+Maintainer: YuQing <384681@qq.com>
+Build-Depends: debhelper (>=11~),
+               libfastcommon-dev (>= ${libfastcommon:Version}),
+               libserverframe-dev (>= ${libserverframe:Version})
+Standards-Version: 4.1.4
+Homepage: http://github.com/happyfish100/fastdfs/
+
+Package: fastdfs
+Architecture: linux-any
+Multi-Arch: foreign
+Depends: fastdfs-server (= ${binary:Version}),
+         fastdfs-tool (= ${binary:Version}),
+         ${misc:Depends}
+Description: FastDFS server and client 
+
+Package: fastdfs-server
+Architecture: linux-any
+Multi-Arch: foreign
+Depends: libfastcommon (>= ${libfastcommon:Version}),
+         libserverframe (>= ${libserverframe:Version}),
+         fastdfs-config (>= ${fastdfs-config:Version}),
+         ${misc:Depends}, ${shlibs:Depends}
+Description: FastDFS server
+
+Package: libfdfsclient
+Architecture: linux-any
+Multi-Arch: foreign
+Depends: libfastcommon (>= ${libfastcommon:Version}),
+         libserverframe (>= ${libserverframe:Version}),
+         ${misc:Depends}, ${shlibs:Depends}
+Description: FastDFS client tools
+
+Package: libfdfsclient-dev
+Architecture: linux-any
+Multi-Arch: foreign
+Depends: libfdfsclient (= ${binary:Version}),
+         ${misc:Depends}
+Description: header files of FastDFS client library
+ This package provides the header files of libfdfsclient
+
+Package: fastdfs-tool
+Architecture: linux-any
+Multi-Arch: foreign
+Depends: libfdfsclient (= ${binary:Version}),
+         fastdfs-config (>= ${fastdfs-config:Version}),
+         ${misc:Depends}, ${shlibs:Depends}
+Description: FastDFS client tools
+
+Package: fastdfs-config
+Architecture: linux-any
+Multi-Arch: foreign
+Description: FastDFS config files for sample
+ FastDFS config files for sample including server and client

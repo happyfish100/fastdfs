@@ -1,0 +1,13 @@
+usr/bin/fdfs_monitor
+usr/bin/fdfs_test
+usr/bin/fdfs_test1
+usr/bin/fdfs_crc32
+usr/bin/fdfs_upload_file
+usr/bin/fdfs_download_file
+usr/bin/fdfs_delete_file
+usr/bin/fdfs_file_info
+usr/bin/fdfs_appender_test
+usr/bin/fdfs_appender_test1
+usr/bin/fdfs_append_file
+usr/bin/fdfs_upload_appender
+usr/bin/fdfs_regenerate_filename

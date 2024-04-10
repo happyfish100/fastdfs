@@ -1,0 +1,7 @@
+fastdfs (6.12.1-1) stable; urgency=medium
+
+ * adapt to libserverframe 1.2.3
+ * bugfixed: notify_leader_changed support IPv6 correctly
+ * log square quoted IPv6 address
+
+ -- YuQing <384681@qq.com>  Wed, 6 Mar 2024 15:14:27 +0000
