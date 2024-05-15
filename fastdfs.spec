@@ -85,6 +85,10 @@ DESTDIR=$RPM_BUILD_ROOT ./make.sh install
 
 %files
 
+%post -n %{FDFSServer}
+systemctl enable fdfs_trackerd
+systemctl enable fdfs_storaged
+
 %files -n %{FDFSServer}
 %defattr(-,root,root,-)
 /usr/bin/fdfs_trackerd
