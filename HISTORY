@@ -1,4 +1,7 @@
 
+Version 6.12.2  2024-09-16
+ * use libfastcommon V1.75 and libserverframe 1.2.5
+
 Version 6.12.1  2024-03-06
  * adapt to libserverframe 1.2.3
  * bugfixed: notify_leader_changed support IPv6 correctly
