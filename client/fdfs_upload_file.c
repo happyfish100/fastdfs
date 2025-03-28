@@ -60,24 +60,17 @@ int main(int argc, char *argv[])
 	*group_name = '\0';
 	if (argc >= 4)
 	{
-		const char *pPort;
-		const char *pIpAndPort;
+		const char *host;
 
-		pIpAndPort = argv[3];
-		pPort = strchr(pIpAndPort, ':');
-		if (pPort == NULL)
-		{
-			fdfs_client_destroy();
-			fprintf(stderr, "invalid storage ip address and " \
-				"port: %s\n", pIpAndPort);
-			usage(argv);
-			return 1;
-		}
+		host = argv[3];
+        if ((result=conn_pool_parse_server_info(host, &storageServer,
+                        FDFS_STORAGE_SERVER_DEF_PORT)) != 0)
+        {
+            fprintf(stderr, "resolve ip address of storage server: %s "
+                    "fail!, error info: %s\n", host, hstrerror(h_errno));
+            return result;
+        }
 
-		storageServer.sock = -1;
-		snprintf(storageServer.ip_addr, sizeof(storageServer.ip_addr), \
-			 "%.*s", (int)(pPort - pIpAndPort), pIpAndPort);
-		storageServer.port = atoi(pPort + 1);
 		if (argc >= 5)
 		{
 			store_path_index = atoi(argv[4]);
@@ -87,28 +80,28 @@ int main(int argc, char *argv[])
 			store_path_index = -1;
 		}
 	}
-	else if ((result=tracker_query_storage_store(pTrackerServer, \
+	else if ((result=tracker_query_storage_store(pTrackerServer,
 	                &storageServer, group_name, &store_path_index)) != 0)
 	{
 		fdfs_client_destroy();
-		fprintf(stderr, "tracker_query_storage fail, " \
-			"error no: %d, error info: %s\n", \
+		fprintf(stderr, "tracker_query_storage fail, "
+			"error no: %d, error info: %s\n",
 			result, STRERROR(result));
 		return result;
 	}
 
-	result = storage_upload_by_filename1(pTrackerServer, \
-			&storageServer, store_path_index, \
-			local_filename, NULL, \
-			NULL, 0, group_name, file_id);
+	result = storage_upload_by_filename1(pTrackerServer,
+			&storageServer, store_path_index,
+			local_filename, NULL, NULL, 0,
+            group_name, file_id);
 	if (result == 0)
 	{
 		printf("%s\n", file_id);
 	}
 	else
 	{
-		fprintf(stderr, "upload file fail, " \
-			"error no: %d, error info: %s\n", \
+		fprintf(stderr, "upload file fail, "
+			"error no: %d, error info: %s\n",
 			result, STRERROR(result));
 	}
 
