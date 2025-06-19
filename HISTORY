@@ -1,4 +1,7 @@
 
+Version 6.12.4  2025-06-19
+ * normalize ip addresses from storage_ids.conf
+
 Version 6.12.3  2025-03-28
  * fdfs_upload_file.c: support IPv6 address
 

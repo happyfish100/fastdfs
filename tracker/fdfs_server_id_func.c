@@ -468,8 +468,8 @@ int fdfs_load_storage_ids(char *content, const char *pStorageIdsFilename)
                 }
             }
 
-            if ((result=fdfs_parse_multi_ips(pHost, &pStorageIdInfo->ip_addrs,
-                            error_info, sizeof(error_info))) != 0)
+            if ((result=fdfs_parse_multi_ips_ex(pHost, &pStorageIdInfo->ip_addrs,
+                            error_info, sizeof(error_info), true)) != 0)
             {
 				logError("file: "__FILE__", line: %d, "
 					"config file: %s, line no: %d, %s", __LINE__,
