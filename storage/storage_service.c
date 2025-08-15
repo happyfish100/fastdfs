@@ -1696,7 +1696,7 @@ int storage_get_storage_path_index(int *store_path_index)
 			*store_path_index = 0;
 		}
 
-		if (!storage_check_reserved_space_path(g_fdfs_store_paths.paths \
+		if (g_fdfs_store_paths.paths[*store_path_index].read_only || !storage_check_reserved_space_path(g_fdfs_store_paths.paths \
 			[*store_path_index].total_mb, g_fdfs_store_paths.paths \
 			[*store_path_index].free_mb, g_avg_storage_reserved_mb))
 		{
@@ -1710,9 +1710,12 @@ int storage_get_storage_path_index(int *store_path_index)
                             g_fdfs_store_paths.paths[index].free_mb,
                             g_avg_storage_reserved_mb))
                 {
-                    *store_path_index = index;
-                    g_store_path_index = index;
-                    break;
+					if (!g_fdfs_store_paths.paths[index].read_only)
+                    {
+                    	*store_path_index = index;
+                    	g_store_path_index = index;
+                    	break;
+					}
                 }
             }
 
@@ -4286,6 +4289,22 @@ static int storage_upload_file(struct fast_task_info *pTask, bool bAppenderFile)
 
 	p = pTask->recv.ptr->data + sizeof(TrackerHeader);
 	store_path_index = *p++;
+
+    if (store_path_index >= 0 && store_path_index < g_fdfs_store_paths.count)
+    {
+        if (g_fdfs_store_paths.paths[store_path_index].read_only)
+        {
+            if ((result=storage_get_storage_path_index( \
+                    &store_path_index)) != 0)
+            {
+                logError("file: "__FILE__", line: %d, " \
+                        "get_storage_path_index fail, " \
+                        "errno: %d, error info: %s", __LINE__, \
+                        result, STRERROR(result));
+                return result;
+            }
+        }
+    }
 
 	if (store_path_index == -1)
 	{
