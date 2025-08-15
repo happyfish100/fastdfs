@@ -55,6 +55,7 @@ typedef struct
     int path_len;  //the length of store path
 	char *path;    //file store path
     char *mark;    //path mark to avoid confusion
+    bool read_only; //path marked to read only
 } FDFSStorePathInfo;
 
 typedef struct {

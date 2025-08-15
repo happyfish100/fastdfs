@@ -2284,7 +2284,12 @@ static int tracker_report_df_stat(ConnectionInfo *pTrackerServer,
 		store_path_index = -1;
 		for (i=0; i<g_fdfs_store_paths.count; i++)
 		{
-			if (g_fdfs_store_paths.paths[i].free_mb > \
+			if (g_fdfs_store_paths.paths[i].read_only)
+        	{
+            	continue;
+        	}
+			
+			if (!g_fdfs_store_paths.paths[i].read_only && g_fdfs_store_paths.paths[i].free_mb > \
 				g_avg_storage_reserved_mb \
 				&& g_fdfs_store_paths.paths[i].free_mb > max_free_mb)
 			{

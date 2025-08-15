@@ -51,6 +51,7 @@ FDFSStorePathInfo *storage_load_paths_from_conf_file_ex(
 	char item_name[64];
 	FDFSStorePathInfo *store_paths;
 	char *pPath;
+	bool Readonly = false;
     int bytes;
 	int i;
 
@@ -93,9 +94,11 @@ FDFSStorePathInfo *storage_load_paths_from_conf_file_ex(
 
 		pPath = SF_G_BASE_PATH_STR;
 	}
+	Readonly = iniGetBoolValue(szSectionName, "store_path0_readonly", pItemContext, false);
 
     store_paths[0].path_len = strlen(pPath);
 	store_paths[0].path = strdup(pPath);
+	store_paths[0].read_only = Readonly;
 	if (store_paths[0].path == NULL)
 	{
 		logError("file: "__FILE__", line: %d, "
@@ -122,6 +125,9 @@ FDFSStorePathInfo *storage_load_paths_from_conf_file_ex(
 			*err_no = ENOENT;
 			break;
 		}
+		sprintf(item_name, "store_path%d_readonly", i);
+        Readonly = iniGetBoolValue(szSectionName, item_name,
+                   pItemContext, false);
 
 		chopPath(pPath);
 		if (!fileExists(pPath))
@@ -144,6 +150,7 @@ FDFSStorePathInfo *storage_load_paths_from_conf_file_ex(
 
         store_paths[i].path_len = strlen(pPath);
 		store_paths[i].path = strdup(pPath);
+		store_paths[i].read_only = Readonly;
 		if (store_paths[i].path == NULL)
 		{
 			logError("file: "__FILE__", line: %d, " \
