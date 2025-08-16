@@ -51,7 +51,9 @@ FDFSStorePathInfo *storage_load_paths_from_conf_file_ex(
 	char item_name[64];
 	FDFSStorePathInfo *store_paths;
 	char *pPath;
-	bool Readonly = false;
+    char *numStart;
+	bool read_only;
+    int len;
     int bytes;
 	int i;
 
@@ -94,11 +96,12 @@ FDFSStorePathInfo *storage_load_paths_from_conf_file_ex(
 
 		pPath = SF_G_BASE_PATH_STR;
 	}
-	Readonly = iniGetBoolValue(szSectionName, "store_path0_readonly", pItemContext, false);
+	read_only = iniGetBoolValue(szSectionName, "store_path0_readonly",
+            pItemContext, false);
 
     store_paths[0].path_len = strlen(pPath);
 	store_paths[0].path = strdup(pPath);
-	store_paths[0].read_only = Readonly;
+	store_paths[0].read_only = read_only;
 	if (store_paths[0].path == NULL)
 	{
 		logError("file: "__FILE__", line: %d, "
@@ -111,12 +114,14 @@ FDFSStorePathInfo *storage_load_paths_from_conf_file_ex(
 		return NULL;
 	}
 
+    strcpy(item_name, "store_path");
+    numStart = item_name + strlen(item_name);
 	*err_no = 0;
 	for (i=1; i<*path_count; i++)
 	{
-		sprintf(item_name, "store_path%d", i);
-		pPath = iniGetStrValue(szSectionName, item_name,
-				pItemContext);
+        len = fc_itoa(i, numStart);
+        *(numStart + len) = '\0';
+		pPath = iniGetStrValue(szSectionName, item_name, pItemContext);
 		if (pPath == NULL)
 		{
 			logError("file: "__FILE__", line: %d, "
@@ -125,9 +130,10 @@ FDFSStorePathInfo *storage_load_paths_from_conf_file_ex(
 			*err_no = ENOENT;
 			break;
 		}
-		sprintf(item_name, "store_path%d_readonly", i);
-        Readonly = iniGetBoolValue(szSectionName, item_name,
-                   pItemContext, false);
+
+        strcat(item_name, "_readonly");
+        read_only = iniGetBoolValue(szSectionName,
+                item_name, pItemContext, false);
 
 		chopPath(pPath);
 		if (!fileExists(pPath))
@@ -150,7 +156,7 @@ FDFSStorePathInfo *storage_load_paths_from_conf_file_ex(
 
         store_paths[i].path_len = strlen(pPath);
 		store_paths[i].path = strdup(pPath);
-		store_paths[i].read_only = Readonly;
+		store_paths[i].read_only = read_only;
 		if (store_paths[i].path == NULL)
 		{
 			logError("file: "__FILE__", line: %d, " \

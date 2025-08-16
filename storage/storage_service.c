@@ -1696,8 +1696,9 @@ int storage_get_storage_path_index(int *store_path_index)
 			*store_path_index = 0;
 		}
 
-		if (g_fdfs_store_paths.paths[*store_path_index].read_only || !storage_check_reserved_space_path(g_fdfs_store_paths.paths \
-			[*store_path_index].total_mb, g_fdfs_store_paths.paths \
+		if (g_fdfs_store_paths.paths[*store_path_index].read_only ||
+                !storage_check_reserved_space_path(g_fdfs_store_paths.paths
+			[*store_path_index].total_mb, g_fdfs_store_paths.paths
 			[*store_path_index].free_mb, g_avg_storage_reserved_mb))
 		{
 			start = (*store_path_index + 1) % g_fdfs_store_paths.count;
@@ -1712,10 +1713,10 @@ int storage_get_storage_path_index(int *store_path_index)
                 {
 					if (!g_fdfs_store_paths.paths[index].read_only)
                     {
-                    	*store_path_index = index;
-                    	g_store_path_index = index;
-                    	break;
-					}
+                        *store_path_index = index;
+                        g_store_path_index = index;
+                        break;
+                    }
                 }
             }
 
@@ -4294,12 +4295,12 @@ static int storage_upload_file(struct fast_task_info *pTask, bool bAppenderFile)
     {
         if (g_fdfs_store_paths.paths[store_path_index].read_only)
         {
-            if ((result=storage_get_storage_path_index( \
-                    &store_path_index)) != 0)
+            if ((result=storage_get_storage_path_index(
+                            &store_path_index)) != 0)
             {
-                logError("file: "__FILE__", line: %d, " \
-                        "get_storage_path_index fail, " \
-                        "errno: %d, error info: %s", __LINE__, \
+                logError("file: "__FILE__", line: %d, "
+                        "get_storage_path_index fail, "
+                        "errno: %d, error info: %s", __LINE__,
                         result, STRERROR(result));
                 return result;
             }
@@ -4318,7 +4319,7 @@ static int storage_upload_file(struct fast_task_info *pTask, bool bAppenderFile)
 			return result;
 		}
 	}
-	else if (store_path_index < 0 || store_path_index >= \
+	else if (store_path_index < 0 || store_path_index >=
 		g_fdfs_store_paths.count)
 	{
 		logError("file: "__FILE__", line: %d, " \
