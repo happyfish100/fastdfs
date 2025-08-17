@@ -84,8 +84,7 @@ static int tracker_load_store_lookup(const char *filename, \
 		return EINVAL;
 	}
 
-	snprintf(g_groups.store_group, sizeof(g_groups.store_group), \
-			"%s", pGroupName);
+	fc_safe_strcpy(g_groups.store_group, pGroupName);
 	if (fdfs_validate_group_name(g_groups.store_group) != 0) \
 	{
 		logError("file: "__FILE__", line: %d, " \
@@ -481,15 +480,14 @@ int tracker_load_from_conf_file(const char *filename)
 		}
 		else if (*pHttpCheckUri == '/')
 		{
-			snprintf(g_http_check_uri, sizeof(g_http_check_uri), \
-				"%s", pHttpCheckUri);
+			fc_safe_strcpy(g_http_check_uri, pHttpCheckUri);
 		}
 		else
-		{
-			snprintf(g_http_check_uri, sizeof(g_http_check_uri), \
-				"/%s", pHttpCheckUri);
-		}
-
+        {
+            *g_http_check_uri = '/';
+            fc_strlcpy(g_http_check_uri + 1, pHttpCheckUri,
+                    sizeof(g_http_check_uri) - 1);
+        }
 
 #endif
 

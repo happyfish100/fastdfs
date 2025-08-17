@@ -127,8 +127,7 @@ static int fdfs_ping_leader(ConnectionInfo *pTrackerServer)
 				__LINE__, pTrackerServer->ip_addr, \
 				group_name, trunk_server_id);
 		}
-		snprintf(pGroup->last_trunk_server_id, sizeof( \
-			pGroup->last_trunk_server_id), "%s", trunk_server_id);
+		fc_safe_strcpy(pGroup->last_trunk_server_id, trunk_server_id);
 		success_count++;
 	}
 

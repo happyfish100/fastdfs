@@ -34,77 +34,276 @@
 
 #define TRACKER_MEM_ALLOC_ONCE	2
 
-#define GROUP_SECTION_NAME_GLOBAL            "Global"
-#define GROUP_SECTION_NAME_PREFIX            "Group"
-#define GROUP_SECTION_NO_FORMAT              "%03d"
-#define GROUP_ITEM_GROUP_COUNT               "group_count"
-#define GROUP_ITEM_GROUP_NAME                "group_name"
-#define GROUP_ITEM_STORAGE_PORT              "storage_port"
-#define GROUP_ITEM_STORAGE_HTTP_PORT         "storage_http_port"
-#define GROUP_ITEM_STORE_PATH_COUNT          "store_path_count"
-#define GROUP_ITEM_SUBDIR_COUNT_PER_PATH     "subdir_count_per_path"
-#define GROUP_ITEM_CURRENT_TRUNK_FILE_ID     "current_trunk_file_id"
-#define GROUP_ITEM_LAST_TRUNK_SERVER         "last_trunk_server"
-#define GROUP_ITEM_TRUNK_SERVER              "trunk_server"
+#define GROUP_SECTION_NUM_PADDINGS            3
+#define STORAGE_SECTION_NUM_PADDINGS          3
 
-#define STORAGE_SECTION_NAME_GLOBAL            "Global"
-#define STORAGE_SECTION_NAME_PREFIX            "Storage"
-#define STORAGE_SECTION_NO_FORMAT              "%03d"
-#define STORAGE_ITEM_STORAGE_COUNT             "storage_count"
+#define GROUP_SECTION_NAME_GLOBAL_STR  "Global"
+#define GROUP_SECTION_NAME_GLOBAL_LEN  \
+    (sizeof(GROUP_SECTION_NAME_GLOBAL_STR) - 1)
 
-#define STORAGE_ITEM_GROUP_NAME                "group_name"
-#define STORAGE_ITEM_SERVER_ID                 "id"
-#define STORAGE_ITEM_IP_ADDR                   "ip_addr"
-#define STORAGE_ITEM_STATUS                    "status"
-#define STORAGE_ITEM_DOMAIN_NAME               "domain_name"
-#define STORAGE_ITEM_VERSION                   "version"
-#define STORAGE_ITEM_SYNC_SRC_SERVER           "sync_src_server"
-#define STORAGE_ITEM_SYNC_UNTIL_TIMESTAMP      "sync_until_timestamp"
-#define STORAGE_ITEM_JOIN_TIME                 "join_time"
-#define STORAGE_ITEM_TOTAL_MB                  "total_mb"
-#define STORAGE_ITEM_FREE_MB                   "free_mb"
-#define STORAGE_ITEM_CHANGELOG_OFFSET          "changelog_offset"
-#define STORAGE_ITEM_STORE_PATH_COUNT          "store_path_count"
-#define STORAGE_ITEM_SUBDIR_COUNT_PER_PATH     "subdir_count_per_path"
-#define STORAGE_ITEM_UPLOAD_PRIORITY           "upload_priority"
-#define STORAGE_ITEM_STORAGE_PORT              "storage_port"
-#define STORAGE_ITEM_STORAGE_HTTP_PORT         "storage_http_port"
-#define STORAGE_ITEM_TOTAL_UPLOAD_COUNT        "total_upload_count"
-#define STORAGE_ITEM_SUCCESS_UPLOAD_COUNT      "success_upload_count"
-#define STORAGE_ITEM_TOTAL_APPEND_COUNT        "total_append_count"
-#define STORAGE_ITEM_SUCCESS_APPEND_COUNT      "success_append_count"
-#define STORAGE_ITEM_TOTAL_SET_META_COUNT      "total_set_meta_count"
-#define STORAGE_ITEM_SUCCESS_SET_META_COUNT    "success_set_meta_count"
-#define STORAGE_ITEM_TOTAL_DELETE_COUNT        "total_delete_count"
-#define STORAGE_ITEM_SUCCESS_DELETE_COUNT      "success_delete_count"
-#define STORAGE_ITEM_TOTAL_DOWNLOAD_COUNT      "total_download_count"
-#define STORAGE_ITEM_SUCCESS_DOWNLOAD_COUNT    "success_download_count"
-#define STORAGE_ITEM_TOTAL_GET_META_COUNT      "total_get_meta_count"
-#define STORAGE_ITEM_SUCCESS_GET_META_COUNT    "success_get_meta_count"
-#define STORAGE_ITEM_TOTAL_CREATE_LINK_COUNT   "total_create_link_count"
-#define STORAGE_ITEM_SUCCESS_CREATE_LINK_COUNT "success_create_link_count"
-#define STORAGE_ITEM_TOTAL_DELETE_LINK_COUNT   "total_delete_link_count"
-#define STORAGE_ITEM_SUCCESS_DELETE_LINK_COUNT "success_delete_link_count"
-#define STORAGE_ITEM_TOTAL_UPLOAD_BYTES        "total_upload_bytes"
-#define STORAGE_ITEM_SUCCESS_UPLOAD_BYTES      "success_upload_bytes"
-#define STORAGE_ITEM_TOTAL_APPEND_BYTES        "total_append_bytes"
-#define STORAGE_ITEM_SUCCESS_APPEND_BYTES      "success_append_bytes"
-#define STORAGE_ITEM_TOTAL_DOWNLOAD_BYTES      "total_download_bytes"
-#define STORAGE_ITEM_SUCCESS_DOWNLOAD_BYTES    "success_download_bytes"
-#define STORAGE_ITEM_TOTAL_SYNC_IN_BYTES       "total_sync_in_bytes"
-#define STORAGE_ITEM_SUCCESS_SYNC_IN_BYTES     "success_sync_in_bytes"
-#define STORAGE_ITEM_TOTAL_SYNC_OUT_BYTES      "total_sync_out_bytes"
-#define STORAGE_ITEM_SUCCESS_SYNC_OUT_BYTES    "success_sync_out_bytes"
-#define STORAGE_ITEM_TOTAL_FILE_OPEN_COUNT     "total_file_open_count"
-#define STORAGE_ITEM_SUCCESS_FILE_OPEN_COUNT   "success_file_open_count"
-#define STORAGE_ITEM_TOTAL_FILE_READ_COUNT     "total_file_read_count"
-#define STORAGE_ITEM_SUCCESS_FILE_READ_COUNT   "success_file_read_count"
-#define STORAGE_ITEM_TOTAL_FILE_WRITE_COUNT    "total_file_write_count"
-#define STORAGE_ITEM_SUCCESS_FILE_WRITE_COUNT  "success_file_write_count"
-#define STORAGE_ITEM_LAST_SOURCE_UPDATE        "last_source_update"
-#define STORAGE_ITEM_LAST_SYNC_UPDATE          "last_sync_update"
-#define STORAGE_ITEM_LAST_SYNCED_TIMESTAMP     "last_synced_timestamp"
-#define STORAGE_ITEM_LAST_HEART_BEAT_TIME      "last_heart_beat_time"
+#define GROUP_SECTION_NAME_PREFIX_STR  "Group"
+#define GROUP_SECTION_NAME_PREFIX_LEN  \
+    (sizeof(GROUP_SECTION_NAME_PREFIX_STR) - 1)
+
+#define GROUP_ITEM_GROUP_COUNT_STR  "group_count"
+#define GROUP_ITEM_GROUP_COUNT_LEN  \
+    (sizeof(GROUP_ITEM_GROUP_COUNT_STR) - 1)
+
+#define GROUP_ITEM_GROUP_NAME_STR  "group_name"
+#define GROUP_ITEM_GROUP_NAME_LEN  \
+    (sizeof(GROUP_ITEM_GROUP_NAME_STR) - 1)
+
+#define GROUP_ITEM_STORAGE_PORT_STR  "storage_port"
+#define GROUP_ITEM_STORAGE_PORT_LEN  \
+    (sizeof(GROUP_ITEM_STORAGE_PORT_STR) - 1)
+
+#define GROUP_ITEM_STORAGE_HTTP_PORT_STR  "storage_http_port"
+#define GROUP_ITEM_STORAGE_HTTP_PORT_LEN  \
+    (sizeof(GROUP_ITEM_STORAGE_HTTP_PORT_STR) - 1)
+
+#define GROUP_ITEM_STORE_PATH_COUNT_STR  "store_path_count"
+#define GROUP_ITEM_STORE_PATH_COUNT_LEN  \
+    (sizeof(GROUP_ITEM_STORE_PATH_COUNT_STR) - 1)
+
+#define GROUP_ITEM_SUBDIR_COUNT_PER_PATH_STR  "subdir_count_per_path"
+#define GROUP_ITEM_SUBDIR_COUNT_PER_PATH_LEN  \
+    (sizeof(GROUP_ITEM_SUBDIR_COUNT_PER_PATH_STR) - 1)
+
+#define GROUP_ITEM_CURRENT_TRUNK_FILE_ID_STR  "current_trunk_file_id"
+#define GROUP_ITEM_CURRENT_TRUNK_FILE_ID_LEN  \
+    (sizeof(GROUP_ITEM_CURRENT_TRUNK_FILE_ID_STR) - 1)
+
+#define GROUP_ITEM_LAST_TRUNK_SERVER_STR  "last_trunk_server"
+#define GROUP_ITEM_LAST_TRUNK_SERVER_LEN  \
+    (sizeof(GROUP_ITEM_LAST_TRUNK_SERVER_STR) - 1)
+
+#define GROUP_ITEM_TRUNK_SERVER_STR  "trunk_server"
+#define GROUP_ITEM_TRUNK_SERVER_LEN  \
+    (sizeof(GROUP_ITEM_TRUNK_SERVER_STR) - 1)
+
+#define STORAGE_SECTION_NAME_GLOBAL_STR  "Global"
+#define STORAGE_SECTION_NAME_GLOBAL_LEN  \
+    (sizeof(STORAGE_SECTION_NAME_GLOBAL_STR) - 1)
+
+#define STORAGE_SECTION_NAME_PREFIX_STR  "Storage"
+#define STORAGE_SECTION_NAME_PREFIX_LEN  \
+    (sizeof(STORAGE_SECTION_NAME_PREFIX_STR) - 1)
+
+#define STORAGE_ITEM_STORAGE_COUNT_STR  "storage_count"
+#define STORAGE_ITEM_STORAGE_COUNT_LEN  \
+    (sizeof(STORAGE_ITEM_STORAGE_COUNT_STR) - 1)
+
+#define STORAGE_ITEM_GROUP_NAME_STR  "group_name"
+#define STORAGE_ITEM_GROUP_NAME_LEN  \
+    (sizeof(STORAGE_ITEM_GROUP_NAME_STR) - 1)
+
+#define STORAGE_ITEM_SERVER_ID_STR  "id"
+#define STORAGE_ITEM_SERVER_ID_LEN  \
+    (sizeof(STORAGE_ITEM_SERVER_ID_STR) - 1)
+
+#define STORAGE_ITEM_IP_ADDR_STR  "ip_addr"
+#define STORAGE_ITEM_IP_ADDR_LEN  \
+    (sizeof(STORAGE_ITEM_IP_ADDR_STR) - 1)
+
+#define STORAGE_ITEM_STATUS_STR  "status"
+#define STORAGE_ITEM_STATUS_LEN  \
+    (sizeof(STORAGE_ITEM_STATUS_STR) - 1)
+
+#define STORAGE_ITEM_DOMAIN_NAME_STR  "domain_name"
+#define STORAGE_ITEM_DOMAIN_NAME_LEN  \
+    (sizeof(STORAGE_ITEM_DOMAIN_NAME_STR) - 1)
+
+#define STORAGE_ITEM_VERSION_STR  "version"
+#define STORAGE_ITEM_VERSION_LEN  \
+    (sizeof(STORAGE_ITEM_VERSION_STR) - 1)
+
+#define STORAGE_ITEM_SYNC_SRC_SERVER_STR  "sync_src_server"
+#define STORAGE_ITEM_SYNC_SRC_SERVER_LEN  \
+    (sizeof(STORAGE_ITEM_SYNC_SRC_SERVER_STR) - 1)
+
+#define STORAGE_ITEM_SYNC_UNTIL_TIMESTAMP_STR  "sync_until_timestamp"
+#define STORAGE_ITEM_SYNC_UNTIL_TIMESTAMP_LEN  \
+    (sizeof(STORAGE_ITEM_SYNC_UNTIL_TIMESTAMP_STR) - 1)
+
+#define STORAGE_ITEM_JOIN_TIME_STR  "join_time"
+#define STORAGE_ITEM_JOIN_TIME_LEN  \
+    (sizeof(STORAGE_ITEM_JOIN_TIME_STR) - 1)
+
+#define STORAGE_ITEM_TOTAL_MB_STR  "total_mb"
+#define STORAGE_ITEM_TOTAL_MB_LEN  \
+    (sizeof(STORAGE_ITEM_TOTAL_MB_STR) - 1)
+
+#define STORAGE_ITEM_FREE_MB_STR  "free_mb"
+#define STORAGE_ITEM_FREE_MB_LEN  \
+    (sizeof(STORAGE_ITEM_FREE_MB_STR) - 1)
+
+#define STORAGE_ITEM_CHANGELOG_OFFSET_STR  "changelog_offset"
+#define STORAGE_ITEM_CHANGELOG_OFFSET_LEN  \
+    (sizeof(STORAGE_ITEM_CHANGELOG_OFFSET_STR) - 1)
+
+#define STORAGE_ITEM_STORE_PATH_COUNT_STR  "store_path_count"
+#define STORAGE_ITEM_STORE_PATH_COUNT_LEN  \
+    (sizeof(STORAGE_ITEM_STORE_PATH_COUNT_STR) - 1)
+
+#define STORAGE_ITEM_SUBDIR_COUNT_PER_PATH_STR  "subdir_count_per_path"
+#define STORAGE_ITEM_SUBDIR_COUNT_PER_PATH_LEN  \
+    (sizeof(STORAGE_ITEM_SUBDIR_COUNT_PER_PATH_STR) - 1)
+
+#define STORAGE_ITEM_UPLOAD_PRIORITY_STR  "upload_priority"
+#define STORAGE_ITEM_UPLOAD_PRIORITY_LEN  \
+    (sizeof(STORAGE_ITEM_UPLOAD_PRIORITY_STR) - 1)
+
+#define STORAGE_ITEM_STORAGE_PORT_STR  "storage_port"
+#define STORAGE_ITEM_STORAGE_PORT_LEN  \
+    (sizeof(STORAGE_ITEM_STORAGE_PORT_STR) - 1)
+
+#define STORAGE_ITEM_STORAGE_HTTP_PORT_STR  "storage_http_port"
+#define STORAGE_ITEM_STORAGE_HTTP_PORT_LEN  \
+    (sizeof(STORAGE_ITEM_STORAGE_HTTP_PORT_STR) - 1)
+
+#define STORAGE_ITEM_TOTAL_UPLOAD_COUNT_STR  "total_upload_count"
+#define STORAGE_ITEM_TOTAL_UPLOAD_COUNT_LEN  \
+    (sizeof(STORAGE_ITEM_TOTAL_UPLOAD_COUNT_STR) - 1)
+
+#define STORAGE_ITEM_SUCCESS_UPLOAD_COUNT_STR  "success_upload_count"
+#define STORAGE_ITEM_SUCCESS_UPLOAD_COUNT_LEN  \
+    (sizeof(STORAGE_ITEM_SUCCESS_UPLOAD_COUNT_STR) - 1)
+
+#define STORAGE_ITEM_TOTAL_APPEND_COUNT_STR  "total_append_count"
+#define STORAGE_ITEM_TOTAL_APPEND_COUNT_LEN  \
+    (sizeof(STORAGE_ITEM_TOTAL_APPEND_COUNT_STR) - 1)
+
+#define STORAGE_ITEM_SUCCESS_APPEND_COUNT_STR  "success_append_count"
+#define STORAGE_ITEM_SUCCESS_APPEND_COUNT_LEN  \
+    (sizeof(STORAGE_ITEM_SUCCESS_APPEND_COUNT_STR) - 1)
+
+#define STORAGE_ITEM_TOTAL_SET_META_COUNT_STR  "total_set_meta_count"
+#define STORAGE_ITEM_TOTAL_SET_META_COUNT_LEN  \
+    (sizeof(STORAGE_ITEM_TOTAL_SET_META_COUNT_STR) - 1)
+
+#define STORAGE_ITEM_SUCCESS_SET_META_COUNT_STR  "success_set_meta_count"
+#define STORAGE_ITEM_SUCCESS_SET_META_COUNT_LEN  \
+    (sizeof(STORAGE_ITEM_SUCCESS_SET_META_COUNT_STR) - 1)
+
+#define STORAGE_ITEM_TOTAL_DELETE_COUNT_STR  "total_delete_count"
+#define STORAGE_ITEM_TOTAL_DELETE_COUNT_LEN  \
+    (sizeof(STORAGE_ITEM_TOTAL_DELETE_COUNT_STR) - 1)
+
+#define STORAGE_ITEM_SUCCESS_DELETE_COUNT_STR  "success_delete_count"
+#define STORAGE_ITEM_SUCCESS_DELETE_COUNT_LEN  \
+    (sizeof(STORAGE_ITEM_SUCCESS_DELETE_COUNT_STR) - 1)
+
+#define STORAGE_ITEM_TOTAL_DOWNLOAD_COUNT_STR  "total_download_count"
+#define STORAGE_ITEM_TOTAL_DOWNLOAD_COUNT_LEN  \
+    (sizeof(STORAGE_ITEM_TOTAL_DOWNLOAD_COUNT_STR) - 1)
+
+#define STORAGE_ITEM_SUCCESS_DOWNLOAD_COUNT_STR  "success_download_count"
+#define STORAGE_ITEM_SUCCESS_DOWNLOAD_COUNT_LEN  \
+    (sizeof(STORAGE_ITEM_SUCCESS_DOWNLOAD_COUNT_STR) - 1)
+
+#define STORAGE_ITEM_TOTAL_GET_META_COUNT_STR  "total_get_meta_count"
+#define STORAGE_ITEM_TOTAL_GET_META_COUNT_LEN  \
+    (sizeof(STORAGE_ITEM_TOTAL_GET_META_COUNT_STR) - 1)
+
+#define STORAGE_ITEM_SUCCESS_GET_META_COUNT_STR  "success_get_meta_count"
+#define STORAGE_ITEM_SUCCESS_GET_META_COUNT_LEN  \
+    (sizeof(STORAGE_ITEM_SUCCESS_GET_META_COUNT_STR) - 1)
+
+#define STORAGE_ITEM_TOTAL_CREATE_LINK_COUNT_STR  "total_create_link_count"
+#define STORAGE_ITEM_TOTAL_CREATE_LINK_COUNT_LEN  \
+    (sizeof(STORAGE_ITEM_TOTAL_CREATE_LINK_COUNT_STR) - 1)
+
+#define STORAGE_ITEM_SUCCESS_CREATE_LINK_COUNT_STR  "success_create_link_count"
+#define STORAGE_ITEM_SUCCESS_CREATE_LINK_COUNT_LEN  \
+    (sizeof(STORAGE_ITEM_SUCCESS_CREATE_LINK_COUNT_STR) - 1)
+
+#define STORAGE_ITEM_TOTAL_DELETE_LINK_COUNT_STR  "total_delete_link_count"
+#define STORAGE_ITEM_TOTAL_DELETE_LINK_COUNT_LEN  \
+    (sizeof(STORAGE_ITEM_TOTAL_DELETE_LINK_COUNT_STR) - 1)
+
+#define STORAGE_ITEM_SUCCESS_DELETE_LINK_COUNT_STR  "success_delete_link_count"
+#define STORAGE_ITEM_SUCCESS_DELETE_LINK_COUNT_LEN  \
+    (sizeof(STORAGE_ITEM_SUCCESS_DELETE_LINK_COUNT_STR) - 1)
+
+#define STORAGE_ITEM_TOTAL_UPLOAD_BYTES_STR  "total_upload_bytes"
+#define STORAGE_ITEM_TOTAL_UPLOAD_BYTES_LEN  \
+    (sizeof(STORAGE_ITEM_TOTAL_UPLOAD_BYTES_STR) - 1)
+
+#define STORAGE_ITEM_SUCCESS_UPLOAD_BYTES_STR  "success_upload_bytes"
+#define STORAGE_ITEM_SUCCESS_UPLOAD_BYTES_LEN  \
+    (sizeof(STORAGE_ITEM_SUCCESS_UPLOAD_BYTES_STR) - 1)
+
+#define STORAGE_ITEM_TOTAL_APPEND_BYTES_STR  "total_append_bytes"
+#define STORAGE_ITEM_TOTAL_APPEND_BYTES_LEN  \
+    (sizeof(STORAGE_ITEM_TOTAL_APPEND_BYTES_STR) - 1)
+
+#define STORAGE_ITEM_SUCCESS_APPEND_BYTES_STR  "success_append_bytes"
+#define STORAGE_ITEM_SUCCESS_APPEND_BYTES_LEN  \
+    (sizeof(STORAGE_ITEM_SUCCESS_APPEND_BYTES_STR) - 1)
+
+#define STORAGE_ITEM_TOTAL_DOWNLOAD_BYTES_STR  "total_download_bytes"
+#define STORAGE_ITEM_TOTAL_DOWNLOAD_BYTES_LEN  \
+    (sizeof(STORAGE_ITEM_TOTAL_DOWNLOAD_BYTES_STR) - 1)
+
+#define STORAGE_ITEM_SUCCESS_DOWNLOAD_BYTES_STR  "success_download_bytes"
+#define STORAGE_ITEM_SUCCESS_DOWNLOAD_BYTES_LEN  \
+    (sizeof(STORAGE_ITEM_SUCCESS_DOWNLOAD_BYTES_STR) - 1)
+
+#define STORAGE_ITEM_TOTAL_SYNC_IN_BYTES_STR  "total_sync_in_bytes"
+#define STORAGE_ITEM_TOTAL_SYNC_IN_BYTES_LEN  \
+    (sizeof(STORAGE_ITEM_TOTAL_SYNC_IN_BYTES_STR) - 1)
+
+#define STORAGE_ITEM_SUCCESS_SYNC_IN_BYTES_STR  "success_sync_in_bytes"
+#define STORAGE_ITEM_SUCCESS_SYNC_IN_BYTES_LEN  \
+    (sizeof(STORAGE_ITEM_SUCCESS_SYNC_IN_BYTES_STR) - 1)
+
+#define STORAGE_ITEM_TOTAL_SYNC_OUT_BYTES_STR  "total_sync_out_bytes"
+#define STORAGE_ITEM_TOTAL_SYNC_OUT_BYTES_LEN  \
+    (sizeof(STORAGE_ITEM_TOTAL_SYNC_OUT_BYTES_STR) - 1)
+
+#define STORAGE_ITEM_SUCCESS_SYNC_OUT_BYTES_STR  "success_sync_out_bytes"
+#define STORAGE_ITEM_SUCCESS_SYNC_OUT_BYTES_LEN  \
+    (sizeof(STORAGE_ITEM_SUCCESS_SYNC_OUT_BYTES_STR) - 1)
+
+#define STORAGE_ITEM_TOTAL_FILE_OPEN_COUNT_STR  "total_file_open_count"
+#define STORAGE_ITEM_TOTAL_FILE_OPEN_COUNT_LEN  \
+    (sizeof(STORAGE_ITEM_TOTAL_FILE_OPEN_COUNT_STR) - 1)
+
+#define STORAGE_ITEM_SUCCESS_FILE_OPEN_COUNT_STR  "success_file_open_count"
+#define STORAGE_ITEM_SUCCESS_FILE_OPEN_COUNT_LEN  \
+    (sizeof(STORAGE_ITEM_SUCCESS_FILE_OPEN_COUNT_STR) - 1)
+
+#define STORAGE_ITEM_TOTAL_FILE_READ_COUNT_STR  "total_file_read_count"
+#define STORAGE_ITEM_TOTAL_FILE_READ_COUNT_LEN  \
+    (sizeof(STORAGE_ITEM_TOTAL_FILE_READ_COUNT_STR) - 1)
+
+#define STORAGE_ITEM_SUCCESS_FILE_READ_COUNT_STR  "success_file_read_count"
+#define STORAGE_ITEM_SUCCESS_FILE_READ_COUNT_LEN  \
+    (sizeof(STORAGE_ITEM_SUCCESS_FILE_READ_COUNT_STR) - 1)
+
+#define STORAGE_ITEM_TOTAL_FILE_WRITE_COUNT_STR  "total_file_write_count"
+#define STORAGE_ITEM_TOTAL_FILE_WRITE_COUNT_LEN  \
+    (sizeof(STORAGE_ITEM_TOTAL_FILE_WRITE_COUNT_STR) - 1)
+
+#define STORAGE_ITEM_SUCCESS_FILE_WRITE_COUNT_STR  "success_file_write_count"
+#define STORAGE_ITEM_SUCCESS_FILE_WRITE_COUNT_LEN  \
+    (sizeof(STORAGE_ITEM_SUCCESS_FILE_WRITE_COUNT_STR) - 1)
+
+#define STORAGE_ITEM_LAST_SOURCE_UPDATE_STR  "last_source_update"
+#define STORAGE_ITEM_LAST_SOURCE_UPDATE_LEN  \
+    (sizeof(STORAGE_ITEM_LAST_SOURCE_UPDATE_STR) - 1)
+
+#define STORAGE_ITEM_LAST_SYNC_UPDATE_STR  "last_sync_update"
+#define STORAGE_ITEM_LAST_SYNC_UPDATE_LEN  \
+    (sizeof(STORAGE_ITEM_LAST_SYNC_UPDATE_STR) - 1)
+
+#define STORAGE_ITEM_LAST_SYNCED_TIMESTAMP_STR  "last_synced_timestamp"
+#define STORAGE_ITEM_LAST_SYNCED_TIMESTAMP_LEN  \
+    (sizeof(STORAGE_ITEM_LAST_SYNCED_TIMESTAMP_STR) - 1)
+
+#define STORAGE_ITEM_LAST_HEART_BEAT_TIME_STR  "last_heart_beat_time"
+#define STORAGE_ITEM_LAST_HEART_BEAT_TIME_LEN  \
+    (sizeof(STORAGE_ITEM_LAST_HEART_BEAT_TIME_STR) - 1)
 
 TrackerServerGroup g_tracker_servers = {0, 0, -1, NULL};
 TrackerServerInfo *g_last_tracker_servers = NULL;  //for delay free
@@ -144,10 +343,10 @@ static int tracker_mem_add_group_ex(FDFSGroups *pGroups,
 static int tracker_mem_destroy_groups(FDFSGroups *pGroups, const bool saveFiles);
 
 char *g_tracker_sys_filenames[TRACKER_SYS_FILE_COUNT] = {
-	STORAGE_GROUPS_LIST_FILENAME_NEW,
-	STORAGE_SERVERS_LIST_FILENAME_NEW,
-	STORAGE_SYNC_TIMESTAMP_FILENAME,
-	STORAGE_SERVERS_CHANGELOG_FILENAME
+	STORAGE_GROUPS_LIST_FILENAME_NEW_STR,
+	STORAGE_SERVERS_LIST_FILENAME_NEW_STR,
+	STORAGE_SYNC_TIMESTAMP_FILENAME_STR,
+	STORAGE_SERVERS_CHANGELOG_FILENAME_STR
 };      
    
 int tracker_mem_pthread_lock()
@@ -231,7 +430,7 @@ static int tracker_write_to_changelog(FDFSGroupInfo *pGroup, \
 		logError("file: "__FILE__", line: %d, " \
 			"write to file: %s fail, " \
 			"errno: %d, error info: %s", \
-			__LINE__, STORAGE_SERVERS_CHANGELOG_FILENAME, \
+			__LINE__, STORAGE_SERVERS_CHANGELOG_FILENAME_STR, \
 			result, STRERROR(result));
 
 		return result;
@@ -245,7 +444,7 @@ static int tracker_write_to_changelog(FDFSGroupInfo *pGroup, \
 		logError("file: "__FILE__", line: %d, " \
 			"call fsync of file: %s fail, " \
 			"errno: %d, error info: %s", \
-			__LINE__, STORAGE_SERVERS_CHANGELOG_FILENAME, \
+			__LINE__, STORAGE_SERVERS_CHANGELOG_FILENAME_STR, \
 			result, STRERROR(result));
 	}
 
@@ -433,12 +632,12 @@ static int tracker_load_groups_old(FDFSGroups *pGroups, const char *data_path)
 	TrackerClientInfo clientInfo;
 	bool bInserted;
 
-	if ((fp=fopen(STORAGE_GROUPS_LIST_FILENAME_OLD, "r")) == NULL)
+	if ((fp=fopen(STORAGE_GROUPS_LIST_FILENAME_OLD_STR, "r")) == NULL)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"open file \"%s/%s\" fail, " \
 			"errno: %d, error info: %s", \
-			__LINE__, data_path, STORAGE_GROUPS_LIST_FILENAME_OLD, \
+			__LINE__, data_path, STORAGE_GROUPS_LIST_FILENAME_OLD_STR, \
 			errno, STRERROR(errno));
 		return errno != 0 ? errno : ENOENT;
 	}
@@ -459,14 +658,14 @@ static int tracker_load_groups_old(FDFSGroups *pGroups, const char *data_path)
 			logError("file: "__FILE__", line: %d, " \
 				"the format of the file \"%s/%s\" is invalid", \
 				__LINE__, data_path, \
-				STORAGE_GROUPS_LIST_FILENAME_OLD);
+				STORAGE_GROUPS_LIST_FILENAME_OLD_STR);
 			result = errno != 0 ? errno : EINVAL;
 			break;
 		}
 	
 		memset(&clientInfo, 0, sizeof(TrackerClientInfo));
-		snprintf(group_name, sizeof(group_name),\
-				"%s", fc_trim(fields[0]));
+        fc_trim(fields[0]);
+		fc_safe_strcpy(group_name, fields[0]);
 		if ((result=tracker_mem_add_group_ex(pGroups, &clientInfo, \
 				group_name, false, &bInserted)) != 0)
 		{
@@ -479,7 +678,7 @@ static int tracker_load_groups_old(FDFSGroups *pGroups, const char *data_path)
 				"in the file \"%s/%s\", " \
 				"group \"%s\" is duplicate", \
 				__LINE__, data_path, \
-				STORAGE_GROUPS_LIST_FILENAME_OLD, \
+				STORAGE_GROUPS_LIST_FILENAME_OLD_STR, \
 				group_name);
 			result = errno != 0 ? errno : EEXIST;
 			break;
@@ -535,32 +734,32 @@ static int tracker_load_groups_new(FDFSGroups *pGroups, const char *data_path,
 
 	*nTrunkServerCount = 0;
 	*ppTrunkServers = NULL;
-	if (!fileExists(STORAGE_GROUPS_LIST_FILENAME_NEW) && \
-	     fileExists(STORAGE_GROUPS_LIST_FILENAME_OLD))
+	if (!fileExists(STORAGE_GROUPS_LIST_FILENAME_NEW_STR) && \
+	     fileExists(STORAGE_GROUPS_LIST_FILENAME_OLD_STR))
 	{
 		logDebug("file: "__FILE__", line: %d, " \
 			"convert old data file %s to new data file %s", \
-			__LINE__, STORAGE_GROUPS_LIST_FILENAME_OLD, \
-			STORAGE_GROUPS_LIST_FILENAME_NEW);
+			__LINE__, STORAGE_GROUPS_LIST_FILENAME_OLD_STR, \
+			STORAGE_GROUPS_LIST_FILENAME_NEW_STR);
 		if ((result=tracker_load_groups_old(pGroups, data_path)) == 0)
 		{
 			if ((result=tracker_save_groups()) == 0)
 			{
-				unlink(STORAGE_GROUPS_LIST_FILENAME_OLD);
+				unlink(STORAGE_GROUPS_LIST_FILENAME_OLD_STR);
 			}
 		}
 
 		return result;
 	}
 
-	if ((result=iniLoadFromFile(STORAGE_GROUPS_LIST_FILENAME_NEW, \
+	if ((result=iniLoadFromFile(STORAGE_GROUPS_LIST_FILENAME_NEW_STR, \
 			&iniContext)) != 0)
 	{
 		return result;
 	}
 
-	group_count = iniGetIntValue(GROUP_SECTION_NAME_GLOBAL, \
-				GROUP_ITEM_GROUP_COUNT, \
+	group_count = iniGetIntValue(GROUP_SECTION_NAME_GLOBAL_STR, \
+				GROUP_ITEM_GROUP_COUNT_STR, \
                 		&iniContext, -1);
 	if (group_count < 0)
 	{
@@ -569,27 +768,29 @@ static int tracker_load_groups_new(FDFSGroups *pGroups, const char *data_path,
 			"in the file \"%s/%s\", " \
 			"item \"%s\" is not found", \
 			__LINE__, data_path, \
-			STORAGE_GROUPS_LIST_FILENAME_NEW, \
-			GROUP_ITEM_GROUP_COUNT);
+			STORAGE_GROUPS_LIST_FILENAME_NEW_STR, \
+			GROUP_ITEM_GROUP_COUNT_STR);
 		return ENOENT;
 	}
 
+    memcpy(section_name, GROUP_SECTION_NAME_PREFIX_STR,
+            GROUP_SECTION_NAME_PREFIX_LEN);
 	nStorageSyncSize = 0;
 	for (i=1; i<=group_count; i++)
 	{
-		sprintf(section_name, "%s"GROUP_SECTION_NO_FORMAT, \
-			GROUP_SECTION_NAME_PREFIX, i);
-
+        fc_ltostr_ex(i, section_name +
+                GROUP_SECTION_NAME_PREFIX_LEN,
+                GROUP_SECTION_NUM_PADDINGS);
 		group_name = iniGetStrValue(section_name, \
-				GROUP_ITEM_GROUP_NAME, &iniContext);
+				GROUP_ITEM_GROUP_NAME_STR, &iniContext);
 		if (group_name == NULL)
 		{
 			logError("file: "__FILE__", line: %d, " \
 				"in the file \"%s/%s\", " \
 				"item \"%s\" is not found", \
 				__LINE__, data_path, \
-				STORAGE_GROUPS_LIST_FILENAME_NEW, \
-				GROUP_ITEM_GROUP_NAME);
+				STORAGE_GROUPS_LIST_FILENAME_NEW_STR, \
+				GROUP_ITEM_GROUP_NAME_STR);
 			result = ENOENT;
 			break;
 		}
@@ -607,7 +808,7 @@ static int tracker_load_groups_new(FDFSGroups *pGroups, const char *data_path,
 				"in the file \"%s/%s\", " \
 				"group \"%s\" is duplicate", \
 				__LINE__, data_path, \
-				STORAGE_GROUPS_LIST_FILENAME_NEW, \
+				STORAGE_GROUPS_LIST_FILENAME_NEW_STR, \
 				group_name);
 			result = errno != 0 ? errno : EEXIST;
 			break;
@@ -615,22 +816,20 @@ static int tracker_load_groups_new(FDFSGroups *pGroups, const char *data_path,
 
 		pGroup = clientInfo.pGroup;
 		pGroup->storage_port = iniGetIntValue(section_name, \
-			GROUP_ITEM_STORAGE_PORT, &iniContext, 0);
+			GROUP_ITEM_STORAGE_PORT_STR, &iniContext, 0);
 		pGroup->storage_http_port = iniGetIntValue(section_name, \
-			GROUP_ITEM_STORAGE_HTTP_PORT, &iniContext, 0);
+			GROUP_ITEM_STORAGE_HTTP_PORT_STR, &iniContext, 0);
 		pGroup->store_path_count = iniGetIntValue(section_name, \
-			GROUP_ITEM_STORE_PATH_COUNT, &iniContext, 0);
+			GROUP_ITEM_STORE_PATH_COUNT_STR, &iniContext, 0);
 		pGroup->subdir_count_per_path = iniGetIntValue(section_name, \
-			GROUP_ITEM_SUBDIR_COUNT_PER_PATH, &iniContext, 0);
+			GROUP_ITEM_SUBDIR_COUNT_PER_PATH_STR, &iniContext, 0);
 		pGroup->current_trunk_file_id = iniGetIntValue(section_name, \
-			GROUP_ITEM_CURRENT_TRUNK_FILE_ID, &iniContext, 0);
+			GROUP_ITEM_CURRENT_TRUNK_FILE_ID_STR, &iniContext, 0);
 		pValue = iniGetStrValue(section_name, \
-			GROUP_ITEM_LAST_TRUNK_SERVER, &iniContext);
+			GROUP_ITEM_LAST_TRUNK_SERVER_STR, &iniContext);
 		if (pValue != NULL)
 		{
-			snprintf(pGroup->last_trunk_server_id, 
-				sizeof(pGroup->last_trunk_server_id), \
-				"%s", pValue);
+			fc_safe_strcpy(pGroup->last_trunk_server_id, pValue);
 			if (g_use_storage_id && (*pValue != '\0' && \
 				!fdfs_is_server_id_valid(pValue)))
 			{
@@ -649,7 +848,7 @@ static int tracker_load_groups_new(FDFSGroups *pGroups, const char *data_path,
 		}
 
 		pValue = iniGetStrValue(section_name, \
-			GROUP_ITEM_TRUNK_SERVER, &iniContext);
+			GROUP_ITEM_TRUNK_SERVER_STR, &iniContext);
 		if (pValue != NULL && *pValue != '\0')
 		{
 		if (nStorageSyncSize <= *nTrunkServerCount)
@@ -672,10 +871,9 @@ static int tracker_load_groups_new(FDFSGroups *pGroups, const char *data_path,
             *ppTrunkServers = new_trunk_servers;
 		}
 
-		strcpy((*ppTrunkServers)[*nTrunkServerCount].group_name, \
+		strcpy((*ppTrunkServers)[*nTrunkServerCount].group_name,
 			clientInfo.pGroup->group_name);
-		snprintf((*ppTrunkServers)[*nTrunkServerCount].id, \
-			FDFS_STORAGE_ID_MAX_SIZE, "%s", pValue);
+		fc_safe_strcpy((*ppTrunkServers)[*nTrunkServerCount].id, pValue);
 		if (g_use_storage_id && !fdfs_is_server_id_valid(pValue))
 		{
 			if ((result=tracker_mem_get_storage_id( \
@@ -733,7 +931,7 @@ static int tracker_locate_group_trunk_servers(FDFSGroups *pGroups, \
 				snprintf(buff, sizeof(buff), \
 					"in the file \"%s/data/%s\", ", \
 					SF_G_BASE_PATH_STR, \
-					STORAGE_GROUPS_LIST_FILENAME_NEW);
+					STORAGE_GROUPS_LIST_FILENAME_NEW_STR);
 			}
 			else
 			{
@@ -799,7 +997,7 @@ static int tracker_locate_storage_sync_server(FDFSGroups *pGroups, \
 				snprintf(buff, sizeof(buff), \
 					"in the file \"%s/data/%s\", ", \
 					SF_G_BASE_PATH_STR, \
-					STORAGE_SERVERS_LIST_FILENAME_NEW);
+					STORAGE_SERVERS_LIST_FILENAME_NEW_STR);
 			}
 			else
 			{
@@ -838,12 +1036,12 @@ static int tracker_load_storages_old(FDFSGroups *pGroups, const char *data_path)
 	TrackerClientInfo clientInfo;
 	bool bInserted;
 
-	if ((fp=fopen(STORAGE_SERVERS_LIST_FILENAME_OLD, "r")) == NULL)
+	if ((fp=fopen(STORAGE_SERVERS_LIST_FILENAME_OLD_STR, "r")) == NULL)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"open file \"%s/%s\" fail, " \
 			"errno: %d, error info: %s", \
-			__LINE__, data_path, STORAGE_SERVERS_LIST_FILENAME_OLD, \
+			__LINE__, data_path, STORAGE_SERVERS_LIST_FILENAME_OLD_STR, \
 			errno, STRERROR(errno));
 		return errno != 0 ? errno : ENOENT;
 	}
@@ -871,7 +1069,7 @@ static int tracker_load_storages_old(FDFSGroups *pGroups, const char *data_path)
 				", colums: %d != expect colums: " \
 				"%d or %d or %d or %d", \
 				__LINE__, data_path, \
-				STORAGE_SERVERS_LIST_FILENAME_OLD, \
+				STORAGE_SERVERS_LIST_FILENAME_OLD_STR, \
 				cols, STORAGE_DATA_SERVER_FIELDS, \
 				STORAGE_DATA_SERVER_FIELDS - 2, \
 				STORAGE_DATA_SERVER_FIELDS - 4, \
@@ -881,8 +1079,10 @@ static int tracker_load_storages_old(FDFSGroups *pGroups, const char *data_path)
 		}
 	
 		memset(&clientInfo, 0, sizeof(TrackerClientInfo));
-		snprintf(group_name, sizeof(group_name), "%s", fc_trim(fields[0]));
-		snprintf(ip_addr, sizeof(ip_addr), "%s", fc_trim(fields[1]));
+        fc_trim(fields[0]);
+        fc_trim(fields[1]);
+		fc_safe_strcpy(group_name, fields[0]);
+		fc_safe_strcpy(ip_addr, fields[1]);
 		if ((clientInfo.pGroup=tracker_mem_get_group_ex(pGroups, \
 						group_name)) == NULL)
 		{
@@ -890,7 +1090,7 @@ static int tracker_load_storages_old(FDFSGroups *pGroups, const char *data_path)
 				"in the file \"%s/%s\", " \
 				"group \"%s\" is not found", \
 				__LINE__, data_path, \
-				STORAGE_SERVERS_LIST_FILENAME_OLD, \
+				STORAGE_SERVERS_LIST_FILENAME_OLD_STR, \
 				group_name);
 			result = errno != 0 ? errno : ENOENT;
 			break;
@@ -908,7 +1108,7 @@ static int tracker_load_storages_old(FDFSGroups *pGroups, const char *data_path)
 				"in the file \"%s/%s\", " \
 				"storage \"%s\" is duplicate", \
 				__LINE__, data_path, \
-				STORAGE_SERVERS_LIST_FILENAME_OLD, ip_addr);
+				STORAGE_SERVERS_LIST_FILENAME_OLD_STR, ip_addr);
 			result = errno != 0 ? errno : EEXIST;
 			break;
 		}
@@ -979,9 +1179,8 @@ static int tracker_load_storages_old(FDFSGroups *pGroups, const char *data_path)
 					pStorage->join_time = \
 					(time_t)atoi(trim_left(fields[20]));
 
-					snprintf(pStorage->version, \
-					sizeof(pStorage->version), 
-					 "%s", fc_trim(fields[21]));
+                    fc_trim(fields[21]);
+					fc_safe_strcpy(pStorage->version, fields[21]);
 				}
 			}
 		}
@@ -1014,8 +1213,8 @@ static int tracker_load_storages_old(FDFSGroups *pGroups, const char *data_path)
 		strcpy(pStorageSyncs[nStorageSyncCount].group_name, \
 			clientInfo.pGroup->group_name);
 		strcpy(pStorageSyncs[nStorageSyncCount].id, pStorage->id);
-		snprintf(pStorageSyncs[nStorageSyncCount].sync_src_id, \
-			FDFS_STORAGE_ID_MAX_SIZE, "%s", psync_src_id);
+		fc_safe_strcpy(pStorageSyncs[nStorageSyncCount].
+                sync_src_id, psync_src_id);
 
 		nStorageSyncCount++;
 
@@ -1059,32 +1258,32 @@ static int tracker_load_storages_new(FDFSGroups *pGroups, const char *data_path)
 	char section_name[64];
 	TrackerClientInfo clientInfo;
 
-	if (!fileExists(STORAGE_SERVERS_LIST_FILENAME_NEW) && \
-	     fileExists(STORAGE_SERVERS_LIST_FILENAME_OLD))
+	if (!fileExists(STORAGE_SERVERS_LIST_FILENAME_NEW_STR) && \
+	     fileExists(STORAGE_SERVERS_LIST_FILENAME_OLD_STR))
 	{
 		logDebug("file: "__FILE__", line: %d, " \
 			"convert old data file %s to new data file %s", \
-			__LINE__, STORAGE_SERVERS_LIST_FILENAME_OLD, \
-			STORAGE_SERVERS_LIST_FILENAME_NEW);
+			__LINE__, STORAGE_SERVERS_LIST_FILENAME_OLD_STR, \
+			STORAGE_SERVERS_LIST_FILENAME_NEW_STR);
 		if ((result=tracker_load_storages_old(pGroups, data_path)) == 0)
 		{
 			if ((result=tracker_save_storages()) == 0)
 			{
-				unlink(STORAGE_SERVERS_LIST_FILENAME_OLD);
+				unlink(STORAGE_SERVERS_LIST_FILENAME_OLD_STR);
 			}
 		}
 
 		return result;
 	}
 
-	if ((result=iniLoadFromFile(STORAGE_SERVERS_LIST_FILENAME_NEW, \
+	if ((result=iniLoadFromFile(STORAGE_SERVERS_LIST_FILENAME_NEW_STR, \
 			&iniContext)) != 0)
 	{
 		return result;
 	}
 
-	storage_count = iniGetIntValue(STORAGE_SECTION_NAME_GLOBAL, \
-				STORAGE_ITEM_STORAGE_COUNT, \
+	storage_count = iniGetIntValue(STORAGE_SECTION_NAME_GLOBAL_STR, \
+				STORAGE_ITEM_STORAGE_COUNT_STR, \
                 		&iniContext, -1);
 	if (storage_count < 0)
 	{
@@ -1093,39 +1292,41 @@ static int tracker_load_storages_new(FDFSGroups *pGroups, const char *data_path)
 			"in the file \"%s/%s\", " \
 			"item \"%s\" is not found", \
 			__LINE__, data_path, \
-			STORAGE_SERVERS_LIST_FILENAME_NEW, \
-			STORAGE_ITEM_STORAGE_COUNT);
+			STORAGE_SERVERS_LIST_FILENAME_NEW_STR, \
+			STORAGE_ITEM_STORAGE_COUNT_STR);
 		return ENOENT;
 	}
 
+    memcpy(section_name, STORAGE_SECTION_NAME_PREFIX_STR,
+            STORAGE_SECTION_NAME_PREFIX_LEN);
 	nStorageSyncSize = 0;
 	nStorageSyncCount = 0;
 	pStorageSyncs = NULL;
 	result = 0;
 	for (i=1; i<=storage_count; i++)
 	{
-		sprintf(section_name, "%s"STORAGE_SECTION_NO_FORMAT, \
-			STORAGE_SECTION_NAME_PREFIX, i);
-
+        fc_ltostr_ex(i, section_name +
+                STORAGE_SECTION_NAME_PREFIX_LEN,
+                STORAGE_SECTION_NUM_PADDINGS);
 		group_name = iniGetStrValue(section_name, \
-				STORAGE_ITEM_GROUP_NAME, &iniContext);
+				STORAGE_ITEM_GROUP_NAME_STR, &iniContext);
 		if (group_name == NULL)
 		{
 			logError("file: "__FILE__", line: %d, " \
 				"in the file \"%s/%s\", " \
 				"item \"%s\" is not found", \
 				__LINE__, data_path, \
-				STORAGE_SERVERS_LIST_FILENAME_NEW, \
-				STORAGE_ITEM_GROUP_NAME);
+				STORAGE_SERVERS_LIST_FILENAME_NEW_STR, \
+				STORAGE_ITEM_GROUP_NAME_STR);
 			result = ENOENT;
 			break;
 		}
 
 		storage_id = iniGetStrValue(section_name, \
-				STORAGE_ITEM_SERVER_ID, &iniContext);
+				STORAGE_ITEM_SERVER_ID_STR, &iniContext);
 
 		ip_addr = iniGetStrValue(section_name, \
-				STORAGE_ITEM_IP_ADDR, &iniContext);
+				STORAGE_ITEM_IP_ADDR_STR, &iniContext);
 	
         if ((result=tracker_mem_add_storage_from_file(pGroups,
                         data_path, &clientInfo, group_name,
@@ -1137,22 +1338,20 @@ static int tracker_load_storages_new(FDFSGroups *pGroups, const char *data_path)
 		pStorage = clientInfo.pStorage;
 		pStat = &(pStorage->stat);
 		pStorage->status = iniGetIntValue(section_name, \
-				STORAGE_ITEM_STATUS, &iniContext, 0);
+				STORAGE_ITEM_STATUS_STR, &iniContext, 0);
 
 		pValue = iniGetStrValue(section_name, \
-				STORAGE_ITEM_DOMAIN_NAME, &iniContext);
+				STORAGE_ITEM_DOMAIN_NAME_STR, &iniContext);
 		if (pValue != NULL)
 		{
-			snprintf(pStorage->domain_name, \
-				sizeof(pStorage->domain_name), "%s", pValue);
+			fc_safe_strcpy(pStorage->domain_name, pValue);
 		}
 
 		pValue = iniGetStrValue(section_name, \
-				STORAGE_ITEM_VERSION, &iniContext);
+				STORAGE_ITEM_VERSION_STR, &iniContext);
 		if (pValue != NULL)
 		{
-			snprintf(pStorage->version, \
-				sizeof(pStorage->version), "%s", pValue);
+			fc_safe_strcpy(pStorage->version, pValue);
 		}
 
 		if (!((pStorage->status == \
@@ -1166,104 +1365,104 @@ static int tracker_load_storages_new(FDFSGroups *pGroups, const char *data_path)
 		}
 
 		psync_src_id = iniGetStrValue(section_name, \
-				STORAGE_ITEM_SYNC_SRC_SERVER, &iniContext);
+				STORAGE_ITEM_SYNC_SRC_SERVER_STR, &iniContext);
 		if (psync_src_id == NULL)
 		{
 			psync_src_id = "";
 		}
 
 		pStorage->sync_until_timestamp = iniGetIntValue(section_name, \
-			STORAGE_ITEM_SYNC_UNTIL_TIMESTAMP, &iniContext, 0);
+			STORAGE_ITEM_SYNC_UNTIL_TIMESTAMP_STR, &iniContext, 0);
 		pStorage->join_time = iniGetIntValue(section_name, \
-			STORAGE_ITEM_JOIN_TIME, &iniContext, 0);
+			STORAGE_ITEM_JOIN_TIME_STR, &iniContext, 0);
 		pStorage->total_mb = iniGetInt64Value(section_name, \
-			STORAGE_ITEM_TOTAL_MB, &iniContext, 0);
+			STORAGE_ITEM_TOTAL_MB_STR, &iniContext, 0);
 		pStorage->free_mb = iniGetInt64Value(section_name, \
-			STORAGE_ITEM_FREE_MB, &iniContext, 0);
+			STORAGE_ITEM_FREE_MB_STR, &iniContext, 0);
 		pStorage->store_path_count = iniGetIntValue(section_name, \
-			STORAGE_ITEM_STORE_PATH_COUNT, &iniContext, 0);
+			STORAGE_ITEM_STORE_PATH_COUNT_STR, &iniContext, 0);
 		pStorage->subdir_count_per_path = iniGetIntValue(section_name, \
-			STORAGE_ITEM_SUBDIR_COUNT_PER_PATH, &iniContext, 0);
+			STORAGE_ITEM_SUBDIR_COUNT_PER_PATH_STR, &iniContext, 0);
 		pStorage->upload_priority = iniGetIntValue(section_name, \
-			STORAGE_ITEM_UPLOAD_PRIORITY, &iniContext, 0);
+			STORAGE_ITEM_UPLOAD_PRIORITY_STR, &iniContext, 0);
 		pStorage->storage_port = iniGetIntValue(section_name, \
-			STORAGE_ITEM_STORAGE_PORT, &iniContext, 0);
+			STORAGE_ITEM_STORAGE_PORT_STR, &iniContext, 0);
 		pStorage->storage_http_port = iniGetIntValue(section_name, \
-			STORAGE_ITEM_STORAGE_HTTP_PORT, &iniContext, 0);
+			STORAGE_ITEM_STORAGE_HTTP_PORT_STR, &iniContext, 0);
 		pStat->total_upload_count = iniGetInt64Value(section_name, \
-			STORAGE_ITEM_TOTAL_UPLOAD_COUNT, &iniContext, 0);
+			STORAGE_ITEM_TOTAL_UPLOAD_COUNT_STR, &iniContext, 0);
 		pStat->success_upload_count = iniGetInt64Value(section_name, \
-			STORAGE_ITEM_SUCCESS_UPLOAD_COUNT, &iniContext, 0);
+			STORAGE_ITEM_SUCCESS_UPLOAD_COUNT_STR, &iniContext, 0);
 		pStat->total_append_count = iniGetInt64Value(section_name, \
-			STORAGE_ITEM_TOTAL_APPEND_COUNT, &iniContext, 0);
+			STORAGE_ITEM_TOTAL_APPEND_COUNT_STR, &iniContext, 0);
 		pStat->success_append_count = iniGetInt64Value(section_name, \
-			STORAGE_ITEM_SUCCESS_APPEND_COUNT, &iniContext, 0);
+			STORAGE_ITEM_SUCCESS_APPEND_COUNT_STR, &iniContext, 0);
 		pStat->total_set_meta_count = iniGetInt64Value(section_name, \
-			STORAGE_ITEM_TOTAL_SET_META_COUNT, &iniContext, 0);
+			STORAGE_ITEM_TOTAL_SET_META_COUNT_STR, &iniContext, 0);
 		pStat->success_set_meta_count = iniGetInt64Value(section_name, \
-			STORAGE_ITEM_SUCCESS_SET_META_COUNT, &iniContext, 0);
+			STORAGE_ITEM_SUCCESS_SET_META_COUNT_STR, &iniContext, 0);
 		pStat->total_delete_count = iniGetInt64Value(section_name, \
-			STORAGE_ITEM_TOTAL_DELETE_COUNT, &iniContext, 0);
+			STORAGE_ITEM_TOTAL_DELETE_COUNT_STR, &iniContext, 0);
 		pStat->success_delete_count = iniGetInt64Value(section_name, \
-			STORAGE_ITEM_SUCCESS_DELETE_COUNT, &iniContext, 0);
+			STORAGE_ITEM_SUCCESS_DELETE_COUNT_STR, &iniContext, 0);
 		pStat->total_download_count = iniGetInt64Value(section_name, \
-			STORAGE_ITEM_TOTAL_DOWNLOAD_COUNT, &iniContext, 0);
+			STORAGE_ITEM_TOTAL_DOWNLOAD_COUNT_STR, &iniContext, 0);
 		pStat->success_download_count = iniGetInt64Value(section_name, \
-			STORAGE_ITEM_SUCCESS_DOWNLOAD_COUNT, &iniContext, 0);
+			STORAGE_ITEM_SUCCESS_DOWNLOAD_COUNT_STR, &iniContext, 0);
 		pStat->total_get_meta_count = iniGetInt64Value(section_name, \
-			STORAGE_ITEM_TOTAL_GET_META_COUNT, &iniContext, 0);
+			STORAGE_ITEM_TOTAL_GET_META_COUNT_STR, &iniContext, 0);
 		pStat->success_get_meta_count = iniGetInt64Value(section_name, \
-			STORAGE_ITEM_SUCCESS_GET_META_COUNT, &iniContext, 0);
+			STORAGE_ITEM_SUCCESS_GET_META_COUNT_STR, &iniContext, 0);
 		pStat->total_create_link_count = iniGetInt64Value(section_name, \
-			STORAGE_ITEM_TOTAL_CREATE_LINK_COUNT, &iniContext, 0);
+			STORAGE_ITEM_TOTAL_CREATE_LINK_COUNT_STR, &iniContext, 0);
 		pStat->success_create_link_count = iniGetInt64Value(section_name, \
-			STORAGE_ITEM_SUCCESS_CREATE_LINK_COUNT, &iniContext, 0);
+			STORAGE_ITEM_SUCCESS_CREATE_LINK_COUNT_STR, &iniContext, 0);
 		pStat->total_delete_link_count = iniGetInt64Value(section_name, \
-			STORAGE_ITEM_TOTAL_DELETE_LINK_COUNT, &iniContext, 0);
+			STORAGE_ITEM_TOTAL_DELETE_LINK_COUNT_STR, &iniContext, 0);
 		pStat->success_delete_link_count = iniGetInt64Value(section_name, \
-			STORAGE_ITEM_SUCCESS_DELETE_LINK_COUNT, &iniContext, 0);
+			STORAGE_ITEM_SUCCESS_DELETE_LINK_COUNT_STR, &iniContext, 0);
 		pStat->total_upload_bytes = iniGetInt64Value(section_name, \
-			STORAGE_ITEM_TOTAL_UPLOAD_BYTES, &iniContext, 0);
+			STORAGE_ITEM_TOTAL_UPLOAD_BYTES_STR, &iniContext, 0);
 		pStat->success_upload_bytes = iniGetInt64Value(section_name, \
-			STORAGE_ITEM_SUCCESS_UPLOAD_BYTES, &iniContext, 0);
+			STORAGE_ITEM_SUCCESS_UPLOAD_BYTES_STR, &iniContext, 0);
 		pStat->total_append_bytes = iniGetInt64Value(section_name, \
-			STORAGE_ITEM_TOTAL_APPEND_BYTES, &iniContext, 0);
+			STORAGE_ITEM_TOTAL_APPEND_BYTES_STR, &iniContext, 0);
 		pStat->success_append_bytes = iniGetInt64Value(section_name, \
-			STORAGE_ITEM_SUCCESS_APPEND_BYTES, &iniContext, 0);
+			STORAGE_ITEM_SUCCESS_APPEND_BYTES_STR, &iniContext, 0);
 		pStat->total_download_bytes = iniGetInt64Value(section_name, \
-			STORAGE_ITEM_TOTAL_DOWNLOAD_BYTES, &iniContext, 0);
+			STORAGE_ITEM_TOTAL_DOWNLOAD_BYTES_STR, &iniContext, 0);
 		pStat->success_download_bytes = iniGetInt64Value(section_name, \
-			STORAGE_ITEM_SUCCESS_DOWNLOAD_BYTES, &iniContext, 0);
+			STORAGE_ITEM_SUCCESS_DOWNLOAD_BYTES_STR, &iniContext, 0);
 		pStat->total_sync_in_bytes = iniGetInt64Value(section_name, \
-			STORAGE_ITEM_TOTAL_SYNC_IN_BYTES, &iniContext, 0);
+			STORAGE_ITEM_TOTAL_SYNC_IN_BYTES_STR, &iniContext, 0);
 		pStat->success_sync_in_bytes = iniGetInt64Value(section_name, \
-			STORAGE_ITEM_SUCCESS_SYNC_IN_BYTES, &iniContext, 0);
+			STORAGE_ITEM_SUCCESS_SYNC_IN_BYTES_STR, &iniContext, 0);
 		pStat->total_sync_out_bytes = iniGetInt64Value(section_name, \
-			STORAGE_ITEM_TOTAL_SYNC_OUT_BYTES, &iniContext, 0);
+			STORAGE_ITEM_TOTAL_SYNC_OUT_BYTES_STR, &iniContext, 0);
 		pStat->success_sync_out_bytes = iniGetInt64Value(section_name, \
-			STORAGE_ITEM_SUCCESS_SYNC_OUT_BYTES, &iniContext, 0);
+			STORAGE_ITEM_SUCCESS_SYNC_OUT_BYTES_STR, &iniContext, 0);
 		pStat->total_file_open_count = iniGetInt64Value(section_name, \
-			STORAGE_ITEM_TOTAL_FILE_OPEN_COUNT, &iniContext, 0);
+			STORAGE_ITEM_TOTAL_FILE_OPEN_COUNT_STR, &iniContext, 0);
 		pStat->success_file_open_count = iniGetInt64Value(section_name, \
-			STORAGE_ITEM_SUCCESS_FILE_OPEN_COUNT, &iniContext, 0);
+			STORAGE_ITEM_SUCCESS_FILE_OPEN_COUNT_STR, &iniContext, 0);
 		pStat->total_file_read_count = iniGetInt64Value(section_name, \
-			STORAGE_ITEM_TOTAL_FILE_READ_COUNT, &iniContext, 0);
+			STORAGE_ITEM_TOTAL_FILE_READ_COUNT_STR, &iniContext, 0);
 		pStat->success_file_read_count = iniGetInt64Value(section_name, \
-			STORAGE_ITEM_SUCCESS_FILE_READ_COUNT, &iniContext, 0);
+			STORAGE_ITEM_SUCCESS_FILE_READ_COUNT_STR, &iniContext, 0);
 		pStat->total_file_write_count = iniGetInt64Value(section_name, \
-			STORAGE_ITEM_TOTAL_FILE_WRITE_COUNT, &iniContext, 0);
+			STORAGE_ITEM_TOTAL_FILE_WRITE_COUNT_STR, &iniContext, 0);
 		pStat->success_file_write_count = iniGetInt64Value(section_name, \
-			STORAGE_ITEM_SUCCESS_FILE_WRITE_COUNT, &iniContext, 0);
+			STORAGE_ITEM_SUCCESS_FILE_WRITE_COUNT_STR, &iniContext, 0);
 		pStat->last_source_update = iniGetIntValue(section_name, \
-			STORAGE_ITEM_LAST_SOURCE_UPDATE, &iniContext, 0);
+			STORAGE_ITEM_LAST_SOURCE_UPDATE_STR, &iniContext, 0);
 		pStat->last_sync_update = iniGetIntValue(section_name, \
-			STORAGE_ITEM_LAST_SYNC_UPDATE, &iniContext, 0);
+			STORAGE_ITEM_LAST_SYNC_UPDATE_STR, &iniContext, 0);
 		pStat->last_synced_timestamp = iniGetIntValue(section_name, \
-			STORAGE_ITEM_LAST_SYNCED_TIMESTAMP, &iniContext, 0);
+			STORAGE_ITEM_LAST_SYNCED_TIMESTAMP_STR, &iniContext, 0);
 		pStat->last_heart_beat_time = iniGetIntValue(section_name, \
-			STORAGE_ITEM_LAST_HEART_BEAT_TIME, &iniContext, 0);
+			STORAGE_ITEM_LAST_HEART_BEAT_TIME_STR, &iniContext, 0);
 		pStorage->changelog_offset = iniGetInt64Value(section_name, \
-			STORAGE_ITEM_CHANGELOG_OFFSET, &iniContext, 0);
+			STORAGE_ITEM_CHANGELOG_OFFSET_STR, &iniContext, 0);
 
 		if (*psync_src_id == '\0')
 		{
@@ -1300,8 +1499,8 @@ static int tracker_load_storages_new(FDFSGroups *pGroups, const char *data_path)
 		strcpy(pStorageSyncs[nStorageSyncCount].group_name, \
 			clientInfo.pGroup->group_name);
 		strcpy(pStorageSyncs[nStorageSyncCount].id, pStorage->id);
-		snprintf(pStorageSyncs[nStorageSyncCount].sync_src_id, \
-			FDFS_STORAGE_ID_MAX_SIZE, "%s", psync_src_id);
+		fc_safe_strcpy(pStorageSyncs[nStorageSyncCount].
+                sync_src_id, psync_src_id);
 		if (g_use_storage_id && !fdfs_is_server_id_valid( \
 						psync_src_id))
 		{
@@ -1361,17 +1560,17 @@ static int tracker_load_sync_timestamps(FDFSGroups *pGroups, const char *data_pa
 	int curr_synced_timestamp;
 	int result;
 
-	if (!fileExists(STORAGE_SYNC_TIMESTAMP_FILENAME))
+	if (!fileExists(STORAGE_SYNC_TIMESTAMP_FILENAME_STR))
 	{
 		return 0;
 	}
 
-	if ((fp=fopen(STORAGE_SYNC_TIMESTAMP_FILENAME, "r")) == NULL)
+	if ((fp=fopen(STORAGE_SYNC_TIMESTAMP_FILENAME_STR, "r")) == NULL)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"open file \"%s/%s\" fail, " \
 			"errno: %d, error info: %s", \
-			__LINE__, data_path, STORAGE_SYNC_TIMESTAMP_FILENAME, \
+			__LINE__, data_path, STORAGE_SYNC_TIMESTAMP_FILENAME_STR, \
 			errno, STRERROR(errno));
 		return errno != 0 ? errno : ENOENT;
 	}
@@ -1394,15 +1593,15 @@ static int tracker_load_sync_timestamps(FDFSGroups *pGroups, const char *data_pa
 				"the format of the file \"%s/%s\" is invalid" \
 				", colums: %d <= 2", \
 				__LINE__, data_path, \
-				STORAGE_SYNC_TIMESTAMP_FILENAME, cols);
+				STORAGE_SYNC_TIMESTAMP_FILENAME_STR, cols);
 			result = errno != 0 ? errno : EINVAL;
 			break;
 		}
 	
-		snprintf(group_name, sizeof(group_name), \
-				"%s", fc_trim(fields[0]));
-		snprintf(src_storage_id, sizeof(src_storage_id), \
-				"%s", fc_trim(fields[1]));
+        fc_trim(fields[0]);
+        fc_trim(fields[1]);
+		fc_safe_strcpy(group_name, fields[0]);
+		fc_safe_strcpy(src_storage_id, fields[1]);
 		if (strcmp(group_name, previous_group_name) != 0 || \
 			pGroup == NULL)
 		{
@@ -1413,7 +1612,7 @@ static int tracker_load_sync_timestamps(FDFSGroups *pGroups, const char *data_pa
 					"in the file \"%s/%s\", " \
 					"group \"%s\" is not found", \
 					__LINE__, data_path, \
-					STORAGE_SYNC_TIMESTAMP_FILENAME, \
+					STORAGE_SYNC_TIMESTAMP_FILENAME_STR, \
 					group_name);
 				result = errno != 0 ? errno : ENOENT;
 				break;
@@ -1429,7 +1628,7 @@ static int tracker_load_sync_timestamps(FDFSGroups *pGroups, const char *data_pa
 				"the format of the file \"%s/%s\" is invalid" \
 				", group: %s, row count:%d > server count:%d",\
 				__LINE__, data_path, \
-				STORAGE_SYNC_TIMESTAMP_FILENAME, \
+				STORAGE_SYNC_TIMESTAMP_FILENAME_STR, \
 				group_name, src_index+1, pGroup->count);
 			result = errno != 0 ? errno : EINVAL;
 			break;
@@ -1458,7 +1657,7 @@ static int tracker_load_sync_timestamps(FDFSGroups *pGroups, const char *data_pa
 				"in data file: \"%s/%s\", " \
 				"group: %s, src server id: %s != %s",\
 				__LINE__, data_path, \
-				STORAGE_SYNC_TIMESTAMP_FILENAME, \
+				STORAGE_SYNC_TIMESTAMP_FILENAME_STR, \
 				group_name, src_storage_id, \
 				pGroup->all_servers[src_index]->id);
 			result = errno != 0 ? errno : EINVAL;
@@ -1471,7 +1670,7 @@ static int tracker_load_sync_timestamps(FDFSGroups *pGroups, const char *data_pa
 				"the format of the file \"%s/%s\" is invalid" \
 				", group_name: %s, colums: %d > %d", \
 				__LINE__, data_path, \
-				STORAGE_SYNC_TIMESTAMP_FILENAME, \
+				STORAGE_SYNC_TIMESTAMP_FILENAME_STR, \
 				group_name, cols, pGroup->count + 2);
 			result = errno != 0 ? errno : EINVAL;
 			break;
@@ -1580,7 +1779,8 @@ static int tracker_load_data(FDFSGroups *pGroups)
 	FDFSStorageSync *pTrunkServers;
 	int nTrunkServerCount;
 
-	snprintf(data_path, sizeof(data_path), "%s/data", SF_G_BASE_PATH_STR);
+    fc_get_full_filepath(SF_G_BASE_PATH_STR,
+            SF_G_BASE_PATH_LEN, "data", 4, data_path);
 	if (!fileExists(data_path))
 	{
 		if (mkdir(data_path, 0755) != 0)
@@ -1603,8 +1803,8 @@ static int tracker_load_data(FDFSGroups *pGroups)
 		return errno != 0 ? errno : ENOENT;
 	}
 
-	if (!fileExists(STORAGE_GROUPS_LIST_FILENAME_OLD) && \
-	    !fileExists(STORAGE_GROUPS_LIST_FILENAME_NEW))
+	if (!fileExists(STORAGE_GROUPS_LIST_FILENAME_OLD_STR) && \
+	    !fileExists(STORAGE_GROUPS_LIST_FILENAME_NEW_STR))
 	{
 		return 0;
 	}
@@ -1652,17 +1852,21 @@ int tracker_save_groups()
 	char tmpFilename[MAX_PATH_SIZE];
 	char trueFilename[MAX_PATH_SIZE];
 	char buff[FDFS_GROUP_NAME_MAX_LEN + 256];
+    char *p;
 	int fd;
 	FDFSGroupInfo **ppGroup;
 	FDFSGroupInfo **ppEnd;
 	int result;
-	int len;
+    int group_len;
+    int id_len;
+	int buff_len;
 
 	tracker_mem_file_lock();
 
-	snprintf(trueFilename, sizeof(trueFilename), "%s/data/%s", \
-		SF_G_BASE_PATH_STR, STORAGE_GROUPS_LIST_FILENAME_NEW);
-	snprintf(tmpFilename, sizeof(tmpFilename), "%s.tmp", trueFilename);
+    fc_get_one_subdir_full_filename(SF_G_BASE_PATH_STR, SF_G_BASE_PATH_LEN,
+            "data", 4, STORAGE_GROUPS_LIST_FILENAME_NEW_STR,
+            STORAGE_GROUPS_LIST_FILENAME_NEW_LEN, trueFilename);
+	fc_combine_two_strings(trueFilename, "tmp", '.', tmpFilename);
 	if ((fd=open(tmpFilename, O_WRONLY | O_CREAT | O_TRUNC, 0644)) < 0)
 	{
 		tracker_mem_file_unlock();
@@ -1674,13 +1878,22 @@ int tracker_save_groups()
 		return errno != 0 ? errno : ENOENT;
 	}
 
-	len = sprintf(buff, \
-			"# global section\n" \
-			"[%s]\n" \
-			"\t%s=%d\n\n", \
-			GROUP_SECTION_NAME_GLOBAL, \
-			GROUP_ITEM_GROUP_COUNT, g_groups.count);
-	if (fc_safe_write(fd, buff, len) != len)
+    p = buff;
+    *p++ = '[';
+    memcpy(p, GROUP_SECTION_NAME_GLOBAL_STR, GROUP_SECTION_NAME_GLOBAL_LEN);
+    p += GROUP_SECTION_NAME_GLOBAL_LEN;
+    *p++ = ']';
+    *p++ = '\n';
+    *p++ = '\t';
+    memcpy(p, GROUP_ITEM_GROUP_COUNT_STR, GROUP_ITEM_GROUP_COUNT_LEN);
+    p += GROUP_ITEM_GROUP_COUNT_LEN;
+    *p++ = '=';
+    p += fc_itoa(g_groups.count, p);
+    *p++ = '\n';
+    *p++ = '\n';
+
+	buff_len = p - buff;
+	if (fc_safe_write(fd, buff, buff_len) != buff_len)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"write to file \"%s\" fail, " \
@@ -1696,40 +1909,98 @@ int tracker_save_groups()
 	ppEnd = g_groups.sorted_groups + g_groups.count;
 	for (ppGroup=g_groups.sorted_groups; ppGroup<ppEnd; ppGroup++)
 	{
-		len = sprintf(buff, \
-				"# group: %s\n" \
-				"[%s"GROUP_SECTION_NO_FORMAT"]\n" \
-				"\t%s=%s\n" \
-				"\t%s=%d\n" \
-				"\t%s=%d\n" \
-				"\t%s=%d\n" \
-				"\t%s=%d\n" \
-				"\t%s=%d\n" \
-				"\t%s=%s\n" \
-				"\t%s=%s\n\n", \
-				(*ppGroup)->group_name, \
-				GROUP_SECTION_NAME_PREFIX, \
-				(int)(ppGroup - g_groups.sorted_groups) + 1, \
-				GROUP_ITEM_GROUP_NAME, \
-				(*ppGroup)->group_name, \
-				GROUP_ITEM_STORAGE_PORT, \
-				(*ppGroup)->storage_port, \
-				GROUP_ITEM_STORAGE_HTTP_PORT, \
-				(*ppGroup)->storage_http_port, \
-				GROUP_ITEM_STORE_PATH_COUNT, \
-				(*ppGroup)->store_path_count, \
-				GROUP_ITEM_SUBDIR_COUNT_PER_PATH, \
-				(*ppGroup)->subdir_count_per_path, \
-				GROUP_ITEM_CURRENT_TRUNK_FILE_ID, \
-				(*ppGroup)->current_trunk_file_id, \
-				GROUP_ITEM_TRUNK_SERVER, \
-				(*ppGroup)->pTrunkServer != NULL ? \
-					(*ppGroup)->pTrunkServer->id : "",
-				GROUP_ITEM_LAST_TRUNK_SERVER, \
-				(*ppGroup)->last_trunk_server_id
-			);
+        group_len = strlen((*ppGroup)->group_name);
+        p = buff;
+        memcpy(p, "# group: ", 9);
+        p += 9;
+        memcpy(p, (*ppGroup)->group_name, group_len);
+        p += group_len;
+        *p++ = '\n';
 
-		if (fc_safe_write(fd, buff, len) != len)
+        *p++ = '[';
+        memcpy(p, GROUP_SECTION_NAME_PREFIX_STR, GROUP_SECTION_NAME_PREFIX_LEN);
+        p += GROUP_SECTION_NAME_PREFIX_LEN;
+        p += fc_ltostr_ex((ppGroup - g_groups.sorted_groups) + 1,
+                p, GROUP_SECTION_NUM_PADDINGS);
+        *p++ = ']';
+        *p++ = '\n';
+
+        *p++ = '\t';
+        memcpy(p, GROUP_ITEM_GROUP_NAME_STR, GROUP_ITEM_GROUP_NAME_LEN);
+        p += GROUP_ITEM_GROUP_NAME_LEN;
+        *p++ = '=';
+        memcpy(p, (*ppGroup)->group_name, group_len);
+        p += group_len;
+        *p++ = '\n';
+
+        *p++ = '\t';
+        memcpy(p, GROUP_ITEM_STORAGE_PORT_STR, GROUP_ITEM_STORAGE_PORT_LEN);
+        p += GROUP_ITEM_STORAGE_PORT_LEN;
+        *p++ = '=';
+        p += fc_itoa((*ppGroup)->storage_port, p);
+        *p++ = '\n';
+
+        *p++ = '\t';
+        memcpy(p, GROUP_ITEM_STORAGE_HTTP_PORT_STR,
+                GROUP_ITEM_STORAGE_HTTP_PORT_LEN);
+        p += GROUP_ITEM_STORAGE_HTTP_PORT_LEN;
+        *p++ = '=';
+        p += fc_itoa((*ppGroup)->storage_http_port, p);
+        *p++ = '\n';
+
+        *p++ = '\t';
+        memcpy(p, GROUP_ITEM_STORE_PATH_COUNT_STR,
+                GROUP_ITEM_STORE_PATH_COUNT_LEN);
+        p += GROUP_ITEM_STORE_PATH_COUNT_LEN;
+        *p++ = '=';
+        p += fc_itoa((*ppGroup)->store_path_count, p);
+        *p++ = '\n';
+
+        *p++ = '\t';
+        memcpy(p, GROUP_ITEM_SUBDIR_COUNT_PER_PATH_STR,
+                GROUP_ITEM_SUBDIR_COUNT_PER_PATH_LEN);
+        p += GROUP_ITEM_SUBDIR_COUNT_PER_PATH_LEN;
+        *p++ = '=';
+        p += fc_itoa((*ppGroup)->subdir_count_per_path, p);
+        *p++ = '\n';
+
+        *p++ = '\t';
+        memcpy(p, GROUP_ITEM_CURRENT_TRUNK_FILE_ID_STR,
+                GROUP_ITEM_CURRENT_TRUNK_FILE_ID_LEN);
+        p += GROUP_ITEM_CURRENT_TRUNK_FILE_ID_LEN;
+        *p++ = '=';
+        p += fc_itoa((*ppGroup)->current_trunk_file_id, p);
+        *p++ = '\n';
+
+        *p++ = '\t';
+        memcpy(p, GROUP_ITEM_TRUNK_SERVER_STR,
+                GROUP_ITEM_TRUNK_SERVER_LEN);
+        p += GROUP_ITEM_TRUNK_SERVER_LEN;
+        *p++ = '=';
+        if ((*ppGroup)->pTrunkServer != NULL)
+        {
+            id_len = strlen((*ppGroup)->pTrunkServer->id);
+            memcpy(p, (*ppGroup)->pTrunkServer->id, id_len);
+            p += id_len;
+        }
+        *p++ = '\n';
+
+        *p++ = '\t';
+        memcpy(p, GROUP_ITEM_LAST_TRUNK_SERVER_STR,
+                GROUP_ITEM_LAST_TRUNK_SERVER_LEN);
+        p += GROUP_ITEM_LAST_TRUNK_SERVER_LEN;
+        *p++ = '=';
+        if (*(*ppGroup)->last_trunk_server_id != '\0')
+        {
+            id_len = strlen((*ppGroup)->last_trunk_server_id);
+            memcpy(p, (*ppGroup)->last_trunk_server_id, id_len);
+            p += id_len;
+        }
+        *p++ = '\n';
+        *p++ = '\n';
+
+		buff_len = p - buff;
+		if (fc_safe_write(fd, buff, buff_len) != buff_len)
 		{
 			logError("file: "__FILE__", line: %d, " \
 				"write to file \"%s\" fail, " \
@@ -1786,10 +2057,15 @@ int tracker_save_storages()
 	char tmpFilename[MAX_PATH_SIZE];
 	char trueFilename[MAX_PATH_SIZE];
 	char buff[4096];
-	char id_buff[128];
     char formatted_ip[FORMATTED_IP_SIZE];
+    char *p;
 	int fd;
-	int len;
+    int id_len;
+    int ip_len;
+    int group_len;
+    int version_len;
+    int domain_len;
+	int buff_len;
 	FDFSGroupInfo **ppGroup;
 	FDFSGroupInfo **ppGroupEnd;
 	FDFSStorageDetail **ppStorage;
@@ -1800,9 +2076,10 @@ int tracker_save_storages()
 
 	tracker_mem_file_lock();
 
-	snprintf(trueFilename, sizeof(trueFilename), "%s/data/%s", \
-		SF_G_BASE_PATH_STR, STORAGE_SERVERS_LIST_FILENAME_NEW);
-	snprintf(tmpFilename, sizeof(tmpFilename), "%s.tmp", trueFilename);
+    fc_get_one_subdir_full_filename(SF_G_BASE_PATH_STR, SF_G_BASE_PATH_LEN,
+            "data", 4, STORAGE_SERVERS_LIST_FILENAME_NEW_STR,
+            STORAGE_SERVERS_LIST_FILENAME_NEW_LEN, trueFilename);
+	fc_combine_two_strings(trueFilename, "tmp", '.', tmpFilename);
 	if ((fd=open(tmpFilename, O_WRONLY | O_CREAT | O_TRUNC, 0644)) < 0)
 	{
 		tracker_mem_file_unlock();
@@ -1814,7 +2091,6 @@ int tracker_save_storages()
 		return errno != 0 ? errno : ENOENT;
 	}
 
-	*id_buff = '\0';
 	count = 0;
 	result = 0;
 	ppGroupEnd = g_groups.sorted_groups + g_groups.count;
@@ -1828,179 +2104,471 @@ int tracker_save_storages()
 			pStorage = *ppStorage;
 			if (pStorage->status == FDFS_STORAGE_STATUS_DELETED
 			 || pStorage->status == FDFS_STORAGE_STATUS_IP_CHANGED)
-			{
-				continue;
-			}
-
-			if (g_use_storage_id)
-			{
-				sprintf(id_buff, "\t%s=%s\n",
-					STORAGE_ITEM_SERVER_ID, pStorage->id);
-			}
+            {
+                continue;
+            }
 
 			count++;
+            group_len = strlen((*ppGroup)->group_name);
             format_ip_address(FDFS_CURRENT_IP_ADDR(pStorage), formatted_ip);
-			len = sprintf(buff, \
-				"# storage %s:%u\n" \
-				"[%s"STORAGE_SECTION_NO_FORMAT"]\n" \
-				"%s" \
-				"\t%s=%s\n" \
-				"\t%s=%s\n" \
-				"\t%s=%d\n" \
-				"\t%s=%s\n" \
-				"\t%s=%d\n" \
-				"\t%s=%d\n" \
-				"\t%s=%d\n" \
-				"\t%s=%s\n" \
-				"\t%s=%s\n" \
-				"\t%s=%d\n" \
-				"\t%s=%d\n" \
-				"\t%s=%d\n" \
-				"\t%s=%d\n" \
-				"\t%s=%"PRId64"\n" \
-				"\t%s=%"PRId64"\n" \
-				"\t%s=%"PRId64"\n" \
-				"\t%s=%"PRId64"\n" \
-				"\t%s=%"PRId64"\n" \
-				"\t%s=%"PRId64"\n" \
-				"\t%s=%"PRId64"\n" \
-				"\t%s=%"PRId64"\n" \
-				"\t%s=%"PRId64"\n" \
-				"\t%s=%"PRId64"\n" \
-				"\t%s=%"PRId64"\n" \
-				"\t%s=%"PRId64"\n" \
-				"\t%s=%"PRId64"\n" \
-				"\t%s=%"PRId64"\n" \
-				"\t%s=%"PRId64"\n" \
-				"\t%s=%"PRId64"\n" \
-				"\t%s=%"PRId64"\n" \
-				"\t%s=%"PRId64"\n" \
-				"\t%s=%"PRId64"\n" \
-				"\t%s=%"PRId64"\n" \
-				"\t%s=%"PRId64"\n" \
-				"\t%s=%"PRId64"\n" \
-				"\t%s=%"PRId64"\n" \
-				"\t%s=%"PRId64"\n" \
-				"\t%s=%"PRId64"\n" \
-				"\t%s=%"PRId64"\n" \
-				"\t%s=%"PRId64"\n" \
-				"\t%s=%"PRId64"\n" \
-				"\t%s=%"PRId64"\n" \
-				"\t%s=%"PRId64"\n" \
-				"\t%s=%"PRId64"\n" \
-				"\t%s=%"PRId64"\n" \
-				"\t%s=%"PRId64"\n" \
-				"\t%s=%"PRId64"\n" \
-				"\t%s=%d\n" \
-				"\t%s=%d\n" \
-				"\t%s=%d\n" \
-				"\t%s=%d\n" \
-				"\t%s=%"PRId64"\n\n", \
-                formatted_ip, pStorage->storage_port, \
-				STORAGE_SECTION_NAME_PREFIX, count, id_buff, \
-				STORAGE_ITEM_GROUP_NAME, \
-				(*ppGroup)->group_name, \
-				STORAGE_ITEM_IP_ADDR, FDFS_CURRENT_IP_ADDR(pStorage), \
-				STORAGE_ITEM_STATUS, pStorage->status, \
-				STORAGE_ITEM_VERSION, pStorage->version, \
-				STORAGE_ITEM_JOIN_TIME, \
-				(int)pStorage->join_time, \
-				STORAGE_ITEM_STORAGE_PORT, \
-				pStorage->storage_port, \
-				STORAGE_ITEM_STORAGE_HTTP_PORT, \
-				pStorage->storage_http_port,  \
-				STORAGE_ITEM_DOMAIN_NAME, \
-				pStorage->domain_name, \
-				STORAGE_ITEM_SYNC_SRC_SERVER, \
-				(pStorage->psync_src_server != NULL ? \
-				pStorage->psync_src_server->id: ""), \
-				STORAGE_ITEM_SYNC_UNTIL_TIMESTAMP, \
-				(int)pStorage->sync_until_timestamp, \
-				STORAGE_ITEM_STORE_PATH_COUNT, \
-				pStorage->store_path_count, \
-				STORAGE_ITEM_SUBDIR_COUNT_PER_PATH, \
-				pStorage->subdir_count_per_path, \
-				STORAGE_ITEM_UPLOAD_PRIORITY, \
-				pStorage->upload_priority, \
-				STORAGE_ITEM_TOTAL_MB, pStorage->total_mb, \
-				STORAGE_ITEM_FREE_MB, pStorage->free_mb, \
-				STORAGE_ITEM_TOTAL_UPLOAD_COUNT, \
-				pStorage->stat.total_upload_count, \
-				STORAGE_ITEM_SUCCESS_UPLOAD_COUNT, \
-				pStorage->stat.success_upload_count, \
-				STORAGE_ITEM_TOTAL_APPEND_COUNT, \
-				pStorage->stat.total_append_count, \
-				STORAGE_ITEM_SUCCESS_APPEND_COUNT, \
-				pStorage->stat.success_append_count, \
-				STORAGE_ITEM_TOTAL_SET_META_COUNT, \
-				pStorage->stat.total_set_meta_count, \
-				STORAGE_ITEM_SUCCESS_SET_META_COUNT, \
-				pStorage->stat.success_set_meta_count, \
-				STORAGE_ITEM_TOTAL_DELETE_COUNT, \
-				pStorage->stat.total_delete_count, \
-				STORAGE_ITEM_SUCCESS_DELETE_COUNT, \
-				pStorage->stat.success_delete_count, \
-				STORAGE_ITEM_TOTAL_DOWNLOAD_COUNT, \
-				pStorage->stat.total_download_count, \
-				STORAGE_ITEM_SUCCESS_DOWNLOAD_COUNT, \
-				pStorage->stat.success_download_count, \
-				STORAGE_ITEM_TOTAL_GET_META_COUNT, \
-				pStorage->stat.total_get_meta_count, \
-				STORAGE_ITEM_SUCCESS_GET_META_COUNT, \
-				pStorage->stat.success_get_meta_count, \
-				STORAGE_ITEM_TOTAL_CREATE_LINK_COUNT, \
-				pStorage->stat.total_create_link_count, \
-				STORAGE_ITEM_SUCCESS_CREATE_LINK_COUNT, \
-				pStorage->stat.success_create_link_count, \
-				STORAGE_ITEM_TOTAL_DELETE_LINK_COUNT, \
-				pStorage->stat.total_delete_link_count, \
-				STORAGE_ITEM_SUCCESS_DELETE_LINK_COUNT, \
-				pStorage->stat.success_delete_link_count, \
-				STORAGE_ITEM_TOTAL_UPLOAD_BYTES, \
-				pStorage->stat.total_upload_bytes, \
-				STORAGE_ITEM_SUCCESS_UPLOAD_BYTES, \
-				pStorage->stat.success_upload_bytes, \
-				STORAGE_ITEM_TOTAL_APPEND_BYTES, \
-				pStorage->stat.total_append_bytes, \
-				STORAGE_ITEM_SUCCESS_APPEND_BYTES, \
-				pStorage->stat.success_append_bytes, \
-				STORAGE_ITEM_TOTAL_DOWNLOAD_BYTES, \
-				pStorage->stat.total_download_bytes, \
-				STORAGE_ITEM_SUCCESS_DOWNLOAD_BYTES, \
-				pStorage->stat.success_download_bytes, \
-				STORAGE_ITEM_TOTAL_SYNC_IN_BYTES, \
-				pStorage->stat.total_sync_in_bytes, \
-				STORAGE_ITEM_SUCCESS_SYNC_IN_BYTES, \
-				pStorage->stat.success_sync_in_bytes, \
-				STORAGE_ITEM_TOTAL_SYNC_OUT_BYTES, \
-				pStorage->stat.total_sync_out_bytes, \
-				STORAGE_ITEM_SUCCESS_SYNC_OUT_BYTES, \
-				pStorage->stat.success_sync_out_bytes, \
-				STORAGE_ITEM_TOTAL_FILE_OPEN_COUNT, \
-				pStorage->stat.total_file_open_count, \
-				STORAGE_ITEM_SUCCESS_FILE_OPEN_COUNT, \
-				pStorage->stat.success_file_open_count, \
-				STORAGE_ITEM_TOTAL_FILE_READ_COUNT, \
-				pStorage->stat.total_file_read_count, \
-				STORAGE_ITEM_SUCCESS_FILE_READ_COUNT, \
-				pStorage->stat.success_file_read_count, \
-				STORAGE_ITEM_TOTAL_FILE_WRITE_COUNT, \
-				pStorage->stat.total_file_write_count, \
-				STORAGE_ITEM_SUCCESS_FILE_WRITE_COUNT, \
-				pStorage->stat.success_file_write_count, \
-				STORAGE_ITEM_LAST_SOURCE_UPDATE, \
-				(int)(pStorage->stat.last_source_update), \
-				STORAGE_ITEM_LAST_SYNC_UPDATE, \
-				(int)(pStorage->stat.last_sync_update), \
-				STORAGE_ITEM_LAST_SYNCED_TIMESTAMP, \
-				(int)pStorage->stat.last_synced_timestamp, \
-				STORAGE_ITEM_LAST_HEART_BEAT_TIME, \
-				(int)pStorage->stat.last_heart_beat_time, \
-				STORAGE_ITEM_CHANGELOG_OFFSET, \
-				pStorage->changelog_offset \
-	 		     );
+            ip_len = strlen(formatted_ip);
 
-			if (fc_safe_write(fd, buff, len) != len)
+            p = buff;
+            memcpy(p, "# storage: ", 11);
+            p += 11;
+            memcpy(p, formatted_ip, ip_len);
+            p += ip_len;
+            *p++ = ':';
+            p += fc_itoa(pStorage->storage_port, p);
+            *p++ = '\n';
+
+            *p++ = '[';
+            memcpy(p, STORAGE_SECTION_NAME_PREFIX_STR,
+                    STORAGE_SECTION_NAME_PREFIX_LEN);
+            p += STORAGE_SECTION_NAME_PREFIX_LEN;
+            p += fc_ltostr_ex(count, p, STORAGE_SECTION_NUM_PADDINGS);
+            *p++ = ']';
+            *p++ = '\n';
+
+			if (g_use_storage_id)
+            {
+                id_len = strlen(pStorage->id);
+                *p++ = '\t';
+                memcpy(p, STORAGE_ITEM_SERVER_ID_STR,
+                        STORAGE_ITEM_SERVER_ID_LEN);
+                p += STORAGE_ITEM_SERVER_ID_LEN;
+                *p++ = '=';
+                memcpy(p, pStorage->id, id_len);
+                p += id_len;
+                *p++ = '\n';
+            }
+
+            *p++ = '\t';
+            memcpy(p, STORAGE_ITEM_GROUP_NAME_STR,
+                    STORAGE_ITEM_GROUP_NAME_LEN);
+            p += STORAGE_ITEM_GROUP_NAME_LEN;
+            *p++ = '=';
+            memcpy(p, (*ppGroup)->group_name, group_len);
+            p += group_len;
+            *p++ = '\n';
+
+            ip_len = strlen(FDFS_CURRENT_IP_ADDR(pStorage));
+            *p++ = '\t';
+            memcpy(p, STORAGE_ITEM_IP_ADDR_STR, STORAGE_ITEM_IP_ADDR_LEN);
+            p += STORAGE_ITEM_IP_ADDR_LEN;
+            *p++ = '=';
+            memcpy(p, FDFS_CURRENT_IP_ADDR(pStorage), ip_len);
+            p += ip_len;
+            *p++ = '\n';
+
+            *p++ = '\t';
+            memcpy(p, STORAGE_ITEM_STATUS_STR, STORAGE_ITEM_STATUS_LEN);
+            p += STORAGE_ITEM_STATUS_LEN;
+            *p++ = '=';
+            p += fc_itoa(pStorage->status, p);
+            *p++ = '\n';
+
+            version_len = strlen(pStorage->version);
+            *p++ = '\t';
+            memcpy(p, STORAGE_ITEM_VERSION_STR, STORAGE_ITEM_VERSION_LEN);
+            p += STORAGE_ITEM_VERSION_LEN;
+            *p++ = '=';
+            memcpy(p, pStorage->version, version_len);
+            p += version_len;
+            *p++ = '\n';
+
+            *p++ = '\t';
+            memcpy(p, STORAGE_ITEM_JOIN_TIME_STR, STORAGE_ITEM_JOIN_TIME_LEN);
+            p += STORAGE_ITEM_JOIN_TIME_LEN;
+            *p++ = '=';
+            p += fc_itoa(pStorage->join_time, p);
+            *p++ = '\n';
+
+            *p++ = '\t';
+            memcpy(p, STORAGE_ITEM_STORAGE_PORT_STR,
+                    STORAGE_ITEM_STORAGE_PORT_LEN);
+            p += STORAGE_ITEM_STORAGE_PORT_LEN;
+            *p++ = '=';
+            p += fc_itoa(pStorage->storage_port, p);
+            *p++ = '\n';
+
+            *p++ = '\t';
+            memcpy(p, STORAGE_ITEM_STORAGE_HTTP_PORT_STR,
+                    STORAGE_ITEM_STORAGE_HTTP_PORT_LEN);
+            p += STORAGE_ITEM_STORAGE_HTTP_PORT_LEN;
+            *p++ = '=';
+            p += fc_itoa(pStorage->storage_http_port, p);
+            *p++ = '\n';
+
+            domain_len = strlen(pStorage->domain_name);
+            *p++ = '\t';
+            memcpy(p, STORAGE_ITEM_DOMAIN_NAME_STR,
+                    STORAGE_ITEM_DOMAIN_NAME_LEN);
+            p += STORAGE_ITEM_DOMAIN_NAME_LEN;
+            *p++ = '=';
+            memcpy(p, pStorage->domain_name, domain_len);
+            p += domain_len;
+            *p++ = '\n';
+
+            *p++ = '\t';
+            memcpy(p, STORAGE_ITEM_SYNC_SRC_SERVER_STR,
+                    STORAGE_ITEM_SYNC_SRC_SERVER_LEN);
+            p += STORAGE_ITEM_SYNC_SRC_SERVER_LEN;
+            *p++ = '=';
+            if (pStorage->psync_src_server != NULL)
+            {
+                id_len = strlen(pStorage->psync_src_server->id);
+                memcpy(p, pStorage->psync_src_server->id, id_len);
+                p += id_len;
+            }
+            *p++ = '\n';
+
+            *p++ = '\t';
+            memcpy(p, STORAGE_ITEM_SYNC_UNTIL_TIMESTAMP_STR,
+                    STORAGE_ITEM_SYNC_UNTIL_TIMESTAMP_LEN);
+            p+= STORAGE_ITEM_SYNC_UNTIL_TIMESTAMP_LEN;
+            *p++ = '=';
+            p += fc_itoa(pStorage->sync_until_timestamp, p);
+            *p++ = '\n';
+
+            *p++ = '\t';
+            memcpy(p, STORAGE_ITEM_TOTAL_MB_STR,
+                    STORAGE_ITEM_TOTAL_MB_LEN);
+            p+= STORAGE_ITEM_TOTAL_MB_LEN;
+            *p++ = '=';
+            p += fc_itoa(pStorage->total_mb, p);
+            *p++ = '\n';
+
+            *p++ = '\t';
+            memcpy(p, STORAGE_ITEM_FREE_MB_STR,
+                    STORAGE_ITEM_FREE_MB_LEN);
+            p+= STORAGE_ITEM_FREE_MB_LEN;
+            *p++ = '=';
+            p += fc_itoa(pStorage->free_mb, p);
+            *p++ = '\n';
+
+            *p++ = '\t';
+            memcpy(p, STORAGE_ITEM_CHANGELOG_OFFSET_STR,
+                    STORAGE_ITEM_CHANGELOG_OFFSET_LEN);
+            p+= STORAGE_ITEM_CHANGELOG_OFFSET_LEN;
+            *p++ = '=';
+            p += fc_itoa(pStorage->changelog_offset, p);
+            *p++ = '\n';
+
+            *p++ = '\t';
+            memcpy(p, STORAGE_ITEM_STORE_PATH_COUNT_STR,
+                    STORAGE_ITEM_STORE_PATH_COUNT_LEN);
+            p+= STORAGE_ITEM_STORE_PATH_COUNT_LEN;
+            *p++ = '=';
+            p += fc_itoa(pStorage->store_path_count, p);
+            *p++ = '\n';
+
+            *p++ = '\t';
+            memcpy(p, STORAGE_ITEM_SUBDIR_COUNT_PER_PATH_STR,
+                    STORAGE_ITEM_SUBDIR_COUNT_PER_PATH_LEN);
+            p+= STORAGE_ITEM_SUBDIR_COUNT_PER_PATH_LEN;
+            *p++ = '=';
+            p += fc_itoa(pStorage->subdir_count_per_path, p);
+            *p++ = '\n';
+
+            *p++ = '\t';
+            memcpy(p, STORAGE_ITEM_UPLOAD_PRIORITY_STR,
+                    STORAGE_ITEM_UPLOAD_PRIORITY_LEN);
+            p+= STORAGE_ITEM_UPLOAD_PRIORITY_LEN;
+            *p++ = '=';
+            p += fc_itoa(pStorage->upload_priority, p);
+            *p++ = '\n';
+
+            *p++ = '\t';
+            memcpy(p, STORAGE_ITEM_TOTAL_UPLOAD_COUNT_STR,
+                    STORAGE_ITEM_TOTAL_UPLOAD_COUNT_LEN);
+            p+= STORAGE_ITEM_TOTAL_UPLOAD_COUNT_LEN;
+            *p++ = '=';
+            p += fc_itoa(pStorage->stat.total_upload_count, p);
+            *p++ = '\n';
+
+            *p++ = '\t';
+            memcpy(p, STORAGE_ITEM_SUCCESS_UPLOAD_COUNT_STR,
+                    STORAGE_ITEM_SUCCESS_UPLOAD_COUNT_LEN);
+            p+= STORAGE_ITEM_SUCCESS_UPLOAD_COUNT_LEN;
+            *p++ = '=';
+            p += fc_itoa(pStorage->stat.success_upload_count, p);
+            *p++ = '\n';
+
+            *p++ = '\t';
+            memcpy(p, STORAGE_ITEM_TOTAL_APPEND_COUNT_STR,
+                    STORAGE_ITEM_TOTAL_APPEND_COUNT_LEN);
+            p+= STORAGE_ITEM_TOTAL_APPEND_COUNT_LEN;
+            *p++ = '=';
+            p += fc_itoa(pStorage->stat.total_append_count, p);
+            *p++ = '\n';
+
+            *p++ = '\t';
+            memcpy(p, STORAGE_ITEM_SUCCESS_APPEND_COUNT_STR,
+                    STORAGE_ITEM_SUCCESS_APPEND_COUNT_LEN);
+            p+= STORAGE_ITEM_SUCCESS_APPEND_COUNT_LEN;
+            *p++ = '=';
+            p += fc_itoa(pStorage->stat.success_append_count, p);
+            *p++ = '\n';
+
+            *p++ = '\t';
+            memcpy(p, STORAGE_ITEM_TOTAL_SET_META_COUNT_STR,
+                    STORAGE_ITEM_TOTAL_SET_META_COUNT_LEN);
+            p+= STORAGE_ITEM_TOTAL_SET_META_COUNT_LEN;
+            *p++ = '=';
+            p += fc_itoa(pStorage->stat.total_set_meta_count, p);
+            *p++ = '\n';
+
+            *p++ = '\t';
+            memcpy(p, STORAGE_ITEM_SUCCESS_SET_META_COUNT_STR,
+                    STORAGE_ITEM_SUCCESS_SET_META_COUNT_LEN);
+            p+= STORAGE_ITEM_SUCCESS_SET_META_COUNT_LEN;
+            *p++ = '=';
+            p += fc_itoa(pStorage->stat.success_set_meta_count, p);
+            *p++ = '\n';
+
+            *p++ = '\t';
+            memcpy(p, STORAGE_ITEM_TOTAL_DELETE_COUNT_STR,
+                    STORAGE_ITEM_TOTAL_DELETE_COUNT_LEN);
+            p+= STORAGE_ITEM_TOTAL_DELETE_COUNT_LEN;
+            *p++ = '=';
+            p += fc_itoa(pStorage->stat.total_delete_count, p);
+            *p++ = '\n';
+
+            *p++ = '\t';
+            memcpy(p, STORAGE_ITEM_SUCCESS_DELETE_COUNT_STR,
+                    STORAGE_ITEM_SUCCESS_DELETE_COUNT_LEN);
+            p+= STORAGE_ITEM_SUCCESS_DELETE_COUNT_LEN;
+            *p++ = '=';
+            p += fc_itoa(pStorage->stat.success_delete_count, p);
+            *p++ = '\n';
+
+            *p++ = '\t';
+            memcpy(p, STORAGE_ITEM_TOTAL_DOWNLOAD_COUNT_STR,
+                    STORAGE_ITEM_TOTAL_DOWNLOAD_COUNT_LEN);
+            p+= STORAGE_ITEM_TOTAL_DOWNLOAD_COUNT_LEN;
+            *p++ = '=';
+            p += fc_itoa(pStorage->stat.total_download_count, p);
+            *p++ = '\n';
+
+            *p++ = '\t';
+            memcpy(p, STORAGE_ITEM_SUCCESS_DOWNLOAD_COUNT_STR,
+                    STORAGE_ITEM_SUCCESS_DOWNLOAD_COUNT_LEN);
+            p+= STORAGE_ITEM_SUCCESS_DOWNLOAD_COUNT_LEN;
+            *p++ = '=';
+            p += fc_itoa(pStorage->stat.success_download_count, p);
+            *p++ = '\n';
+
+            *p++ = '\t';
+            memcpy(p, STORAGE_ITEM_TOTAL_GET_META_COUNT_STR,
+                    STORAGE_ITEM_TOTAL_GET_META_COUNT_LEN);
+            p+= STORAGE_ITEM_TOTAL_GET_META_COUNT_LEN;
+            *p++ = '=';
+            p += fc_itoa(pStorage->stat.total_get_meta_count, p);
+            *p++ = '\n';
+
+            *p++ = '\t';
+            memcpy(p, STORAGE_ITEM_SUCCESS_GET_META_COUNT_STR,
+                    STORAGE_ITEM_SUCCESS_GET_META_COUNT_LEN);
+            p+= STORAGE_ITEM_SUCCESS_GET_META_COUNT_LEN;
+            *p++ = '=';
+            p += fc_itoa(pStorage->stat.success_get_meta_count, p);
+            *p++ = '\n';
+
+            *p++ = '\t';
+            memcpy(p, STORAGE_ITEM_TOTAL_CREATE_LINK_COUNT_STR,
+                    STORAGE_ITEM_TOTAL_CREATE_LINK_COUNT_LEN);
+            p+= STORAGE_ITEM_TOTAL_CREATE_LINK_COUNT_LEN;
+            *p++ = '=';
+            p += fc_itoa(pStorage->stat.total_create_link_count, p);
+            *p++ = '\n';
+
+            *p++ = '\t';
+            memcpy(p, STORAGE_ITEM_SUCCESS_CREATE_LINK_COUNT_STR,
+                    STORAGE_ITEM_SUCCESS_CREATE_LINK_COUNT_LEN);
+            p+= STORAGE_ITEM_SUCCESS_CREATE_LINK_COUNT_LEN;
+            *p++ = '=';
+            p += fc_itoa(pStorage->stat.success_create_link_count, p);
+            *p++ = '\n';
+
+            *p++ = '\t';
+            memcpy(p, STORAGE_ITEM_TOTAL_DELETE_LINK_COUNT_STR,
+                    STORAGE_ITEM_TOTAL_DELETE_LINK_COUNT_LEN);
+            p+= STORAGE_ITEM_TOTAL_DELETE_LINK_COUNT_LEN;
+            *p++ = '=';
+            p += fc_itoa(pStorage->stat.total_delete_link_count, p);
+            *p++ = '\n';
+
+            *p++ = '\t';
+            memcpy(p, STORAGE_ITEM_SUCCESS_DELETE_LINK_COUNT_STR,
+                    STORAGE_ITEM_SUCCESS_DELETE_LINK_COUNT_LEN);
+            p+= STORAGE_ITEM_SUCCESS_DELETE_LINK_COUNT_LEN;
+            *p++ = '=';
+            p += fc_itoa(pStorage->stat.success_delete_link_count, p);
+            *p++ = '\n';
+
+            *p++ = '\t';
+            memcpy(p, STORAGE_ITEM_TOTAL_UPLOAD_BYTES_STR,
+                    STORAGE_ITEM_TOTAL_UPLOAD_BYTES_LEN);
+            p+= STORAGE_ITEM_TOTAL_UPLOAD_BYTES_LEN;
+            *p++ = '=';
+            p += fc_itoa(pStorage->stat.total_upload_bytes, p);
+            *p++ = '\n';
+
+            *p++ = '\t';
+            memcpy(p, STORAGE_ITEM_SUCCESS_UPLOAD_BYTES_STR,
+                    STORAGE_ITEM_SUCCESS_UPLOAD_BYTES_LEN);
+            p+= STORAGE_ITEM_SUCCESS_UPLOAD_BYTES_LEN;
+            *p++ = '=';
+            p += fc_itoa(pStorage->stat.success_upload_bytes, p);
+            *p++ = '\n';
+
+            *p++ = '\t';
+            memcpy(p, STORAGE_ITEM_TOTAL_APPEND_BYTES_STR,
+                    STORAGE_ITEM_TOTAL_APPEND_BYTES_LEN);
+            p+= STORAGE_ITEM_TOTAL_APPEND_BYTES_LEN;
+            *p++ = '=';
+            p += fc_itoa(pStorage->stat.total_append_bytes, p);
+            *p++ = '\n';
+
+            *p++ = '\t';
+            memcpy(p, STORAGE_ITEM_SUCCESS_APPEND_BYTES_STR,
+                    STORAGE_ITEM_SUCCESS_APPEND_BYTES_LEN);
+            p+= STORAGE_ITEM_SUCCESS_APPEND_BYTES_LEN;
+            *p++ = '=';
+            p += fc_itoa(pStorage->stat.success_append_bytes, p);
+            *p++ = '\n';
+
+            *p++ = '\t';
+            memcpy(p, STORAGE_ITEM_TOTAL_DOWNLOAD_BYTES_STR,
+                    STORAGE_ITEM_TOTAL_DOWNLOAD_BYTES_LEN);
+            p+= STORAGE_ITEM_TOTAL_DOWNLOAD_BYTES_LEN;
+            *p++ = '=';
+            p += fc_itoa(pStorage->stat.total_download_bytes, p);
+            *p++ = '\n';
+
+            *p++ = '\t';
+            memcpy(p, STORAGE_ITEM_SUCCESS_DOWNLOAD_BYTES_STR,
+                    STORAGE_ITEM_SUCCESS_DOWNLOAD_BYTES_LEN);
+            p+= STORAGE_ITEM_SUCCESS_DOWNLOAD_BYTES_LEN;
+            *p++ = '=';
+            p += fc_itoa(pStorage->stat.success_download_bytes, p);
+            *p++ = '\n';
+
+            *p++ = '\t';
+            memcpy(p, STORAGE_ITEM_TOTAL_SYNC_IN_BYTES_STR,
+                    STORAGE_ITEM_TOTAL_SYNC_IN_BYTES_LEN);
+            p+= STORAGE_ITEM_TOTAL_SYNC_IN_BYTES_LEN;
+            *p++ = '=';
+            p += fc_itoa(pStorage->stat.total_sync_in_bytes, p);
+            *p++ = '\n';
+
+            *p++ = '\t';
+            memcpy(p, STORAGE_ITEM_SUCCESS_SYNC_IN_BYTES_STR,
+                    STORAGE_ITEM_SUCCESS_SYNC_IN_BYTES_LEN);
+            p+= STORAGE_ITEM_SUCCESS_SYNC_IN_BYTES_LEN;
+            *p++ = '=';
+            p += fc_itoa(pStorage->stat.success_sync_in_bytes, p);
+            *p++ = '\n';
+
+            *p++ = '\t';
+            memcpy(p, STORAGE_ITEM_TOTAL_SYNC_OUT_BYTES_STR,
+                    STORAGE_ITEM_TOTAL_SYNC_OUT_BYTES_LEN);
+            p+= STORAGE_ITEM_TOTAL_SYNC_OUT_BYTES_LEN;
+            *p++ = '=';
+            p += fc_itoa(pStorage->stat.total_sync_out_bytes, p);
+            *p++ = '\n';
+
+            *p++ = '\t';
+            memcpy(p, STORAGE_ITEM_SUCCESS_SYNC_OUT_BYTES_STR,
+                    STORAGE_ITEM_SUCCESS_SYNC_OUT_BYTES_LEN);
+            p+= STORAGE_ITEM_SUCCESS_SYNC_OUT_BYTES_LEN;
+            *p++ = '=';
+            p += fc_itoa(pStorage->stat.success_sync_out_bytes, p);
+            *p++ = '\n';
+
+            *p++ = '\t';
+            memcpy(p, STORAGE_ITEM_TOTAL_FILE_OPEN_COUNT_STR,
+                    STORAGE_ITEM_TOTAL_FILE_OPEN_COUNT_LEN);
+            p+= STORAGE_ITEM_TOTAL_FILE_OPEN_COUNT_LEN;
+            *p++ = '=';
+            p += fc_itoa(pStorage->stat.total_file_open_count, p);
+            *p++ = '\n';
+
+            *p++ = '\t';
+            memcpy(p, STORAGE_ITEM_SUCCESS_FILE_OPEN_COUNT_STR,
+                    STORAGE_ITEM_SUCCESS_FILE_OPEN_COUNT_LEN);
+            p+= STORAGE_ITEM_SUCCESS_FILE_OPEN_COUNT_LEN;
+            *p++ = '=';
+            p += fc_itoa(pStorage->stat.success_file_open_count, p);
+            *p++ = '\n';
+
+            *p++ = '\t';
+            memcpy(p, STORAGE_ITEM_TOTAL_FILE_READ_COUNT_STR,
+                    STORAGE_ITEM_TOTAL_FILE_READ_COUNT_LEN);
+            p+= STORAGE_ITEM_TOTAL_FILE_READ_COUNT_LEN;
+            *p++ = '=';
+            p += fc_itoa(pStorage->stat.total_file_read_count, p);
+            *p++ = '\n';
+
+            *p++ = '\t';
+            memcpy(p, STORAGE_ITEM_SUCCESS_FILE_READ_COUNT_STR,
+                    STORAGE_ITEM_SUCCESS_FILE_READ_COUNT_LEN);
+            p+= STORAGE_ITEM_SUCCESS_FILE_READ_COUNT_LEN;
+            *p++ = '=';
+            p += fc_itoa(pStorage->stat.success_file_read_count, p);
+            *p++ = '\n';
+
+            *p++ = '\t';
+            memcpy(p, STORAGE_ITEM_TOTAL_FILE_WRITE_COUNT_STR,
+                    STORAGE_ITEM_TOTAL_FILE_WRITE_COUNT_LEN);
+            p+= STORAGE_ITEM_TOTAL_FILE_WRITE_COUNT_LEN;
+            *p++ = '=';
+            p += fc_itoa(pStorage->stat.total_file_write_count, p);
+            *p++ = '\n';
+
+            *p++ = '\t';
+            memcpy(p, STORAGE_ITEM_SUCCESS_FILE_WRITE_COUNT_STR,
+                    STORAGE_ITEM_SUCCESS_FILE_WRITE_COUNT_LEN);
+            p+= STORAGE_ITEM_SUCCESS_FILE_WRITE_COUNT_LEN;
+            *p++ = '=';
+            p += fc_itoa(pStorage->stat.success_file_write_count, p);
+            *p++ = '\n';
+
+            *p++ = '\t';
+            memcpy(p, STORAGE_ITEM_LAST_SOURCE_UPDATE_STR,
+                    STORAGE_ITEM_LAST_SOURCE_UPDATE_LEN);
+            p+= STORAGE_ITEM_LAST_SOURCE_UPDATE_LEN;
+            *p++ = '=';
+            p += fc_itoa(pStorage->stat.last_source_update, p);
+            *p++ = '\n';
+
+            *p++ = '\t';
+            memcpy(p, STORAGE_ITEM_LAST_SYNC_UPDATE_STR,
+                    STORAGE_ITEM_LAST_SYNC_UPDATE_LEN);
+            p+= STORAGE_ITEM_LAST_SYNC_UPDATE_LEN;
+            *p++ = '=';
+            p += fc_itoa(pStorage->stat.last_sync_update, p);
+            *p++ = '\n';
+
+            *p++ = '\t';
+            memcpy(p, STORAGE_ITEM_LAST_SYNCED_TIMESTAMP_STR,
+                    STORAGE_ITEM_LAST_SYNCED_TIMESTAMP_LEN);
+            p+= STORAGE_ITEM_LAST_SYNCED_TIMESTAMP_LEN;
+            *p++ = '=';
+            p += fc_itoa(pStorage->stat.last_synced_timestamp, p);
+            *p++ = '\n';
+
+            *p++ = '\t';
+            memcpy(p, STORAGE_ITEM_LAST_HEART_BEAT_TIME_STR,
+                    STORAGE_ITEM_LAST_HEART_BEAT_TIME_LEN);
+            p+= STORAGE_ITEM_LAST_HEART_BEAT_TIME_LEN;
+            *p++ = '=';
+            p += fc_itoa(pStorage->stat.last_heart_beat_time, p);
+            *p++ = '\n';
+            *p++ = '\n';
+			buff_len = p - buff;
+			if (fc_safe_write(fd, buff, buff_len) != buff_len)
 			{
 				logError("file: "__FILE__", line: %d, " \
 					"write to file \"%s\" fail, " \
@@ -2015,13 +2583,24 @@ int tracker_save_storages()
 
 	if (result == 0)
 	{
-		len = sprintf(buff, \
-			"\n# global section\n" \
-			"[%s]\n" \
-			"\t%s=%d\n", \
-			STORAGE_SECTION_NAME_GLOBAL, \
-			STORAGE_ITEM_STORAGE_COUNT, count);
-		if (fc_safe_write(fd, buff, len) != len)
+        p = buff;
+        *p++ = '\n';
+        *p++ = '[';
+        memcpy(p, STORAGE_SECTION_NAME_GLOBAL_STR,
+                STORAGE_SECTION_NAME_GLOBAL_LEN);
+        p += STORAGE_SECTION_NAME_GLOBAL_LEN;
+        *p++ = ']';
+        *p++ = '\n';
+
+        *p++ = '\t';
+        memcpy(p, STORAGE_ITEM_STORAGE_COUNT_STR,
+                STORAGE_ITEM_STORAGE_COUNT_LEN);
+        p += STORAGE_ITEM_STORAGE_COUNT_LEN;
+        *p++ = '=';
+        p += fc_itoa(count, p);
+        *p++ = '\n';
+        buff_len = p - buff;
+		if (fc_safe_write(fd, buff, buff_len) != buff_len)
 		{
 			logError("file: "__FILE__", line: %d, " \
 				"write to file \"%s\" fail, " \
@@ -2077,8 +2656,11 @@ int tracker_save_sync_timestamps()
 	char tmpFilename[MAX_PATH_SIZE];
 	char trueFilename[MAX_PATH_SIZE];
 	char buff[512];
+    char *p;
 	int fd;
-	int len;
+	int group_len;
+	int id_len;
+	int buff_len;
 	FDFSGroupInfo **ppGroup;
 	FDFSGroupInfo **ppGroupEnd;
 	int **last_sync_timestamps;
@@ -2088,9 +2670,10 @@ int tracker_save_sync_timestamps()
 
 	tracker_mem_file_lock();
 
-	snprintf(trueFilename, sizeof(trueFilename), "%s/data/%s", \
-		SF_G_BASE_PATH_STR, STORAGE_SYNC_TIMESTAMP_FILENAME);
-	snprintf(tmpFilename, sizeof(tmpFilename), "%s.tmp", trueFilename);
+    fc_get_one_subdir_full_filename(SF_G_BASE_PATH_STR, SF_G_BASE_PATH_LEN,
+            "data", 4, STORAGE_SYNC_TIMESTAMP_FILENAME_STR,
+            STORAGE_SYNC_TIMESTAMP_FILENAME_LEN, trueFilename);
+	fc_combine_two_strings(trueFilename, "tmp", '.', tmpFilename);
 	if ((fd=open(tmpFilename, O_WRONLY | O_CREAT | O_TRUNC, 0644)) < 0)
 	{
 		tracker_mem_file_unlock();
@@ -2118,27 +2701,31 @@ int tracker_save_sync_timestamps()
 				continue;
 			}
 
-			len = sprintf(buff, "%s%c%s", (*ppGroup)->group_name, \
-				STORAGE_DATA_FIELD_SEPERATOR, \
-				(*ppGroup)->all_servers[i]->id);
+            group_len = strlen((*ppGroup)->group_name);
+            id_len = strlen((*ppGroup)->all_servers[i]->id);
+            p = buff;
+            memcpy(p, (*ppGroup)->group_name, group_len);
+            p += group_len;
+            *p++ = STORAGE_DATA_FIELD_SEPERATOR;
+            memcpy(p, (*ppGroup)->all_servers[i]->id, id_len);
+            p += id_len;
 			for (k=0; k<(*ppGroup)->count; k++)
 			{
-				if ((*ppGroup)->all_servers[k]->status == \
-					FDFS_STORAGE_STATUS_DELETED \
-				 || (*ppGroup)->all_servers[k]->status == \
+				if ((*ppGroup)->all_servers[k]->status ==
+					FDFS_STORAGE_STATUS_DELETED
+				 || (*ppGroup)->all_servers[k]->status ==
 					FDFS_STORAGE_STATUS_IP_CHANGED)
 				{
 					continue;
 				}
 
-				len += sprintf(buff + len, "%c%d", \
-					STORAGE_DATA_FIELD_SEPERATOR, \
-					last_sync_timestamps[i][k]);
+                *p++ = STORAGE_DATA_FIELD_SEPERATOR;
+                p += fc_itoa(last_sync_timestamps[i][k], p);
 			}
-			*(buff + len) = '\n';
-			len++;
 
-			if (fc_safe_write(fd, buff, len) != len)
+            *p++ = '\n';
+            buff_len = p - buff;
+			if (fc_safe_write(fd, buff, buff_len) != buff_len)
 			{
 				logError("file: "__FILE__", line: %d, " \
 					"write to file \"%s\" fail, " \
@@ -2212,8 +2799,10 @@ static int tracker_open_changlog_file()
 {
 	char data_path[MAX_PATH_SIZE];
 	char filename[MAX_PATH_SIZE];
+    int path_len;
 
-	snprintf(data_path, sizeof(data_path), "%s/data", SF_G_BASE_PATH_STR);
+    path_len = fc_get_full_filepath(SF_G_BASE_PATH_STR,
+            SF_G_BASE_PATH_LEN, "data", 4, data_path);
 	if (!fileExists(data_path))
 	{
 		if (mkdir(data_path, 0755) != 0)
@@ -2227,9 +2816,11 @@ static int tracker_open_changlog_file()
 		SF_CHOWN_TO_RUNBY_RETURN_ON_ERROR(data_path);
 	}
 
-	snprintf(filename, sizeof(filename), "%s/data/%s", \
-		SF_G_BASE_PATH_STR, STORAGE_SERVERS_CHANGELOG_FILENAME);
-	changelog_fd = open(filename, O_WRONLY | O_CREAT | O_APPEND, 0644);
+    fc_get_full_filename_ex(data_path, path_len,
+            STORAGE_SERVERS_CHANGELOG_FILENAME_STR,
+            STORAGE_SERVERS_CHANGELOG_FILENAME_LEN,
+            filename, sizeof(filename));
+    changelog_fd = open(filename, O_WRONLY | O_CREAT | O_APPEND, 0644);
 	if (changelog_fd < 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
@@ -3539,18 +4130,12 @@ int tracker_mem_storage_ip_changed(FDFSGroupInfo *pGroup,
 	pthread_mutex_lock(&mem_thread_lock);
 
 	//exchange old and new storage server
-	snprintf(pOldStorageServer->id, sizeof(pOldStorageServer->id),
-		"%s", new_storage_ip);
-	snprintf(pOldStorageServer->ip_addrs.ips[0].address,
-		sizeof(pOldStorageServer->ip_addrs.ips[0].address),
-        "%s", new_storage_ip);
+	fc_safe_strcpy(pOldStorageServer->id, new_storage_ip);
+	fc_safe_strcpy(pOldStorageServer->ip_addrs.ips[0].address, new_storage_ip);
 
-	snprintf(pNewStorageServer->id, sizeof(pNewStorageServer->id),
-		"%s", old_storage_ip);
+	fc_safe_strcpy(pNewStorageServer->id, old_storage_ip);
     pNewStorageServer->ip_addrs.count = 1;
-	snprintf(pNewStorageServer->ip_addrs.ips[0].address,
-		sizeof(pNewStorageServer->ip_addrs.ips[0].address),
-        "%s", old_storage_ip);
+	fc_safe_strcpy(pNewStorageServer->ip_addrs.ips[0].address, old_storage_ip);
 	pNewStorageServer->status = FDFS_STORAGE_STATUS_IP_CHANGED;
 
 	pGroup->chg_count++;
@@ -3605,8 +4190,8 @@ static int tracker_mem_add_storage_from_file(FDFSGroups *pGroups,
                         "group: %s, item \"%s\" is not found or empty, "
                         "and storage ip %s not configed in storage_ids.conf",
                         __LINE__, data_path,
-                        STORAGE_SERVERS_LIST_FILENAME_NEW,
-                        group_name, STORAGE_ITEM_SERVER_ID, ip_addr);
+                        STORAGE_SERVERS_LIST_FILENAME_NEW_STR,
+                        group_name, STORAGE_ITEM_SERVER_ID_STR, ip_addr);
                 return ENOENT;
             }
 
@@ -3620,8 +4205,8 @@ static int tracker_mem_add_storage_from_file(FDFSGroups *pGroups,
                 "in the file \"%s/%s\", "
                 "group: %s, item \"%s\" is not found",
                 __LINE__, data_path,
-                STORAGE_SERVERS_LIST_FILENAME_NEW,
-                group_name, STORAGE_ITEM_IP_ADDR);
+                STORAGE_SERVERS_LIST_FILENAME_NEW_STR,
+                group_name, STORAGE_ITEM_IP_ADDR_STR);
         return ENOENT;
     }
     if (*ip_addr == '\0')
@@ -3630,8 +4215,8 @@ static int tracker_mem_add_storage_from_file(FDFSGroups *pGroups,
                 "in the file \"%s/%s\", "
                 "group: %s, item \"%s\" is empty",
                 __LINE__, data_path,
-                STORAGE_SERVERS_LIST_FILENAME_NEW,
-                group_name, STORAGE_ITEM_IP_ADDR);
+                STORAGE_SERVERS_LIST_FILENAME_NEW_STR,
+                group_name, STORAGE_ITEM_IP_ADDR_STR);
         return ENOENT;
     }
 
@@ -3643,7 +4228,7 @@ static int tracker_mem_add_storage_from_file(FDFSGroups *pGroups,
                 "in the file \"%s/%s\", "
                 "group \"%s\" is not found",
                 __LINE__, data_path,
-                STORAGE_SERVERS_LIST_FILENAME_NEW,
+                STORAGE_SERVERS_LIST_FILENAME_NEW_STR,
                 group_name);
         return errno != 0 ? errno : ENOENT;
     }
@@ -3660,7 +4245,7 @@ static int tracker_mem_add_storage_from_file(FDFSGroups *pGroups,
                 "in the file \"%s/%s\", "
                 "storage \"%s\" is duplicate",
                 __LINE__, data_path,
-                STORAGE_SERVERS_LIST_FILENAME_NEW, ip_addr);
+                STORAGE_SERVERS_LIST_FILENAME_NEW_STR, ip_addr);
         return EEXIST;
     }
 
@@ -3793,8 +4378,7 @@ static int _tracker_mem_add_storage(FDFSGroupInfo *pGroup,
 		}
 
 		*ppStorageServer = *(pGroup->all_servers + pGroup->count);
-		snprintf((*ppStorageServer)->id, FDFS_STORAGE_ID_MAX_SIZE,
-				"%s", storage_id.ptr);
+		fc_safe_strcpy((*ppStorageServer)->id, storage_id.ptr);
         (*ppStorageServer)->ip_addrs = multi_ip;
         if (g_use_storage_id)
         {
@@ -3946,9 +4530,10 @@ static int tracker_mem_get_one_sys_file(ConnectionInfo *pTrackerServer, \
 	int64_t offset;
 	int64_t file_size;
 
-	snprintf(full_filename, sizeof(full_filename), "%s/data/%s", \
-			SF_G_BASE_PATH_STR, g_tracker_sys_filenames[file_index]);
-	fd = open(full_filename, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    fc_get_one_subdir_full_filename(SF_G_BASE_PATH_STR, SF_G_BASE_PATH_LEN,
+            "data", 4, g_tracker_sys_filenames[file_index],
+            strlen(g_tracker_sys_filenames[file_index]), full_filename);
+    fd = open(full_filename, O_WRONLY | O_CREAT | O_TRUNC, 0644);
 	if (fd < 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
@@ -4729,11 +5314,8 @@ int tracker_mem_add_group_and_storage(TrackerClientInfo *pClientInfo,
 	pStorageServer->upload_priority = pJoinBody->upload_priority;
 	pStorageServer->join_time = pJoinBody->join_time;
 	pStorageServer->up_time = pJoinBody->up_time;
-	snprintf(pStorageServer->version, sizeof(pStorageServer->version), \
-		"%s", pJoinBody->version);
-	snprintf(pStorageServer->domain_name, \
-		sizeof(pStorageServer->domain_name), \
-		"%s", pJoinBody->domain_name);
+	fc_safe_strcpy(pStorageServer->version, pJoinBody->version);
+	fc_safe_strcpy(pStorageServer->domain_name, pJoinBody->domain_name);
 	pStorageServer->storage_port = pJoinBody->storage_port;
 	pStorageServer->storage_http_port = pJoinBody->storage_http_port;
 
@@ -5143,8 +5725,9 @@ static int tracker_write_to_trunk_change_log(FDFSGroupInfo *pGroup, \
 
 	tracker_mem_file_lock();
 
-	snprintf(full_filename, sizeof(full_filename), "%s/logs/%s", \
-		SF_G_BASE_PATH_STR, TRUNK_SERVER_CHANGELOG_FILENAME);
+    fc_get_one_subdir_full_filename(SF_G_BASE_PATH_STR, SF_G_BASE_PATH_LEN,
+            "logs", 4, TRUNK_SERVER_CHANGELOG_FILENAME_STR,
+            TRUNK_SERVER_CHANGELOG_FILENAME_LEN, full_filename);
 	if ((fd=open(full_filename, O_WRONLY | O_CREAT | O_APPEND, 0644)) < 0)
 	{
 		tracker_mem_file_unlock();
@@ -5730,7 +6313,7 @@ int tracker_mem_get_storage_by_filename(const byte cmd,FDFS_DOWNLOAD_TYPE_PARAM\
 
 		if (fdfs_get_server_id_type(storage_ip) == FDFS_ID_TYPE_SERVER_ID)
 		{
-			sprintf(storage_id, "%d", storage_ip);
+			fc_ltostr(storage_ip, storage_id);
 		}
 		else
 		{

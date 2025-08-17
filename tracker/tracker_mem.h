@@ -16,13 +16,29 @@
 #include "tracker_types.h"
 
 #define TRACKER_SYS_FILE_COUNT  4
-#define STORAGE_GROUPS_LIST_FILENAME_OLD   "storage_groups.dat"
-#define STORAGE_GROUPS_LIST_FILENAME_NEW   "storage_groups_new.dat"
-#define STORAGE_SERVERS_LIST_FILENAME_OLD  "storage_servers.dat"
-#define STORAGE_SERVERS_LIST_FILENAME_NEW  "storage_servers_new.dat"
-#define STORAGE_SERVERS_CHANGELOG_FILENAME "storage_changelog.dat"
-#define STORAGE_SYNC_TIMESTAMP_FILENAME	   "storage_sync_timestamp.dat"
-#define TRUNK_SERVER_CHANGELOG_FILENAME    "trunk_server_change.log"
+#define STORAGE_GROUPS_LIST_FILENAME_OLD_STR   "storage_groups.dat"
+
+#define STORAGE_GROUPS_LIST_FILENAME_NEW_STR   "storage_groups_new.dat"
+#define STORAGE_GROUPS_LIST_FILENAME_NEW_LEN   \
+    (sizeof(STORAGE_GROUPS_LIST_FILENAME_NEW_STR) - 1)
+
+#define STORAGE_SERVERS_LIST_FILENAME_OLD_STR  "storage_servers.dat"
+#define STORAGE_SERVERS_LIST_FILENAME_NEW_STR  "storage_servers_new.dat"
+#define STORAGE_SERVERS_LIST_FILENAME_NEW_LEN  \
+    (sizeof(STORAGE_SERVERS_LIST_FILENAME_NEW_STR) - 1)
+
+#define STORAGE_SERVERS_CHANGELOG_FILENAME_STR "storage_changelog.dat"
+#define STORAGE_SERVERS_CHANGELOG_FILENAME_LEN \
+    (sizeof(STORAGE_SERVERS_CHANGELOG_FILENAME_STR) - 1)
+
+#define STORAGE_SYNC_TIMESTAMP_FILENAME_STR	 "storage_sync_timestamp.dat"
+#define STORAGE_SYNC_TIMESTAMP_FILENAME_LEN  \
+    (sizeof(STORAGE_SYNC_TIMESTAMP_FILENAME_STR) - 1)
+
+#define TRUNK_SERVER_CHANGELOG_FILENAME_STR   "trunk_server_change.log"
+#define TRUNK_SERVER_CHANGELOG_FILENAME_LEN   \
+    (sizeof(TRUNK_SERVER_CHANGELOG_FILENAME_STR) - 1)
+
 #define STORAGE_DATA_FIELD_SEPERATOR	   ','
 
 #ifdef __cplusplus

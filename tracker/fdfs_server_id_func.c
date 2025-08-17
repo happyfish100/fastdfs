@@ -45,7 +45,7 @@ bool fdfs_is_server_id_valid(const char *id)
 		return false;
 	}
 
-	snprintf(buff, sizeof(buff), "%ld", n);
+    fc_ltostr(n, buff);
 	return strcmp(buff, id) == 0;
 }
 
@@ -123,7 +123,7 @@ FDFSStorageIdInfo *fdfs_get_storage_by_id(const char *id)
 	FDFSStorageIdInfo target;
 
 	memset(&target, 0, sizeof(FDFSStorageIdInfo));
-	snprintf(target.id, sizeof(target.id), "%s", id);
+	fc_safe_strcpy(target.id, id);
 	return (FDFSStorageIdInfo *)bsearch(&target,
             g_storage_ids_by_id.ids, g_storage_ids_by_id.count,
             sizeof(FDFSStorageIdInfo), fdfs_cmp_server_id);
@@ -496,11 +496,8 @@ int fdfs_load_storage_ids(char *content, const char *pStorageIdsFilename)
 				break;
 			}
 
-			snprintf(pStorageIdInfo->id,
-				sizeof(pStorageIdInfo->id), "%s", id);
-			snprintf(pStorageIdInfo->group_name,
-				sizeof(pStorageIdInfo->group_name),
-				"%s", group_name);
+			fc_safe_strcpy(pStorageIdInfo->id, id);
+			fc_safe_strcpy(pStorageIdInfo->group_name, group_name);
 			pStorageIdInfo++;
 		}
 	} while (0);
@@ -799,8 +796,8 @@ int fdfs_load_storage_ids_from_file(const char *config_filename, \
 	int64_t file_size;
 	int result;
 
-	pStorageIdsFilename = iniGetStrValue(NULL, "storage_ids_filename", \
-				pItemContext);
+	pStorageIdsFilename = iniGetStrValue(NULL,
+            "storage_ids_filename", pItemContext);
 	if (pStorageIdsFilename == NULL)
 	{
 		logError("file: "__FILE__", line: %d, " \
@@ -834,22 +831,22 @@ int fdfs_load_storage_ids_from_file(const char *config_filename, \
 		{
 			char filepath[MAX_PATH_SIZE];
 			char full_filename[MAX_PATH_SIZE];
-			int len;
+			int path_len;
 
-			len = lastSlash - config_filename;
-			if (len >= sizeof(filepath))
+			path_len = lastSlash - config_filename;
+			if (path_len >= sizeof(filepath))
 			{
 				logError("file: "__FILE__", line: %d, " \
 					"conf filename: \"%s\" is too long!", \
 					__LINE__, config_filename);
 				return ENOSPC;
 			}
-			memcpy(filepath, config_filename, len);
-			*(filepath + len) = '\0';
-			snprintf(full_filename, sizeof(full_filename), \
-				"%s/%s", filepath, pStorageIdsFilename);
-			result = getFileContent(full_filename, \
-					&content, &file_size);
+			memcpy(filepath, config_filename, path_len);
+			*(filepath + path_len) = '\0';
+
+            fc_get_full_filename(filepath, path_len, pStorageIdsFilename,
+                    strlen(pStorageIdsFilename), full_filename);
+			result = getFileContent(full_filename, &content, &file_size);
 		}
 	}
 	if (result != 0)

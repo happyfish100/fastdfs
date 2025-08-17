@@ -153,8 +153,8 @@ static int tracker_check_and_sync(struct fast_task_info *pTask, \
 			ConnectionInfo *conn;
 			pTServer = g_tracker_servers.servers + leader_index;
             conn = pTServer->connections;
-			snprintf(pDestServer->id, FDFS_STORAGE_ID_MAX_SIZE,
-				"%s", conn->ip_addr);
+			fc_strlcpy(pDestServer->id, conn->ip_addr,
+                    FDFS_STORAGE_ID_MAX_SIZE);
 			memcpy(pDestServer->ip_addr, conn->ip_addr,
 				IP_ADDRESS_SIZE);
 			int2buff(conn->port, pDestServer->port);
@@ -253,8 +253,9 @@ static int tracker_changelog_response(struct fast_task_info *pTask, \
 		chg_len = TRACKER_MAX_PACKAGE_SIZE - sizeof(TrackerHeader);
 	}
 
-	snprintf(filename, sizeof(filename), "%s/data/%s", SF_G_BASE_PATH_STR,\
-		 STORAGE_SERVERS_CHANGELOG_FILENAME);
+    fc_get_one_subdir_full_filename(SF_G_BASE_PATH_STR, SF_G_BASE_PATH_LEN,
+            "data", 4, STORAGE_SERVERS_CHANGELOG_FILENAME_STR,
+            STORAGE_SERVERS_CHANGELOG_FILENAME_LEN, filename);
 	fd = open(filename, O_RDONLY);
 	if (fd < 0)
 	{
@@ -1069,6 +1070,10 @@ static int tracker_deal_fetch_storage_ids(struct fast_task_info *pTask)
 	int *pCurrentCount;
 	int nPkgLen;
 	int start_index;
+    int group_len;
+    int id_len;
+    int ip_len;
+    bool is_ipv6;
     char ip_str[256];
 
 	nPkgLen = pTask->recv.ptr->length - sizeof(TrackerHeader);
@@ -1121,33 +1126,43 @@ static int tracker_deal_fetch_storage_ids(struct fast_task_info *pTask)
 	pIdsEnd = g_storage_ids_by_id.ids + g_storage_ids_by_id.count;
 	for (pIdInfo = pIdsStart; pIdInfo < pIdsEnd; pIdInfo++)
 	{
-        char szPortPart[16];
 		if ((int)(p - pTask->send.ptr->data) > pTask->send.ptr->size - 64)
 		{
 			break;
 		}
 
-        if (pIdInfo->port > 0)
-        {
-            sprintf(szPortPart, ":%d", pIdInfo->port);
-        }
-        else
-        {
-            *szPortPart = '\0';
-        }
-
         fdfs_multi_ips_to_string(&pIdInfo->ip_addrs,
                 ip_str, sizeof(ip_str));
-		if (strchr(ip_str, ':') != NULL)
+        is_ipv6 = is_ipv6_addr(ip_str);
+        id_len = strlen(pIdInfo->id);
+        group_len = strlen(pIdInfo->group_name);
+        ip_len = strlen(ip_str);
+
+        memcpy(p, pIdInfo->id, id_len);
+        p += id_len;
+        *p++ = ' ';
+
+        memcpy(p, pIdInfo->group_name, group_len);
+        p += group_len;
+        *p++ = ' ';
+
+        if (is_ipv6)
         {
-            p += sprintf(p, "%s %s [%s]%s\n", pIdInfo->id,
-                    pIdInfo->group_name, ip_str, szPortPart);
+            *p++ = '[';
         }
-        else
+        memcpy(p, ip_str, ip_len);
+        p += ip_len;
+        if (is_ipv6)
         {
-            p += sprintf(p, "%s %s %s%s\n", pIdInfo->id,
-                    pIdInfo->group_name, ip_str, szPortPart);
+            *p++ = ']';
         }
+
+        if (pIdInfo->port > 0)
+        {
+            *p++ = ':';
+            p += fc_itoa(pIdInfo->port, p);
+        }
+        *p++ = '\n';
 	}
 
 	int2buff((int)(pIdInfo - pIdsStart), (char *)pCurrentCount);
@@ -1901,8 +1916,9 @@ static int tracker_deal_get_one_sys_file(struct fast_task_info *pTask)
 		return EINVAL;
 	}
 
-	snprintf(full_filename, sizeof(full_filename), "%s/data/%s", \
-		SF_G_BASE_PATH_STR, g_tracker_sys_filenames[index]);
+    fc_get_one_subdir_full_filename(SF_G_BASE_PATH_STR, SF_G_BASE_PATH_LEN,
+            "data", 4, g_tracker_sys_filenames[index],
+            strlen(g_tracker_sys_filenames[index]), full_filename);
 	if (stat(full_filename, &file_stat) != 0)
 	{
 		result = errno != 0 ? errno : ENOENT;

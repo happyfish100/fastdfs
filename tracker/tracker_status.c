@@ -27,58 +27,80 @@
 #include "tracker_global.h"
 #include "tracker_status.h"
 
-#define TRACKER_STATUS_FILENAME			".tracker_status"
-#define TRACKER_STATUS_ITEM_UP_TIME		"up_time"
-#define TRACKER_STATUS_ITEM_LAST_CHECK_TIME	"last_check_time"
+#define TRACKER_STATUS_FILENAME_STR		".tracker_status"
+#define TRACKER_STATUS_FILENAME_LEN     \
+    (sizeof(TRACKER_STATUS_FILENAME_STR) - 1)
+
+#define TRACKER_STATUS_ITEM_UP_TIME_STR  "up_time"
+#define TRACKER_STATUS_ITEM_UP_TIME_LEN   \
+    (sizeof(TRACKER_STATUS_ITEM_UP_TIME_STR) - 1)
+
+#define TRACKER_STATUS_ITEM_LAST_CHECK_TIME_STR "last_check_time"
+#define TRACKER_STATUS_ITEM_LAST_CHECK_TIME_LEN \
+    (sizeof(TRACKER_STATUS_ITEM_LAST_CHECK_TIME_STR) - 1)
 
 int tracker_write_status_to_file(void *args)
 {
 	char full_filename[MAX_PATH_SIZE];
 	char buff[256];
-	int len;
+    char *p;
 
-	snprintf(full_filename, sizeof(full_filename), "%s/data/%s", \
-		SF_G_BASE_PATH_STR, TRACKER_STATUS_FILENAME);
+    fc_get_one_subdir_full_filename(
+            SF_G_BASE_PATH_STR, SF_G_BASE_PATH_LEN,
+            "data", 4, TRACKER_STATUS_FILENAME_STR,
+            TRACKER_STATUS_FILENAME_LEN, full_filename);
 
-	len = sprintf(buff, "%s=%d\n" \
-		      "%s=%d\n",
-		TRACKER_STATUS_ITEM_UP_TIME, (int)g_sf_global_vars.up_time,
-		TRACKER_STATUS_ITEM_LAST_CHECK_TIME, (int)g_current_time
-	);
+    p = buff;
+    memcpy(p, TRACKER_STATUS_ITEM_UP_TIME_STR,
+            TRACKER_STATUS_ITEM_UP_TIME_LEN);
+    p += TRACKER_STATUS_ITEM_UP_TIME_LEN;
+    *p++ = '=';
+    p += fc_itoa(g_sf_global_vars.up_time, p);
+    *p++ = '\n';
 
-	return writeToFile(full_filename, buff, len);
+    memcpy(p, TRACKER_STATUS_ITEM_LAST_CHECK_TIME_STR,
+            TRACKER_STATUS_ITEM_LAST_CHECK_TIME_LEN);
+    p += TRACKER_STATUS_ITEM_LAST_CHECK_TIME_LEN;
+    *p++ = '=';
+    p += fc_itoa(g_current_time, p);
+    *p++ = '\n';
+
+	return writeToFile(full_filename, buff, p - buff);
 }
 
 int tracker_load_status_from_file(TrackerStatus *pStatus)
 {
-	char full_filename[MAX_PATH_SIZE];
-	IniContext iniContext;
-	int result;
+    char full_filename[MAX_PATH_SIZE];
+    IniContext iniContext;
+    int result;
 
-	snprintf(full_filename, sizeof(full_filename), "%s/data/%s", \
-		SF_G_BASE_PATH_STR, TRACKER_STATUS_FILENAME);
-	if (!fileExists(full_filename))
-	{
-		return 0;
-	}
+    fc_get_one_subdir_full_filename(
+            SF_G_BASE_PATH_STR, SF_G_BASE_PATH_LEN,
+            "data", 4, TRACKER_STATUS_FILENAME_STR,
+            TRACKER_STATUS_FILENAME_LEN, full_filename);
+    if (!fileExists(full_filename))
+    {
+        return 0;
+    }
 
-	memset(&iniContext, 0, sizeof(IniContext));
-	if ((result=iniLoadFromFile(full_filename, &iniContext)) != 0)
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"load from status file \"%s\" fail, " \
-			"error code: %d", \
-			__LINE__, full_filename, result);
-		return result;
-	}
+    memset(&iniContext, 0, sizeof(IniContext));
+    if ((result=iniLoadFromFile(full_filename, &iniContext)) != 0)
+    {
+        logError("file: "__FILE__", line: %d, " \
+                "load from status file \"%s\" fail, " \
+                "error code: %d", \
+                __LINE__, full_filename, result);
+        return result;
+    }
 
-	pStatus->up_time = iniGetIntValue(NULL, TRACKER_STATUS_ITEM_UP_TIME, \
-				&iniContext, 0);
-	pStatus->last_check_time = iniGetIntValue(NULL, \
-			TRACKER_STATUS_ITEM_LAST_CHECK_TIME, &iniContext, 0);
+    pStatus->up_time = iniGetIntValue(NULL,
+            TRACKER_STATUS_ITEM_UP_TIME_STR,
+            &iniContext, 0);
+    pStatus->last_check_time = iniGetIntValue(NULL,
+            TRACKER_STATUS_ITEM_LAST_CHECK_TIME_STR,
+            &iniContext, 0);
 
-	iniFreeContext(&iniContext);
+    iniFreeContext(&iniContext);
 
-	return 0;
+    return 0;
 }
-

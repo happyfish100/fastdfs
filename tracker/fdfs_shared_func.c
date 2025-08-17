@@ -499,7 +499,7 @@ int fdfs_parse_server_info_ex(char *server_str, const int default_port,
         }
         else
         {
-            snprintf(conn->ip_addr, sizeof(conn->ip_addr), "%s", hosts[i]);
+            fc_safe_strcpy(conn->ip_addr, hosts[i]);
             conn->af = is_ipv6_addr(conn->ip_addr) ? AF_INET6 : AF_INET;
         }
 
@@ -516,7 +516,8 @@ int fdfs_server_info_to_string_ex(const TrackerServerInfo *pServer,
 {
 	const ConnectionInfo *conn;
 	const ConnectionInfo *end;
-    int len;
+    char *p;
+    int ip_len;
     bool is_ipv6;
 
     if (pServer->count <= 0)
@@ -525,18 +526,39 @@ int fdfs_server_info_to_string_ex(const TrackerServerInfo *pServer,
         return 0;
     }
 
-    if (pServer->count == 1)
+    ip_len = strlen(pServer->connections[0].ip_addr);
+    p = buff;
+    if (pServer->count == 1 || ip_len + 8 >= buffSize)
     {
         if (is_ipv6_addr(pServer->connections[0].ip_addr))
         {
-            return snprintf(buff, buffSize, "[%s]:%u",
-                    pServer->connections[0].ip_addr, port);
+            if (ip_len + 10 > buffSize)
+            {
+                return snprintf(buff, buffSize, "[%s]:%u",
+                        pServer->connections[0].ip_addr, port);
+            }
+
+            *p++ = '[';
+            memcpy(p, pServer->connections[0].ip_addr, ip_len);
+            p += ip_len;
+            *p++ = ']';
         }
         else
         {
-            return snprintf(buff, buffSize, "%s:%u",
-                    pServer->connections[0].ip_addr, port);
+            if (ip_len + 8 > buffSize)
+            {
+                return snprintf(buff, buffSize, "%s:%u",
+                        pServer->connections[0].ip_addr, port);
+            }
+
+            memcpy(p, pServer->connections[0].ip_addr, ip_len);
+            p += ip_len;
         }
+
+        *p++ = ':';
+        p += fc_itoa(port, p);
+        *p = '\0';
+        return p - buff;
     }
 
     is_ipv6 = false;
@@ -552,26 +574,31 @@ int fdfs_server_info_to_string_ex(const TrackerServerInfo *pServer,
 
     if (is_ipv6)
     {
-        *buff = '[';
-        len = 1;
-    }
-    else
-    {
-        len = 0;
+        *p++ = '[';
     }
 
-    len += snprintf(buff + len, buffSize - len, "%s",
-            pServer->connections[0].ip_addr);
+    memcpy(p, pServer->connections[0].ip_addr, ip_len);
+    p += ip_len;
 	for (conn=pServer->connections + 1; conn<end; conn++)
     {
-        len += snprintf(buff + len, buffSize - len, ",%s", conn->ip_addr);
+        ip_len = strlen(conn->ip_addr);
+        if (ip_len + 8 > (buff + buffSize) - p)
+        {
+            break;
+        }
+
+        *p++ = ',';
+        memcpy(p, conn->ip_addr, ip_len);
+        p += ip_len;
     }
-    if (is_ipv6 && len < buffSize - 2)
+    if (is_ipv6)
     {
-        *(buff + len++) = ']';
+        *p++ = ']';
     }
-    len += snprintf(buff + len, buffSize - len, ":%u", port);
-    return len;
+    *p++ = ':';
+    p += fc_itoa(port, p);
+    *p = '\0';
+    return p - buff;
 }
 
 int fdfs_get_ip_type(const char* ip)
@@ -669,8 +696,7 @@ int fdfs_parse_multi_ips_ex(char *ip_str, FDFSMultiIP *ip_addrs,
         }
         else
         {
-            snprintf(ip_addrs->ips[i].address,
-                    sizeof(ip_addrs->ips[i].address), "%s", hosts[i]);
+            fc_safe_strcpy(ip_addrs->ips[i].address, hosts[i]);
         }
 
         ip_addrs->ips[i].type = fdfs_get_ip_type(ip_addrs->ips[i].address);
@@ -691,7 +717,8 @@ int fdfs_multi_ips_to_string_ex(const FDFSMultiIP *ip_addrs,
         const char seperator, char *buff, const int buffSize)
 {
     int i;
-    int len;
+    int ip_len;
+    char *p;
 
     if (ip_addrs->count <= 0)
     {
@@ -700,17 +727,30 @@ int fdfs_multi_ips_to_string_ex(const FDFSMultiIP *ip_addrs,
     }
     if (ip_addrs->count == 1)
     {
-        return snprintf(buff, buffSize, "%s",
-                ip_addrs->ips[0].address);
+        return fc_strlcpy(buff, ip_addrs->ips[0].address, buffSize);
     }
 
-    len = snprintf(buff, buffSize, "%s", ip_addrs->ips[0].address);
+    ip_len = strlen(ip_addrs->ips[0].address);
+    if (ip_len >= buffSize) {
+        return fc_strlcpy(buff, ip_addrs->ips[0].address, buffSize);
+    }
+
+    memcpy(buff, ip_addrs->ips[0].address, ip_len);
+    p = buff + ip_len;
 	for (i=1; i<ip_addrs->count; i++)
     {
-        len += snprintf(buff + len, buffSize - len, "%c%s",
-                seperator, ip_addrs->ips[i].address);
+        ip_len = strlen(ip_addrs->ips[i].address);
+        if (2 + ip_len > (buff + buffSize) - p) {
+            break;
+        }
+
+        *p++ = seperator;
+        memcpy(p, ip_addrs->ips[i].address, ip_len);
+        p += ip_len;
     }
-    return len;
+
+    *p = '\0';
+    return p - buff;
 }
 
 const char *fdfs_get_ipaddr_by_peer_ip(const FDFSMultiIP *ip_addrs,
