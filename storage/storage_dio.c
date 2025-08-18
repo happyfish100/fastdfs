@@ -890,9 +890,8 @@ int dio_write_chunk_header(struct fast_task_info *pTask)
 	trunkHeader.file_size = pFileContext->end - pFileContext->start;
 	trunkHeader.crc32 = pFileContext->crc32;
 	trunkHeader.mtime = pFileContext->extra_info.upload.start_time;
-	snprintf(trunkHeader.formatted_ext_name, \
-		sizeof(trunkHeader.formatted_ext_name), "%s", \
-		pFileContext->extra_info.upload.formatted_ext_name);
+    fc_safe_strcpy(trunkHeader.formatted_ext_name, pFileContext->
+            extra_info.upload.formatted_ext_name);
 
 	if (lseek(pFileContext->fd, pFileContext->start - \
 		FDFS_TRUNK_FILE_HEADER_SIZE, SEEK_SET) < 0)

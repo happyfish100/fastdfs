@@ -81,6 +81,9 @@ static void sigDumpHandler(int sig);
 
 int main(int argc, char *argv[])
 {
+#define PID_FILENAME_STR  "data/fdfs_storaged.pid"
+#define PID_FILENAME_LEN  (sizeof(PID_FILENAME_STR) - 1)
+
 	const char *conf_filename;
     char *action;
 	int result;
@@ -122,8 +125,8 @@ int main(int argc, char *argv[])
         return result;
     }
 
-	snprintf(pidFilename, sizeof(pidFilename),
-		"%s/data/fdfs_storaged.pid", SF_G_BASE_PATH_STR);
+    fc_get_full_filename(SF_G_BASE_PATH_STR, SF_G_BASE_PATH_LEN,
+            PID_FILENAME_STR, PID_FILENAME_LEN, pidFilename);
 	if ((result=process_action(pidFilename, action, &stop)) != 0)
 	{
 		if (result == EINVAL)

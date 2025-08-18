@@ -99,10 +99,10 @@ FDFSStorePathInfo *storage_load_paths_from_conf_file_ex(
 	read_only = iniGetBoolValue(szSectionName, "store_path0_readonly",
             pItemContext, false);
 
-    store_paths[0].path_len = strlen(pPath);
-	store_paths[0].path = strdup(pPath);
+    store_paths[0].path.len = strlen(pPath);
+	store_paths[0].path.str = strdup(pPath);
 	store_paths[0].read_only = read_only;
-	if (store_paths[0].path == NULL)
+	if (store_paths[0].path.str == NULL)
 	{
 		logError("file: "__FILE__", line: %d, "
 			"malloc %d bytes fail, "
@@ -154,10 +154,10 @@ FDFSStorePathInfo *storage_load_paths_from_conf_file_ex(
 			break;
 		}
 
-        store_paths[i].path_len = strlen(pPath);
-		store_paths[i].path = strdup(pPath);
+        store_paths[i].path.len = strlen(pPath);
+		store_paths[i].path.str = strdup(pPath);
 		store_paths[i].read_only = read_only;
-		if (store_paths[i].path == NULL)
+		if (store_paths[i].path.str == NULL)
 		{
 			logError("file: "__FILE__", line: %d, " \
 				"malloc %d bytes fail, " \
@@ -172,9 +172,9 @@ FDFSStorePathInfo *storage_load_paths_from_conf_file_ex(
 	{
 		for (i=0; i<*path_count; i++)
 		{
-			if (store_paths[i].path != NULL)
+			if (store_paths[i].path.str != NULL)
 			{
-				free(store_paths[i].path);
+				free(store_paths[i].path.str);
 			}
 		}
 		free(store_paths);
@@ -184,35 +184,18 @@ FDFSStorePathInfo *storage_load_paths_from_conf_file_ex(
 	return store_paths;
 }
 
-int storage_load_paths_from_conf_file(IniContext *pItemContext)
+int storage_load_paths_from_conf_file(IniContext *pItemContext,
+        const char *config_filename)
 {
-	char *pPath;
+    IniFullContext full_ini_ctx;
 	int result;
 
-	pPath = iniGetStrValue(NULL, "base_path", pItemContext);
-	if (pPath == NULL)
-	{
-		logError("file: "__FILE__", line: %d, "
-			"conf file must have item \"base_path\"!", __LINE__);
-		return ENOENT;
-	}
-
-	snprintf(SF_G_BASE_PATH_STR, sizeof(SF_G_BASE_PATH_STR), "%s", pPath);
-	chopPath(SF_G_BASE_PATH_STR);
-	if (!fileExists(SF_G_BASE_PATH_STR))
-	{
-		logError("file: "__FILE__", line: %d, "
-			"\"%s\" can't be accessed, error info: %s",
-			__LINE__, STRERROR(errno), SF_G_BASE_PATH_STR);
-		return errno != 0 ? errno : ENOENT;
-	}
-	if (!isDir(SF_G_BASE_PATH_STR))
-	{
-		logError("file: "__FILE__", line: %d, "
-			"\"%s\" is not a directory!",
-			__LINE__, SF_G_BASE_PATH_STR);
-		return ENOTDIR;
-	}
+    FAST_INI_SET_FULL_CTX_EX(full_ini_ctx,
+            config_filename, NULL, pItemContext);
+    if ((result=sf_load_global_base_path(&full_ini_ctx)) != 0)
+    {
+        return result;
+    }
 
 	g_fdfs_store_paths.paths = storage_load_paths_from_conf_file_ex(
 		pItemContext, NULL, true, &g_fdfs_store_paths.count, &result);
@@ -280,24 +263,23 @@ int storage_load_paths_from_conf_file(IniContext *pItemContext)
 	} while (0)
 
 
-int storage_split_filename(const char *logic_filename, \
+int storage_split_filename(const char *logic_filename,
 		int *filename_len, char *true_filename, char **ppStorePath)
 {
 	int store_path_index;
 
-	SPLIT_FILENAME_BODY(logic_filename, filename_len, true_filename, \
-		store_path_index, true);
+	SPLIT_FILENAME_BODY(logic_filename, filename_len,
+            true_filename, store_path_index, true);
 
-	*ppStorePath = g_fdfs_store_paths.paths[store_path_index].path;
-
+	*ppStorePath = g_fdfs_store_paths.paths[store_path_index].path.str;
 	return 0;
 }
 
 int storage_split_filename_ex(const char *logic_filename, \
 		int *filename_len, char *true_filename, int *store_path_index)
 {
-	SPLIT_FILENAME_BODY(logic_filename, \
-		filename_len, true_filename, *store_path_index, true);
+	SPLIT_FILENAME_BODY(logic_filename, filename_len,
+            true_filename, *store_path_index, true);
 
 	return 0;
 }
@@ -305,8 +287,8 @@ int storage_split_filename_ex(const char *logic_filename, \
 int storage_split_filename_no_check(const char *logic_filename, \
 		int *filename_len, char *true_filename, int *store_path_index)
 {
-	SPLIT_FILENAME_BODY(logic_filename, \
-		filename_len, true_filename, *store_path_index, false);
+	SPLIT_FILENAME_BODY(logic_filename, filename_len,
+            true_filename, *store_path_index, false);
 
 	return 0;
 }
@@ -347,21 +329,39 @@ char *trunk_header_dump(const FDFSTrunkHeader *pTrunkHeader, char *buff, \
 	return buff;
 }
 
-char *trunk_get_full_filename_ex(const FDFSStorePaths *pStorePaths, \
-		const FDFSTrunkFullInfo *pTrunkInfo, \
+char *trunk_get_full_filename_ex(const FDFSStorePaths *pStorePaths,
+		const FDFSTrunkFullInfo *pTrunkInfo,
 		char *full_filename, const int buff_size)
 {
-	char short_filename[64];
-	char *pStorePath;
+	char short_filename[32];
+	string_t *store_path;
+    char *p;
 
-	pStorePath = pStorePaths->paths[pTrunkInfo->path.store_path_index].path;
-	TRUNK_GET_FILENAME(pTrunkInfo->file.id, short_filename);
-
-	snprintf(full_filename, buff_size, \
-			"%s/data/"FDFS_STORAGE_DATA_DIR_FORMAT"/" \
-			FDFS_STORAGE_DATA_DIR_FORMAT"/%s", \
-			pStorePath, pTrunkInfo->path.sub_path_high, \
-			pTrunkInfo->path.sub_path_low, short_filename);
+	store_path = &pStorePaths->paths[pTrunkInfo->path.store_path_index].path;
+    if (store_path->len + 32 > buff_size)
+    {
+        fc_ltostr_ex(pTrunkInfo->file.id, short_filename, 6);
+        snprintf(full_filename, buff_size,
+                "%s/data/"FDFS_STORAGE_DATA_DIR_FORMAT"/"
+                FDFS_STORAGE_DATA_DIR_FORMAT"/%s",
+                store_path->str, pTrunkInfo->path.sub_path_high,
+                pTrunkInfo->path.sub_path_low, short_filename);
+    }
+    else
+    {
+        p = full_filename;
+        memcpy(p, store_path->str, store_path->len);
+        p += store_path->len;
+        *p++ = '/';
+        *p++ = g_upper_hex_chars[(pTrunkInfo->path.sub_path_high >> 4) & 0x0F];
+        *p++ = g_upper_hex_chars[pTrunkInfo->path.sub_path_high & 0x0F];
+        *p++ = '/';
+        *p++ = g_upper_hex_chars[(pTrunkInfo->path.sub_path_low >> 4) & 0x0F];
+        *p++ = g_upper_hex_chars[pTrunkInfo->path.sub_path_low & 0x0F];
+        *p++ = '/';
+        p += fc_ltostr_ex(pTrunkInfo->file.id, p, 6);
+        *p = '\0';
+    }
 
 	return full_filename;
 }
@@ -557,10 +557,10 @@ int trunk_file_stat_func_ex(const FDFSStorePaths *pStorePaths, \
 	return result;
 }
 
-int trunk_file_do_lstat_func_ex(const FDFSStorePaths *pStorePaths, \
-	const int store_path_index, const char *true_filename, \
-	const int filename_len, const int stat_func, \
-	struct stat *pStat, FDFSTrunkFullInfo *pTrunkInfo, \
+int trunk_file_do_lstat_func_ex(const FDFSStorePaths *pStorePaths,
+	const int store_path_index, const char *true_filename,
+	const int filename_len, const int stat_func,
+	struct stat *pStat, FDFSTrunkFullInfo *pTrunkInfo,
 	FDFSTrunkHeader *pTrunkHeader, int *pfd)
 {
 	char full_filename[MAX_PATH_SIZE];
@@ -575,9 +575,11 @@ int trunk_file_do_lstat_func_ex(const FDFSStorePaths *pStorePaths, \
 	pTrunkInfo->file.id = 0;
 	if (filename_len != FDFS_TRUNK_FILENAME_LENGTH) //not trunk file
 	{
-		snprintf(full_filename, sizeof(full_filename), "%s/data/%s", \
-			pStorePaths->paths[store_path_index].path, true_filename);
-
+        fc_get_one_subdir_full_filename(
+                pStorePaths->paths[store_path_index].path.str,
+                pStorePaths->paths[store_path_index].path.len,
+                "data", 4, true_filename, filename_len,
+                full_filename);
 		if (stat_func == FDFS_STAT_FUNC_STAT)
 		{
 			result = stat(full_filename, pStat);
@@ -604,9 +606,11 @@ int trunk_file_do_lstat_func_ex(const FDFSStorePaths *pStorePaths, \
 	file_size = buff2long(buff + sizeof(int) * 2);
 	if (!IS_TRUNK_FILE(file_size))  //slave file
 	{
-		snprintf(full_filename, sizeof(full_filename), "%s/data/%s", \
-			pStorePaths->paths[store_path_index].path, true_filename);
-
+        fc_get_one_subdir_full_filename(
+                pStorePaths->paths[store_path_index].path.str,
+                pStorePaths->paths[store_path_index].path.len,
+                "data", 4, true_filename, filename_len,
+                full_filename);
 		if (stat_func == FDFS_STAT_FUNC_STAT)
 		{
 			result = stat(full_filename, pStat);

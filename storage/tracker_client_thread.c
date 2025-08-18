@@ -2252,7 +2252,7 @@ static int tracker_report_df_stat(ConnectionInfo *pTrackerServer,
 
 	for (i=0; i<g_fdfs_store_paths.count; i++)
 	{
-		if (statvfs(g_fdfs_store_paths.paths[i].path, &sbuf) != 0)
+		if (statvfs(FDFS_STORE_PATH_STR(i), &sbuf) != 0)
 		{
 			logError("file: "__FILE__", line: %d, " \
 				"call statfs fail, errno: %d, error info: %s.",\
@@ -2611,7 +2611,7 @@ int tracker_deal_changelog_response(ConnectionInfo *pTrackerServer)
 			*pLineEnd = '\0';
 		}
 
-		snprintf(szLine, sizeof(szLine), "%s", pLineStart);
+		fc_safe_strcpy(szLine, pLineStart);
 		col_count = splitEx(szLine, ' ', cols, \
 				FDFS_CHANGELOG_FIELDS + 1);
 
@@ -2654,9 +2654,7 @@ int tracker_deal_changelog_response(ConnectionInfo *pTrackerServer)
 					SF_G_INNER_PORT, pNewStorageId, SF_G_INNER_PORT);
 					if (strcmp(g_sync_src_id, pOldStorageId) == 0)
 					{
-						snprintf(g_sync_src_id, \
-							sizeof(g_sync_src_id), \
-							"%s", pNewStorageId);
+						fc_safe_strcpy(g_sync_src_id, pNewStorageId);
 						storage_write_to_sync_ini_file();
 					}
 				}

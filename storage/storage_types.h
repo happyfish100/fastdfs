@@ -97,7 +97,7 @@ typedef struct
 	char filename[MAX_PATH_SIZE + 128];  	//full filename
 
 	/* FDFS logic filename to log not including group name */
-	char fname2log[128+sizeof(FDFS_STORAGE_META_FILE_EXT)];
+	char fname2log[128 + FDFS_STORAGE_META_FILE_EXT_LEN + 2];
 
 	char op;            //w for writing, r for reading, d for deleting etc.
 	char sync_flag;     //sync flag log to binlog

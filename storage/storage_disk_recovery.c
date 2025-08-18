@@ -48,19 +48,37 @@ typedef struct recovery_thread_data {
     int result;
     volatile int alive;
     bool done;
-    const char *base_path;
+    string_t base_path;
     pthread_t tid;
 } RecoveryThreadData;
 
-#define RECOVERY_BINLOG_FILENAME	".binlog.recovery"
-#define RECOVERY_FLAG_FILENAME		".recovery.flag"
-#define RECOVERY_MARK_FILENAME		".recovery.mark"
+#define RECOVERY_BINLOG_FILENAME_STR	".binlog.recovery"
+#define RECOVERY_BINLOG_FILENAME_LEN    \
+    (sizeof(RECOVERY_BINLOG_FILENAME_STR) - 1)
 
-#define FLAG_ITEM_RECOVERY_THREADS  "recovery_threads"
-#define FLAG_ITEM_SAVED_STORAGE_STATUS	"saved_storage_status"
-#define FLAG_ITEM_FETCH_BINLOG_DONE    	"fetch_binlog_done"
+#define RECOVERY_FLAG_FILENAME_STR		".recovery.flag"
+#define RECOVERY_FLAG_FILENAME_LEN      \
+    (sizeof(RECOVERY_FLAG_FILENAME_STR) - 1)
 
-#define MARK_ITEM_BINLOG_OFFSET    	"binlog_offset"
+#define RECOVERY_MARK_FILENAME_STR		".recovery.mark"
+#define RECOVERY_MARK_FILENAME_LEN      \
+    (sizeof(RECOVERY_MARK_FILENAME_STR) - 1)
+
+#define FLAG_ITEM_RECOVERY_THREADS_STR      "recovery_threads"
+#define FLAG_ITEM_RECOVERY_THREADS_LEN      \
+    (sizeof(FLAG_ITEM_RECOVERY_THREADS_STR) - 1)
+
+#define FLAG_ITEM_SAVED_STORAGE_STATUS_STR	"saved_storage_status"
+#define FLAG_ITEM_SAVED_STORAGE_STATUS_LEN  \
+    (sizeof(FLAG_ITEM_SAVED_STORAGE_STATUS_STR) - 1)
+
+#define FLAG_ITEM_FETCH_BINLOG_DONE_STR    	"fetch_binlog_done"
+#define FLAG_ITEM_FETCH_BINLOG_DONE_LEN      \
+    (sizeof(FLAG_ITEM_FETCH_BINLOG_DONE_STR) - 1)
+
+#define MARK_ITEM_BINLOG_OFFSET_STR         "binlog_offset"
+#define MARK_ITEM_BINLOG_OFFSET_LEN         \
+    (sizeof(MARK_ITEM_BINLOG_OFFSET_STR) - 1)
 
 static int last_recovery_threads = -1;  //for rebalance binlog data
 static volatile int current_recovery_thread_count = 0;
@@ -72,8 +90,9 @@ static char *recovery_get_binlog_filename(const void *pArg,
 static int disk_recovery_write_to_binlog(FILE *fp,
         const char *binlog_filename, StorageBinLogRecord *pRecord);
 
-static char *recovery_get_full_filename_ex(const char *pBasePath,
-        const int thread_index, const char *filename, char *full_filename)
+static char *recovery_get_full_filename_ex(const string_t *base_path,
+        const int thread_index, const char *filename,
+        const int filename_len, char *full_filename)
 {
 	static char buff[MAX_PATH_SIZE];
     int len;
@@ -83,35 +102,49 @@ static char *recovery_get_full_filename_ex(const char *pBasePath,
 		full_filename = buff;
 	}
 
-	len = snprintf(full_filename, MAX_PATH_SIZE,
-		"%s/data/%s", pBasePath, filename);
+    len = fc_get_one_subdir_full_filename_ex(base_path->str, base_path->len,
+            "data", 4, filename, filename_len, full_filename, MAX_PATH_SIZE);
     if (thread_index >= 0)
     {
-        snprintf(full_filename + len, MAX_PATH_SIZE - len,
-                ".%d", thread_index);
+        if (MAX_PATH_SIZE - len <= 4)
+        {
+            snprintf(full_filename + len, MAX_PATH_SIZE - len,
+                    ".%d", thread_index);
+        }
+        else
+        {
+            *(full_filename + len) = '.';
+            fc_ltostr(thread_index, full_filename + len + 1);
+        }
     }
+
 	return full_filename;
 }
 
 static inline char *recovery_get_full_filename(const RecoveryThreadData
-        *pThreadData, const char *filename, char *full_filename)
+        *pThreadData, const char *filename,
+        const int filename_len, char *full_filename)
 {
-    return recovery_get_full_filename_ex(pThreadData->base_path,
-            pThreadData->thread_index, filename, full_filename);
+    return recovery_get_full_filename_ex(&pThreadData->base_path,
+            pThreadData->thread_index, filename, filename_len,
+            full_filename);
 }
 
-static inline char *recovery_get_global_full_filename(const char *pBasePath,
-        const char *filename, char *full_filename)
+static inline char *recovery_get_global_full_filename(
+        const string_t *base_path, const char *filename,
+        const int filename_len, char *full_filename)
 {
-    return recovery_get_full_filename_ex(pBasePath, -1,
-            filename, full_filename);
+    return recovery_get_full_filename_ex(base_path, -1,
+            filename, filename_len, full_filename);
 }
 
-static inline char *recovery_get_global_binlog_filename(const char *pBasePath,
-        char *full_filename)
+static inline char *recovery_get_global_binlog_filename(
+        const string_t *base_path, char *full_filename)
 {
-	return recovery_get_global_full_filename(pBasePath,
-            RECOVERY_BINLOG_FILENAME, full_filename);
+	return recovery_get_global_full_filename(base_path,
+            RECOVERY_BINLOG_FILENAME_STR,
+            RECOVERY_BINLOG_FILENAME_LEN,
+            full_filename);
 }
 
 static int storage_do_fetch_binlog(ConnectionInfo *pSrcStorage, \
@@ -121,15 +154,16 @@ static int storage_do_fetch_binlog(ConnectionInfo *pSrcStorage, \
 	char full_binlog_filename[MAX_PATH_SIZE];
     char formatted_ip[FORMATTED_IP_SIZE];
 	TrackerHeader *pHeader;
-	char *pBasePath;
 	int64_t in_bytes;
 	int64_t file_bytes;
 	int result;
     int network_timeout;
 
-	pBasePath = g_fdfs_store_paths.paths[store_path_index].path;
-    recovery_get_full_filename_ex(pBasePath, 0,
-            RECOVERY_BINLOG_FILENAME, full_binlog_filename);
+    recovery_get_full_filename_ex(&g_fdfs_store_paths.paths[
+            store_path_index].path, 0,
+            RECOVERY_BINLOG_FILENAME_STR,
+            RECOVERY_BINLOG_FILENAME_LEN,
+            full_binlog_filename);
 
 	memset(out_buff, 0, sizeof(out_buff));
 	pHeader = (TrackerHeader *)out_buff;
@@ -374,24 +408,27 @@ static char *recovery_get_binlog_filename(const void *pArg,
         char *full_filename)
 {
 	return recovery_get_full_filename((const RecoveryThreadData *)pArg,
-			RECOVERY_BINLOG_FILENAME, full_filename);
+			RECOVERY_BINLOG_FILENAME_STR, RECOVERY_BINLOG_FILENAME_LEN,
+            full_filename);
 }
 
-static char *recovery_get_flag_filename(const char *pBasePath,
+static char *recovery_get_flag_filename(const string_t *base_path,
         char *full_filename)
 {
-    return recovery_get_global_full_filename(pBasePath,
-            RECOVERY_FLAG_FILENAME, full_filename);
+    return recovery_get_global_full_filename(base_path,
+            RECOVERY_FLAG_FILENAME_STR, RECOVERY_FLAG_FILENAME_LEN,
+            full_filename);
 }
 
 static char *recovery_get_mark_filename(const RecoveryThreadData *pThreadData,
         char *full_filename)
 {
 	return recovery_get_full_filename(pThreadData,
-			RECOVERY_MARK_FILENAME, full_filename);
+			RECOVERY_MARK_FILENAME_STR, RECOVERY_MARK_FILENAME_LEN,
+            full_filename);
 }
 
-static int storage_disk_recovery_delete_thread_files(const char *pBasePath,
+static int storage_disk_recovery_delete_thread_files(const string_t *base_path,
         const int index_start, const int index_end)
 {
     int i;
@@ -400,8 +437,10 @@ static int storage_disk_recovery_delete_thread_files(const char *pBasePath,
 
     for (i=index_start; i<index_end; i++)
     {
-        recovery_get_full_filename_ex(pBasePath, i,
-                RECOVERY_BINLOG_FILENAME, binlog_filename);
+        recovery_get_full_filename_ex(base_path, i,
+                RECOVERY_BINLOG_FILENAME_STR,
+                RECOVERY_BINLOG_FILENAME_LEN,
+                binlog_filename);
         if (fileExists(binlog_filename))
         {
             if (unlink(binlog_filename) != 0)
@@ -415,8 +454,10 @@ static int storage_disk_recovery_delete_thread_files(const char *pBasePath,
             }
         }
 
-        recovery_get_full_filename_ex(pBasePath, i,
-                RECOVERY_MARK_FILENAME, mark_filename);
+        recovery_get_full_filename_ex(base_path, i,
+                RECOVERY_MARK_FILENAME_STR,
+                RECOVERY_MARK_FILENAME_LEN,
+                mark_filename);
         if (fileExists(mark_filename))
         {
             if (unlink(mark_filename) != 0)
@@ -434,11 +475,11 @@ static int storage_disk_recovery_delete_thread_files(const char *pBasePath,
     return 0;
 }
 
-static int storage_disk_recovery_finish(const char *pBasePath)
+static int storage_disk_recovery_finish(const string_t *base_path)
 {
 	char flag_filename[MAX_PATH_SIZE];
 
-    recovery_get_flag_filename(pBasePath, flag_filename);
+    recovery_get_flag_filename(base_path, flag_filename);
 	if (fileExists(flag_filename))
     {
 		if (unlink(flag_filename) != 0)
@@ -453,37 +494,54 @@ static int storage_disk_recovery_finish(const char *pBasePath)
     }
 
 	return storage_disk_recovery_delete_thread_files(
-            pBasePath, 0, g_disk_recovery_threads);
+            base_path, 0, g_disk_recovery_threads);
 }
 
 static int do_write_to_flag_file(const char *flag_filename,
         const bool fetch_binlog_done, const int recovery_threads)
 {
 	char buff[256];
-	int len;
+    char *p;
 
-	len = sprintf(buff,
-		"%s=%d\n"
-		"%s=%d\n"
-		"%s=%d\n",
-		FLAG_ITEM_SAVED_STORAGE_STATUS, saved_storage_status,
-		FLAG_ITEM_FETCH_BINLOG_DONE, fetch_binlog_done ? 1 : 0,
-        FLAG_ITEM_RECOVERY_THREADS, recovery_threads);
+    p = buff;
+    memcpy(p, FLAG_ITEM_SAVED_STORAGE_STATUS_STR,
+            FLAG_ITEM_SAVED_STORAGE_STATUS_LEN);
+    p += FLAG_ITEM_SAVED_STORAGE_STATUS_LEN;
+    *p++ = '=';
+    p += fc_itoa(saved_storage_status, p);
+    *p++ = '\n';
 
-	return safeWriteToFile(flag_filename, buff, len);
+    memcpy(p, FLAG_ITEM_FETCH_BINLOG_DONE_STR,
+            FLAG_ITEM_FETCH_BINLOG_DONE_LEN);
+    p += FLAG_ITEM_FETCH_BINLOG_DONE_LEN;
+    *p++ = '=';
+    *p++ = fetch_binlog_done ? '1' : '0';
+    *p++ = '\n';
+
+    memcpy(p, FLAG_ITEM_RECOVERY_THREADS_STR,
+            FLAG_ITEM_RECOVERY_THREADS_LEN);
+    p += FLAG_ITEM_RECOVERY_THREADS_LEN;
+    *p++ = '=';
+    p += fc_itoa(recovery_threads, p);
+    *p++ = '\n';
+
+	return safeWriteToFile(flag_filename, buff, p - buff);
 }
 
 static int do_write_to_mark_file(const char *mark_filename,
         const int64_t binlog_offset)
 {
 	char buff[128];
-	int len;
+    char *p;
 
-	len = sprintf(buff,
-		"%s=%"PRId64"\n",
-		MARK_ITEM_BINLOG_OFFSET, binlog_offset);
+    p = buff;
+    memcpy(p, MARK_ITEM_BINLOG_OFFSET_STR, MARK_ITEM_BINLOG_OFFSET_LEN);
+    p += MARK_ITEM_BINLOG_OFFSET_LEN;
+    *p++ = '=';
+    p += fc_itoa(binlog_offset, p);
+    *p++ = '\n';
 
-	return safeWriteToFile(mark_filename, buff, len);
+	return safeWriteToFile(mark_filename, buff, p - buff);
 }
 
 static inline int recovery_write_to_mark_file(StorageBinLogReader *pReader)
@@ -492,23 +550,25 @@ static inline int recovery_write_to_mark_file(StorageBinLogReader *pReader)
             pReader->binlog_offset);
 }
 
-static int recovery_init_global_binlog_file(const char *pBasePath)
+static int recovery_init_global_binlog_file(const string_t *base_path)
 {
 	char full_binlog_filename[MAX_PATH_SIZE];
 	char buff[1];
 
 	*buff = '\0';
-    recovery_get_full_filename_ex(pBasePath, 0,
-            RECOVERY_BINLOG_FILENAME, full_binlog_filename);
+    recovery_get_full_filename_ex(base_path, 0,
+            RECOVERY_BINLOG_FILENAME_STR,
+            RECOVERY_BINLOG_FILENAME_LEN,
+            full_binlog_filename);
 	return writeToFile(full_binlog_filename, buff, 0);
 }
 
-static int recovery_init_flag_file(const char *pBasePath,
+static int recovery_init_flag_file(const string_t *base_path,
 		const bool fetch_binlog_done, const int recovery_threads)
 {
 	char full_filename[MAX_PATH_SIZE];
 
-    recovery_get_flag_filename(pBasePath, full_filename);
+    recovery_get_flag_filename(base_path, full_filename);
     return do_write_to_flag_file(full_filename,
             fetch_binlog_done, recovery_threads);
 }
@@ -529,7 +589,7 @@ static int recovery_load_params_from_flag_file(const char *full_flag_filename)
 		return result;
 	}
 
-	if (!iniGetBoolValue(NULL, FLAG_ITEM_FETCH_BINLOG_DONE,
+	if (!iniGetBoolValue(NULL, FLAG_ITEM_FETCH_BINLOG_DONE_STR,
 			&iniContext, false))
 	{
 		iniFreeContext(&iniContext);
@@ -537,25 +597,25 @@ static int recovery_load_params_from_flag_file(const char *full_flag_filename)
 		logInfo("file: "__FILE__", line: %d, "
 			"flag file \"%s\", %s=0, "
 			"need to fetch binlog again", __LINE__,
-			full_flag_filename, FLAG_ITEM_FETCH_BINLOG_DONE);
+			full_flag_filename, FLAG_ITEM_FETCH_BINLOG_DONE_STR);
 		return EAGAIN;
 	}
 
 	saved_storage_status = iniGetIntValue(NULL,
-			FLAG_ITEM_SAVED_STORAGE_STATUS, &iniContext, -1);
+			FLAG_ITEM_SAVED_STORAGE_STATUS_STR, &iniContext, -1);
 	if (saved_storage_status < 0)
 	{
 		iniFreeContext(&iniContext);
 
 		logError("file: "__FILE__", line: %d, "
 			"in flag file \"%s\", %s: %d < 0", __LINE__,
-			full_flag_filename, FLAG_ITEM_SAVED_STORAGE_STATUS,
+			full_flag_filename, FLAG_ITEM_SAVED_STORAGE_STATUS_STR,
 			saved_storage_status);
 		return EINVAL;
 	}
 
     last_recovery_threads = iniGetIntValue(NULL,
-			FLAG_ITEM_RECOVERY_THREADS, &iniContext, -1);
+			FLAG_ITEM_RECOVERY_THREADS_STR, &iniContext, -1);
 
 	iniFreeContext(&iniContext);
 	return 0;
@@ -597,7 +657,7 @@ static int recovery_reader_init(const RecoveryThreadData *pThreadData,
 	}
 
 	pReader->binlog_offset = iniGetInt64Value(NULL,
-			MARK_ITEM_BINLOG_OFFSET, &iniContext, -1);
+			MARK_ITEM_BINLOG_OFFSET_STR, &iniContext, -1);
 	if (pReader->binlog_offset < 0)
 	{
 		iniFreeContext(&iniContext);
@@ -605,7 +665,7 @@ static int recovery_reader_init(const RecoveryThreadData *pThreadData,
 		logError("file: "__FILE__", line: %d, " \
 			"in mark file \"%s\", %s: "\
 			"%"PRId64" < 0", __LINE__, \
-			pReader->mark_filename, MARK_ITEM_BINLOG_OFFSET, \
+			pReader->mark_filename, MARK_ITEM_BINLOG_OFFSET_STR, \
 			pReader->binlog_offset);
 		return EINVAL;
 	}
@@ -665,19 +725,22 @@ static int recovery_download_file_to_local(StorageBinLogRecord *pRecord,
         {
             return -EINVAL;
         }
-        sprintf(pTrunkPathEnd + 1, "%s", pLocalFilename + 1);
+        strcpy(pTrunkPathEnd + 1, pLocalFilename + 1);
     }
     else
     {
         bTrunkFile = false;
-        sprintf(local_filename, "%s/data/%s",
-                g_fdfs_store_paths.paths[pRecord->store_path_index].path,
-                pRecord->true_filename);
+        fc_get_one_subdir_full_filename(
+            FDFS_STORE_PATH_STR(pRecord->store_path_index),
+            FDFS_STORE_PATH_LEN(pRecord->store_path_index),
+            "data", 4, pRecord->true_filename,
+            pRecord->true_filename_len, local_filename);
     }
 
     if (access(local_filename, F_OK) == 0)
     {
-        sprintf(tmp_filename, "%s.recovery.tmp", local_filename);
+        fc_combine_two_strings(local_filename,
+                "recovery.tmp", '.', tmp_filename);
         download_filename = tmp_filename;
     }
     else
@@ -751,7 +814,7 @@ static int storage_do_recovery(RecoveryThreadData *pThreadData,
 		"disk recovery thread #%d, src storage server %s:%u, "
         "recovering files of data path: %s ...", __LINE__,
         pThreadData->thread_index, formatted_ip,
-        pSrcStorage->port, pThreadData->base_path);
+        pSrcStorage->port, pThreadData->base_path.str);
 
 	bContinueFlag = true;
 	while (bContinueFlag)
@@ -826,9 +889,11 @@ static int storage_do_recovery(RecoveryThreadData *pThreadData,
                     bContinueFlag = false;
                     break;
                 }
-                sprintf(local_filename, "%s/data/%s", \
-                        g_fdfs_store_paths.paths[store_path_index].path, \
-                        record.true_filename);
+                fc_get_one_subdir_full_filename(
+                        FDFS_STORE_PATH_STR(store_path_index),
+                        FDFS_STORE_PATH_LEN(store_path_index),
+                        "data", 4, record.true_filename,
+                        record.true_filename_len, local_filename);
 
                 if ((result=storage_split_filename_ex( \
                                 record.src_filename, &record.src_filename_len,\
@@ -837,9 +902,12 @@ static int storage_do_recovery(RecoveryThreadData *pThreadData,
                     bContinueFlag = false;
                     break;
                 }
-                sprintf(src_filename, "%s/data/%s", \
-                        g_fdfs_store_paths.paths[store_path_index].path, \
-                        record.true_filename);
+                fc_get_one_subdir_full_filename(
+                        FDFS_STORE_PATH_STR(store_path_index),
+                        FDFS_STORE_PATH_LEN(store_path_index),
+                        "data", 4, record.true_filename,
+                        record.true_filename_len, src_filename);
+
                 if (symlink(src_filename, local_filename) == 0)
                 {
                     success_count++;
@@ -893,7 +961,7 @@ static int storage_do_recovery(RecoveryThreadData *pThreadData,
                         "file count: %"PRId64", success count: %"PRId64
                         ", noent_count: %"PRId64, __LINE__,
                         pThreadData->thread_index,
-                        pThreadData->base_path, total_count,
+                        pThreadData->base_path.str, total_count,
                         success_count, noent_count);
                 recovery_write_to_mark_file(pReader);
                 count = 0;
@@ -919,7 +987,7 @@ static int storage_do_recovery(RecoveryThreadData *pThreadData,
                     "file count: %"PRId64", success count: "
                     "%"PRId64", noent_count: %"PRId64,
                     __LINE__, pThreadData->thread_index,
-                    pThreadData->base_path, total_count,
+                    pThreadData->base_path.str, total_count,
                     success_count, noent_count);
             count = 0;
         }
@@ -939,7 +1007,7 @@ static int storage_do_recovery(RecoveryThreadData *pThreadData,
 			"disk recovery thread #%d, src storage server %s:%u, "
             "recover files of data path: %s done", __LINE__,
             pThreadData->thread_index, formatted_ip,
-            pSrcStorage->port, pThreadData->base_path);
+            pSrcStorage->port, pThreadData->base_path.str);
 	}
 
 	return SF_G_CONTINUE_FLAG ? result :EINTR;
@@ -990,7 +1058,7 @@ static void *storage_disk_recovery_restore_entrance(void *arg)
     return NULL;
 }
 
-static int storage_disk_recovery_old_version_migrate(const char *pBasePath)
+static int storage_disk_recovery_old_version_migrate(const string_t *base_path)
 {
 	char old_binlog_filename[MAX_PATH_SIZE];
 	char old_mark_filename[MAX_PATH_SIZE];
@@ -998,9 +1066,9 @@ static int storage_disk_recovery_old_version_migrate(const char *pBasePath)
 	char new_mark_filename[MAX_PATH_SIZE];
 	int result;
 
-    recovery_get_global_binlog_filename(pBasePath, old_binlog_filename);
-	recovery_get_global_full_filename(pBasePath,
-            RECOVERY_MARK_FILENAME, old_mark_filename);
+    recovery_get_global_binlog_filename(base_path, old_binlog_filename);
+	recovery_get_global_full_filename(base_path, RECOVERY_MARK_FILENAME_STR,
+            RECOVERY_MARK_FILENAME_LEN, old_mark_filename);
 
 	if (!(fileExists(old_mark_filename) &&
 	      fileExists(old_binlog_filename)))
@@ -1021,13 +1089,13 @@ static int storage_disk_recovery_old_version_migrate(const char *pBasePath)
         return result;
     }
 
-    if ((result=recovery_init_flag_file(pBasePath, true, 1)) != 0)
+    if ((result=recovery_init_flag_file(base_path, true, 1)) != 0)
     {
         return result;
     }
 
-    recovery_get_full_filename_ex(pBasePath, 0,
-            RECOVERY_MARK_FILENAME, new_mark_filename);
+    recovery_get_full_filename_ex(base_path, 0, RECOVERY_MARK_FILENAME_STR,
+            RECOVERY_MARK_FILENAME_LEN, new_mark_filename);
 	if (rename(old_mark_filename, new_mark_filename) != 0)
 	{
 		logError("file: "__FILE__", line: %d, "
@@ -1038,8 +1106,8 @@ static int storage_disk_recovery_old_version_migrate(const char *pBasePath)
 		return errno != 0 ? errno : EPERM;
 	}
 
-    recovery_get_full_filename_ex(pBasePath, 0,
-            RECOVERY_BINLOG_FILENAME, new_binlog_filename);
+    recovery_get_full_filename_ex(base_path, 0, RECOVERY_BINLOG_FILENAME_STR,
+            RECOVERY_BINLOG_FILENAME_LEN, new_binlog_filename);
 	if (rename(old_binlog_filename, new_binlog_filename) != 0)
 	{
 		logError("file: "__FILE__", line: %d, "
@@ -1055,7 +1123,7 @@ static int storage_disk_recovery_old_version_migrate(const char *pBasePath)
     return 0;
 }
 
-static int do_dispatch_binlog_for_threads(const char *pBasePath)
+static int do_dispatch_binlog_for_threads(const string_t *base_path)
 {
     typedef struct {
         FILE *fp;
@@ -1094,12 +1162,12 @@ static int do_dispatch_binlog_for_threads(const char *pBasePath)
     result = 0;
     for (i=0; i<g_disk_recovery_threads; i++)
     {
-        recovery_get_full_filename_ex(pBasePath, i,
-                RECOVERY_BINLOG_FILENAME,
+        recovery_get_full_filename_ex(base_path, i,
+                RECOVERY_BINLOG_FILENAME_STR,
+                RECOVERY_BINLOG_FILENAME_LEN,
                 dispatchs[i].binlog_filename);
-        snprintf(dispatchs[i].temp_filename,
-                sizeof(dispatchs[i].temp_filename),
-                "%s.tmp", dispatchs[i].binlog_filename);
+        fc_combine_two_strings(dispatchs[i].binlog_filename,
+                "tmp", '.', dispatchs[i].temp_filename);
         dispatchs[i].fp = fopen(dispatchs[i].temp_filename, "w");
         if (dispatchs[i].fp == NULL)
         {
@@ -1113,7 +1181,7 @@ static int do_dispatch_binlog_for_threads(const char *pBasePath)
         }
     }
 
-    thread_data.base_path = pBasePath;
+    thread_data.base_path = *base_path;
     for (i=0; i<last_recovery_threads; i++)
     {
         thread_data.thread_index = i;
@@ -1181,8 +1249,10 @@ static int do_dispatch_binlog_for_threads(const char *pBasePath)
             break;
         }
 
-        recovery_get_full_filename_ex(pBasePath, i,
-                RECOVERY_MARK_FILENAME, mark_filename);
+        recovery_get_full_filename_ex(base_path, i,
+                RECOVERY_MARK_FILENAME_STR,
+                RECOVERY_MARK_FILENAME_LEN,
+                mark_filename);
         if ((result=do_write_to_mark_file(mark_filename, 0)) != 0)
         {
             break;
@@ -1209,7 +1279,7 @@ static int do_dispatch_binlog_for_threads(const char *pBasePath)
 }
 
 static int storage_disk_recovery_dispatch_binlog_for_threads(
-        const char *pBasePath)
+        const string_t *base_path)
 {
     int result;
     int i;
@@ -1220,14 +1290,16 @@ static int storage_disk_recovery_dispatch_binlog_for_threads(
         logError("file: "__FILE__", line: %d, "
                 "invalid last recovery threads: %d, "
                 "retry restore data for %s again ...",
-                __LINE__, last_recovery_threads, pBasePath);
+                __LINE__, last_recovery_threads, base_path->str);
         return EAGAIN;
     }
 
     for (i=0; i<last_recovery_threads; i++)
     {
-        recovery_get_full_filename_ex(pBasePath, i,
-                RECOVERY_BINLOG_FILENAME, binlog_filename);
+        recovery_get_full_filename_ex(base_path, i,
+                RECOVERY_BINLOG_FILENAME_STR,
+                RECOVERY_BINLOG_FILENAME_LEN,
+                binlog_filename);
         if (!fileExists(binlog_filename))
         {
             logError("file: "__FILE__", line: %d, "
@@ -1246,9 +1318,9 @@ static int storage_disk_recovery_dispatch_binlog_for_threads(
     logInfo("file: "__FILE__", line: %d, "
             "try to dispatch binlog from %d to %d threads, "
             "data path: %s ...", __LINE__, last_recovery_threads,
-            g_disk_recovery_threads, pBasePath);
+            g_disk_recovery_threads, base_path->str);
 
-    result = do_dispatch_binlog_for_threads(pBasePath);
+    result = do_dispatch_binlog_for_threads(base_path);
     if (result == 0)
     {
         char flag_filename[MAX_PATH_SIZE];
@@ -1256,16 +1328,16 @@ static int storage_disk_recovery_dispatch_binlog_for_threads(
         logInfo("file: "__FILE__", line: %d, "
                 "dispatch binlog for %d threads successfully, "
                 "data path: %s.", __LINE__,
-                g_disk_recovery_threads, pBasePath);
+                g_disk_recovery_threads, base_path->str);
 
         if (g_disk_recovery_threads < last_recovery_threads)
         {
             storage_disk_recovery_delete_thread_files(
-                    pBasePath, g_disk_recovery_threads,
+                    base_path, g_disk_recovery_threads,
                     last_recovery_threads);
         }
 
-        recovery_get_flag_filename(pBasePath, flag_filename);
+        recovery_get_flag_filename(base_path, flag_filename);
         return do_write_to_flag_file(flag_filename,
                 true, g_disk_recovery_threads);
     }
@@ -1273,13 +1345,13 @@ static int storage_disk_recovery_dispatch_binlog_for_threads(
     {
         logError("file: "__FILE__", line: %d, "
                 "dispatch binlog for %d threads fail, data path: %s.",
-                __LINE__, g_disk_recovery_threads, pBasePath);
+                __LINE__, g_disk_recovery_threads, base_path->str);
     }
 
     return result;
 }
 
-static int storage_disk_recovery_do_restore(const char *pBasePath)
+static int storage_disk_recovery_do_restore(const string_t *base_path)
 {
     int result;
     int thread_count;
@@ -1293,7 +1365,7 @@ static int storage_disk_recovery_do_restore(const char *pBasePath)
 
     logInfo("file: "__FILE__", line: %d, "
             "disk recovery: begin recovery data path: %s, "
-            "thread count: %d ...", __LINE__, pBasePath,
+            "thread count: %d ...", __LINE__, base_path->str,
             g_disk_recovery_threads);
 
     bytes = sizeof(RecoveryThreadData) * g_disk_recovery_threads;
@@ -1326,7 +1398,7 @@ static int storage_disk_recovery_do_restore(const char *pBasePath)
 
     for (i=0; i<g_disk_recovery_threads; i++)
     {
-        thread_data[i].base_path = pBasePath;
+        thread_data[i].base_path = *base_path;
         thread_data[i].thread_index = i;
         thread_data[i].result = EINTR;
         thread_data[i].done = false;
@@ -1420,20 +1492,20 @@ static int storage_disk_recovery_do_restore(const char *pBasePath)
 
     logInfo("file: "__FILE__", line: %d, "
             "disk recovery: end of recovery data path: %s",
-            __LINE__, pBasePath);
+            __LINE__, base_path->str);
 
-    return storage_disk_recovery_finish(pBasePath);
+    return storage_disk_recovery_finish(base_path);
 }
 
-int storage_disk_recovery_check_restore(const char *pBasePath)
+int storage_disk_recovery_check_restore(const string_t *base_path)
 {
 	char flag_filename[MAX_PATH_SIZE];
 	int result;
 
-    recovery_get_flag_filename(pBasePath, flag_filename);
+    recovery_get_flag_filename(base_path, flag_filename);
 	if (!fileExists(flag_filename))
     {
-        result = storage_disk_recovery_old_version_migrate(pBasePath);
+        result = storage_disk_recovery_old_version_migrate(base_path);
         if (result != 0)
         {
             return (result == ENOENT) ? 0 : result;
@@ -1447,12 +1519,12 @@ int storage_disk_recovery_check_restore(const char *pBasePath)
     }
 
     if ((result=storage_disk_recovery_dispatch_binlog_for_threads(
-                    pBasePath)) != 0)
+                    base_path)) != 0)
     {
         return result;
     }
 
-    return storage_disk_recovery_do_restore(pBasePath);
+    return storage_disk_recovery_do_restore(base_path);
 }
 
 static int storage_compare_trunk_id_info(void *p1, void *p2)
@@ -1533,7 +1605,8 @@ static int storage_do_split_trunk_binlog(const int store_path_index,
 		StorageBinLogReader *pReader)
 {
 	FILE *fp;
-	char *pBasePath;
+	string_t *base_path;
+    char *p;
 	FDFSTrunkFileIdInfo *pFound;
 	char binlogFullFilename[MAX_PATH_SIZE];
 	char tmpFullFilename[MAX_PATH_SIZE];
@@ -1544,9 +1617,11 @@ static int storage_do_split_trunk_binlog(const int store_path_index,
 	int record_length;
 	int result;
 	
-	pBasePath = g_fdfs_store_paths.paths[store_path_index].path;
-	recovery_get_full_filename_ex(pBasePath, -1,
-		RECOVERY_BINLOG_FILENAME".tmp", tmpFullFilename);
+	base_path = &g_fdfs_store_paths.paths[store_path_index].path;
+	recovery_get_full_filename_ex(base_path, -1,
+		RECOVERY_BINLOG_FILENAME_STR".tmp",
+		sizeof(RECOVERY_BINLOG_FILENAME_STR".tmp") - 1,
+        tmpFullFilename);
 	fp = fopen(tmpFullFilename, "w");
 	if (fp == NULL)
 	{
@@ -1616,9 +1691,14 @@ static int storage_do_split_trunk_binlog(const int store_path_index,
 				break;
 			}
 
-			sprintf(trunkFileId.line, "%d %c %s", \
-				(int)record.timestamp, \
-				record.op_type, record.filename);
+            p = trunkFileId.line;
+            p += fc_itoa(record.timestamp, p);
+            *p++ = ' ';
+            *p++ = record.op_type;
+            *p++ = ' ';
+            memcpy(p, record.filename, record.filename_len);
+            p += record.filename_len;
+            *p = '\0';
 			memcpy(pFound, &trunkFileId, sizeof(FDFSTrunkFileIdInfo));
 			if (avl_tree_insert(&tree_unique_trunks, pFound) != 1)
 			{
@@ -1667,8 +1747,8 @@ static int storage_do_split_trunk_binlog(const int store_path_index,
 		return result;
 	}
 
-	recovery_get_full_filename_ex(pBasePath, 0,
-		RECOVERY_BINLOG_FILENAME, binlogFullFilename);
+	recovery_get_full_filename_ex(base_path, 0, RECOVERY_BINLOG_FILENAME_STR,
+        RECOVERY_BINLOG_FILENAME_LEN, binlogFullFilename);
 	if (rename(tmpFullFilename, binlogFullFilename) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
@@ -1714,16 +1794,16 @@ int storage_disk_recovery_prepare(const int store_path_index)
     char formatted_ip[FORMATTED_IP_SIZE];
 	ConnectionInfo srcStorage;
 	ConnectionInfo *pStorageConn;
-	char *pBasePath;
+	string_t *base_path;
 	int result;
 
-	pBasePath = g_fdfs_store_paths.paths[store_path_index].path;
-	if ((result=recovery_init_flag_file(pBasePath, false, -1)) != 0)
+	base_path = &g_fdfs_store_paths.paths[store_path_index].path;
+	if ((result=recovery_init_flag_file(base_path, false, -1)) != 0)
 	{
 		return result;
 	}
 
-	if ((result=recovery_init_global_binlog_file(pBasePath)) != 0)
+	if ((result=recovery_init_global_binlog_file(base_path)) != 0)
 	{
 		return result;
 	}
@@ -1732,7 +1812,7 @@ int storage_disk_recovery_prepare(const int store_path_index)
 	{
 		if (result == ENOENT)
 		{
-			return storage_disk_recovery_finish(pBasePath);
+			return storage_disk_recovery_finish(base_path);
 		}
 		else
 		{
@@ -1781,12 +1861,12 @@ int storage_disk_recovery_prepare(const int store_path_index)
 			store_path_index)) != 0)
 	{
 		char flagFullFilename[MAX_PATH_SIZE];
-		unlink(recovery_get_flag_filename(pBasePath, flagFullFilename));
+		unlink(recovery_get_flag_filename(base_path, flagFullFilename));
 		return result;
 	}
 
 	//set fetch binlog done
-	if ((result=recovery_init_flag_file(pBasePath, true, 1)) != 0)
+	if ((result=recovery_init_flag_file(base_path, true, 1)) != 0)
 	{
 		return result;
 	}

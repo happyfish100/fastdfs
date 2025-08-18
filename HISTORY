@@ -1,6 +1,7 @@
 
-Version 6.13.0  2025-08-16
+Version 6.13.0  2025-08-18
  * Merge pull request #753 from lystormenvoy/store_path_readonly
+ * use libfastcommon V1.78 and libserverframe 1.2.8
 
 Version 6.12.4  2025-06-19
  * normalize ip addresses from storage_ids.conf

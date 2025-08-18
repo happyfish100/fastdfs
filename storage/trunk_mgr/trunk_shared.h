@@ -15,8 +15,8 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <pthread.h>
-#include "fastcommon/base64.h"
 #include "fastcommon/common_define.h"
+#include "fastcommon/base64.h"
 #include "fastcommon/ini_file_reader.h"
 #include "fdfs_global.h"
 #include "tracker_types.h"
@@ -45,17 +45,20 @@
 
 #define IS_TRUNK_FILE_BY_ID(trunkInfo) (trunkInfo.file.id > 0)
 
-#define TRUNK_GET_FILENAME(file_id, filename) \
-	sprintf(filename, "%06u", file_id)
+#define FDFS_STORE_PATH_STR(store_path_index) \
+    g_fdfs_store_paths.paths[store_path_index].path.str
+
+#define FDFS_STORE_PATH_LEN(store_path_index) \
+    g_fdfs_store_paths.paths[store_path_index].path.len
+
 
 typedef struct
 {
-	int64_t total_mb;  //total spaces
-	int64_t free_mb;   //free spaces
-    int path_len;  //the length of store path
-	char *path;    //file store path
-    char *mark;    //path mark to avoid confusion
-    bool read_only; //path marked to read only
+    int64_t total_mb; //total spaces
+    int64_t free_mb;  //free spaces
+    string_t path;    //file store path
+    char *mark;       //path mark to avoid confusion
+    bool read_only;   //path marked to read only
 } FDFSStorePathInfo;
 
 typedef struct {
@@ -102,7 +105,8 @@ typedef struct tagFDFSTrunkFullInfo {
 FDFSStorePathInfo *storage_load_paths_from_conf_file_ex(
         IniContext *pItemContext, const char *szSectionName,
         const bool bUseBasePath, int *path_count, int *err_no);
-int storage_load_paths_from_conf_file(IniContext *pItemContext);
+int storage_load_paths_from_conf_file(IniContext *pItemContext,
+        const char *config_filename);
 int trunk_shared_init();
 
 int storage_split_filename(const char *logic_filename, \

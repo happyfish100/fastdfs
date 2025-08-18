@@ -186,9 +186,11 @@ static int storage_sync_copy_file(ConnectionInfo *pStorageServer, \
 	else
 	{
 		file_offset = 0;
-		sprintf(full_filename, "%s/data/%s", \
-			g_fdfs_store_paths.paths[pRecord->store_path_index].path, \
-			pRecord->true_filename);
+        fc_get_one_subdir_full_filename(
+                FDFS_STORE_PATH_STR(pRecord->store_path_index),
+                FDFS_STORE_PATH_LEN(pRecord->store_path_index),
+                "data", 4, pRecord->true_filename,
+                pRecord->true_filename_len, full_filename);
 	}
 
 	total_send_bytes = 0;
@@ -348,9 +350,11 @@ static int storage_sync_modify_file(ConnectionInfo *pStorageServer, \
 		return result;
 	}
 
-	snprintf(full_filename, sizeof(full_filename), \
-		"%s/data/%s", g_fdfs_store_paths.paths[pRecord->store_path_index].path, \
-		pRecord->true_filename);
+    fc_get_one_subdir_full_filename(
+            FDFS_STORE_PATH_STR(pRecord->store_path_index),
+            FDFS_STORE_PATH_LEN(pRecord->store_path_index),
+            "data", 4, pRecord->true_filename,
+            pRecord->true_filename_len, full_filename);
 	if (lstat(full_filename, &stat_buf) != 0)
 	{
 		if (errno == ENOENT)
@@ -515,9 +519,11 @@ static int storage_sync_truncate_file(ConnectionInfo *pStorageServer, \
 		return result;
 	}
 
-	snprintf(full_filename, sizeof(full_filename), \
-		"%s/data/%s", g_fdfs_store_paths.paths[pRecord->store_path_index].path, \
-		pRecord->true_filename);
+    fc_get_one_subdir_full_filename(
+            FDFS_STORE_PATH_STR(pRecord->store_path_index),
+            FDFS_STORE_PATH_LEN(pRecord->store_path_index),
+            "data", 4, pRecord->true_filename,
+            pRecord->true_filename_len, full_filename);
 	if (lstat(full_filename, &stat_buf) != 0)
 	{
 		if (errno == ENOENT)
@@ -835,10 +841,12 @@ static int storage_sync_link_file(ConnectionInfo *pStorageServer, \
 	int src_path_index;
 	int src_filename_len;
 
-	snprintf(full_filename, sizeof(full_filename), \
-		"%s/data/%s", g_fdfs_store_paths.paths[pRecord->store_path_index].path, \
-		pRecord->true_filename);
-	src_filename_len = readlink(full_filename, src_full_filename, \
+    fc_get_one_subdir_full_filename(
+            FDFS_STORE_PATH_STR(pRecord->store_path_index),
+            FDFS_STORE_PATH_LEN(pRecord->store_path_index),
+            "data", 4, pRecord->true_filename,
+            pRecord->true_filename_len, full_filename);
+	src_filename_len = readlink(full_filename, src_full_filename,
 				sizeof(src_full_filename) - 1);
 	if (src_filename_len <= 0)
 	{
@@ -875,11 +883,11 @@ static int storage_sync_link_file(ConnectionInfo *pStorageServer, \
 	{
 		*(pSrcFilename - 6) = '\0';
 
-		for (src_path_index=0; src_path_index<g_fdfs_store_paths.count; \
+		for (src_path_index=0; src_path_index<g_fdfs_store_paths.count;
 			src_path_index++)
 		{
-			if (strcmp(src_full_filename, \
-				g_fdfs_store_paths.paths[src_path_index].path) == 0)
+			if (strcmp(src_full_filename, FDFS_STORE_PATH_STR(
+                            src_path_index)) == 0)
 			{
 				break;
 			}
@@ -992,9 +1000,11 @@ static int storage_sync_rename_file(ConnectionInfo *pStorageServer,
                 STORAGE_PROTO_CMD_SYNC_CREATE_FILE);
     }
 
-	snprintf(full_filename, sizeof(full_filename), "%s/data/%s",
-            g_fdfs_store_paths.paths[pRecord->store_path_index].path,
-            pRecord->true_filename);
+    fc_get_one_subdir_full_filename(
+            FDFS_STORE_PATH_STR(pRecord->store_path_index),
+            FDFS_STORE_PATH_LEN(pRecord->store_path_index),
+            "data", 4, pRecord->true_filename,
+            pRecord->true_filename_len, full_filename);
 	if (lstat(full_filename, &stat_buf) != 0)
 	{
 		if (errno == ENOENT)
