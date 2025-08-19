@@ -39,24 +39,73 @@
 #include "storage_sync_func.h"
 #include "storage_sync.h"
 
-#define SYNC_BINLOG_FILE_MAX_SIZE	1024 * 1024 * 1024
-#define SYNC_BINLOG_FILE_PREFIX		"binlog"
-#define SYNC_BINLOG_INDEX_FILENAME_OLD  SYNC_BINLOG_FILE_PREFIX".index"
-#define SYNC_BINLOG_INDEX_FILENAME      SYNC_BINLOG_FILE_PREFIX"_index.dat"
-#define SYNC_MARK_FILE_EXT		".mark"
-#define SYNC_BINLOG_FILE_EXT_FMT	".%03d"
-#define SYNC_DIR_NAME			"sync"
-#define MARK_ITEM_BINLOG_FILE_INDEX	"binlog_index"
-#define MARK_ITEM_BINLOG_FILE_OFFSET	"binlog_offset"
-#define MARK_ITEM_NEED_SYNC_OLD		"need_sync_old"
-#define MARK_ITEM_SYNC_OLD_DONE		"sync_old_done"
-#define MARK_ITEM_UNTIL_TIMESTAMP	"until_timestamp"
-#define MARK_ITEM_SCAN_ROW_COUNT	"scan_row_count"
-#define MARK_ITEM_SYNC_ROW_COUNT	"sync_row_count"
+#define SYNC_BINLOG_FILE_MAX_SIZE	(1024 * 1024 * 1024)
 #define SYNC_BINLOG_WRITE_BUFF_SIZE	(16 * 1024)
 
-#define BINLOG_INDEX_ITEM_CURRENT_WRITE     "current_write"
-#define BINLOG_INDEX_ITEM_CURRENT_COMPRESS  "current_compress"
+#define SYNC_BINLOG_FILE_PREFIX_STR  "binlog"
+#define SYNC_BINLOG_FILE_PREFIX_LEN  \
+    (sizeof(SYNC_BINLOG_FILE_PREFIX_STR) - 1)
+
+#define SYNC_BINLOG_INDEX_FILENAME_OLD_STR  \
+    SYNC_BINLOG_FILE_PREFIX_STR".index"
+#define SYNC_BINLOG_INDEX_FILENAME_OLD_LEN  \
+    (sizeof(SYNC_BINLOG_INDEX_FILENAME_OLD_STR) - 1)
+
+#define SYNC_BINLOG_INDEX_FILENAME_STR  \
+    SYNC_BINLOG_FILE_PREFIX_STR"_index.dat"
+#define SYNC_BINLOG_INDEX_FILENAME_LEN  \
+    (sizeof(SYNC_BINLOG_INDEX_FILENAME_STR) - 1)
+
+#define SYNC_MARK_FILE_EXT_STR  ".mark"
+#define SYNC_MARK_FILE_EXT_LEN  \
+    (sizeof(SYNC_MARK_FILE_EXT_STR) - 1)
+
+#define SYNC_BINLOG_FILE_EXT_LEN  3
+#define SYNC_BINLOG_FILE_EXT_FMT  ".%0"FC_MACRO_TOSTRING(SYNC_BINLOG_FILE_EXT_LEN)"d"
+
+#define SYNC_DIR_NAME_STR  "sync"
+#define SYNC_DIR_NAME_LEN  \
+    (sizeof(SYNC_DIR_NAME_STR) - 1)
+
+#define SYNC_SUBDIR_NAME_STR  "data/"SYNC_DIR_NAME_STR
+#define SYNC_SUBDIR_NAME_LEN  \
+    (sizeof(SYNC_SUBDIR_NAME_STR) - 1)
+
+#define MARK_ITEM_BINLOG_FILE_INDEX_STR  "binlog_index"
+#define MARK_ITEM_BINLOG_FILE_INDEX_LEN  \
+    (sizeof(MARK_ITEM_BINLOG_FILE_INDEX_STR) - 1)
+
+#define MARK_ITEM_BINLOG_FILE_OFFSET_STR  "binlog_offset"
+#define MARK_ITEM_BINLOG_FILE_OFFSET_LEN  \
+    (sizeof(MARK_ITEM_BINLOG_FILE_OFFSET_STR) - 1)
+
+#define MARK_ITEM_NEED_SYNC_OLD_STR  "need_sync_old"
+#define MARK_ITEM_NEED_SYNC_OLD_LEN  \
+    (sizeof(MARK_ITEM_NEED_SYNC_OLD_STR) - 1)
+
+#define MARK_ITEM_SYNC_OLD_DONE_STR  "sync_old_done"
+#define MARK_ITEM_SYNC_OLD_DONE_LEN  \
+    (sizeof(MARK_ITEM_SYNC_OLD_DONE_STR) - 1)
+
+#define MARK_ITEM_UNTIL_TIMESTAMP_STR  "until_timestamp"
+#define MARK_ITEM_UNTIL_TIMESTAMP_LEN  \
+    (sizeof(MARK_ITEM_UNTIL_TIMESTAMP_STR) - 1)
+
+#define MARK_ITEM_SCAN_ROW_COUNT_STR  "scan_row_count"
+#define MARK_ITEM_SCAN_ROW_COUNT_LEN  \
+    (sizeof(MARK_ITEM_SCAN_ROW_COUNT_STR) - 1)
+
+#define MARK_ITEM_SYNC_ROW_COUNT_STR  "sync_row_count"
+#define MARK_ITEM_SYNC_ROW_COUNT_LEN  \
+    (sizeof(MARK_ITEM_SYNC_ROW_COUNT_STR) - 1)
+
+#define BINLOG_INDEX_ITEM_CURRENT_WRITE_STR  "current_write"
+#define BINLOG_INDEX_ITEM_CURRENT_WRITE_LEN  \
+    (sizeof(BINLOG_INDEX_ITEM_CURRENT_WRITE_STR) - 1)
+
+#define BINLOG_INDEX_ITEM_CURRENT_COMPRESS_STR  "current_compress"
+#define BINLOG_INDEX_ITEM_CURRENT_COMPRESS_LEN  \
+    (sizeof(BINLOG_INDEX_ITEM_CURRENT_COMPRESS_STR) - 1)
 
 int g_binlog_fd = -1;
 int g_binlog_index = 0;
@@ -225,7 +274,7 @@ static int storage_sync_copy_file(ConnectionInfo *pStorageServer, \
 		int2buff(pRecord->timestamp, p);
 		p += 4;
 
-		sprintf(p, "%s", g_group_name);
+		strcpy(p, g_group_name);
 		p += FDFS_GROUP_NAME_MAX_LEN;
 		memcpy(p, pRecord->filename, pRecord->filename_len);
 		p += pRecord->filename_len;
@@ -421,7 +470,7 @@ static int storage_sync_modify_file(ConnectionInfo *pStorageServer, \
 		int2buff(pRecord->timestamp, p);
 		p += 4;
 
-		sprintf(p, "%s", g_group_name);
+		strcpy(p, g_group_name);
 		p += FDFS_GROUP_NAME_MAX_LEN;
 		memcpy(p, pRecord->filename, pRecord->filename_len);
 		p += pRecord->filename_len;
@@ -585,7 +634,7 @@ static int storage_sync_truncate_file(ConnectionInfo *pStorageServer, \
 		int2buff(pRecord->timestamp, p);
 		p += 4;
 
-		sprintf(p, "%s", g_group_name);
+		strcpy(p, g_group_name);
 		p += FDFS_GROUP_NAME_MAX_LEN;
 		memcpy(p, pRecord->filename, pRecord->filename_len);
 		p += pRecord->filename_len;
@@ -838,6 +887,7 @@ static int storage_sync_link_file(ConnectionInfo *pStorageServer, \
 	char src_full_filename[MAX_PATH_SIZE];
 	char *p;
 	char *pSrcFilename;
+    int filename_len;
 	int src_path_index;
 	int src_filename_len;
 
@@ -902,35 +952,40 @@ static int storage_sync_link_file(ConnectionInfo *pStorageServer, \
 		}
 	}
 
-	pRecord->src_filename_len = src_filename_len - (pSrcFilename - \
-					src_full_filename) + 4;
+    filename_len = src_filename_len - (pSrcFilename - src_full_filename);
+	pRecord->src_filename_len = filename_len + 4;
 	if (pRecord->src_filename_len >= sizeof(pRecord->src_filename))
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"source data file: %s is invalid", \
+		logError("file: "__FILE__", line: %d, "
+			"source data file: %s is invalid",
 			__LINE__, src_full_filename);
 		return EINVAL;
 	}
 
-	sprintf(pRecord->src_filename, "%c"FDFS_STORAGE_DATA_DIR_FORMAT"/%s", \
-			FDFS_STORAGE_STORE_PATH_PREFIX_CHAR, \
-			src_path_index, pSrcFilename);
+    p = pRecord->src_filename;
+    *p++ = FDFS_STORAGE_STORE_PATH_PREFIX_CHAR;
+    *p++ = g_upper_hex_chars[(src_path_index >> 4) & 0x0F];
+    *p++ = g_upper_hex_chars[src_path_index & 0x0F];
+    *p++ = '/';
+    memcpy(p, pSrcFilename, filename_len);
+    p += filename_len;
+    *p = '\0';
 	}
 
 	pHeader = (TrackerHeader *)out_buff;
 	memset(out_buff, 0, sizeof(out_buff));
 	long2buff(pRecord->filename_len, out_buff + sizeof(TrackerHeader));
-	long2buff(pRecord->src_filename_len, out_buff + sizeof(TrackerHeader) + \
+	long2buff(pRecord->src_filename_len, out_buff + sizeof(TrackerHeader) +
 			FDFS_PROTO_PKG_LEN_SIZE);
-	int2buff(pRecord->timestamp, out_buff + sizeof(TrackerHeader) + \
+	int2buff(pRecord->timestamp, out_buff + sizeof(TrackerHeader) +
 			2 * FDFS_PROTO_PKG_LEN_SIZE);
-	sprintf(out_buff + sizeof(TrackerHeader) + 2 * FDFS_PROTO_PKG_LEN_SIZE\
-		 + 4, "%s", g_group_name);
-	memcpy(out_buff + sizeof(TrackerHeader) + 2 * FDFS_PROTO_PKG_LEN_SIZE \
-		+ 4 + FDFS_GROUP_NAME_MAX_LEN, \
-		pRecord->filename, pRecord->filename_len);
-	memcpy(out_buff + sizeof(TrackerHeader) + 2 * FDFS_PROTO_PKG_LEN_SIZE \
-		+ 4 + FDFS_GROUP_NAME_MAX_LEN + pRecord->filename_len, \
+	strcpy(out_buff + sizeof(TrackerHeader) + 2 * FDFS_PROTO_PKG_LEN_SIZE
+		 + 4, g_group_name);
+	memcpy(out_buff + sizeof(TrackerHeader) + 2 * FDFS_PROTO_PKG_LEN_SIZE
+		+ 4 + FDFS_GROUP_NAME_MAX_LEN, pRecord->filename,
+        pRecord->filename_len);
+	memcpy(out_buff + sizeof(TrackerHeader) + 2 * FDFS_PROTO_PKG_LEN_SIZE
+		+ 4 + FDFS_GROUP_NAME_MAX_LEN + pRecord->filename_len,
 		pRecord->src_filename, pRecord->src_filename_len);
 
 	out_body_len = 2 * FDFS_PROTO_PKG_LEN_SIZE + 4 + \
@@ -1034,8 +1089,8 @@ static int storage_sync_rename_file(ConnectionInfo *pStorageServer,
 			FDFS_PROTO_PKG_LEN_SIZE);
 	int2buff(pRecord->timestamp, out_buff + sizeof(TrackerHeader) +
 			2 * FDFS_PROTO_PKG_LEN_SIZE);
-	sprintf(out_buff + sizeof(TrackerHeader) + 2 * FDFS_PROTO_PKG_LEN_SIZE
-		 + 4, "%s", g_group_name);
+	strcpy(out_buff + sizeof(TrackerHeader) + 2 * FDFS_PROTO_PKG_LEN_SIZE
+		 + 4, g_group_name);
 	memcpy(out_buff + sizeof(TrackerHeader) + 2 * FDFS_PROTO_PKG_LEN_SIZE
 		+ 4 + FDFS_GROUP_NAME_MAX_LEN,
 		pRecord->filename, pRecord->filename_len);
@@ -1220,12 +1275,16 @@ static int write_to_binlog_index(const int binlog_index)
 {
 	char full_filename[MAX_PATH_SIZE];
 	char buff[256];
+    char *p;
 	int fd;
 	int len;
 
-	snprintf(full_filename, sizeof(full_filename),
-			"%s/data/"SYNC_DIR_NAME"/%s", SF_G_BASE_PATH_STR,
-			SYNC_BINLOG_INDEX_FILENAME);
+    fc_get_one_subdir_full_filename(
+            SF_G_BASE_PATH_STR, SF_G_BASE_PATH_LEN,
+            SYNC_SUBDIR_NAME_STR, SYNC_SUBDIR_NAME_LEN,
+            SYNC_BINLOG_INDEX_FILENAME_STR,
+            SYNC_BINLOG_INDEX_FILENAME_LEN,
+            full_filename);
 	if ((fd=open(full_filename, O_WRONLY | O_CREAT | O_TRUNC, 0644)) < 0)
 	{
 		logError("file: "__FILE__", line: %d, "
@@ -1236,10 +1295,21 @@ static int write_to_binlog_index(const int binlog_index)
 		return errno != 0 ? errno : ENOENT;
 	}
 
-	len = sprintf(buff, "%s=%d\n"
-            "%s=%d\n",
-            BINLOG_INDEX_ITEM_CURRENT_WRITE, binlog_index,
-            BINLOG_INDEX_ITEM_CURRENT_COMPRESS, binlog_compress_index);
+    p = buff;
+    memcpy(p, BINLOG_INDEX_ITEM_CURRENT_WRITE_STR,
+            BINLOG_INDEX_ITEM_CURRENT_WRITE_LEN);
+    p += BINLOG_INDEX_ITEM_CURRENT_WRITE_LEN;
+    *p++ = '=';
+    p += fc_itoa(binlog_index, p);
+    *p++ = '\n';
+
+    memcpy(p, BINLOG_INDEX_ITEM_CURRENT_COMPRESS_STR,
+            BINLOG_INDEX_ITEM_CURRENT_COMPRESS_LEN);
+    p += BINLOG_INDEX_ITEM_CURRENT_COMPRESS_LEN;
+    *p++ = '=';
+    p += fc_itoa(binlog_compress_index, p);
+    *p++ = '\n';
+	len = p - buff;
 	if (fc_safe_write(fd, buff, len) != len)
 	{
 		logError("file: "__FILE__", line: %d, "
@@ -1265,9 +1335,12 @@ static int get_binlog_index_from_file_old()
 	int fd;
 	int bytes;
 
-	snprintf(full_filename, sizeof(full_filename),
-			"%s/data/"SYNC_DIR_NAME"/%s", SF_G_BASE_PATH_STR,
-			SYNC_BINLOG_INDEX_FILENAME_OLD);
+    fc_get_one_subdir_full_filename(
+            SF_G_BASE_PATH_STR, SF_G_BASE_PATH_LEN,
+            SYNC_SUBDIR_NAME_STR, SYNC_SUBDIR_NAME_LEN,
+            SYNC_BINLOG_INDEX_FILENAME_OLD_STR,
+            SYNC_BINLOG_INDEX_FILENAME_OLD_LEN,
+            full_filename);
 	if ((fd=open(full_filename, O_RDONLY)) >= 0)
 	{
 		bytes = fc_safe_read(fd, file_buff, sizeof(file_buff) - 1);
@@ -1304,9 +1377,12 @@ static int get_binlog_index_from_file()
     IniContext iniContext;
     int result;
 
-    snprintf(full_filename, sizeof(full_filename),
-            "%s/data/"SYNC_DIR_NAME"/%s", SF_G_BASE_PATH_STR,
-            SYNC_BINLOG_INDEX_FILENAME);
+    fc_get_one_subdir_full_filename(
+            SF_G_BASE_PATH_STR, SF_G_BASE_PATH_LEN,
+            SYNC_SUBDIR_NAME_STR, SYNC_SUBDIR_NAME_LEN,
+            SYNC_BINLOG_INDEX_FILENAME_STR,
+            SYNC_BINLOG_INDEX_FILENAME_LEN,
+            full_filename);
     if (access(full_filename, F_OK) != 0)
     {
         if (errno == ENOENT)
@@ -1334,17 +1410,64 @@ static int get_binlog_index_from_file()
     }
 
     g_binlog_index = iniGetIntValue(NULL,
-            BINLOG_INDEX_ITEM_CURRENT_WRITE,
+            BINLOG_INDEX_ITEM_CURRENT_WRITE_STR,
             &iniContext, 0);
     binlog_compress_index = iniGetIntValue(NULL,
-            BINLOG_INDEX_ITEM_CURRENT_COMPRESS,
+            BINLOG_INDEX_ITEM_CURRENT_COMPRESS_STR,
             &iniContext, 0);
 
     iniFreeContext(&iniContext);
     return 0;
 }
 
-static char *get_writable_binlog_filename(char *full_filename)
+static char *get_binlog_filename(char *full_filename,
+		const int binlog_index)
+{
+#define SYNC_SUBDIR_AND_FILE_PREFIX_STR       \
+    SYNC_SUBDIR_NAME_STR"/"SYNC_BINLOG_FILE_PREFIX_STR
+#define SYNC_SUBDIR_AND_FILE_PREFIX_LEN       \
+    (sizeof(SYNC_SUBDIR_AND_FILE_PREFIX_STR) - 1)
+
+    char *p;
+
+    if (SF_G_BASE_PATH_LEN + SYNC_SUBDIR_NAME_LEN +
+            SYNC_BINLOG_FILE_PREFIX_LEN + 8 > MAX_PATH_SIZE)
+    {
+        snprintf(full_filename, MAX_PATH_SIZE,
+                "%s/"SYNC_SUBDIR_AND_FILE_PREFIX_STR""
+                SYNC_BINLOG_FILE_EXT_FMT,
+                SF_G_BASE_PATH_STR, binlog_index);
+    }
+    else
+    {
+        p = full_filename;
+        memcpy(p, SF_G_BASE_PATH_STR, SF_G_BASE_PATH_LEN);
+        p += SF_G_BASE_PATH_LEN;
+        *p++ = '/';
+        memcpy(p, SYNC_SUBDIR_AND_FILE_PREFIX_STR,
+                SYNC_SUBDIR_AND_FILE_PREFIX_LEN);
+        p += SYNC_SUBDIR_AND_FILE_PREFIX_LEN;
+        *p++ = '.';
+        fc_ltostr_ex(binlog_index, p, SYNC_BINLOG_FILE_EXT_LEN);
+    }
+
+	return full_filename;
+}
+
+static inline char *get_writable_binlog_filename(char *full_filename)
+{
+    static char buff[MAX_PATH_SIZE];
+
+    if (full_filename == NULL)
+    {
+        full_filename = buff;
+    }
+
+    return get_binlog_filename(full_filename, g_binlog_index);
+}
+
+static char *get_binlog_readable_filename_ex(
+        const int binlog_index, char *full_filename)
 {
 	static char buff[MAX_PATH_SIZE];
 
@@ -1353,21 +1476,15 @@ static char *get_writable_binlog_filename(char *full_filename)
 		full_filename = buff;
 	}
 
-	snprintf(full_filename, MAX_PATH_SIZE, \
-			"%s/data/"SYNC_DIR_NAME"/"SYNC_BINLOG_FILE_PREFIX"" \
-			SYNC_BINLOG_FILE_EXT_FMT, \
-			SF_G_BASE_PATH_STR, g_binlog_index);
-	return full_filename;
+    return get_binlog_filename(full_filename, binlog_index);
 }
 
-static char *get_writable_binlog_filename1(char *full_filename, \
-		const int binlog_index)
+static inline char *get_binlog_readable_filename(const void *pArg,
+		char *full_filename)
 {
-	snprintf(full_filename, MAX_PATH_SIZE, \
-			"%s/data/"SYNC_DIR_NAME"/"SYNC_BINLOG_FILE_PREFIX"" \
-			SYNC_BINLOG_FILE_EXT_FMT, \
-			SF_G_BASE_PATH_STR, binlog_index);
-	return full_filename;
+    return get_binlog_readable_filename_ex(
+            ((const StorageBinLogReader *)pArg)->binlog_index,
+            full_filename);
 }
 
 static int open_next_writable_binlog()
@@ -1380,7 +1497,7 @@ static int open_next_writable_binlog()
 		g_binlog_fd = -1;
 	}
 
-	get_writable_binlog_filename1(full_filename, g_binlog_index + 1);
+	get_binlog_filename(full_filename, g_binlog_index + 1);
 	if (fileExists(full_filename))
 	{
 		if (unlink(full_filename) != 0)
@@ -1419,9 +1536,11 @@ int storage_sync_init()
 	char data_path[MAX_PATH_SIZE];
 	char sync_path[MAX_PATH_SIZE];
 	char full_filename[MAX_PATH_SIZE];
+    int path_len;
 	int result;
 
-	snprintf(data_path, sizeof(data_path), "%s/data", SF_G_BASE_PATH_STR);
+    path_len = fc_get_full_filepath(SF_G_BASE_PATH_STR,
+            SF_G_BASE_PATH_LEN, "data", 4, data_path);
 	if (!fileExists(data_path))
 	{
 		if (mkdir(data_path, 0755) != 0)
@@ -1437,8 +1556,9 @@ int storage_sync_init()
 		SF_CHOWN_TO_RUNBY_RETURN_ON_ERROR(data_path);
 	}
 
-	snprintf(sync_path, sizeof(sync_path), \
-			"%s/"SYNC_DIR_NAME, data_path);
+    fc_get_full_filepath(data_path, path_len,
+            SYNC_DIR_NAME_STR, SYNC_DIR_NAME_LEN,
+            sync_path);
 	if (!fileExists(sync_path))
 	{
 		if (mkdir(sync_path, 0755) != 0)
@@ -1668,11 +1788,13 @@ static int storage_binlog_fsync(const bool bNeedLock)
 	return write_ret;
 }
 
-int storage_binlog_write_ex(const int timestamp, const char op_type, \
-		const char *filename, const char *extra)
+int storage_binlog_write_ex(const time_t timestamp, const char op_type,
+		const char *filename_str, const int filename_len,
+        const char *extra_str, const int extra_len)
 {
 	int result;
 	int write_ret;
+    char *p;
 
 	if ((result=pthread_mutex_lock(&sync_thread_lock)) != 0)
 	{
@@ -1682,18 +1804,21 @@ int storage_binlog_write_ex(const int timestamp, const char op_type, \
 			__LINE__, result, STRERROR(result));
 	}
 
-	if (extra != NULL)
-	{
-		binlog_write_cache_len += sprintf(binlog_write_cache_buff + \
-					binlog_write_cache_len, "%d %c %s %s\n",\
-					timestamp, op_type, filename, extra);
-	}
-	else
-	{
-		binlog_write_cache_len += sprintf(binlog_write_cache_buff + \
-					binlog_write_cache_len, "%d %c %s\n", \
-					timestamp, op_type, filename);
-	}
+    p = binlog_write_cache_buff + binlog_write_cache_len;
+    p += fc_itoa(timestamp, p);
+    *p++ = ' ';
+    *p++ = op_type;
+    *p++ = ' ';
+    memcpy(p, filename_str, filename_len);
+    p += filename_len;
+	if (extra_str != NULL)
+    {
+        *p++ = ' ';
+        memcpy(p, extra_str, extra_len);
+        p += extra_len;
+    }
+    *p++ = '\n';
+    binlog_write_cache_len = p - binlog_write_cache_buff;
 
 	//check if buff full
 	if (SYNC_BINLOG_WRITE_BUFF_SIZE - binlog_write_cache_len < 256)
@@ -1716,45 +1841,54 @@ int storage_binlog_write_ex(const int timestamp, const char op_type, \
 	return write_ret;
 }
 
-static char *get_binlog_readable_filename_ex(
-        const int binlog_index, char *full_filename)
-{
-	static char buff[MAX_PATH_SIZE];
-
-	if (full_filename == NULL)
-	{
-		full_filename = buff;
-	}
-
-	snprintf(full_filename, MAX_PATH_SIZE,
-			"%s/data/"SYNC_DIR_NAME"/"SYNC_BINLOG_FILE_PREFIX""
-			SYNC_BINLOG_FILE_EXT_FMT,
-			SF_G_BASE_PATH_STR, binlog_index);
-	return full_filename;
-}
-
-static inline char *get_binlog_readable_filename(const void *pArg,
-		char *full_filename)
-{
-    return get_binlog_readable_filename_ex(
-            ((const StorageBinLogReader *)pArg)->binlog_index,
-            full_filename);
-}
-
 static void get_binlog_flag_file(const char *filepath,
         char *flag_filename, const int size)
 {
     const char *filename;
+    char *p;
+    int path_len;
+    int base_len;
+    int file_len;
 
+    path_len = strlen(filepath);
     filename = strrchr(filepath, '/');
-    if (filename == NULL)
+    if (path_len + 6 >= size)
     {
-        snprintf(flag_filename, size, ".%s.flag", filepath);
+        if (filename == NULL)
+        {
+            snprintf(flag_filename, size, ".%s.flag", filepath);
+        }
+        else
+        {
+            snprintf(flag_filename, size, "%.*s.%s.flag",
+                    (int)(filename - filepath + 1), filepath, filename + 1);
+        }
     }
     else
     {
-        snprintf(flag_filename, size, "%.*s.%s.flag",
-                (int)(filename - filepath + 1), filepath, filename + 1);
+        p = flag_filename;
+        if (filename == NULL)
+        {
+            *p++ = '.';
+            memcpy(p, filepath, path_len);
+            p += path_len;
+        }
+        else
+        {
+            base_len = (filename + 1) - filepath;
+            file_len = path_len - base_len;
+            memcpy(p, filepath, base_len);
+            p += base_len;
+            *p++ = '.';
+            memcpy(p, filename + 1, file_len);
+            p += file_len;
+        }
+        *p++ = '.';
+        *p++ = 'f';
+        *p++ = 'l';
+        *p++ = 'a';
+        *p++ = 'g';
+        *p = '\0';
     }
 }
 
@@ -1768,8 +1902,7 @@ static int uncompress_binlog_file(StorageBinLogReader *pReader,
     struct stat flag_stat;
     int result;
 
-    snprintf(gzip_filename, sizeof(gzip_filename),
-            "%s.gz", filename);
+    fc_combine_two_strings(filename, "gz", '.', gzip_filename);
     if (access(gzip_filename, F_OK) != 0)
     {
         return errno != 0 ? errno : ENOENT;
@@ -1844,8 +1977,7 @@ static int compress_binlog_file(const char *filename)
     struct stat flag_stat;
     int result;
 
-    snprintf(gzip_filename, sizeof(gzip_filename),
-            "%s.gz", filename);
+    fc_combine_two_strings(filename, "gz", '.', gzip_filename);
     if (access(gzip_filename, F_OK) == 0)
     {
         return 0;
@@ -1955,31 +2087,81 @@ int storage_open_readable_binlog(StorageBinLogReader *pReader, \
 	return 0;
 }
 
-static char *get_mark_filename_by_id_and_port(const char *storage_id,
-		const int port, char *full_filename, const int filename_size)
-{
-	if (g_use_storage_id)
-	{
-		snprintf(full_filename, filename_size,
-			"%s/data/"SYNC_DIR_NAME"/%s%s", SF_G_BASE_PATH_STR,
-			storage_id, SYNC_MARK_FILE_EXT);
-	}
-	else
-	{
-		snprintf(full_filename, filename_size,
-			"%s/data/"SYNC_DIR_NAME"/%s_%d%s", SF_G_BASE_PATH_STR,
-			storage_id, port, SYNC_MARK_FILE_EXT);
-	}
-	return full_filename;
-}
-
 static char *get_mark_filename_by_ip_and_port(const char *ip_addr,
 		const int port, char *full_filename, const int filename_size)
 {
-	snprintf(full_filename, filename_size,
-		"%s/data/"SYNC_DIR_NAME"/%s_%d%s", SF_G_BASE_PATH_STR,
-		ip_addr, port, SYNC_MARK_FILE_EXT);
-	return full_filename;
+    int ip_len;
+    char *p;
+
+    ip_len = strlen(ip_addr);
+    if (SF_G_BASE_PATH_LEN + SYNC_SUBDIR_NAME_LEN + ip_len +
+            SYNC_MARK_FILE_EXT_LEN + 8 >= filename_size)
+    {
+        snprintf(full_filename, filename_size,
+                "%s/"SYNC_SUBDIR_NAME_STR"/%s_%d%s",
+                SF_G_BASE_PATH_STR, ip_addr, port,
+                SYNC_MARK_FILE_EXT_STR);
+    }
+    else
+    {
+        p = full_filename;
+        memcpy(p, SF_G_BASE_PATH_STR, SF_G_BASE_PATH_LEN);
+        p += SF_G_BASE_PATH_LEN;
+        *p++ = '/';
+        memcpy(p, SYNC_SUBDIR_NAME_STR, SYNC_SUBDIR_NAME_LEN);
+        p += SYNC_SUBDIR_NAME_LEN;
+        *p++ = '/';
+        memcpy(p, ip_addr, ip_len);
+        p += ip_len;
+        *p++ = '_';
+        p += fc_itoa(port, p);
+        memcpy(p, SYNC_MARK_FILE_EXT_STR, SYNC_MARK_FILE_EXT_LEN);
+        p += SYNC_MARK_FILE_EXT_LEN;
+        *p = '\0';
+    }
+    return full_filename;
+}
+
+static char *get_mark_filename_by_id_and_port(const char *storage_id,
+		const int port, char *full_filename, const int filename_size)
+{
+    int id_len;
+    char *p;
+
+    if (g_use_storage_id)
+    {
+        id_len = strlen(storage_id);
+        if (SF_G_BASE_PATH_LEN + SYNC_SUBDIR_NAME_LEN + id_len +
+                SYNC_MARK_FILE_EXT_LEN + 2 >= filename_size)
+        {
+            snprintf(full_filename, filename_size,
+                    "%s/"SYNC_SUBDIR_NAME_STR"/%s%s",
+                    SF_G_BASE_PATH_STR, storage_id,
+                    SYNC_MARK_FILE_EXT_STR);
+        }
+        else
+        {
+            p = full_filename;
+            memcpy(p, SF_G_BASE_PATH_STR, SF_G_BASE_PATH_LEN);
+            p += SF_G_BASE_PATH_LEN;
+            *p++ = '/';
+            memcpy(p, SYNC_SUBDIR_NAME_STR, SYNC_SUBDIR_NAME_LEN);
+            p += SYNC_SUBDIR_NAME_LEN;
+            *p++ = '/';
+            memcpy(p, storage_id, id_len);
+            p += id_len;
+            memcpy(p, SYNC_MARK_FILE_EXT_STR, SYNC_MARK_FILE_EXT_LEN);
+            p += SYNC_MARK_FILE_EXT_LEN;
+            *p = '\0';
+        }
+
+        return full_filename;
+    }
+    else
+    {
+        return get_mark_filename_by_ip_and_port(storage_id,
+                port, full_filename, filename_size);
+    }
 }
 
 char *get_mark_filename_by_reader(StorageBinLogReader *pReader)
@@ -2305,7 +2487,7 @@ int storage_reader_init(FDFSStorageBrief *pStorage, StorageBinLogReader *pReader
 		}
 
 		bNeedSyncOld = iniGetBoolValue(NULL,
-				MARK_ITEM_NEED_SYNC_OLD,
+				MARK_ITEM_NEED_SYNC_OLD_STR,
 				&iniContext, false);
 		if (pStorage != NULL && pStorage->status ==
 			FDFS_STORAGE_STATUS_SYNCING)
@@ -2333,22 +2515,22 @@ int storage_reader_init(FDFSStorageBrief *pStorage, StorageBinLogReader *pReader
 		if (bFileExist)
 		{
 			pReader->binlog_index = iniGetIntValue(NULL, \
-					MARK_ITEM_BINLOG_FILE_INDEX, \
+					MARK_ITEM_BINLOG_FILE_INDEX_STR, \
 					&iniContext, -1);
 			pReader->binlog_offset = iniGetInt64Value(NULL, \
-					MARK_ITEM_BINLOG_FILE_OFFSET, \
+					MARK_ITEM_BINLOG_FILE_OFFSET_STR, \
 					&iniContext, -1);
 			pReader->sync_old_done = iniGetBoolValue(NULL,  \
-					MARK_ITEM_SYNC_OLD_DONE, \
+					MARK_ITEM_SYNC_OLD_DONE_STR, \
 					&iniContext, false);
 			pReader->until_timestamp = iniGetIntValue(NULL, \
-					MARK_ITEM_UNTIL_TIMESTAMP, \
+					MARK_ITEM_UNTIL_TIMESTAMP_STR, \
 					&iniContext, -1);
 			pReader->scan_row_count = iniGetInt64Value(NULL, \
-					MARK_ITEM_SCAN_ROW_COUNT, \
+					MARK_ITEM_SCAN_ROW_COUNT_STR, \
 					&iniContext, 0);
 			pReader->sync_row_count = iniGetInt64Value(NULL, \
-					MARK_ITEM_SYNC_ROW_COUNT, \
+					MARK_ITEM_SYNC_ROW_COUNT_STR, \
 					&iniContext, 0);
 
 			if (pReader->binlog_index < 0)
@@ -2430,26 +2612,82 @@ void storage_reader_destroy(StorageBinLogReader *pReader)
 static int storage_write_to_mark_file(StorageBinLogReader *pReader)
 {
 	char buff[256];
-	int len;
+    char *p;
 	int result;
 
-	len = sprintf(buff,
-		"%s=%d\n"
-		"%s=%"PRId64"\n"
-		"%s=%d\n"
-		"%s=%d\n"
-		"%s=%d\n"
-		"%s=%"PRId64"\n"
-		"%s=%"PRId64"\n",
-		MARK_ITEM_BINLOG_FILE_INDEX, pReader->binlog_index,
-		MARK_ITEM_BINLOG_FILE_OFFSET, pReader->binlog_offset,
-		MARK_ITEM_NEED_SYNC_OLD, pReader->need_sync_old,
-		MARK_ITEM_SYNC_OLD_DONE, pReader->sync_old_done,
-		MARK_ITEM_UNTIL_TIMESTAMP, (int)pReader->until_timestamp,
-		MARK_ITEM_SCAN_ROW_COUNT, pReader->scan_row_count,
-		MARK_ITEM_SYNC_ROW_COUNT, pReader->sync_row_count);
+    p = buff;
+    memcpy(p, MARK_ITEM_BINLOG_FILE_INDEX_STR,
+            MARK_ITEM_BINLOG_FILE_INDEX_LEN);
+    p += MARK_ITEM_BINLOG_FILE_INDEX_LEN;
+    *p++ = '=';
+    p += fc_itoa(pReader->binlog_index, p);
+    *p++ = '\n';
 
-	if ((result=safeWriteToFile(pReader->mark_filename, buff, len)) == 0)
+    memcpy(p, MARK_ITEM_BINLOG_FILE_OFFSET_STR,
+            MARK_ITEM_BINLOG_FILE_OFFSET_LEN);
+    p += MARK_ITEM_BINLOG_FILE_OFFSET_LEN;
+    *p++ = '=';
+    p += fc_itoa(pReader->binlog_offset, p);
+    *p++ = '\n';
+
+    memcpy(p, MARK_ITEM_NEED_SYNC_OLD_STR,
+            MARK_ITEM_NEED_SYNC_OLD_LEN);
+    p += MARK_ITEM_NEED_SYNC_OLD_LEN;
+    *p++ = '=';
+    if (pReader->need_sync_old == 0)
+    {
+        *p++ = '0';
+    }
+    else if (pReader->need_sync_old == 1)
+    {
+        *p++ = '1';
+    }
+    else
+    {
+        p += fc_itoa(pReader->need_sync_old, p);
+    }
+    *p++ = '\n';
+
+    memcpy(p, MARK_ITEM_SYNC_OLD_DONE_STR,
+            MARK_ITEM_SYNC_OLD_DONE_LEN);
+    p += MARK_ITEM_SYNC_OLD_DONE_LEN;
+    *p++ = '=';
+    if (pReader->sync_old_done == 0)
+    {
+        *p++ = '0';
+    }
+    else if (pReader->sync_old_done == 1)
+    {
+        *p++ = '1';
+    }
+    else
+    {
+        p += fc_itoa(pReader->sync_old_done, p);
+    }
+    *p++ = '\n';
+
+    memcpy(p, MARK_ITEM_UNTIL_TIMESTAMP_STR,
+            MARK_ITEM_UNTIL_TIMESTAMP_LEN);
+    p += MARK_ITEM_UNTIL_TIMESTAMP_LEN;
+    *p++ = '=';
+    p += fc_itoa(pReader->until_timestamp, p);
+    *p++ = '\n';
+
+    memcpy(p, MARK_ITEM_SCAN_ROW_COUNT_STR,
+            MARK_ITEM_SCAN_ROW_COUNT_LEN);
+    p += MARK_ITEM_SCAN_ROW_COUNT_LEN;
+    *p++ = '=';
+    p += fc_itoa(pReader->scan_row_count, p);
+    *p++ = '\n';
+
+    memcpy(p, MARK_ITEM_SYNC_ROW_COUNT_STR,
+            MARK_ITEM_SYNC_ROW_COUNT_LEN);
+    p += MARK_ITEM_SYNC_ROW_COUNT_LEN;
+    *p++ = '=';
+    p += fc_itoa(pReader->sync_row_count, p);
+    *p++ = '\n';
+
+    if ((result=safeWriteToFile(pReader->mark_filename, buff, p - buff)) == 0)
 	{
         SF_CHOWN_TO_RUNBY_RETURN_ON_ERROR(pReader->mark_filename);
 		pReader->last_scan_rows = pReader->scan_row_count;
@@ -2799,14 +3037,14 @@ int storage_rename_mark_file(const char *old_ip_addr, const int old_port, \
 	char old_filename[MAX_PATH_SIZE];
 	char new_filename[MAX_PATH_SIZE];
 
-	get_mark_filename_by_id_and_port(old_ip_addr, old_port, \
+	get_mark_filename_by_id_and_port(old_ip_addr, old_port,
 			old_filename, sizeof(old_filename));
 	if (!fileExists(old_filename))
 	{
 		return ENOENT;
 	}
 
-	get_mark_filename_by_id_and_port(new_ip_addr, new_port, \
+	get_mark_filename_by_id_and_port(new_ip_addr, new_port,
 			new_filename, sizeof(new_filename));
 	if (fileExists(new_filename))
 	{
