@@ -40,13 +40,31 @@
 #include "storage_sync_func.h"
 #include "trunk_sync.h"
 
-#define TRUNK_SYNC_BINLOG_FILENAME_STR	"binlog"
-#define TRUNK_SYNC_BINLOG_FILENAME_LEN  (sizeof(TRUNK_SYNC_BINLOG_FILENAME_STR) - 1)
-#define TRUNK_SYNC_BINLOG_ROLLBACK_EXT	".rollback"
-#define TRUNK_SYNC_MARK_FILE_EXT_STR	".mark"
-#define TRUNK_SYNC_MARK_FILE_EXT_LEN	(sizeof(TRUNK_SYNC_MARK_FILE_EXT_STR) - 1)
-#define TRUNK_DIR_NAME			        "trunk"
-#define MARK_ITEM_BINLOG_FILE_OFFSET	"binlog_offset"
+#define TRUNK_SYNC_BINLOG_FILENAME_STR	 "binlog"
+#define TRUNK_SYNC_BINLOG_FILENAME_LEN   \
+    (sizeof(TRUNK_SYNC_BINLOG_FILENAME_STR) - 1)
+
+#define TRUNK_SYNC_BINLOG_ROLLBACK_EXT	 ".rollback"
+
+#define TRUNK_SYNC_MARK_FILE_EXT_STR	 ".mark"
+#define TRUNK_SYNC_MARK_FILE_EXT_LEN	 \
+    (sizeof(TRUNK_SYNC_MARK_FILE_EXT_STR) - 1)
+
+#define TRUNK_DIR_NAME_STR		  "trunk"
+#define TRUNK_DIR_NAME_LEN		  (sizeof(TRUNK_DIR_NAME_STR) - 1)
+
+#define TRUNK_SUBDIR_NAME_STR     "data/"TRUNK_DIR_NAME_STR
+#define TRUNK_SUBDIR_NAME_LEN     (sizeof(TRUNK_SUBDIR_NAME_STR) - 1)
+
+#define TRUNK_BINLOG_FILENAME_WITH_SUBDIRS_STR   \
+    TRUNK_SUBDIR_NAME_STR"/"TRUNK_SYNC_BINLOG_FILENAME_STR
+#define TRUNK_BINLOG_FILENAME_WITH_SUBDIRS_LEN   \
+    (sizeof(TRUNK_BINLOG_FILENAME_WITH_SUBDIRS_STR) - 1)
+
+
+#define MARK_ITEM_BINLOG_FILE_OFFSET_STR "binlog_offset"
+#define MARK_ITEM_BINLOG_FILE_OFFSET_LEN \
+    (sizeof(MARK_ITEM_BINLOG_FILE_OFFSET_STR) - 1)
 
 static int trunk_binlog_fd = -1;
 
@@ -84,10 +102,12 @@ static int trunk_binlog_preread(TrunkBinLogReader *pReader);
 
 char *get_trunk_binlog_filename(char *full_filename)
 {
-	snprintf(full_filename, MAX_PATH_SIZE, \
-		"%s/data/"TRUNK_DIR_NAME"/"TRUNK_SYNC_BINLOG_FILENAME_STR, \
-		SF_G_BASE_PATH_STR);
-	return full_filename;
+    fc_get_full_filename_ex(
+            SF_G_BASE_PATH_STR, SF_G_BASE_PATH_LEN,
+            TRUNK_BINLOG_FILENAME_WITH_SUBDIRS_STR,
+            TRUNK_BINLOG_FILENAME_WITH_SUBDIRS_LEN,
+            full_filename, MAX_PATH_SIZE);
+    return full_filename;
 }
 
 static char *get_trunk_binlog_rollback_filename(char *full_filename)
@@ -115,7 +135,7 @@ static char *get_trunk_data_rollback_filename(char *full_filename)
 }
 
 char *get_trunk_binlog_tmp_filename_ex(const char *binlog_filename,
-        char *tmp_filename)
+        char *tmp_filename, const int size)
 {
     const char *true_binlog_filename;
 	char filename[MAX_PATH_SIZE];
@@ -130,7 +150,9 @@ char *get_trunk_binlog_tmp_filename_ex(const char *binlog_filename,
         true_binlog_filename = binlog_filename;
     }
 
-	sprintf(tmp_filename, "%s.tmp", true_binlog_filename);
+    fc_combine_two_strings_ex(true_binlog_filename,
+            strlen(true_binlog_filename),
+            "tmp", 3, '.', tmp_filename, size);
     return tmp_filename;
 }
 
@@ -171,9 +193,11 @@ int trunk_sync_init()
 	char data_path[MAX_PATH_SIZE];
 	char sync_path[MAX_PATH_SIZE];
 	char binlog_filename[MAX_PATH_SIZE];
+    int path_len;
 	int result;
 
-	snprintf(data_path, sizeof(data_path), "%s/data", SF_G_BASE_PATH_STR);
+    path_len = fc_get_full_filepath(SF_G_BASE_PATH_STR,
+            SF_G_BASE_PATH_LEN, "data", 4, data_path);
 	if (!fileExists(data_path))
 	{
 		if (mkdir(data_path, 0755) != 0)
@@ -189,8 +213,9 @@ int trunk_sync_init()
 		SF_CHOWN_TO_RUNBY_RETURN_ON_ERROR(data_path);
 	}
 
-	snprintf(sync_path, sizeof(sync_path), \
-			"%s/"TRUNK_DIR_NAME, data_path);
+    fc_get_full_filepath(data_path, path_len,
+            TRUNK_DIR_NAME_STR, TRUNK_DIR_NAME_LEN,
+            sync_path);
 	if (!fileExists(sync_path))
 	{
 		if (mkdir(sync_path, 0755) != 0)
@@ -482,14 +507,15 @@ static int trunk_binlog_delete_overflow_backups()
     int result;
     int i;
     int over_count;
+    int path_len;
 	char file_path[MAX_PATH_SIZE];
 	char full_filename[MAX_PATH_SIZE];
     DIR *dir;
     struct dirent *ent;
     TrunkBinlogBackupFileArray file_array;
 
-	snprintf(file_path, sizeof(file_path),
-		"%s/data/%s", SF_G_BASE_PATH_STR, TRUNK_DIR_NAME);
+    path_len = fc_get_full_filepath(SF_G_BASE_PATH_STR, SF_G_BASE_PATH_LEN,
+            TRUNK_SUBDIR_NAME_STR, TRUNK_SUBDIR_NAME_LEN, file_path);
     if ((dir=opendir(file_path)) == NULL)
     {
         result = errno != 0 ? errno : EPERM;
@@ -538,8 +564,10 @@ static int trunk_binlog_delete_overflow_backups()
             trunk_binlog_compare_filename);
     for (i=0; i<over_count; i++)
     {
-        sprintf(full_filename, "%s/%s", file_path,
-                file_array.files[i].filename);
+        fc_get_full_filename(file_path, path_len,
+                file_array.files[i].filename,
+                strlen(file_array.files[i].filename),
+                full_filename);
         unlink(full_filename);
     }
 
@@ -798,7 +826,8 @@ static int trunk_binlog_merge_file(int old_fd, const int stage)
 	char buff[64 * 1024];
 
     get_trunk_binlog_filename(binlog_filename);
-    get_trunk_binlog_tmp_filename_ex(binlog_filename, tmp_filename);
+    get_trunk_binlog_tmp_filename_ex(binlog_filename,
+            tmp_filename, sizeof(tmp_filename));
 	tmp_fd = open(tmp_filename, O_WRONLY | O_CREAT | O_TRUNC, 0644);
 	if (tmp_fd < 0)
 	{
@@ -1325,6 +1354,7 @@ int trunk_binlog_write(const int timestamp, const char op_type, \
 {
 	int result;
 	int write_ret;
+    char *p;
 
 	if ((result=pthread_mutex_lock(&trunk_sync_thread_lock)) != 0)
 	{
@@ -1334,16 +1364,24 @@ int trunk_binlog_write(const int timestamp, const char op_type, \
 			__LINE__, result, STRERROR(result));
 	}
 
-	trunk_binlog_write_cache_len += sprintf(trunk_binlog_write_cache_buff + \
-					trunk_binlog_write_cache_len, \
-					"%d %c %d %d %d %u %d %d\n", \
-					timestamp, op_type, \
-					pTrunk->path.store_path_index, \
-					pTrunk->path.sub_path_high, \
-					pTrunk->path.sub_path_low, \
-					pTrunk->file.id, \
-					pTrunk->file.offset, \
-					pTrunk->file.size);
+    p = trunk_binlog_write_cache_buff + trunk_binlog_write_cache_len;
+    p += fc_itoa(timestamp, p);
+    *p++ = ' ';
+    *p++ = op_type;
+    *p++ = ' ';
+    p += fc_itoa(pTrunk->path.store_path_index, p);
+    *p++ = ' ';
+    p += fc_itoa(pTrunk->path.sub_path_high, p);
+    *p++ = ' ';
+    p += fc_itoa(pTrunk->path.sub_path_low, p);
+    *p++ = ' ';
+    p += fc_itoa((uint32_t)pTrunk->file.id, p);
+    *p++ = ' ';
+    p += fc_itoa(pTrunk->file.offset, p);
+    *p++ = ' ';
+    p += fc_itoa(pTrunk->file.size, p);
+    *p++ = '\n';
+    trunk_binlog_write_cache_len = p - trunk_binlog_write_cache_buff;
 
 	//check if buff full
 	if (TRUNK_BINLOG_BUFFER_SIZE - trunk_binlog_write_cache_len < 128)
@@ -1435,9 +1473,11 @@ static char *get_binlog_readable_filename(const void *pArg,
 		full_filename = buff;
 	}
 
-	snprintf(full_filename, MAX_PATH_SIZE, 
-		"%s/data/"TRUNK_DIR_NAME"/"TRUNK_SYNC_BINLOG_FILENAME_STR,
-		SF_G_BASE_PATH_STR);
+    fc_get_full_filename_ex(
+            SF_G_BASE_PATH_STR, SF_G_BASE_PATH_LEN,
+            TRUNK_BINLOG_FILENAME_WITH_SUBDIRS_STR,
+            TRUNK_BINLOG_FILENAME_WITH_SUBDIRS_LEN,
+            full_filename, MAX_PATH_SIZE);
 	return full_filename;
 }
 
@@ -1501,33 +1541,82 @@ int trunk_open_readable_binlog(TrunkBinLogReader *pReader, \
 	return 0;
 }
 
-static char *trunk_get_mark_filename_by_id_and_port(const char *storage_id, \
+static char *trunk_get_mark_filename_by_ip_and_port(const char *ip_addr,
 		const int port, char *full_filename, const int filename_size)
 {
-	if (g_use_storage_id)
-	{
-		snprintf(full_filename, filename_size, \
-			"%s/data/"TRUNK_DIR_NAME"/%s%s", SF_G_BASE_PATH_STR, \
-			storage_id, TRUNK_SYNC_MARK_FILE_EXT_STR);
-	}
-	else
-	{
-		snprintf(full_filename, filename_size, \
-			"%s/data/"TRUNK_DIR_NAME"/%s_%d%s", SF_G_BASE_PATH_STR, \
-			storage_id, port, TRUNK_SYNC_MARK_FILE_EXT_STR);
-	}
+    int ip_len;
+    char *p;
+
+    ip_len = strlen(ip_addr);
+    if (SF_G_BASE_PATH_LEN + TRUNK_SUBDIR_NAME_LEN + ip_len +
+            TRUNK_SYNC_MARK_FILE_EXT_LEN + 10 >= filename_size)
+    {
+        snprintf(full_filename, filename_size,
+                "%s/"TRUNK_SUBDIR_NAME_STR"/%s_%d%s", SF_G_BASE_PATH_STR,
+                ip_addr, port, TRUNK_SYNC_MARK_FILE_EXT_STR);
+    }
+    else
+    {
+        p = full_filename;
+        memcpy(p, SF_G_BASE_PATH_STR, SF_G_BASE_PATH_LEN);
+        p += SF_G_BASE_PATH_LEN;
+        *p++ = '/';
+        memcpy(p, TRUNK_SUBDIR_NAME_STR, TRUNK_SUBDIR_NAME_LEN);
+        p += TRUNK_SUBDIR_NAME_LEN;
+        *p++ = '/';
+        memcpy(p, ip_addr, ip_len);
+        p += ip_len;
+        *p++ = '_';
+        p += fc_itoa(port, p);
+        memcpy(p, TRUNK_SYNC_MARK_FILE_EXT_STR,
+                TRUNK_SYNC_MARK_FILE_EXT_LEN);
+        p += TRUNK_SYNC_MARK_FILE_EXT_LEN;
+        *p = '\0';
+    }
 
 	return full_filename;
 }
 
-static char *trunk_get_mark_filename_by_ip_and_port(const char *ip_addr, \
+static char *trunk_get_mark_filename_by_id_and_port(const char *storage_id,
 		const int port, char *full_filename, const int filename_size)
 {
-	snprintf(full_filename, filename_size, \
-		"%s/data/"TRUNK_DIR_NAME"/%s_%d%s", SF_G_BASE_PATH_STR, \
-		ip_addr, port, TRUNK_SYNC_MARK_FILE_EXT_STR);
+	if (g_use_storage_id)
+	{
+        int id_len;
+        char *p;
 
-	return full_filename;
+        id_len = strlen(storage_id);
+        if (SF_G_BASE_PATH_LEN + TRUNK_SUBDIR_NAME_LEN + id_len +
+                TRUNK_SYNC_MARK_FILE_EXT_LEN + 2 >= filename_size)
+        {
+            snprintf(full_filename, filename_size,
+                    "%s/"TRUNK_SUBDIR_NAME_STR"/%s%s", SF_G_BASE_PATH_STR,
+                    storage_id, TRUNK_SYNC_MARK_FILE_EXT_STR);
+        }
+        else
+        {
+            p = full_filename;
+            memcpy(p, SF_G_BASE_PATH_STR, SF_G_BASE_PATH_LEN);
+            p += SF_G_BASE_PATH_LEN;
+            *p++ = '/';
+            memcpy(p, TRUNK_SUBDIR_NAME_STR, TRUNK_SUBDIR_NAME_LEN);
+            p += TRUNK_SUBDIR_NAME_LEN;
+            *p++ = '/';
+            memcpy(p, storage_id, id_len);
+            p += id_len;
+            memcpy(p, TRUNK_SYNC_MARK_FILE_EXT_STR,
+                    TRUNK_SYNC_MARK_FILE_EXT_LEN);
+            p += TRUNK_SYNC_MARK_FILE_EXT_LEN;
+            *p = '\0';
+        }
+
+        return full_filename;
+	}
+	else
+    {
+        return trunk_get_mark_filename_by_ip_and_port(storage_id,
+                port, full_filename, filename_size);
+    }
 }
 
 char *trunk_mark_filename_by_reader(const void *pArg, char *full_filename)
@@ -1644,7 +1733,7 @@ int trunk_reader_init(const FDFSStorageBrief *pStorage,
 		}
 
 		pReader->binlog_offset = iniGetInt64Value(NULL,
-					MARK_ITEM_BINLOG_FILE_OFFSET,
+					MARK_ITEM_BINLOG_FILE_OFFSET_STR,
 					&iniContext, -1);
 		if (pReader->binlog_offset < 0)
 		{
@@ -1710,14 +1799,17 @@ void trunk_reader_destroy(TrunkBinLogReader *pReader)
 static int trunk_write_to_mark_file(TrunkBinLogReader *pReader)
 {
 	char buff[128];
-	int len;
+    char *p;
 	int result;
 
-	len = sprintf(buff,
-		"%s=%"PRId64"\n",
-		MARK_ITEM_BINLOG_FILE_OFFSET, pReader->binlog_offset);
-
-    if ((result=safeWriteToFile(pReader->mark_filename, buff, len)) == 0)
+    p = buff;
+    memcpy(p, MARK_ITEM_BINLOG_FILE_OFFSET_STR,
+            MARK_ITEM_BINLOG_FILE_OFFSET_LEN);
+    p += MARK_ITEM_BINLOG_FILE_OFFSET_LEN;
+    *p++ = '=';
+    p += fc_itoa(pReader->binlog_offset, p);
+    *p++ = '\n';
+    if ((result=safeWriteToFile(pReader->mark_filename, buff, p - buff)) == 0)
     {
         SF_CHOWN_TO_RUNBY_RETURN_ON_ERROR(pReader->mark_filename);
 		pReader->last_binlog_offset = pReader->binlog_offset;
@@ -2494,6 +2586,7 @@ int trunk_unlink_all_mark_files()
 	char full_filename[MAX_PATH_SIZE];
     DIR *dir;
     struct dirent *ent;
+    int path_len;
 	int result;
     int name_len;
 	time_t t;
@@ -2502,9 +2595,8 @@ int trunk_unlink_all_mark_files()
 	t = g_current_time;
 	localtime_r(&t, &tm);
 
-	snprintf(file_path, sizeof(file_path),
-		"%s/data/%s", SF_G_BASE_PATH_STR, TRUNK_DIR_NAME);
-
+    path_len = fc_get_full_filepath(SF_G_BASE_PATH_STR, SF_G_BASE_PATH_LEN,
+            TRUNK_SUBDIR_NAME_STR, TRUNK_SUBDIR_NAME_LEN, file_path);
     if ((dir=opendir(file_path)) == NULL)
     {
         result = errno != 0 ? errno : EPERM;
@@ -2530,8 +2622,8 @@ int trunk_unlink_all_mark_files()
             continue;
         }
 
-        snprintf(full_filename, sizeof(full_filename), "%s/%s",
-                file_path, ent->d_name);
+        fc_get_full_filename(file_path, path_len,
+                ent->d_name, name_len, full_filename);
         if (unlink(full_filename) != 0)
         {
             result = errno != 0 ? errno : EPERM;

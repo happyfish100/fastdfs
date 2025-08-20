@@ -353,14 +353,18 @@ char *trunk_get_full_filename_ex(const FDFSStorePaths *pStorePaths,
         memcpy(p, store_path->str, store_path->len);
         p += store_path->len;
         *p++ = '/';
+        *p++ = 'd';
+        *p++ = 'a';
+        *p++ = 't';
+        *p++ = 'a';
+        *p++ = '/';
         *p++ = g_upper_hex_chars[(pTrunkInfo->path.sub_path_high >> 4) & 0x0F];
         *p++ = g_upper_hex_chars[pTrunkInfo->path.sub_path_high & 0x0F];
         *p++ = '/';
         *p++ = g_upper_hex_chars[(pTrunkInfo->path.sub_path_low >> 4) & 0x0F];
         *p++ = g_upper_hex_chars[pTrunkInfo->path.sub_path_low & 0x0F];
         *p++ = '/';
-        p += fc_ltostr_ex(pTrunkInfo->file.id, p, 6);
-        *p = '\0';
+        fc_ltostr_ex(pTrunkInfo->file.id, p, 6);
     }
 
 	return full_filename;

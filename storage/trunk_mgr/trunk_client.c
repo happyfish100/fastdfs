@@ -42,8 +42,7 @@ static int trunk_client_trunk_do_alloc_space(ConnectionInfo *pTrunkServer, \
 	pHeader = (TrackerHeader *)out_buff;
 	memset(out_buff, 0, sizeof(out_buff));
 	p = out_buff + sizeof(TrackerHeader);
-	snprintf(p, sizeof(out_buff) - sizeof(TrackerHeader), \
-		"%s", g_group_name);
+	strcpy(p, g_group_name);
 	p += FDFS_GROUP_NAME_MAX_LEN;
 	int2buff(file_size, p);
 	p += 4;
@@ -176,8 +175,7 @@ static int trunk_client_trunk_confirm_or_free(ConnectionInfo *pTrunkServer,\
 	pTrunkBuff = (FDFSTrunkInfoBuff *)(out_buff + sizeof(TrackerHeader) \
 			 + FDFS_GROUP_NAME_MAX_LEN);
 	memset(out_buff, 0, sizeof(out_buff));
-	snprintf(out_buff + sizeof(TrackerHeader), sizeof(out_buff) - \
-		sizeof(TrackerHeader),  "%s", g_group_name);
+	strcpy(out_buff + sizeof(TrackerHeader), g_group_name);
 	long2buff(STORAGE_TRUNK_ALLOC_CONFIRM_REQ_BODY_LEN, pHeader->pkg_len);
 	pHeader->cmd = cmd;
 	pHeader->status = status;

@@ -37,7 +37,9 @@
 #include "trunk_free_block_checker.h"
 #include "trunk_mem.h"
 
-#define STORAGE_TRUNK_DATA_FILENAME  "storage_trunk.dat"
+#define STORAGE_TRUNK_DATA_FILENAME_STR  "storage_trunk.dat"
+#define STORAGE_TRUNK_DATA_FILENAME_LEN  \
+    (sizeof(STORAGE_TRUNK_DATA_FILENAME_STR) - 1)
 
 #define STORAGE_TRUNK_INIT_FLAG_NONE        0
 #define STORAGE_TRUNK_INIT_FLAG_DESTROYING  1
@@ -149,8 +151,15 @@ static int storage_trunk_node_compare_offset(void *p1, void *p2)
 
 char *storage_trunk_get_data_filename(char *full_filename)
 {
-	snprintf(full_filename, MAX_PATH_SIZE, "%s/data/%s",
-		SF_G_BASE_PATH_STR, STORAGE_TRUNK_DATA_FILENAME);
+#define TRUNK_DATA_FILENAME_WITH_SUBDIRS_STR  \
+    "data/"STORAGE_TRUNK_DATA_FILENAME_STR
+#define TRUNK_DATA_FILENAME_WITH_SUBDIRS_LEN  \
+    (sizeof(TRUNK_DATA_FILENAME_WITH_SUBDIRS_STR) - 1)
+
+    fc_get_full_filename_ex(SF_G_BASE_PATH_STR, SF_G_BASE_PATH_LEN,
+            TRUNK_DATA_FILENAME_WITH_SUBDIRS_STR,
+            TRUNK_DATA_FILENAME_WITH_SUBDIRS_LEN,
+            full_filename, MAX_PATH_SIZE);
 	return full_filename;
 }
 
@@ -721,13 +730,19 @@ static int trunk_save_merged_spaces(struct walk_callback_args *pCallbackArgs)
 
 static int trunk_open_file_writers(struct walk_callback_args *pCallbackArgs)
 {
+#define TRUNK_TEMP_FILENAME_WITH_SUBDIRS_STR  \
+    "data/."STORAGE_TRUNK_DATA_FILENAME_STR".tmp"
+#define TRUNK_TEMP_FILENAME_WITH_SUBDIRS_LEN  \
+    (sizeof(TRUNK_TEMP_FILENAME_WITH_SUBDIRS_STR) - 1)
+
     int result;
     char temp_trunk_filename[MAX_PATH_SIZE];
 
     memset(pCallbackArgs, 0, sizeof(*pCallbackArgs));
-
-    snprintf(temp_trunk_filename, MAX_PATH_SIZE, "%s/data/.%s.tmp",
-            SF_G_BASE_PATH_STR, STORAGE_TRUNK_DATA_FILENAME);
+    fc_get_full_filename_ex(SF_G_BASE_PATH_STR, SF_G_BASE_PATH_LEN,
+            TRUNK_TEMP_FILENAME_WITH_SUBDIRS_STR,
+            TRUNK_TEMP_FILENAME_WITH_SUBDIRS_LEN,
+            temp_trunk_filename, MAX_PATH_SIZE);
     if ((result=buffered_file_writer_open(&pCallbackArgs->data_writer,
                     temp_trunk_filename)) != 0)
     {

@@ -92,12 +92,10 @@ int trunk_binlog_get_write_version();
 int storage_delete_trunk_data_file();
 
 char *get_trunk_binlog_tmp_filename_ex(const char *binlog_filename,
-        char *tmp_filename);
+        char *tmp_filename, const int size);
 
-static inline char *get_trunk_binlog_tmp_filename(char *tmp_filename)
-{
-    return get_trunk_binlog_tmp_filename_ex(NULL, tmp_filename);
-}
+#define get_trunk_binlog_tmp_filename(tmp_filename)  \
+    get_trunk_binlog_tmp_filename_ex(NULL, tmp_filename, sizeof(tmp_filename))
 
 #ifdef __cplusplus
 }

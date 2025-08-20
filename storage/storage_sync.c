@@ -2095,7 +2095,7 @@ static char *get_mark_filename_by_ip_and_port(const char *ip_addr,
 
     ip_len = strlen(ip_addr);
     if (SF_G_BASE_PATH_LEN + SYNC_SUBDIR_NAME_LEN + ip_len +
-            SYNC_MARK_FILE_EXT_LEN + 8 >= filename_size)
+            SYNC_MARK_FILE_EXT_LEN + 10 >= filename_size)
     {
         snprintf(full_filename, filename_size,
                 "%s/"SYNC_SUBDIR_NAME_STR"/%s_%d%s",
