@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
 		return errno != 0 ? errno : ECONNREFUSED;
 	}
 
-	snprintf(file_id, sizeof(file_id), "%s", argv[2]);
+	fc_safe_strcpy(file_id, argv[2]);
 
 	file_offset = 0;
 	download_bytes = 0;

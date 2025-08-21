@@ -803,9 +803,9 @@ static int fastdfs_convert_metadata_to_array(zval *metadata_obj, \
 			memcpy(pMetaData->value, szValue, value_len);
 		}
 		else if (ZEND_TYPE_OF(*data) == IS_LONG || ZEND_IS_BOOL(*data))
-		{
-			sprintf(pMetaData->value, "%ld", (*data)->value.lval);
-		}
+        {
+            fc_ltostrl((*data)->value.lval, pMetaData->value);
+        }
 		else if (ZEND_TYPE_OF(*data) == IS_DOUBLE)
 		{
 			sprintf(pMetaData->value, "%.2f", (*data)->value.dval);
@@ -937,10 +937,10 @@ static void php_fdfs_connect_server_impl(INTERNAL_FUNCTION_PARAMETERS, \
 		RETURN_BOOL(false);
 	}
 
-	snprintf(server_info.ip_addr, sizeof(server_info.ip_addr), \
-		"%s", ip_addr);
+	fc_safe_strcpy(server_info.ip_addr, ip_addr);
 	server_info.port = port;
 	server_info.sock = -1;
+	server_info.af = AF_UNSPEC;
 
 	if ((pContext->err_no=conn_pool_connect_server(&server_info, \
 			SF_G_NETWORK_TIMEOUT * 1000)) == 0)
@@ -1707,7 +1707,7 @@ static void php_fdfs_tracker_query_storage_store_impl( \
 
 	if (group_name != NULL && group_nlen > 0)
 	{
-		snprintf(new_group_name, sizeof(new_group_name), "%s", group_name);
+		fc_safe_strcpy(new_group_name, group_name);
 		result = tracker_query_storage_store_with_group(pTrackerServer,\
                 	new_group_name, &storage_server, &store_path_index);
 	}
@@ -1817,7 +1817,7 @@ static void php_fdfs_tracker_query_storage_store_list_impl( \
 
 	if (group_name != NULL && group_nlen > 0)
 	{
-		snprintf(new_group_name, sizeof(new_group_name), "%s", group_name);
+		fc_safe_strcpy(new_group_name, group_name);
 		result = tracker_query_storage_store_list_with_group(pTrackerServer,\
                 	new_group_name, storage_servers, FDFS_MAX_SERVERS_EACH_GROUP, \
 			&storage_count, &store_path_index);
@@ -1929,7 +1929,7 @@ static void php_fdfs_tracker_do_query_storage_impl( \
 			RETURN_BOOL(false);
 		}
 
-		snprintf(new_file_id, sizeof(new_file_id), "%s", file_id);
+		fc_safe_strcpy(new_file_id, file_id);
 		pSeperator = strchr(new_file_id, FDFS_FILE_ID_SEPERATOR);
 		if (pSeperator == NULL)
 		{
@@ -2122,7 +2122,7 @@ static void php_fdfs_storage_delete_file_impl( \
 			RETURN_BOOL(false);
 		}
 
-		snprintf(new_file_id, sizeof(new_file_id), "%s", file_id);
+		fc_safe_strcpy(new_file_id, file_id);
 		pSeperator = strchr(new_file_id, FDFS_FILE_ID_SEPERATOR);
 		if (pSeperator == NULL)
 		{
@@ -2283,7 +2283,7 @@ static void php_fdfs_storage_truncate_file_impl( \
 			RETURN_BOOL(false);
 		}
 
-		snprintf(new_file_id, sizeof(new_file_id), "%s", file_id);
+		fc_safe_strcpy(new_file_id, file_id);
 		pSeperator = strchr(new_file_id, FDFS_FILE_ID_SEPERATOR);
 		if (pSeperator == NULL)
 		{
@@ -2452,7 +2452,7 @@ static void php_fdfs_storage_download_file_to_callback_impl( \
 			RETURN_BOOL(false);
 		}
 
-		snprintf(new_file_id, sizeof(new_file_id), "%s", file_id);
+		fc_safe_strcpy(new_file_id, file_id);
 		pSeperator = strchr(new_file_id, FDFS_FILE_ID_SEPERATOR);
 		if (pSeperator == NULL)
 		{
@@ -2630,7 +2630,7 @@ static void php_fdfs_storage_download_file_to_buff_impl( \
 			RETURN_BOOL(false);
 		}
 
-		snprintf(new_file_id, sizeof(new_file_id), "%s", file_id);
+		fc_safe_strcpy(new_file_id, file_id);
 		pSeperator = strchr(new_file_id, FDFS_FILE_ID_SEPERATOR);
 		if (pSeperator == NULL)
 		{
@@ -2800,7 +2800,7 @@ static void php_fdfs_storage_download_file_to_file_impl( \
 			RETURN_BOOL(false);
 		}
 
-		snprintf(new_file_id, sizeof(new_file_id), "%s", file_id);
+		fc_safe_strcpy(new_file_id, file_id);
 		pSeperator = strchr(new_file_id, FDFS_FILE_ID_SEPERATOR);
 		if (pSeperator == NULL)
 		{
@@ -2967,7 +2967,7 @@ static void php_fdfs_storage_get_metadata_impl( \
 			RETURN_BOOL(false);
 		}
 
-		snprintf(new_file_id, sizeof(new_file_id), "%s", file_id);
+		fc_safe_strcpy(new_file_id, file_id);
 		pSeperator = strchr(new_file_id, FDFS_FILE_ID_SEPERATOR);
 		if (pSeperator == NULL)
 		{
@@ -3138,7 +3138,7 @@ static void php_fdfs_storage_file_exist_impl( \
 			RETURN_BOOL(false);
 		}
 
-		snprintf(new_file_id, sizeof(new_file_id), "%s", file_id);
+		fc_safe_strcpy(new_file_id, file_id);
 		pSeperator = strchr(new_file_id, FDFS_FILE_ID_SEPERATOR);
 		if (pSeperator == NULL)
 		{
@@ -3293,7 +3293,7 @@ static void php_fdfs_tracker_query_storage_list_impl( \
 			RETURN_BOOL(false);
 		}
 
-		snprintf(new_file_id, sizeof(new_file_id), "%s", file_id);
+		fc_safe_strcpy(new_file_id, file_id);
 		pSeperator = strchr(new_file_id, FDFS_FILE_ID_SEPERATOR);
 		if (pSeperator == NULL)
 		{
@@ -3612,8 +3612,7 @@ static void php_fdfs_storage_upload_file_impl(INTERNAL_FUNCTION_PARAMETERS, \
 
 	if (group_name_obj != NULL && ZEND_TYPE_OF(group_name_obj) == IS_STRING)
 	{
-		snprintf(group_name, sizeof(group_name), "%s", \
-			Z_STRVAL_P(group_name_obj));
+		fc_safe_strcpy(group_name, Z_STRVAL_P(group_name_obj));
 	}
 	else
 	{
@@ -3781,8 +3780,8 @@ static void php_fdfs_storage_upload_file_impl(INTERNAL_FUNCTION_PARAMETERS, \
 		char file_id[FDFS_GROUP_NAME_MAX_LEN + 128 + 1];
 		int file_id_len;
 
-		file_id_len = sprintf(file_id, "%s%c%s", group_name, \
-				FDFS_FILE_ID_SEPERATOR, remote_filename);
+        file_id_len = fdfs_combine_file_id(group_name,
+                remote_filename, file_id);
 		ZEND_RETURN_STRINGL(file_id, file_id_len, 1);
 	}
 	else
@@ -3893,7 +3892,7 @@ static void php_fdfs_storage_upload_slave_file_impl( \
 			RETURN_BOOL(false);
 		}
 
-		snprintf(new_file_id, sizeof(new_file_id), "%s", master_file_id);
+		fc_safe_strcpy(new_file_id, master_file_id);
 		pSeperator = strchr(new_file_id, FDFS_FILE_ID_SEPERATOR);
 		if (pSeperator == NULL)
 		{
@@ -4023,7 +4022,7 @@ static void php_fdfs_storage_upload_slave_file_impl( \
 		}
 	}
 
-	snprintf(new_group_name, sizeof(new_group_name), "%s", group_name);
+	fc_safe_strcpy(new_group_name, group_name);
 	if (upload_type == FDFS_UPLOAD_BY_FILE)
 	{
 	result = storage_upload_slave_by_filename(pTrackerServer, \
@@ -4089,8 +4088,8 @@ static void php_fdfs_storage_upload_slave_file_impl( \
 		char file_id[FDFS_GROUP_NAME_MAX_LEN + 128 + 1];
 		int file_id_len;
 
-		file_id_len = sprintf(file_id, "%s%c%s", new_group_name, \
-				FDFS_FILE_ID_SEPERATOR, remote_filename);
+        file_id_len = fdfs_combine_file_id(new_group_name,
+                remote_filename, file_id);
 		ZEND_RETURN_STRINGL(file_id, file_id_len, 1);
 	}
 	else
@@ -4193,7 +4192,7 @@ static void php_fdfs_storage_append_file_impl( \
 			RETURN_BOOL(false);
 		}
 
-		snprintf(new_file_id, sizeof(new_file_id), "%s", appender_file_id);
+		fc_safe_strcpy(new_file_id, appender_file_id);
 		pSeperator = strchr(new_file_id, FDFS_FILE_ID_SEPERATOR);
 		if (pSeperator == NULL)
 		{
@@ -4423,7 +4422,7 @@ static void php_fdfs_storage_modify_file_impl( \
 			RETURN_BOOL(false);
 		}
 
-		snprintf(new_file_id, sizeof(new_file_id), "%s", appender_file_id);
+		fc_safe_strcpy(new_file_id, appender_file_id);
 		pSeperator = strchr(new_file_id, FDFS_FILE_ID_SEPERATOR);
 		if (pSeperator == NULL)
 		{
@@ -4639,7 +4638,7 @@ static void php_fdfs_storage_regenerate_appender_filename_impl(
 			RETURN_BOOL(false);
 		}
 
-		snprintf(new_file_id, sizeof(new_file_id), "%s", appender_file_id);
+		fc_safe_strcpy(new_file_id, appender_file_id);
 		pSeperator = strchr(new_file_id, FDFS_FILE_ID_SEPERATOR);
 		if (pSeperator == NULL)
 		{
@@ -4739,8 +4738,8 @@ static void php_fdfs_storage_regenerate_appender_filename_impl(
 		char file_id[FDFS_GROUP_NAME_MAX_LEN + 128 + 1];
 		int file_id_len;
 
-		file_id_len = sprintf(file_id, "%s%c%s", new_group_name,
-				FDFS_FILE_ID_SEPERATOR, new_remote_filename);
+        file_id_len = fdfs_combine_file_id(new_group_name,
+                new_remote_filename, file_id);
 		ZEND_RETURN_STRINGL(file_id, file_id_len, 1);
 	}
 	else
@@ -4827,7 +4826,7 @@ static void php_fdfs_storage_set_metadata_impl(INTERNAL_FUNCTION_PARAMETERS, \
 			RETURN_BOOL(false);
 		}
 
-		snprintf(new_file_id, sizeof(new_file_id), "%s", file_id);
+		fc_safe_strcpy(new_file_id, file_id);
 		pSeperator = strchr(new_file_id, FDFS_FILE_ID_SEPERATOR);
 		if (pSeperator == NULL)
 		{
@@ -5089,7 +5088,7 @@ static void php_fdfs_get_file_info_impl(INTERNAL_FUNCTION_PARAMETERS, \
 			RETURN_BOOL(false);
 		}
 
-		snprintf(new_file_id, sizeof(new_file_id), "%s", file_id);
+		fc_safe_strcpy(new_file_id, file_id);
 		pSeperator = strchr(new_file_id, FDFS_FILE_ID_SEPERATOR);
 		if (pSeperator == NULL)
 		{
@@ -7481,7 +7480,7 @@ PHP_FASTDFS_API zend_class_entry *php_fdfs_get_exception_base(int root TSRMLS_DC
 static int load_config_files()
 {
 	#define ITEM_NAME_CONF_COUNT "fastdfs_client.tracker_group_count"
-	#define ITEM_NAME_CONF_FILE  "fastdfs_client.tracker_group"
+	#define ITEM_NAME_CONF_FILE_STR  "fastdfs_client.tracker_group"
 	#define ITEM_NAME_BASE_PATH  	 "fastdfs_client.base_path"
 	#define ITEM_NAME_CONNECT_TIMEOUT "fastdfs_client.connect_timeout"
 	#define ITEM_NAME_NETWORK_TIMEOUT "fastdfs_client.network_timeout"
@@ -7490,6 +7489,8 @@ static int load_config_files()
 	#define ITEM_NAME_ANTI_STEAL_SECRET_KEY "fastdfs_client.http.anti_steal_secret_key"
 	#define ITEM_NAME_USE_CONN_POOL  "fastdfs_client.use_connection_pool"
 	#define ITEM_NAME_CONN_POOL_MAX_IDLE_TIME "fastdfs_client.connection_pool_max_idle_time"
+
+	#define ITEM_NAME_CONF_FILE_LEN  (sizeof(ITEM_NAME_CONF_FILE_STR) - 1)
 
 	zval zarr[16];
 	zval *pz;
@@ -7504,7 +7505,7 @@ static int load_config_files()
 	zval *use_conn_pool;
 	zval *conn_pool_max_idle_time;
 	char *pAntiStealSecretKey;
-	char szItemName[sizeof(ITEM_NAME_CONF_FILE) + 10];
+	char szItemName[ITEM_NAME_CONF_FILE_LEN + 10];
 	int nItemLen;
 	FDFSConfigInfo *pConfigInfo;
 	FDFSConfigInfo *pConfigEnd;
@@ -7549,11 +7550,11 @@ static int load_config_files()
 			ITEM_NAME_BASE_PATH, SF_G_BASE_PATH_STR);
 	}
 	else
-	{
-		snprintf(SF_G_BASE_PATH_STR, sizeof(SF_G_BASE_PATH_STR), "%s", \
-			Z_STRVAL_P(base_path));
-		chopPath(SF_G_BASE_PATH_STR);
-	}
+    {
+        fc_safe_strcpy(SF_G_BASE_PATH_STR, Z_STRVAL_P(base_path));
+        chopPath(SF_G_BASE_PATH_STR);
+    }
+    SF_G_BASE_PATH_LEN = strlen(SF_G_BASE_PATH_STR);
 
 	if (!fileExists(SF_G_BASE_PATH_STR))
 	{
@@ -7636,11 +7637,12 @@ static int load_config_files()
 		return errno != 0 ? errno : ENOMEM;
 	}
 
+    memcpy(szItemName, ITEM_NAME_CONF_FILE_STR, ITEM_NAME_CONF_FILE_LEN);
 	pConfigEnd = config_list + config_count;
 	for (pConfigInfo=config_list; pConfigInfo<pConfigEnd; pConfigInfo++)
 	{
-		nItemLen = sprintf(szItemName, "%s%d", ITEM_NAME_CONF_FILE, \
-				(int)(pConfigInfo - config_list));
+		nItemLen = ITEM_NAME_CONF_FILE_LEN + fc_ltostr(pConfigInfo -
+                config_list, szItemName + ITEM_NAME_CONF_FILE_LEN);
 		if (zend_get_configuration_directive_wrapper(szItemName, \
 			nItemLen + 1, &conf_filename) != SUCCESS)
 		{
@@ -7654,13 +7656,13 @@ static int load_config_files()
 			}
 
 			if (zend_get_configuration_directive_wrapper( \
-				ITEM_NAME_CONF_FILE, \
-				sizeof(ITEM_NAME_CONF_FILE), \
+				ITEM_NAME_CONF_FILE_STR, \
+				sizeof(ITEM_NAME_CONF_FILE_STR), \
 				&conf_filename) != SUCCESS)
 			{
 				fprintf(stderr, "file: "__FILE__", line: %d, " \
 					"fastdfs_client.ini: get param %s " \
-					"fail!\n",__LINE__,ITEM_NAME_CONF_FILE);
+					"fail!\n",__LINE__,ITEM_NAME_CONF_FILE_STR);
 
 				return ENOENT;
 			}

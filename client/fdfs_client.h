@@ -19,4 +19,3 @@
 #include "client_global.h"
 
 #endif
-

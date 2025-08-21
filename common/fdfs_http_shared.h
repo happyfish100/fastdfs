@@ -68,7 +68,7 @@ params:
 return: 0 for success, != 0 fail
 **/
 int fdfs_http_gen_token(const BufferInfo *secret_key, const char *file_id, \
-		const int timestamp, char *token);
+		const time_t timestamp, char *token);
 
 /**
 check anti-steal token
@@ -81,7 +81,7 @@ params:
 return: 0 for passed, != 0 fail
 **/
 int fdfs_http_check_token(const BufferInfo *secret_key, const char *file_id, \
-		const int timestamp, const char *token, const int ttl);
+		const time_t timestamp, const char *token, const int ttl);
 
 /**
 get parameter value

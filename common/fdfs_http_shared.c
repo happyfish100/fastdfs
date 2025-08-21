@@ -163,8 +163,7 @@ int fdfs_http_params_load(IniContext *pIniContext, \
 		pPathEnd = strrchr(conf_filename, '/');
 		if (pPathEnd == NULL)
 		{
-			snprintf(szMimeFilename, sizeof(szMimeFilename), \
-					"%s", mime_types_filename);
+			fc_safe_strcpy(szMimeFilename, mime_types_filename);
 		}
 		else
 		{
@@ -190,8 +189,7 @@ int fdfs_http_params_load(IniContext *pIniContext, \
 	}
 	else
 	{
-		snprintf(szMimeFilename, sizeof(szMimeFilename), \
-				"%s", mime_types_filename);
+		fc_safe_strcpy(szMimeFilename, mime_types_filename);
 	}
 
 	result = load_mime_types_from_file(&pParams->content_type_hash, \
@@ -305,8 +303,8 @@ void fdfs_http_params_destroy(FDFSHTTPParams *pParams)
 	}
 }
 
-int fdfs_http_gen_token(const BufferInfo *secret_key, const char *file_id, \
-		const int timestamp, char *token)
+int fdfs_http_gen_token(const BufferInfo *secret_key, const char *file_id,
+		const time_t timestamp, char *token)
 {
 	char buff[256 + 64];
 	unsigned char digit[16];
@@ -323,7 +321,7 @@ int fdfs_http_gen_token(const BufferInfo *secret_key, const char *file_id, \
 	total_len = id_len;
 	memcpy(buff + total_len, secret_key->buff, secret_key->length);
 	total_len += secret_key->length;
-	total_len += sprintf(buff + total_len, "%d", timestamp);
+	total_len += fc_itoa(timestamp, buff + total_len);
 
 	my_md5_buffer(buff, total_len, digit);
 	bin2hex((char *)digit, 16, token);
@@ -331,7 +329,7 @@ int fdfs_http_gen_token(const BufferInfo *secret_key, const char *file_id, \
 }
 
 int fdfs_http_check_token(const BufferInfo *secret_key, const char *file_id, \
-		const int timestamp, const char *token, const int ttl)
+		const time_t timestamp, const char *token, const int ttl)
 {
 	char true_token[33];
 	int result;

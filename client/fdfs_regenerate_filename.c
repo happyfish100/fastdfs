@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
 		return errno != 0 ? errno : ECONNREFUSED;
 	}
 
-	snprintf(appender_file_id, sizeof(appender_file_id), "%s", argv[2]);
+	fc_safe_strcpy(appender_file_id, argv[2]);
 	if ((result=storage_regenerate_appender_filename1(pTrackerServer,
 		NULL, appender_file_id, new_file_id)) != 0)
 	{

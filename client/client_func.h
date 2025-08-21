@@ -15,6 +15,9 @@
 #ifndef _CLIENT_FUNC_H_
 #define _CLIENT_FUNC_H_
 
+#define FDFS_FILE_ID_SEPERATOR      '/'
+#define FDFS_FILE_ID_SEPERATE_STR   "/"
+
 typedef struct {
     short file_type;
     bool get_from_server;
@@ -139,6 +142,26 @@ bool fdfs_tracker_group_equals(TrackerServerGroup *pGroup1, \
 **/
 const char *fdfs_get_file_ext_name_ex(const char *filename, 
 	const bool twoExtName);
+
+static inline int fdfs_combine_file_id(const char *group_name,
+        const char *filename, char *file_id)
+{
+    char *p;
+    int group_len;
+    int file_len;
+
+    group_len = strlen(group_name);
+    file_len = strlen(filename);
+    p = file_id;
+    memcpy(p, group_name, group_len);
+    p += group_len;
+    *p++ = FDFS_FILE_ID_SEPERATOR;
+    memcpy(p, filename, file_len);
+    p += file_len;
+    *p = '\0';
+
+    return p - file_id;
+}
 
 #ifdef __cplusplus
 }

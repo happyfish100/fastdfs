@@ -39,7 +39,7 @@ static int g_base64_context_inited = 0;
 	char *filename; \
 	char *pSeperator; \
 	\
-	snprintf(in_file_id, sizeof(in_file_id), "%s", file_id); \
+	fc_safe_strcpy(in_file_id, file_id); \
 	pSeperator = strchr(in_file_id, FDFS_FILE_ID_SEPERATOR); \
 	if (pSeperator == NULL) \
 	{ \
@@ -311,7 +311,7 @@ int storage_get_metadata(ConnectionInfo *pTrackerServer, \
 	char out_buff[sizeof(TrackerHeader)+FDFS_GROUP_NAME_MAX_LEN+128];
     char formatted_ip[FORMATTED_IP_SIZE];
 	int64_t in_bytes;
-	int filename_len;
+	int body_len;
 	char *file_buff;
 	int64_t file_size;
 	bool new_connection;
@@ -337,20 +337,16 @@ int storage_get_metadata(ConnectionInfo *pTrackerServer, \
 
 	pHeader = (TrackerHeader *)out_buff;
 	memset(out_buff, 0, sizeof(out_buff));
-	snprintf(out_buff + sizeof(TrackerHeader), sizeof(out_buff) - \
-		sizeof(TrackerHeader),  "%s", group_name);
-	filename_len = snprintf(out_buff + sizeof(TrackerHeader) + \
-			FDFS_GROUP_NAME_MAX_LEN, \
-			sizeof(out_buff) - sizeof(TrackerHeader) - \
-			FDFS_GROUP_NAME_MAX_LEN,  "%s", filename);
-
-	long2buff(FDFS_GROUP_NAME_MAX_LEN + filename_len, pHeader->pkg_len);
+    body_len = fdfs_pack_group_name_and_filename(group_name, filename,
+            out_buff + sizeof(TrackerHeader), sizeof(out_buff) -
+            sizeof(TrackerHeader));
+	long2buff(body_len, pHeader->pkg_len);
 	pHeader->cmd = STORAGE_PROTO_CMD_GET_METADATA;
 
 	if ((result=tcpsenddata_nb(pStorageServer->sock, out_buff,
-			sizeof(TrackerHeader) + FDFS_GROUP_NAME_MAX_LEN +
-			filename_len, SF_G_NETWORK_TIMEOUT)) != 0)
-	{
+                    sizeof(TrackerHeader) + body_len,
+                    SF_G_NETWORK_TIMEOUT)) != 0)
+    {
         format_ip_address(pTrackerServer->ip_addr, formatted_ip);
 		logError("file: "__FILE__", line: %d, "
 			"send data to storage server %s:%u fail, "
@@ -414,6 +410,7 @@ int storage_query_file_info_ex(ConnectionInfo *pTrackerServer, \
     char formatted_ip[FORMATTED_IP_SIZE];
 	char buff[64];
 	int64_t in_bytes;
+    int body_len;
 	int filename_len;
 	int buff_len;
 	char *pInBuff;
@@ -437,21 +434,18 @@ int storage_query_file_info_ex(ConnectionInfo *pTrackerServer, \
 
 	pHeader = (TrackerHeader *)out_buff;
 	memset(out_buff, 0, sizeof(out_buff));
-	snprintf(out_buff + sizeof(TrackerHeader), sizeof(out_buff) - \
-		sizeof(TrackerHeader),  "%s", group_name);
-	filename_len = snprintf(out_buff + sizeof(TrackerHeader) + \
-			FDFS_GROUP_NAME_MAX_LEN, \
-			sizeof(out_buff) - sizeof(TrackerHeader) - \
-			FDFS_GROUP_NAME_MAX_LEN,  "%s", filename);
-
-	long2buff(FDFS_GROUP_NAME_MAX_LEN + filename_len, pHeader->pkg_len);
+    body_len = fdfs_pack_group_name_and_filename(group_name, filename,
+            out_buff + sizeof(TrackerHeader), sizeof(out_buff) -
+            sizeof(TrackerHeader));
+    filename_len = body_len - FDFS_GROUP_NAME_MAX_LEN;
+	long2buff(body_len, pHeader->pkg_len);
 	pHeader->cmd = STORAGE_PROTO_CMD_QUERY_FILE_INFO;
 	pHeader->status = bSilence ? ENOENT : 0;
 
-	if ((result=tcpsenddata_nb(pStorageServer->sock, out_buff,
-			sizeof(TrackerHeader) + FDFS_GROUP_NAME_MAX_LEN +
-			filename_len, SF_G_NETWORK_TIMEOUT)) != 0)
-	{
+    if ((result=tcpsenddata_nb(pStorageServer->sock, out_buff,
+                    sizeof(TrackerHeader) + body_len,
+                    SF_G_NETWORK_TIMEOUT)) != 0)
+    {
         format_ip_address(pStorageServer->ip_addr, formatted_ip);
 		logError("file: "__FILE__", line: %d, "
 			"send data to storage server %s:%u fail, "
@@ -549,7 +543,7 @@ int storage_delete_file(ConnectionInfo *pTrackerServer, \
 	char in_buff[1];
 	char *pBuff;
 	int64_t in_bytes;
-	int filename_len;
+	int body_len;
 	bool new_connection;
 
 	if ((result=storage_get_update_connection(pTrackerServer, \
@@ -568,21 +562,17 @@ int storage_delete_file(ConnectionInfo *pTrackerServer, \
 	**/
 
 	memset(out_buff, 0, sizeof(out_buff));
-	snprintf(out_buff + sizeof(TrackerHeader), sizeof(out_buff) - \
-		sizeof(TrackerHeader),  "%s", group_name);
-	filename_len = snprintf(out_buff + sizeof(TrackerHeader) + \
-			FDFS_GROUP_NAME_MAX_LEN, \
-			sizeof(out_buff) - sizeof(TrackerHeader) - \
-			FDFS_GROUP_NAME_MAX_LEN,  "%s", filename);
-
+    body_len = fdfs_pack_group_name_and_filename(group_name, filename,
+            out_buff + sizeof(TrackerHeader), sizeof(out_buff) -
+            sizeof(TrackerHeader));
 	pHeader = (TrackerHeader *)out_buff;
-	long2buff(FDFS_GROUP_NAME_MAX_LEN + filename_len, pHeader->pkg_len);
+	long2buff(body_len, pHeader->pkg_len);
 	pHeader->cmd = STORAGE_PROTO_CMD_DELETE_FILE;
 
 	if ((result=tcpsenddata_nb(pStorageServer->sock, out_buff,
-		sizeof(TrackerHeader) + FDFS_GROUP_NAME_MAX_LEN +
-		filename_len, SF_G_NETWORK_TIMEOUT)) != 0)
-	{
+                    sizeof(TrackerHeader) + body_len,
+                    SF_G_NETWORK_TIMEOUT)) != 0)
+    {
         format_ip_address(pStorageServer->ip_addr, formatted_ip);
 		logError("file: "__FILE__", line: %d, "
 			"send data to storage server %s:%u fail, "
@@ -640,7 +630,6 @@ int storage_do_download_file_ex(ConnectionInfo *pTrackerServer, \
 	int out_bytes;
 	int64_t in_bytes;
 	int64_t total_recv_bytes;
-	int filename_len;
 	bool new_connection;
 
 	*file_size = 0;
@@ -668,11 +657,8 @@ int storage_do_download_file_ex(ConnectionInfo *pTrackerServer, \
 	p += 8;
 	long2buff(download_bytes, p);
 	p += 8;
-	snprintf(p, sizeof(out_buff) - (p - out_buff), "%s", group_name);
-	p += FDFS_GROUP_NAME_MAX_LEN;
-	filename_len = snprintf(p, sizeof(out_buff) -
-            (p - out_buff), "%s", remote_filename);
-	p += filename_len;
+    p += fdfs_pack_group_name_and_filename(group_name, remote_filename,
+            p, sizeof(out_buff) - (p - out_buff));
 	out_bytes = p - out_buff;
 	long2buff(out_bytes - sizeof(TrackerHeader), pHeader->pkg_len);
 	pHeader->cmd = STORAGE_PROTO_CMD_DOWNLOAD_FILE;
@@ -829,8 +815,7 @@ int storage_upload_by_filename1_ex(ConnectionInfo *pTrackerServer, \
 	}
 	else
 	{
-		snprintf(new_group_name, sizeof(new_group_name), \
-			"%s", group_name);
+		fc_safe_strcpy(new_group_name, group_name);
 	}
 
 	result = storage_upload_by_filename_ex(pTrackerServer, \
@@ -839,10 +824,9 @@ int storage_upload_by_filename1_ex(ConnectionInfo *pTrackerServer, \
 			meta_list, meta_count, \
 			new_group_name, remote_filename);
 	if (result == 0)
-	{
-		sprintf(file_id, "%s%c%s", new_group_name, \
-			FDFS_FILE_ID_SEPERATOR, remote_filename);
-	}
+    {
+        fdfs_combine_file_id(new_group_name, remote_filename, file_id);
+    }
 	else
 	{
 		file_id[0] = '\0';
@@ -868,8 +852,7 @@ int storage_do_upload_file1(ConnectionInfo *pTrackerServer, \
 	}
 	else
 	{
-		snprintf(new_group_name, sizeof(new_group_name), \
-			"%s", group_name);
+		fc_safe_strcpy(new_group_name, group_name);
 	}
 
 	result = storage_do_upload_file(pTrackerServer, \
@@ -878,8 +861,7 @@ int storage_do_upload_file1(ConnectionInfo *pTrackerServer, \
 			meta_list, meta_count, new_group_name, remote_filename);
 	if (result == 0)
 	{
-		sprintf(file_id, "%s%c%s", new_group_name, \
-			FDFS_FILE_ID_SEPERATOR, remote_filename);
+        fdfs_combine_file_id(new_group_name, remote_filename, file_id);
 	}
 	else
 	{
@@ -1169,8 +1151,7 @@ int storage_upload_by_callback1_ex(ConnectionInfo *pTrackerServer, \
 	}
 	else
 	{
-		snprintf(new_group_name, sizeof(new_group_name), \
-				"%s", group_name);
+		fc_safe_strcpy(new_group_name, group_name);
 	}
 
 	result = storage_do_upload_file(pTrackerServer, \
@@ -1181,8 +1162,7 @@ int storage_upload_by_callback1_ex(ConnectionInfo *pTrackerServer, \
 			new_group_name, remote_filename);
 	if (result == 0)
 	{
-		sprintf(file_id, "%s%c%s", new_group_name, \
-			FDFS_FILE_ID_SEPERATOR, remote_filename);
+        fdfs_combine_file_id(new_group_name, remote_filename, file_id);
 	}
 	else
 	{
@@ -1265,9 +1245,11 @@ int storage_set_metadata(ConnectionInfo *pTrackerServer, \
 	char in_buff[1];
 	int64_t in_bytes;
 	char *pBuff;
-	int filename_len;
+	int group_and_file_len;
+    int filename_len;
 	char *meta_buff;
 	int meta_bytes;
+    char *filename_ptr;
 	char *p;
 	char *pEnd;
 	bool new_connection;
@@ -1283,7 +1265,6 @@ int storage_set_metadata(ConnectionInfo *pTrackerServer, \
 	do
 	{
 	memset(out_buff, 0, sizeof(out_buff));
-	filename_len = strlen(filename);
 
 	if (meta_count > 0)
 	{
@@ -1302,8 +1283,8 @@ int storage_set_metadata(ConnectionInfo *pTrackerServer, \
 
 	pEnd = out_buff + sizeof(out_buff);
 	p = out_buff + sizeof(TrackerHeader);
+    filename_ptr = p;
 
-	long2buff(filename_len, p);
 	p += FDFS_PROTO_PKG_LEN_SIZE;
 
 	long2buff(meta_bytes, p);
@@ -1311,11 +1292,12 @@ int storage_set_metadata(ConnectionInfo *pTrackerServer, \
 
 	*p++ = op_flag;
 
-	snprintf(p, pEnd - p,  "%s", group_name);
-	p += FDFS_GROUP_NAME_MAX_LEN;
+    group_and_file_len = fdfs_pack_group_name_and_filename(
+            group_name, filename, p, pEnd - p);
+    p += group_and_file_len;
 
-	filename_len = snprintf(p, pEnd - p, "%s", filename);
-	p += filename_len;
+    filename_len = group_and_file_len - FDFS_GROUP_NAME_MAX_LEN;
+	long2buff(filename_len, filename_ptr);
 
 	pHeader = (TrackerHeader *)out_buff;
 	long2buff((int)(p - (out_buff + sizeof(TrackerHeader))) +
@@ -1701,8 +1683,7 @@ int storage_upload_slave_by_filename1(ConnectionInfo *pTrackerServer, \
 			new_group_name, remote_filename);
 	if (result == 0)
 	{
-		sprintf(file_id, "%s%c%s", new_group_name, \
-			FDFS_FILE_ID_SEPERATOR, remote_filename);
+        fdfs_combine_file_id(new_group_name, remote_filename, file_id);
 	}
 	else
 	{
@@ -1733,8 +1714,7 @@ int storage_upload_slave_by_filebuff1(ConnectionInfo *pTrackerServer, \
 			new_group_name, remote_filename);
 	if (result == 0)
 	{
-		sprintf(file_id, "%s%c%s", new_group_name, \
-			FDFS_FILE_ID_SEPERATOR, remote_filename);
+        fdfs_combine_file_id(new_group_name, remote_filename, file_id);
 	}
 	else
 	{
@@ -1766,8 +1746,7 @@ int storage_upload_slave_by_callback1(ConnectionInfo *pTrackerServer, \
 			new_group_name, remote_filename);
 	if (result == 0)
 	{
-		sprintf(file_id, "%s%c%s", new_group_name, \
-			FDFS_FILE_ID_SEPERATOR, remote_filename);
+        fdfs_combine_file_id(new_group_name, remote_filename, file_id);
 	}
 	else
 	{
@@ -2276,7 +2255,7 @@ int fdfs_get_file_info_ex(const char *group_name, const char *remote_filename, \
 			char id[16];
 			FDFSStorageIdInfo *pStorageId;
 
-			sprintf(id, "%d", pFileInfo->source_id);
+            fc_ltostr(pFileInfo->source_id, id);
 			pStorageId = fdfs_get_storage_by_id(id);
 			if (pStorageId != NULL)
 			{
@@ -2572,8 +2551,8 @@ int storage_regenerate_appender_filename1(ConnectionInfo *pTrackerServer,
         new_group_name, new_remote_filename);
 	if (result == 0)
 	{
-		sprintf(new_file_id, "%s%c%s", new_group_name,
-			FDFS_FILE_ID_SEPERATOR, new_remote_filename);
+        fdfs_combine_file_id(new_group_name,
+                new_remote_filename, new_file_id);
 	}
 	else
 	{

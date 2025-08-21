@@ -275,8 +275,7 @@ static int fdfs_client_do_init_ex(TrackerServerGroup *pTrackerGroup, \
 	}
 	else
 	{
-		snprintf(SF_G_BASE_PATH_STR, sizeof(SF_G_BASE_PATH_STR), 
-			"%s", pBasePath);
+        fc_safe_strcpy(SF_G_BASE_PATH_STR, pBasePath);
 		chopPath(SF_G_BASE_PATH_STR);
 		if (!fileExists(SF_G_BASE_PATH_STR))
 		{
@@ -293,6 +292,7 @@ static int fdfs_client_do_init_ex(TrackerServerGroup *pTrackerGroup, \
 			return ENOTDIR;
 		}
 	}
+    SF_G_BASE_PATH_LEN = strlen(SF_G_BASE_PATH_STR);
 
 	SF_G_CONNECT_TIMEOUT = iniGetIntValue(NULL, "connect_timeout", \
 				iniContext, DEFAULT_CONNECT_TIMEOUT);

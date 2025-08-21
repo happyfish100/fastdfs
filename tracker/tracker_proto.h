@@ -346,6 +346,40 @@ int fdfs_get_ini_context_from_tracker_ex(TrackerServerGroup *pTrackerGroup,
 int fdfs_get_tracker_status(TrackerServerInfo *pTrackerServer,
 		TrackerRunningStatus *pStatus);
 
+static inline int fdfs_pack_group_name(const char *group_name, char *buff)
+{
+    int group_len;
+
+    group_len = strlen(group_name);
+    if (group_len > FDFS_GROUP_NAME_MAX_LEN)
+    {
+        group_len = FDFS_GROUP_NAME_MAX_LEN;
+    }
+    memcpy(buff, group_name, group_len);
+
+    return FDFS_GROUP_NAME_MAX_LEN;
+}
+
+static inline int fdfs_pack_group_name_and_filename(
+        const char *group_name, const char *filename,
+        char *buff, const int size)
+{
+    int file_len;
+
+    file_len = strlen(filename);
+    if (FDFS_GROUP_NAME_MAX_LEN + file_len > size)
+    {
+        file_len = size - FDFS_GROUP_NAME_MAX_LEN;
+    }
+
+    fdfs_pack_group_name(group_name, buff);
+    memcpy(buff + FDFS_GROUP_NAME_MAX_LEN, filename, file_len);
+    return FDFS_GROUP_NAME_MAX_LEN + file_len;
+}
+
+#define fdfs_pack_group_name_and_storage_id(group_name, storage_id, buff, size)\
+    fdfs_pack_group_name_and_filename(group_name, storage_id, buff, size)
+
 #ifdef __cplusplus
 }
 #endif

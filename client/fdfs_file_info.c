@@ -40,7 +40,7 @@ int main(int argc, char *argv[])
 		return result;
 	}
 
-	snprintf(file_id, sizeof(file_id), "%s", argv[2]);
+	fc_safe_strcpy(file_id, argv[2]);
 	memset(&file_info, 0, sizeof(file_info));
 	result = fdfs_get_file_info_ex1(file_id, true, &file_info);
 	if (result != 0)

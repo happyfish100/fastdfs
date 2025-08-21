@@ -69,6 +69,8 @@ int fdfs_gen_slave_filename(const char *master_filename, \
 	char true_ext_name[FDFS_FILE_EXT_NAME_MAX_LEN + 2];
 	char *pDot;
 	int master_file_len;
+    int prefix_name_len;
+    int true_ext_name_len;
 
 	master_file_len = strlen(master_filename);
 	if (master_file_len < 28 + FDFS_FILE_EXT_NAME_MAX_LEN)
@@ -89,14 +91,14 @@ int fdfs_gen_slave_filename(const char *master_filename, \
 		}
 		else if (*ext_name == '.')
 		{
-			snprintf(true_ext_name, sizeof(true_ext_name), \
-				"%s", ext_name);
+			fc_safe_strcpy(true_ext_name, ext_name);
 		}
 		else
-		{
-			snprintf(true_ext_name, sizeof(true_ext_name), \
-				".%s", ext_name);
-		}
+        {
+            *true_ext_name = '.';
+            fc_strlcpy(true_ext_name + 1, ext_name,
+                    sizeof(true_ext_name) - 1);
+        }
 	}
 	else
 	{
@@ -131,17 +133,22 @@ int fdfs_gen_slave_filename(const char *master_filename, \
 
 	if (pDot == NULL)
 	{
-		*filename_len = sprintf(filename, "%s%s%s", master_filename, \
-			prefix_name, true_ext_name);
+        *filename_len = master_file_len;
 	}
 	else
 	{
 		*filename_len = pDot - master_filename;
-		memcpy(filename, master_filename, *filename_len);
-		*filename_len += sprintf(filename + *filename_len, "%s%s", \
-			prefix_name, true_ext_name);
-	}
+    }
+    memcpy(filename, master_filename, *filename_len);
+
+    prefix_name_len = strlen(prefix_name);
+    memcpy(filename + *filename_len, prefix_name, prefix_name_len);
+    *filename_len += prefix_name_len;
+
+    true_ext_name_len = strlen(true_ext_name);
+    memcpy(filename + *filename_len, true_ext_name, true_ext_name_len);
+    *filename_len += true_ext_name_len;
+    *(filename + *filename_len) = '\0';
 
 	return 0;
 }
-
