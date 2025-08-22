@@ -2856,9 +2856,9 @@ int storage_logic_to_local_full_filename(const char *logic_filename,
 		return result;
 	}
 
-    fc_get_one_subdir_full_filename(FDFS_STORE_PATH_STR(*store_path_index),
+    fc_get_one_subdir_full_filename_ex(FDFS_STORE_PATH_STR(*store_path_index),
             FDFS_STORE_PATH_LEN(*store_path_index), "data", 4,
-            true_filename, filename_len, full_filename);
+            true_filename, filename_len, full_filename, filename_size);
     return 0;
 }
 
