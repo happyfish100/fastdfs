@@ -225,9 +225,8 @@ int fdfs_deal_no_body_cmd_ex(const char *ip_addr, const int port, const int cmd)
 	ConnectionInfo server_info;
 	int result;
 
-	strcpy(server_info.ip_addr, ip_addr);
-	server_info.port = port;
-	server_info.sock = -1;
+	memset(&server_info, 0, sizeof(server_info));
+	conn_pool_set_server_info(&server_info, ip_addr, port);
 	if ((conn=tracker_make_connection(&server_info, &result)) == NULL)
 	{
 		return result;

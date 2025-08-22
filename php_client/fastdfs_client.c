@@ -804,7 +804,7 @@ static int fastdfs_convert_metadata_to_array(zval *metadata_obj, \
 		}
 		else if (ZEND_TYPE_OF(*data) == IS_LONG || ZEND_IS_BOOL(*data))
         {
-            fc_ltostrl((*data)->value.lval, pMetaData->value);
+            fc_ltostr((*data)->value.lval, pMetaData->value);
         }
 		else if (ZEND_TYPE_OF(*data) == IS_DOUBLE)
 		{
@@ -937,11 +937,8 @@ static void php_fdfs_connect_server_impl(INTERNAL_FUNCTION_PARAMETERS, \
 		RETURN_BOOL(false);
 	}
 
-	fc_safe_strcpy(server_info.ip_addr, ip_addr);
-	server_info.port = port;
-	server_info.sock = -1;
-	server_info.af = AF_UNSPEC;
-
+    memset(&server_info, 0, sizeof(server_info));
+    conn_pool_set_server_info(&server_info, ip_addr, port);
 	if ((pContext->err_no=conn_pool_connect_server(&server_info, \
 			SF_G_NETWORK_TIMEOUT * 1000)) == 0)
 	{

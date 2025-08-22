@@ -2177,9 +2177,9 @@ static void *trunk_sync_thread_entrance(void* arg)
 	last_keep_alive_time = 0;
 
 	pStorage = thread_data->pStorage;
-	strcpy(storage_server.ip_addr, pStorage->ip_addr);
-	storage_server.port = SF_G_INNER_PORT;
-	storage_server.sock = -1;
+    memset(&storage_server, 0, sizeof(storage_server));
+    conn_pool_set_server_info(&storage_server,
+            pStorage->ip_addr, SF_G_INNER_PORT);
 
     format_ip_address(storage_server.ip_addr, formatted_ip);
 	logInfo("file: "__FILE__", line: %d, "

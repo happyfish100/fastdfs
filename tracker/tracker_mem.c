@@ -5691,9 +5691,8 @@ static int tracker_mem_get_trunk_binlog_size(
 	int result;
 
 	*file_size = 0;
-	strcpy(storage_server.ip_addr, storage_ip);
-	storage_server.port = port;
-	storage_server.sock = -1;
+	memset(&storage_server, 0, sizeof(storage_server));
+	conn_pool_set_server_info(&storage_server, storage_ip, port);
 	if ((conn=tracker_make_connection(&storage_server, &result)) == NULL)
 	{
 		return result;

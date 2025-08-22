@@ -362,6 +362,7 @@ static void sigAlarmHandler(int sig)
 	logDebug("file: "__FILE__", line: %d, " \
 		"signal server to quit...", __LINE__);
 
+    memset(&server, 0, sizeof(server));
     if (SF_G_IPV4_ENABLED)
     {
         server.af = AF_INET;

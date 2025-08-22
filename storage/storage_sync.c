@@ -3169,9 +3169,9 @@ static void* storage_sync_thread_entrance(void* arg)
 	time_t last_keep_alive_time;
 
 	pStorage = (FDFSStorageBrief *)arg;
-	strcpy(storage_server.ip_addr, pStorage->ip_addr);
-	storage_server.port = SF_G_INNER_PORT;
-	storage_server.sock = -1;
+    memset(&storage_server, 0, sizeof(storage_server));
+    conn_pool_set_server_info(&storage_server,
+            pStorage->ip_addr, SF_G_INNER_PORT);
 
 #ifdef OS_LINUX
     {
