@@ -96,7 +96,7 @@ g_fdfs_version.patch);
 	}
 
 	log_init();
-	g_log_context.log_level = LOG_DEBUG;
+	//g_log_context.log_level = LOG_DEBUG;
 
 	conf_filename = argv[1];
 	operation = argv[2];

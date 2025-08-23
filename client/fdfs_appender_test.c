@@ -95,7 +95,7 @@ g_fdfs_version.patch);
 	}
 
 	log_init();
-	g_log_context.log_level = LOG_DEBUG;
+	//g_log_context.log_level = LOG_DEBUG;
 
 	conf_filename = argv[1];
 	if ((result=fdfs_client_init(conf_filename)) != 0)
@@ -273,7 +273,7 @@ g_fdfs_version.patch);
 	//sleep(90);
 	strcpy(appender_filename, remote_filename);
 	if (storage_truncate_file(pTrackerServer, pStorageServer, \
-			group_name, appender_filename, file_size * 2) != 0)
+			group_name, appender_filename, file_size / 2) != 0)
 	{
 		printf("truncate file fail, " \
 			"error no: %d, error info: %s\n", \
@@ -294,7 +294,7 @@ g_fdfs_version.patch);
 	if (file_info.file_size != file_size / 2)
 	{
 		fprintf(stderr, "file size: %"PRId64 \
-			" != %"PRId64"!!!", file_info.file_size, file_size / 2);
+			" != %"PRId64"!!!\n", file_info.file_size, file_size / 2);
 	}
 
 	//sleep(100);
@@ -358,7 +358,7 @@ g_fdfs_version.patch);
 	if (file_info.file_size != file_size + file_size / 2)
 	{
 		fprintf(stderr, "file size: %"PRId64 \
-			" != %"PRId64"!!!", file_info.file_size, \
+			" != %"PRId64"!!!\n", file_info.file_size, \
 			file_size + file_size / 2);
 	}
 
@@ -425,7 +425,7 @@ g_fdfs_version.patch);
 	if (file_info.file_size != 2 * file_size + file_size / 2)
 	{
 		fprintf(stderr, "file size: %"PRId64 \
-			" != %"PRId64"!!!", file_info.file_size, \
+			" != %"PRId64"!!!\n", file_info.file_size, \
 			2 * file_size + file_size /2);
 	}
 
