@@ -1349,22 +1349,12 @@ int trunk_binlog_flush(const bool bNeedLock)
             (&trunk_binlog_write_cache_len));
 }
 
-int trunk_binlog_write(const int timestamp, const char op_type, \
-		const FDFSTrunkFullInfo *pTrunk)
+int trunk_binlog_pack(const time_t timestamp, const char op_type,
+		const FDFSTrunkFullInfo *pTrunk, char *buff)
 {
-	int result;
-	int write_ret;
     char *p;
 
-	if ((result=pthread_mutex_lock(&trunk_sync_thread_lock)) != 0)
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"call pthread_mutex_lock fail, " \
-			"errno: %d, error info: %s", \
-			__LINE__, result, STRERROR(result));
-	}
-
-    p = trunk_binlog_write_cache_buff + trunk_binlog_write_cache_len;
+    p = buff;
     p += fc_itoa(timestamp, p);
     *p++ = ' ';
     *p++ = op_type;
@@ -1381,10 +1371,31 @@ int trunk_binlog_write(const int timestamp, const char op_type, \
     *p++ = ' ';
     p += fc_itoa(pTrunk->file.size, p);
     *p++ = '\n';
-    trunk_binlog_write_cache_len = p - trunk_binlog_write_cache_buff;
+    return p - buff;
+}
+
+int trunk_binlog_write(const int timestamp, const char op_type,
+		const FDFSTrunkFullInfo *pTrunk)
+{
+	int result;
+	int write_ret;
+
+	if ((result=pthread_mutex_lock(&trunk_sync_thread_lock)) != 0)
+	{
+		logError("file: "__FILE__", line: %d, " \
+			"call pthread_mutex_lock fail, " \
+			"errno: %d, error info: %s", \
+			__LINE__, result, STRERROR(result));
+	}
+
+    trunk_binlog_write_cache_len += trunk_binlog_pack(
+            timestamp, op_type, pTrunk,
+            trunk_binlog_write_cache_buff +
+            trunk_binlog_write_cache_len);
 
 	//check if buff full
-	if (TRUNK_BINLOG_BUFFER_SIZE - trunk_binlog_write_cache_len < 128)
+	if (TRUNK_BINLOG_BUFFER_SIZE - trunk_binlog_write_cache_len <
+            TRUNK_BINLOG_LINE_SIZE)
 	{
 		write_ret = trunk_binlog_fsync(false);  //sync to disk
 	}
@@ -1418,8 +1429,8 @@ int trunk_binlog_write_buffer(const char *buff, const int length)
 	}
 
 	//check if buff full
-	if (TRUNK_BINLOG_BUFFER_SIZE - (trunk_binlog_write_cache_len + \
-			length) < 128)
+	if (TRUNK_BINLOG_BUFFER_SIZE - (trunk_binlog_write_cache_len +
+			length) < TRUNK_BINLOG_LINE_SIZE)
 	{
 		write_ret = trunk_binlog_fsync(false);  //sync to disk
 	}

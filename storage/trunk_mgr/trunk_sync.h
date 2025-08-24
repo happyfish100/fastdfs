@@ -47,9 +47,12 @@ extern volatile int g_trunk_sync_thread_count;
 int trunk_sync_init();
 int trunk_sync_destroy();
 
+int trunk_binlog_pack(const time_t timestamp, const char op_type,
+		const FDFSTrunkFullInfo *pTrunk, char *buff);
+
 int trunk_binlog_write_buffer(const char *buff, const int length);
 
-int trunk_binlog_write(const int timestamp, const char op_type, \
+int trunk_binlog_write(const int timestamp, const char op_type,
 		const FDFSTrunkFullInfo *pTrunk);
 
 int trunk_binlog_truncate();

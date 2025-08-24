@@ -89,7 +89,10 @@ int trunk_alloc_confirm(const FDFSTrunkFullInfo *pTrunkInfo, const int status);
 int trunk_free_space(const FDFSTrunkFullInfo *pTrunkInfo, \
 		const bool bWriteBinLog);
 
-bool trunk_check_size(const int64_t file_size);
+static inline bool trunk_check_size(const int64_t file_size)
+{
+    return file_size <= g_slot_max_size;
+}
 
 #define trunk_init_file(filename) \
 	trunk_init_file_ex(filename, g_trunk_file_size)

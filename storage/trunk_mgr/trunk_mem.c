@@ -439,18 +439,23 @@ static inline int trunk_merge_add_to_array(struct trunk_info_array
     return 0;
 }
 
-static inline int save_one_trunk(struct walk_callback_args *pCallbackArgs,
+static inline int save_one_trunk(BufferedFileWriter *writer,
         FDFSTrunkFullInfo *pTrunkInfo)
 {
-    return buffered_file_writer_append(&pCallbackArgs->data_writer,
-            "%d %c %d %d %d %u %d %d\n",
-            (int)g_current_time, TRUNK_OP_TYPE_ADD_SPACE,
-            pTrunkInfo->path.store_path_index,
-            pTrunkInfo->path.sub_path_high,
-            pTrunkInfo->path.sub_path_low,
-            pTrunkInfo->file.id,
-            pTrunkInfo->file.offset,
-            pTrunkInfo->file.size);
+    int result;
+
+    if (writer->buff_end - writer->current < TRUNK_BINLOG_LINE_SIZE)
+    {
+        if ((result=buffered_file_writer_flush(writer)) != 0)
+        {
+            return result;
+        }
+    }
+
+    writer->current += trunk_binlog_pack(g_current_time,
+            TRUNK_OP_TYPE_ADD_SPACE, pTrunkInfo, writer->current);
+
+    return 0;
 }
 
 static int tree_walk_callback_to_file(void *data, void *args)
@@ -463,7 +468,8 @@ static int tree_walk_callback_to_file(void *data, void *args)
 	pCurrent = ((FDFSTrunkSlot *)data)->head;
 	while (pCurrent != NULL)
 	{
-        if ((result=save_one_trunk(pCallbackArgs, &pCurrent->trunk)) != 0)
+        if ((result=save_one_trunk(&pCallbackArgs->data_writer,
+                        &pCurrent->trunk)) != 0)
         {
             return result;
         }
@@ -684,7 +690,8 @@ static int trunk_save_merged_spaces(struct walk_callback_args *pCallbackArgs)
         }
         if (*ppMergeFirst != NULL)
         {
-            if ((result=save_one_trunk(pCallbackArgs, *ppMergeFirst)) != 0)
+            if ((result=save_one_trunk(&pCallbackArgs->data_writer,
+                            *ppMergeFirst)) != 0)
             {
                 return result;
             }
@@ -699,7 +706,8 @@ static int trunk_save_merged_spaces(struct walk_callback_args *pCallbackArgs)
     }
     if (*ppMergeFirst != NULL)
     {
-        if ((result=save_one_trunk(pCallbackArgs, *ppMergeFirst)) != 0)
+        if ((result=save_one_trunk(&pCallbackArgs->data_writer,
+                        *ppMergeFirst)) != 0)
         {
             return result;
         }
@@ -735,6 +743,9 @@ static int trunk_open_file_writers(struct walk_callback_args *pCallbackArgs)
 #define TRUNK_TEMP_FILENAME_WITH_SUBDIRS_LEN  \
     (sizeof(TRUNK_TEMP_FILENAME_WITH_SUBDIRS_STR) - 1)
 
+    const int buffer_size = TRUNK_BINLOG_BUFFER_SIZE;
+    const int max_written_once = TRUNK_BINLOG_LINE_SIZE;
+    const int mode = 0644;
     int result;
     char temp_trunk_filename[MAX_PATH_SIZE];
 
@@ -743,8 +754,9 @@ static int trunk_open_file_writers(struct walk_callback_args *pCallbackArgs)
             TRUNK_TEMP_FILENAME_WITH_SUBDIRS_STR,
             TRUNK_TEMP_FILENAME_WITH_SUBDIRS_LEN,
             temp_trunk_filename, MAX_PATH_SIZE);
-    if ((result=buffered_file_writer_open(&pCallbackArgs->data_writer,
-                    temp_trunk_filename)) != 0)
+    if ((result=buffered_file_writer_open_ex(&pCallbackArgs->data_writer,
+                    temp_trunk_filename, buffer_size, max_written_once,
+                    mode)) != 0)
     {
         return result;
     }
@@ -797,13 +809,9 @@ static int do_save_trunk_data()
 		return result;
 	}
 
-    if ((result=buffered_file_writer_append(&callback_args.data_writer,
-                    "%"PRId64"\n", trunk_binlog_size)) != 0)
-    {
-        pthread_mutex_unlock(&trunk_mem_lock);
-        buffered_file_writer_close(&callback_args.data_writer);
-		return result;
-    }
+    callback_args.data_writer.current += fc_itoa(trunk_binlog_size,
+            callback_args.data_writer.current);
+    *callback_args.data_writer.current++ = '\n';
 
 	result = 0;
 	for (i=0; i<g_fdfs_store_paths.count; i++)
@@ -2495,11 +2503,6 @@ int trunk_check_and_init_file_ex(const char *filename, const int64_t file_size)
 	return result;
 }
 
-bool trunk_check_size(const int64_t file_size)
-{
-	return file_size <= g_slot_max_size;
-}
-
 int trunk_file_delete(const char *trunk_filename,
 		const FDFSTrunkFullInfo *pTrunkInfo)
 {
@@ -2612,4 +2615,3 @@ int trunk_create_trunk_file_advance(void *args)
  
 	return result;
 }
-

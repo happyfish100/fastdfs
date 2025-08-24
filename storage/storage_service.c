@@ -4617,7 +4617,7 @@ static int storage_upload_file(struct fast_task_info *pTask, bool bAppenderFile)
 	}
 	else
 	{
-		if (g_if_use_trunk_file && trunk_check_size( \
+		if (g_if_use_trunk_file && trunk_check_size(
 			TRUNK_CALC_SIZE(file_bytes)))
 		{
 			pFileContext->extra_info.upload.file_type |= \
