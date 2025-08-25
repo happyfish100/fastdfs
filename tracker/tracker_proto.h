@@ -172,6 +172,7 @@ typedef struct
 typedef struct
 {
 	char status;
+	char rw_mode;
 	char id[FDFS_STORAGE_ID_MAX_SIZE];
 	char ip_addr[IP_ADDRESS_SIZE];
 	char domain_name[FDFS_DOMAIN_NAME_MAX_SIZE];

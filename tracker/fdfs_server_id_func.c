@@ -311,6 +311,97 @@ int fdfs_check_storage_id(const char *group_name, const char *id)
 	return strcmp(pFound->group_name, group_name) == 0 ? 0 : EINVAL;
 }
 
+static int parse_storage_options(char *options,
+        FDFSStorageIdInfo *pStorageIdInfo,
+        const char *pStorageIdsFilename)
+{
+    char buff[64];
+    char *value_str;
+    int value_len;
+    int opt_len;
+
+    if (*options == '\0')
+    {
+        pStorageIdInfo->rw_mode = fdfs_rw_both;
+        return 0;
+    }
+
+    opt_len = strlen(options);
+    if (opt_len >= sizeof(buff))
+    {
+        logError("file: "__FILE__", line: %d, "
+                "config file: %s, storage id: %s, invalid option: %s",
+                __LINE__, pStorageIdsFilename, pStorageIdInfo->id, options);
+        return EINVAL;
+    }
+
+    memcpy(buff, options, opt_len + 1);
+    toLowercase(buff);
+    value_len = opt_len - STORAGE_RW_OPTION_TAG_LEN;
+    if (value_len <= 0 || memcmp(buff, STORAGE_RW_OPTION_TAG_STR,
+                STORAGE_RW_OPTION_TAG_LEN) != 0)
+    {
+        logError("file: "__FILE__", line: %d, "
+                "config file: %s, storage id: %s, invalid option: %s",
+                __LINE__, pStorageIdsFilename, pStorageIdInfo->id, options);
+        return EINVAL;
+    }
+
+    value_str = buff + STORAGE_RW_OPTION_TAG_LEN;
+    if (value_len == STORAGE_RW_OPTION_VALUE_NONE_LEN &&
+            memcmp(value_str, STORAGE_RW_OPTION_VALUE_NONE_STR,
+                STORAGE_RW_OPTION_VALUE_NONE_LEN) == 0)
+    {
+        pStorageIdInfo->rw_mode = fdfs_rw_none;
+    }
+    else if (value_len == STORAGE_RW_OPTION_VALUE_READ_LEN &&
+            memcmp(value_str, STORAGE_RW_OPTION_VALUE_READ_STR,
+                STORAGE_RW_OPTION_VALUE_READ_LEN) == 0)
+    {
+        pStorageIdInfo->rw_mode = fdfs_rw_readonly;
+    }
+    else if (value_len == STORAGE_RW_OPTION_VALUE_READONLY_LEN &&
+            memcmp(value_str, STORAGE_RW_OPTION_VALUE_READONLY_STR,
+                STORAGE_RW_OPTION_VALUE_READONLY_LEN) == 0)
+    {
+        pStorageIdInfo->rw_mode = fdfs_rw_readonly;
+    }
+    else if (value_len == STORAGE_RW_OPTION_VALUE_WRITE_LEN &&
+            memcmp(value_str, STORAGE_RW_OPTION_VALUE_WRITE_STR,
+                STORAGE_RW_OPTION_VALUE_WRITE_LEN) == 0)
+    {
+        pStorageIdInfo->rw_mode = fdfs_rw_writeonly;
+    }
+    else if (value_len == STORAGE_RW_OPTION_VALUE_WRITEONLY_LEN &&
+            memcmp(value_str, STORAGE_RW_OPTION_VALUE_WRITEONLY_STR,
+                STORAGE_RW_OPTION_VALUE_WRITEONLY_LEN) == 0)
+    {
+        pStorageIdInfo->rw_mode = fdfs_rw_writeonly;
+    }
+    else if (value_len == STORAGE_RW_OPTION_VALUE_BOTH_LEN &&
+            memcmp(value_str, STORAGE_RW_OPTION_VALUE_BOTH_STR,
+                STORAGE_RW_OPTION_VALUE_BOTH_LEN) == 0)
+    {
+        pStorageIdInfo->rw_mode = fdfs_rw_both;
+    }
+    else if (value_len == STORAGE_RW_OPTION_VALUE_ALL_LEN &&
+            memcmp(value_str, STORAGE_RW_OPTION_VALUE_ALL_STR,
+                STORAGE_RW_OPTION_VALUE_ALL_LEN) == 0)
+    {
+        pStorageIdInfo->rw_mode = fdfs_rw_both;
+    }
+    else
+    {
+        logError("file: "__FILE__", line: %d, "
+                "config file: %s, storage id: %s, invalid rw value: %s",
+                __LINE__, pStorageIdsFilename, pStorageIdInfo->id,
+                options + STORAGE_RW_OPTION_TAG_LEN);
+        return EINVAL;
+    }
+
+    return 0;
+}
+
 int fdfs_load_storage_ids(char *content, const char *pStorageIdsFilename)
 {
 	char **lines;
@@ -320,6 +411,7 @@ int fdfs_load_storage_ids(char *content, const char *pStorageIdsFilename)
 	char *pHost;
 	char *pPort;
     char *pSquare;
+    char *options;
 	FDFSStorageIdInfo *pStorageIdInfo;
     char error_info[256];
 	int alloc_bytes;
@@ -380,7 +472,7 @@ int fdfs_load_storage_ids(char *content, const char *pStorageIdsFilename)
 
 			id = line;
 			group_name = line;
-			while (!(*group_name == ' ' || *group_name == '\t' \
+			while (!(*group_name == ' ' || *group_name == '\t'
 				|| *group_name == '\0'))
 			{
 				group_name++;
@@ -428,7 +520,22 @@ int fdfs_load_storage_ids(char *content, const char *pStorageIdsFilename)
 			{
 				pHost++;
 			}
-			
+
+			options = pHost;
+			while (*options != '\0' && !(*options == ' ' || *options == '\t'))
+            {
+                options++;
+            }
+            if (*options != '\0')
+            {
+                *options = '\0';
+                options++;  //skip space char
+                while (*options == ' ' || *options == '\t')
+                {
+                    options++;
+                }
+            }
+
 			if (*pHost == '[') //IPv6 address
             {
                 pHost++;  //skip [
@@ -498,6 +605,12 @@ int fdfs_load_storage_ids(char *content, const char *pStorageIdsFilename)
 
 			fc_safe_strcpy(pStorageIdInfo->id, id);
 			fc_safe_strcpy(pStorageIdInfo->group_name, group_name);
+            if ((result=parse_storage_options(options, pStorageIdInfo,
+                            pStorageIdsFilename)) != 0)
+            {
+                break;
+            }
+
 			pStorageIdInfo++;
 		}
 	} while (0);
@@ -816,7 +929,7 @@ int fdfs_load_storage_ids_from_file(const char *config_filename, \
 
 	if (*pStorageIdsFilename == '/')  //absolute path
 	{
-		result = getFileContent(pStorageIdsFilename, \
+		result = getFileContent(pStorageIdsFilename,
 				&content, &file_size);
 	}
 	else
@@ -824,7 +937,7 @@ int fdfs_load_storage_ids_from_file(const char *config_filename, \
 		const char *lastSlash = strrchr(config_filename, '/');
 		if (lastSlash == NULL)
 		{
-			result = getFileContent(pStorageIdsFilename, \
+			result = getFileContent(pStorageIdsFilename,
 					&content, &file_size);
 		}
 		else

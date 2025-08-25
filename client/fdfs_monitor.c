@@ -262,6 +262,23 @@ int main(int argc, char *argv[])
 	return 0;
 }
 
+static const char *get_storage_rw_caption(const FDFSReadWriteMode rw_mode)
+{
+    switch (rw_mode)
+    {
+        case fdfs_rw_none:
+            return "none (disabled)";
+        case fdfs_rw_readonly:
+            return "readonly";
+        case fdfs_rw_writeonly:
+            return "writeonly";
+        case fdfs_rw_both:
+            return "both (normal)";
+        default:
+            return "unkown";
+    }
+}
+
 static int list_storages(FDFSGroupStat *pGroupStat)
 {
 	int result;
@@ -420,6 +437,7 @@ static int list_storages(FDFSGroupStat *pGroupStat)
 		printf( "\tStorage %d:\n"
 			"\t\tid = %s\n"
 			"\t\tip_addr = %s%s  %s\n"
+            "\t\tread write mode = %s\n"
 			"\t\thttp domain = %s\n"
 			"\t\tversion = %s\n"
 			"\t\tjoin time = %s\n"
@@ -481,7 +499,9 @@ static int list_storages(FDFSGroupStat *pGroupStat)
 			"\t\tlast_synced_timestamp = %s %s\n",
 			++k, pStorage->id, pStorage->ip_addr,
 			szHostnamePrompt, get_storage_status_caption(
-			    pStorage->status), pStorage->domain_name,
+			    pStorage->status),
+            get_storage_rw_caption(pStorage->rw_mode),
+            pStorage->domain_name,
 			pStorage->version,
 			formatDatetime(pStorage->join_time,
 				"%Y-%m-%d %H:%M:%S",

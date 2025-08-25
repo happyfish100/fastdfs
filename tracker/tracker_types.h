@@ -132,6 +132,13 @@
 #define FDFS_MULTI_IP_INDEX_OUTER   	1   //outer ip index
 #define FDFS_MULTI_IP_MAX_COUNT      	2
 
+typedef enum {
+    fdfs_rw_none = 0,
+    fdfs_rw_readonly = R_OK,
+    fdfs_rw_writeonly = W_OK,
+    fdfs_rw_both = R_OK | W_OK
+} FDFSReadWriteMode;
+
 typedef struct
 {
 	char status;
@@ -298,6 +305,7 @@ typedef struct StructFDFSStorageDetail
 {
 	char status;
 	char padding;  //just for padding
+    FDFSReadWriteMode rw_mode;  //since v6.13
 	char id[FDFS_STORAGE_ID_MAX_SIZE];
     FDFSMultiIP ip_addrs;
 	char version[FDFS_VERSION_SIZE];

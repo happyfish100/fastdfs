@@ -1068,11 +1068,13 @@ static int tracker_deal_fetch_storage_ids(struct fast_task_info *pTask)
 	FDFSStorageIdInfo *pIdInfo;
 	char *p;
 	int *pCurrentCount;
+    const char *rw_caption;
 	int nPkgLen;
 	int start_index;
     int group_len;
     int id_len;
     int ip_len;
+    int caption_len;
     bool is_ipv6;
     char ip_str[256];
 
@@ -1126,7 +1128,7 @@ static int tracker_deal_fetch_storage_ids(struct fast_task_info *pTask)
 	pIdsEnd = g_storage_ids_by_id.ids + g_storage_ids_by_id.count;
 	for (pIdInfo = pIdsStart; pIdInfo < pIdsEnd; pIdInfo++)
 	{
-		if ((int)(p - pTask->send.ptr->data) > pTask->send.ptr->size - 64)
+		if ((int)(p - pTask->send.ptr->data) > pTask->send.ptr->size - 128)
 		{
 			break;
 		}
@@ -1162,6 +1164,18 @@ static int tracker_deal_fetch_storage_ids(struct fast_task_info *pTask)
             *p++ = ':';
             p += fc_itoa(pIdInfo->port, p);
         }
+
+        if (pIdInfo->rw_mode != fdfs_rw_both)
+        {
+            rw_caption = fdfs_get_storage_rw_caption(pIdInfo->rw_mode);
+            caption_len = strlen(rw_caption);
+            *p++ = ' ';
+            memcpy(p, STORAGE_RW_OPTION_TAG_STR, STORAGE_RW_OPTION_TAG_LEN);
+            p += STORAGE_RW_OPTION_TAG_LEN;
+            memcpy(p, rw_caption, caption_len);
+            p += caption_len;
+        }
+
         *p++ = '\n';
 	}
 
@@ -2237,6 +2251,7 @@ static int tracker_deal_server_list_group_storages(struct fast_task_info *pTask)
 		pStatBuff = &(pDest->stat_buff);
 		pStorageStat = &((*ppServer)->stat);
 		pDest->status = (*ppServer)->status;
+		pDest->rw_mode = (*ppServer)->rw_mode;
 		strcpy(pDest->id, (*ppServer)->id);
 		strcpy(pDest->ip_addr, fdfs_get_ipaddr_by_peer_ip(
                     &(*ppServer)->ip_addrs, pTask->client_ip));
@@ -2426,9 +2441,9 @@ static int tracker_deal_service_query_fetch_update( \
 	filename_len = pTask->recv.ptr->length - sizeof(TrackerHeader) - \
 			FDFS_GROUP_NAME_MAX_LEN;
 
-	result = tracker_mem_get_storage_by_filename(cmd, \
-			FDFS_DOWNLOAD_TYPE_CALL \
-			group_name, filename, filename_len, &pGroup, \
+	result = tracker_mem_get_storage_by_filename(cmd,
+			FDFS_DOWNLOAD_TYPE_CALL
+			group_name, filename, filename_len, &pGroup,
 			ppStoreServers, &server_count);
 
 	if (result != 0)
@@ -3769,15 +3784,15 @@ static int tracker_deal_task(struct fast_task_info *pTask, const int stage)
 			result = tracker_deal_storage_replica_chg(pTask);
 			break;
 		case TRACKER_PROTO_CMD_SERVICE_QUERY_FETCH_ONE:
-			result = tracker_deal_service_query_fetch_update( \
+			result = tracker_deal_service_query_fetch_update(
 					pTask, pHeader->cmd);
 			break;
 		case TRACKER_PROTO_CMD_SERVICE_QUERY_UPDATE:
-			result = tracker_deal_service_query_fetch_update( \
+			result = tracker_deal_service_query_fetch_update(
 					pTask, pHeader->cmd);
 			break;
 		case TRACKER_PROTO_CMD_SERVICE_QUERY_FETCH_ALL:
-			result = tracker_deal_service_query_fetch_update( \
+			result = tracker_deal_service_query_fetch_update(
 					pTask, pHeader->cmd);
 			break;
 		case TRACKER_PROTO_CMD_SERVICE_QUERY_STORE_WITHOUT_GROUP_ONE:

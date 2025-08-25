@@ -16,16 +16,48 @@
 #include "fastcommon/logger.h"
 #include "tracker_types.h"
 
+#define STORAGE_RW_OPTION_TAG_STR  "rw="
+#define STORAGE_RW_OPTION_TAG_LEN  (sizeof(STORAGE_RW_OPTION_TAG_STR) - 1)
+
+#define STORAGE_RW_OPTION_VALUE_NONE_STR  "none"
+#define STORAGE_RW_OPTION_VALUE_NONE_LEN  \
+    (sizeof(STORAGE_RW_OPTION_VALUE_NONE_STR) - 1)
+
+#define STORAGE_RW_OPTION_VALUE_READ_STR  "read"
+#define STORAGE_RW_OPTION_VALUE_READ_LEN  \
+    (sizeof(STORAGE_RW_OPTION_VALUE_READ_STR) - 1)
+
+#define STORAGE_RW_OPTION_VALUE_READONLY_STR  "readonly"
+#define STORAGE_RW_OPTION_VALUE_READONLY_LEN  \
+    (sizeof(STORAGE_RW_OPTION_VALUE_READONLY_STR) - 1)
+
+#define STORAGE_RW_OPTION_VALUE_WRITE_STR  "write"
+#define STORAGE_RW_OPTION_VALUE_WRITE_LEN  \
+    (sizeof(STORAGE_RW_OPTION_VALUE_WRITE_STR) - 1)
+
+#define STORAGE_RW_OPTION_VALUE_WRITEONLY_STR  "writeonly"
+#define STORAGE_RW_OPTION_VALUE_WRITEONLY_LEN  \
+    (sizeof(STORAGE_RW_OPTION_VALUE_WRITEONLY_STR) - 1)
+
+#define STORAGE_RW_OPTION_VALUE_BOTH_STR  "both"
+#define STORAGE_RW_OPTION_VALUE_BOTH_LEN  \
+    (sizeof(STORAGE_RW_OPTION_VALUE_BOTH_STR) - 1)
+
+#define STORAGE_RW_OPTION_VALUE_ALL_STR   "all"
+#define STORAGE_RW_OPTION_VALUE_ALL_LEN   \
+    (sizeof(STORAGE_RW_OPTION_VALUE_ALL_STR) - 1)
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 typedef struct
 {
-	char id[FDFS_STORAGE_ID_MAX_SIZE];
-	char group_name[FDFS_GROUP_NAME_MAX_LEN + 8];  //for 8 bytes alignment
-	FDFSMultiIP ip_addrs;
+    char id[FDFS_STORAGE_ID_MAX_SIZE];
+    char group_name[FDFS_GROUP_NAME_MAX_LEN + 8];  //for 8 bytes alignment
+    FDFSMultiIP ip_addrs;
     int port;   //since v5.05
+    FDFSReadWriteMode rw_mode;  //since v6.13
 } FDFSStorageIdInfo;
 
 typedef struct
@@ -73,6 +105,22 @@ int fdfs_get_storage_ids_from_tracker_group(TrackerServerGroup *pTrackerGroup);
 
 int fdfs_load_storage_ids_from_file(const char *config_filename,
 		IniContext *pItemContext);
+
+static inline const char *fdfs_get_storage_rw_caption(
+        const FDFSReadWriteMode rw_mode)
+{
+    switch (rw_mode)
+    {
+        case fdfs_rw_none:
+            return STORAGE_RW_OPTION_VALUE_NONE_STR;
+        case fdfs_rw_readonly:
+            return STORAGE_RW_OPTION_VALUE_READ_STR;
+        case fdfs_rw_writeonly:
+            return STORAGE_RW_OPTION_VALUE_WRITE_STR;
+        default:
+            return STORAGE_RW_OPTION_VALUE_BOTH_STR;
+    }
+}
 
 #ifdef __cplusplus
 }

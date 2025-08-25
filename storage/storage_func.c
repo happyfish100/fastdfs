@@ -2631,12 +2631,24 @@ int storage_func_init(const char *filename)
 
 	if ((result=tracker_get_my_server_id(filename, server_id_in_conf)) != 0)
 	{
-		logCrit("file: "__FILE__", line: %d, " \
-			"get my server id from tracker server fail, " \
-			"errno: %d, error info: %s", __LINE__, \
+		logCrit("file: "__FILE__", line: %d, "
+			"get my server id from tracker server fail, "
+			"errno: %d, error info: %s", __LINE__,
 			result, STRERROR(result));
 		return result;
 	}
+
+    if (g_use_storage_id)
+    {
+        if ((g_my_storage_id_info=fdfs_get_storage_by_id(
+                        g_my_server_id_str)) == NULL)
+        {
+            logCrit("file: "__FILE__", line: %d, "
+                    "get my storage info fail, my server id: %s",
+                    __LINE__, g_my_server_id_str);
+            return ENOENT;
+        }
+    }
 
 	if ((result=storage_check_ip_changed()) != 0)
 	{

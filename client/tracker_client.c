@@ -361,6 +361,7 @@ int tracker_list_servers(ConnectionInfo *pTrackerServer, \
 		pStorageStat = &(pDest->stat);
 
 		pDest->status = pSrc->status;
+		pDest->rw_mode = pSrc->rw_mode;
 		memcpy(pDest->id, pSrc->id, FDFS_STORAGE_ID_MAX_SIZE - 1);
 		memcpy(pDest->ip_addr, pSrc->ip_addr, IP_ADDRESS_SIZE - 1);
 		memcpy(pDest->src_id, pSrc->src_id, \

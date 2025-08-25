@@ -146,6 +146,8 @@ extern int g_compress_access_log_days_before;
 
 extern struct storage_dio_thread_data *g_dio_thread_data;  //disk io thread data
 
+extern FDFSStorageIdInfo *g_my_storage_id_info;
+
 int storage_cmp_by_server_id(const void *p1, const void *p2);
 
 int storage_insert_ip_addr_to_multi_ips(FDFSMultiIP *multi_ip,

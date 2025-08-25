@@ -111,6 +111,8 @@ char g_exe_name[256] = {0};
 int g_compress_access_log_days_before = 0;
 struct storage_dio_thread_data *g_dio_thread_data = NULL;
 
+FDFSStorageIdInfo *g_my_storage_id_info = NULL;
+
 int storage_cmp_by_server_id(const void *p1, const void *p2)
 {
 	return strcmp((*((FDFSStorageServer **)p1))->server.id,

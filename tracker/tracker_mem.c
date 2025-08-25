@@ -4259,7 +4259,7 @@ static int _tracker_mem_add_storage(FDFSGroupInfo *pGroup,
 {
 	int result;
 	FDFSStorageId storage_id;
-    FDFSStorageIdInfo *pStorageIdInfo;
+    FDFSStorageIdInfo *pStorageIdInfo = NULL;
     FDFSMultiIP multi_ip;
 
 	if (*ip_addr == '\0')
@@ -4383,6 +4383,11 @@ static int _tracker_mem_add_storage(FDFSGroupInfo *pGroup,
         if (g_use_storage_id)
         {
             fdfs_set_multi_ip_index(&(*ppStorageServer)->ip_addrs, ip_addr);
+            (*ppStorageServer)->rw_mode = pStorageIdInfo->rw_mode;
+        }
+        else
+        {
+            (*ppStorageServer)->rw_mode = fdfs_rw_both;
         }
 
 		tracker_mem_insert_into_sorted_servers(*ppStorageServer,
@@ -6232,8 +6237,8 @@ FDFSStorageDetail *tracker_get_writable_storage(FDFSGroupInfo *pStoreGroup)
 }
 
 int tracker_mem_get_storage_by_filename(const byte cmd,FDFS_DOWNLOAD_TYPE_PARAM\
-	const char *group_name, const char *filename, const int filename_len, \
-	FDFSGroupInfo **ppGroup, FDFSStorageDetail **ppStoreServers, \
+	const char *group_name, const char *filename, const int filename_len,
+	FDFSGroupInfo **ppGroup, FDFSStorageDetail **ppStoreServers,
 	int *server_count)
 {
 	char szIpAddr[IP_ADDRESS_SIZE];
@@ -6332,7 +6337,7 @@ int tracker_mem_get_storage_by_filename(const byte cmd,FDFS_DOWNLOAD_TYPE_PARAM\
 	memset(szIpAddr, 0, sizeof(szIpAddr));
 	if (cmd == TRACKER_PROTO_CMD_SERVICE_QUERY_FETCH_ONE)
 	{
-		if (g_groups.download_server == \
+		if (g_groups.download_server ==
 				FDFS_DOWNLOAD_SERVER_SOURCE_FIRST)
 		{
 #ifdef WITH_HTTPD
@@ -6378,14 +6383,14 @@ int tracker_mem_get_storage_by_filename(const byte cmd,FDFS_DOWNLOAD_TYPE_PARAM\
 			{
 			memset(&ip_addr, 0, sizeof(ip_addr));
 			ip_addr.s_addr = storage_ip;
-			pStoreSrcServer=tracker_mem_get_active_storage_by_ip(\
-				*ppGroup, inet_ntop(AF_INET, &ip_addr, \
+			pStoreSrcServer=tracker_mem_get_active_storage_by_ip(
+				*ppGroup, inet_ntop(AF_INET, &ip_addr,
 				szIpAddr, sizeof(szIpAddr)));
 			}
 #endif
-			if (pStoreSrcServer != NULL)
+			if (pStoreSrcServer != NULL && (pStoreSrcServer->rw_mode & R_OK))
 			{
-				ppStoreServers[(*server_count)++] = \
+				ppStoreServers[(*server_count)++] =
 						 pStoreSrcServer;
 				return 0;
 			}
@@ -6419,7 +6424,7 @@ int tracker_mem_get_storage_by_filename(const byte cmd,FDFS_DOWNLOAD_TYPE_PARAM\
 		{
 			read_server_index = 0;
 		}
-		ppStoreServers[(*server_count)++]=*((*ppGroup)->active_servers \
+		ppStoreServers[(*server_count)++]=*((*ppGroup)->active_servers
 				+ read_server_index);
 #endif
 		/*

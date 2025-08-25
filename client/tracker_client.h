@@ -19,24 +19,25 @@ extern "C" {
 
 typedef struct
 {
-	bool if_trunk_server;
-	char status;
-	char id[FDFS_STORAGE_ID_MAX_SIZE];
-	char ip_addr[IP_ADDRESS_SIZE];
-	char src_id[FDFS_STORAGE_ID_MAX_SIZE];  //src storage id
-	char domain_name[FDFS_DOMAIN_NAME_MAX_SIZE]; //http domain name
-	char version[FDFS_VERSION_SIZE];
-	int64_t total_mb;  //total disk storage in MB
-	int64_t free_mb;   //free disk storage in MB
-	int upload_priority;  //upload priority
-	time_t join_time; //storage join timestamp (create timestamp)
-	time_t up_time;   //storage service started timestamp
-	int store_path_count;  //store base path count of each storage server
-	int subdir_count_per_path;
-	int storage_port;
-	int storage_http_port; //storage http server port
-	int current_write_path; //current write path index
-        FDFSStorageStat stat;
+    bool if_trunk_server;
+    char status;
+    FDFSReadWriteMode rw_mode;
+    char id[FDFS_STORAGE_ID_MAX_SIZE];
+    char ip_addr[IP_ADDRESS_SIZE];
+    char src_id[FDFS_STORAGE_ID_MAX_SIZE];  //src storage id
+    char domain_name[FDFS_DOMAIN_NAME_MAX_SIZE]; //http domain name
+    char version[FDFS_VERSION_SIZE];
+    int64_t total_mb;  //total disk storage in MB
+    int64_t free_mb;   //free disk storage in MB
+    int upload_priority;  //upload priority
+    time_t join_time; //storage join timestamp (create timestamp)
+    time_t up_time;   //storage service started timestamp
+    int store_path_count;  //store base path count of each storage server
+    int subdir_count_per_path;
+    int storage_port;
+    int storage_http_port; //storage http server port
+    int current_write_path; //current write path index
+    FDFSStorageStat stat;
 } FDFSStorageInfo;
 
 
