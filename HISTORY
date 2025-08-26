@@ -1,9 +1,10 @@
 
-Version 6.13.0  2025-08-24
+Version 6.13.0  2025-08-26
  * use libfastcommon V1.79 and libserverframe 1.2.8
  * Merge pull request #753 from lystormenvoy/store_path_readonly
  * performance opt.: replace sprintf and snprintf as necessary
  * bugfixed: MUST memset connection info to 0
+ * remove useless HTTP relative codes
 
 Version 6.12.4  2025-06-19
  * normalize ip addresses from storage_ids.conf

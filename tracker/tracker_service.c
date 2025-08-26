@@ -1362,17 +1362,6 @@ static int tracker_deal_storage_join(struct fast_task_info *pTask)
 		return EINVAL;
 	}
 
-	joinBody.storage_http_port = (int)buff2long(pBody->storage_http_port);
-	if (joinBody.storage_http_port < 0)
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"client ip: %s, invalid http port: %d", \
-			__LINE__, pTask->client_ip, \
-			joinBody.storage_http_port);
-		pTask->send.ptr->length = sizeof(TrackerHeader);
-		return EINVAL;
-	}
-
 	joinBody.store_path_count = (int)buff2long(pBody->store_path_count);
 	if (joinBody.store_path_count <= 0 || joinBody.store_path_count > 256)
 	{
@@ -1419,9 +1408,7 @@ static int tracker_deal_storage_join(struct fast_task_info *pTask)
 	joinBody.up_time = (time_t)buff2long(pBody->up_time);
 
 	*(pBody->version + (sizeof(pBody->version) - 1)) = '\0';
-	*(pBody->domain_name + (sizeof(pBody->domain_name) - 1)) = '\0';
 	strcpy(joinBody.version, pBody->version);
-	strcpy(joinBody.domain_name, pBody->domain_name);
 	joinBody.init_flag = pBody->init_flag;
 	joinBody.status = pBody->status;
 	memcpy(joinBody.storage_id, pBody->storage_id, FDFS_STORAGE_ID_MAX_SIZE);
@@ -2261,7 +2248,6 @@ static int tracker_deal_server_list_group_storages(struct fast_task_info *pTask)
 				(*ppServer)->psync_src_server->id);
 		}
 
-		strcpy(pDest->domain_name, (*ppServer)->domain_name);
 		strcpy(pDest->version, (*ppServer)->version);
 		long2buff((*ppServer)->join_time, pDest->sz_join_time);
 		long2buff((*ppServer)->up_time, pDest->sz_up_time);
@@ -2271,8 +2257,6 @@ static int tracker_deal_server_list_group_storages(struct fast_task_info *pTask)
 				pDest->sz_upload_priority);
 		long2buff((*ppServer)->storage_port, \
 				pDest->sz_storage_port);
-		long2buff((*ppServer)->storage_http_port, \
-				pDest->sz_storage_http_port);
 		long2buff((*ppServer)->store_path_count, \
 				pDest->sz_store_path_count);
 		long2buff((*ppServer)->subdir_count_per_path, \
@@ -2442,7 +2426,6 @@ static int tracker_deal_service_query_fetch_update( \
 			FDFS_GROUP_NAME_MAX_LEN;
 
 	result = tracker_mem_get_storage_by_filename(cmd,
-			FDFS_DOWNLOAD_TYPE_CALL
 			group_name, filename, filename_len, &pGroup,
 			ppStoreServers, &server_count);
 
@@ -2908,7 +2891,6 @@ static int tracker_deal_server_list_one_group(struct fast_task_info *pTask)
 	long2buff(pGroup->trunk_free_mb, pDest->sz_trunk_free_mb);
 	long2buff(pGroup->count, pDest->sz_count);
 	long2buff(pGroup->storage_port, pDest->sz_storage_port);
-	long2buff(pGroup->storage_http_port, pDest->sz_storage_http_port);
 	long2buff(pGroup->active_count, pDest->sz_active_count);
 	long2buff(pGroup->current_write_server, 
 			pDest->sz_current_write_server);
@@ -2984,8 +2966,6 @@ static int tracker_deal_server_list_all_groups(struct fast_task_info *pTask)
 		long2buff((*ppGroup)->count, pDest->sz_count);
 		long2buff((*ppGroup)->storage_port, \
 				pDest->sz_storage_port);
-		long2buff((*ppGroup)->storage_http_port, \
-				pDest->sz_storage_http_port);
 		long2buff((*ppGroup)->active_count, \
 				pDest->sz_active_count);
 		long2buff((*ppGroup)->current_write_server, \

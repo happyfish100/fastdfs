@@ -366,7 +366,6 @@ int tracker_list_servers(ConnectionInfo *pTrackerServer, \
 		memcpy(pDest->ip_addr, pSrc->ip_addr, IP_ADDRESS_SIZE - 1);
 		memcpy(pDest->src_id, pSrc->src_id, \
 			FDFS_STORAGE_ID_MAX_SIZE - 1);
-		strcpy(pDest->domain_name, pSrc->domain_name);
 		strcpy(pDest->version, pSrc->version);
 		pDest->join_time = buff2long(pSrc->sz_join_time);
 		pDest->up_time = buff2long(pSrc->sz_up_time);
@@ -377,7 +376,6 @@ int tracker_list_servers(ConnectionInfo *pTrackerServer, \
 		pDest->subdir_count_per_path = buff2long( \
 					pSrc->sz_subdir_count_per_path);
 		pDest->storage_port = buff2long(pSrc->sz_storage_port);
-		pDest->storage_http_port = buff2long(pSrc->sz_storage_http_port);
 		pDest->current_write_path = buff2long( \
 					pSrc->sz_current_write_path);
 
@@ -548,7 +546,6 @@ int tracker_list_one_group(ConnectionInfo *pTrackerServer, \
 	pDest->trunk_free_mb = buff2long(src.sz_trunk_free_mb);
 	pDest->count= buff2long(src.sz_count);
 	pDest->storage_port= buff2long(src.sz_storage_port);
-	pDest->storage_http_port= buff2long(src.sz_storage_http_port);
 	pDest->active_count = buff2long(src.sz_active_count);
 	pDest->current_write_server = buff2long(src.sz_current_write_server);
 	pDest->store_path_count = buff2long(src.sz_store_path_count);
@@ -648,7 +645,6 @@ int tracker_list_groups(ConnectionInfo *pTrackerServer, \
 		pDest->trunk_free_mb = buff2long(pSrc->sz_trunk_free_mb);
 		pDest->count= buff2long(pSrc->sz_count);
 		pDest->storage_port= buff2long(pSrc->sz_storage_port);
-		pDest->storage_http_port= buff2long(pSrc->sz_storage_http_port);
 		pDest->active_count = buff2long(pSrc->sz_active_count);
 		pDest->current_write_server = buff2long( \
 				pSrc->sz_current_write_server);

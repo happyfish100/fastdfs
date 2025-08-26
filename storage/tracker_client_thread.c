@@ -336,14 +336,6 @@ static void *tracker_report_thread_entrance(void *arg)
 			continue;
 		}
 
-		if (g_http_port != g_last_http_port)
-		{
-			g_last_http_port = g_http_port;
-			if ((result=storage_write_to_sync_ini_file()) != 0)
-			{
-			}
-		}
-
 		if (!sync_old_done)
 		{
 			if ((result=pthread_mutex_lock(&reporter_thread_lock)) \
@@ -2033,11 +2025,9 @@ int tracker_report_join(ConnectionInfo *pTrackerServer, \
 	memset(out_buff, 0, sizeof(out_buff));
 	pHeader->cmd = TRACKER_PROTO_CMD_STORAGE_JOIN;
 	strcpy(pReqBody->group_name, g_group_name);
-	strcpy(pReqBody->domain_name, g_http_domain);
 	snprintf(pReqBody->version, sizeof(pReqBody->version), "%d.%d.%d",
 		g_fdfs_version.major, g_fdfs_version.minor, g_fdfs_version.patch);
 	long2buff(SF_G_INNER_PORT, pReqBody->storage_port);
-	long2buff(g_http_port, pReqBody->storage_http_port);
 	long2buff(g_fdfs_store_paths.count, pReqBody->store_path_count);
 	long2buff(g_subdir_count_per_path, pReqBody->subdir_count_per_path);
 	long2buff(g_upload_priority, pReqBody->upload_priority);

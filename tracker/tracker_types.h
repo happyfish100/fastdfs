@@ -84,13 +84,6 @@
 #define FDFS_FILE_DIST_PATH_ROUND_ROBIN	0  //round robin
 #define FDFS_FILE_DIST_PATH_RANDOM	1  //random
 
-//http check alive type
-#define FDFS_HTTP_CHECK_ALIVE_TYPE_TCP  0  //tcp
-#define FDFS_HTTP_CHECK_ALIVE_TYPE_HTTP 1  //http
-
-#define FDFS_DOWNLOAD_TYPE_TCP	0  //tcp
-#define FDFS_DOWNLOAD_TYPE_HTTP	1  //http
-
 #define FDFS_FILE_DIST_DEFAULT_ROTATE_COUNT   100
 
 #define FDFS_DOMAIN_NAME_MAX_SIZE	128
@@ -155,7 +148,6 @@ typedef struct
 	int64_t trunk_free_mb;  //trunk free disk storage in MB
 	int count;        //server count
 	int storage_port; //storage server port
-	int storage_http_port; //storage server http port
 	int active_count; //active server count
 	int current_write_server; //current server index to upload file
 	int store_path_count;  //store base path count of each storage server
@@ -309,7 +301,6 @@ typedef struct StructFDFSStorageDetail
 	char id[FDFS_STORAGE_ID_MAX_SIZE];
     FDFSMultiIP ip_addrs;
 	char version[FDFS_VERSION_SIZE];
-	char domain_name[FDFS_DOMAIN_NAME_MAX_SIZE];
 
 	struct StructFDFSStorageDetail *psync_src_server;
 	int64_t *path_total_mbs; //total disk storage in MB
@@ -328,20 +319,11 @@ typedef struct StructFDFSStorageDetail
 	int upload_priority; //storage upload priority
 
 	int storage_port;   //storage server port
-	int storage_http_port; //storage http server port
-
 	int current_write_path; //current write path index
 
 	int chg_count;    //current server changed counter
 	int trunk_chg_count;   //trunk server changed count
 	FDFSStorageStat stat;
-
-#ifdef WITH_HTTPD
-	int http_check_last_errno;
-	int http_check_last_status;
-	int http_check_fail_count;
-	char http_check_error_info[256];
-#endif
 } FDFSStorageDetail;
 
 typedef struct
@@ -354,7 +336,6 @@ typedef struct
 	int count;    //total server count
 	int active_count; //active server count
 	int storage_port;  //storage server port
-	int storage_http_port; //storage http server port
 	int current_trunk_file_id;  //current trunk file id report by storage
 	FDFSStorageDetail **all_servers;   //all storage servers
 	FDFSStorageDetail **sorted_servers;  //storages order by ip addr
@@ -362,12 +343,6 @@ typedef struct
 	FDFSStorageDetail *pStoreServer;  //for upload priority mode
 	FDFSStorageDetail *pTrunkServer;  //point to the trunk server
 	char last_trunk_server_id[FDFS_STORAGE_ID_MAX_SIZE];
-
-#ifdef WITH_HTTPD
-	FDFSStorageDetail **http_servers;  //storages order by ip addr
-	int http_server_count; //http server count
-	int current_http_server; //current http server index
-#endif
 
 	int current_read_server;   //current read storage server index
 	int current_write_server;  //current write storage server index
@@ -428,7 +403,6 @@ typedef struct
 typedef struct
 {
     int storage_port;
-    int storage_http_port;
     int store_path_count;
     int subdir_count_per_path;
     int upload_priority;
@@ -436,7 +410,6 @@ typedef struct
     int up_time;   //storage service started timestamp
     char version[FDFS_VERSION_SIZE];   //storage version
     char group_name[FDFS_GROUP_NAME_MAX_LEN + 1];
-    char domain_name[FDFS_DOMAIN_NAME_MAX_SIZE];
     char storage_id[FDFS_STORAGE_ID_MAX_SIZE];
     char init_flag;
     signed char status;

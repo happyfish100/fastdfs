@@ -336,14 +336,6 @@ static int fdfs_client_do_init_ex(TrackerServerGroup *pTrackerGroup, \
 		buffer_strcpy(&g_anti_steal_secret_key, anti_steal_secret_key);
 	}
 
-	g_tracker_server_http_port = iniGetIntValue(NULL, \
-				"http.tracker_server_port", \
-				iniContext, 80);
-	if (g_tracker_server_http_port <= 0)
-	{
-		g_tracker_server_http_port = 80;
-	}
-
 	if ((result=fdfs_connection_pool_init(conf_filename, iniContext)) != 0)
 	{
 		return result;

@@ -132,14 +132,12 @@ typedef struct
 {
 	char group_name[FDFS_GROUP_NAME_MAX_LEN+1];
 	char storage_port[FDFS_PROTO_PKG_LEN_SIZE];
-	char storage_http_port[FDFS_PROTO_PKG_LEN_SIZE];
 	char store_path_count[FDFS_PROTO_PKG_LEN_SIZE];
 	char subdir_count_per_path[FDFS_PROTO_PKG_LEN_SIZE];
 	char upload_priority[FDFS_PROTO_PKG_LEN_SIZE];
 	char join_time[FDFS_PROTO_PKG_LEN_SIZE]; //storage join timestamp
 	char up_time[FDFS_PROTO_PKG_LEN_SIZE];   //storage service started timestamp
 	char version[FDFS_VERSION_SIZE];   //storage version
-	char domain_name[FDFS_DOMAIN_NAME_MAX_SIZE];
 	char init_flag;
 	signed char status;
 	char storage_id[FDFS_STORAGE_ID_MAX_SIZE];    //since 6.11
@@ -161,7 +159,6 @@ typedef struct
 	char sz_trunk_free_mb[FDFS_PROTO_PKG_LEN_SIZE];  //trunk free space in MB
 	char sz_count[FDFS_PROTO_PKG_LEN_SIZE];    //server count
 	char sz_storage_port[FDFS_PROTO_PKG_LEN_SIZE];
-	char sz_storage_http_port[FDFS_PROTO_PKG_LEN_SIZE];
 	char sz_active_count[FDFS_PROTO_PKG_LEN_SIZE]; //active server count
 	char sz_current_write_server[FDFS_PROTO_PKG_LEN_SIZE];
 	char sz_store_path_count[FDFS_PROTO_PKG_LEN_SIZE];
@@ -175,7 +172,6 @@ typedef struct
 	char rw_mode;
 	char id[FDFS_STORAGE_ID_MAX_SIZE];
 	char ip_addr[IP_ADDRESS_SIZE];
-	char domain_name[FDFS_DOMAIN_NAME_MAX_SIZE];
 	char src_id[FDFS_STORAGE_ID_MAX_SIZE];  //src storage id
 	char version[FDFS_VERSION_SIZE];
 	char sz_join_time[8];
@@ -187,7 +183,6 @@ typedef struct
 	char sz_subdir_count_per_path[8];
 	char sz_current_write_path[8];
 	char sz_storage_port[8];
-	char sz_storage_http_port[8];
 	FDFSStorageStatBuff stat_buff;
 	char if_trunk_server;
 } TrackerStorageStat;

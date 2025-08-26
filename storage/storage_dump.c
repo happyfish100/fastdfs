@@ -55,13 +55,10 @@ static int fdfs_dump_global_vars(char *buff, const int buffSize)
 		"g_storage_thread_count=%d\n"
 		"g_group_name=%s\n"
 		"g_subdir_count_per_path=%d\n"
-		"g_http_port=%d\n"
 		"g_last_server_port=%d\n"
-		"g_last_http_port=%d\n"
 		"g_allow_ip_count=%d\n"
 		"g_run_by_group=%s\n"
 		"g_run_by_user=%s\n"
-		"g_http_domain=%s\n"
 		"g_file_distribute_path_mode=%d\n"
 		"g_file_distribute_rotate_count=%d\n"
 		"g_fsync_after_written_bytes=%d\n"
@@ -123,18 +120,6 @@ static int fdfs_dump_global_vars(char *buff, const int buffSize)
 		"g_use_connection_pool=%d\n"
 		"g_connection_pool_max_idle_time=%d\n"
 		"connection_pool_conn_count=%d\n"
-	#ifdef WITH_HTTPD
-		"g_http_params.disabled=%d\n"
-		"g_http_params.anti_steal_token=%d\n"
-		"g_http_params.server_port=%d\n"
-		"g_http_params.content_type_hash item count=%d\n"
-		"g_http_params.anti_steal_secret_key length=%d\n"
-		"g_http_params.token_check_fail_buff length=%d\n"
-		"g_http_params.default_content_type=%s\n"
-		"g_http_params.token_check_fail_content_type=%s\n"
-		"g_http_params.token_ttl=%d\n"
-		"g_http_trunk_size=%d\n"
-	#endif
 	#if defined(DEBUG_FLAG) && defined(OS_LINUX)
 		"g_exe_name=%s\n"
 	#endif
@@ -149,13 +134,10 @@ static int fdfs_dump_global_vars(char *buff, const int buffSize)
 		, SF_G_ALIVE_THREAD_COUNT 
 		, g_group_name
 		, g_subdir_count_per_path 
-		, g_http_port 
 		, g_last_server_port 
-		, g_last_http_port
 		, g_allow_ip_count
 		, g_sf_global_vars.run_by.group
 		, g_sf_global_vars.run_by.user
-		, g_http_domain
 		, g_file_distribute_path_mode
 		, g_file_distribute_rotate_count
 		, g_fsync_after_written_bytes
@@ -222,20 +204,7 @@ static int fdfs_dump_global_vars(char *buff, const int buffSize)
 		, g_use_connection_pool
 		, g_connection_pool_max_idle_time
 		, g_use_connection_pool ? conn_pool_get_connection_count(
-			&g_connection_pool) : 0
-	#ifdef WITH_HTTPD
-		, g_http_params.disabled
-		, g_http_params.anti_steal_token
-		, g_http_params.server_port
-		, hash_count(&(g_http_params.content_type_hash))
-		, g_http_params.anti_steal_secret_key.length
-		, g_http_params.token_check_fail_buff.length
-		, g_http_params.default_content_type
-		, g_http_params.token_check_fail_content_type
-		, g_http_params.token_ttl
-		, g_http_trunk_size
-	#endif
-		
+                &g_connection_pool) : 0
 	#if defined(DEBUG_FLAG) && defined(OS_LINUX)
 		, g_exe_name
 	#endif

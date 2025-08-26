@@ -23,10 +23,6 @@
 #include "fdht_types.h"
 #include "storage_types.h"
 
-#ifdef WITH_HTTPD
-#include "fdfs_http_shared.h"
-#endif
-
 #define STORAGE_BEAT_DEF_INTERVAL    30
 #define STORAGE_REPORT_DEF_INTERVAL  300
 #define STORAGE_DEF_SYNC_WAIT_MSEC   100
@@ -48,10 +44,7 @@ extern "C" {
 /* subdirs under store path, g_subdir_count * g_subdir_count 2 level subdirs */
 extern int g_subdir_count_per_path;
 
-extern int g_http_port;  //http server port
 extern int g_last_server_port;
-extern int g_last_http_port;  //last http server port
-extern char g_http_domain[FDFS_DOMAIN_NAME_MAX_SIZE];  //http server domain name
  
 extern bool g_disk_rw_direct;     //if file read / write directly
 extern bool g_disk_rw_separated;  //if disk read / write separated
@@ -132,11 +125,6 @@ extern bool g_compress_binlog;
 extern TimeInfo g_compress_binlog_time;  //compress binlog time base
 
 extern int g_upload_priority;
-
-#ifdef WITH_HTTPD
-extern FDFSHTTPParams g_http_params;
-extern int g_http_trunk_size;
-#endif
 
 #if defined(DEBUG_FLAG) && defined(OS_LINUX)
 extern char g_exe_name[256];

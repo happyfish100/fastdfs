@@ -37,10 +37,6 @@
 #include "fastcommon/local_ip_func.h"
 #include "fdfs_shared_func.h"
 
-#ifdef WITH_HTTPD
-#include "fdfs_http_shared.h"
-#endif
-
 static int tracker_load_store_lookup(const char *filename, \
 		IniContext *pItemContext)
 {
@@ -148,10 +144,6 @@ int tracker_load_from_conf_file(const char *filename)
 	char *pSlotMaxSize;
 	char *pSpaceThreshold;
 	char *pTrunkFileSize;
-#ifdef WITH_HTTPD
-	char *pHttpCheckUri;
-	char *pHttpCheckType;
-#endif
 	IniContext iniContext;
     SFContextIniConfig config;
 	int result;
@@ -449,48 +441,6 @@ int tracker_load_from_conf_file(const char *filename)
 			break;
 		}
 
-#ifdef WITH_HTTPD
-		if ((result=fdfs_http_params_load(&iniContext, \
-				filename, &g_http_params)) != 0)
-		{
-			return result;
-		}
-
-		g_http_check_interval = iniGetIntValue(NULL, \
-			"http.check_alive_interval", &iniContext, 30);
-
-		pHttpCheckType = iniGetStrValue(NULL, \
-			"http.check_alive_type", &iniContext);
-		if (pHttpCheckType != NULL && \
-			strcasecmp(pHttpCheckType, "http") == 0)
-		{
-			g_http_check_type = FDFS_HTTP_CHECK_ALIVE_TYPE_HTTP;
-		}
-		else
-		{
-			g_http_check_type = FDFS_HTTP_CHECK_ALIVE_TYPE_TCP;
-		}
-
-		pHttpCheckUri = iniGetStrValue(NULL, \
-			"http.check_alive_uri", &iniContext);
-		if (pHttpCheckUri == NULL)
-		{
-			*g_http_check_uri = '/';
-			*(g_http_check_uri+1) = '\0';
-		}
-		else if (*pHttpCheckUri == '/')
-		{
-			fc_safe_strcpy(g_http_check_uri, pHttpCheckUri);
-		}
-		else
-        {
-            *g_http_check_uri = '/';
-            fc_strlcpy(g_http_check_uri + 1, pHttpCheckUri,
-                    sizeof(g_http_check_uri) - 1);
-        }
-
-#endif
-
         if (g_if_use_trunk_file && g_groups.store_server ==
                 FDFS_STORE_SERVER_ROUND_ROBIN)
         {
@@ -574,34 +524,6 @@ int tracker_load_from_conf_file(const char *filename)
             g_storage_ids_by_id.count, g_storage_ids_by_ip.count,
 			g_store_slave_file_use_link,
 			g_use_connection_pool, g_connection_pool_max_idle_time);
-
-#ifdef WITH_HTTPD
-		if (!g_http_params.disabled)
-		{
-			logInfo("HTTP supported: " \
-				"server_port=%d, " \
-				"default_content_type=%s, " \
-				"anti_steal_token=%d, " \
-				"token_ttl=%ds, " \
-				"anti_steal_secret_key length=%d, "  \
-				"token_check_fail content_type=%s, " \
-				"token_check_fail buff length=%d, "  \
-				"check_active_interval=%d, " \
-				"check_active_type=%s, " \
-				"check_active_uri=%s",  \
-				g_http_params.server_port, \
-				g_http_params.default_content_type, \
-				g_http_params.anti_steal_token, \
-				g_http_params.token_ttl, \
-				g_http_params.anti_steal_secret_key.length, \
-				g_http_params.token_check_fail_content_type, \
-				g_http_params.token_check_fail_buff.length, \
-				g_http_check_interval, g_http_check_type == \
-				FDFS_HTTP_CHECK_ALIVE_TYPE_TCP ? "tcp":"http",\
-				g_http_check_uri);
-		}
-#endif
-
 	} while (0);
 
 	iniFreeContext(&iniContext);

@@ -24,7 +24,6 @@ typedef enum {
 extern "C" {
 #endif
 
-extern int g_tracker_server_http_port;
 extern TrackerServerGroup g_tracker_group;
 
 extern bool g_multi_storage_ips;

@@ -23,10 +23,6 @@
 #include "fastcommon/hash.h"
 #include "fastcommon/local_ip_func.h"
 
-#ifdef WITH_HTTPD
-#include "fdfs_http_shared.h"
-#endif
-
 #define TRACKER_SYNC_TO_FILE_FREQ		1000
 #define TRACKER_MAX_PACKAGE_SIZE		(8 * 1024)
 #define TRACKER_SYNC_STATUS_FILE_INTERVAL	300   //5 minute
@@ -73,14 +69,6 @@ extern int g_trunk_alloc_alignment_size;
 extern int64_t g_trunk_create_file_space_threshold;
 
 extern TrackerStatus g_tracker_last_status;  //the status of last running
-
-#ifdef WITH_HTTPD
-extern FDFSHTTPParams g_http_params;
-extern int g_http_check_interval;
-extern int g_http_check_type;
-extern char g_http_check_uri[128];
-extern bool g_http_servers_dirty;
-#endif
 
 #if defined(DEBUG_FLAG) && defined(OS_LINUX)
 extern char g_exe_name[256];

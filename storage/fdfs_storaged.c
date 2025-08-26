@@ -44,10 +44,6 @@
 #include "trunk_shared.h"
 #include "file_id_hashtable.h"
 
-#ifdef WITH_HTTPD
-#include "storage_httpd.h"
-#endif
-
 #if defined(DEBUG_FLAG) 
 #include "storage_dump.h"
 #endif
@@ -214,20 +210,6 @@ int main(int argc, char *argv[])
 		SF_G_CONTINUE_FLAG = false;
 		return result;
 	}
-
-
-#ifdef WITH_HTTPD
-	if (!g_http_params.disabled)
-	{
-		if ((result=storage_httpd_start(SF_G_INNER_BIND_ADDR)) != 0)
-		{
-			logCrit("file: "__FILE__", line: %d, " \
-				"storage_httpd_start fail, " \
-				"program exit!", __LINE__);
-			return result;
-		}
-	}
-#endif
 
 	if ((result=tracker_report_thread_start()) != 0)
 	{

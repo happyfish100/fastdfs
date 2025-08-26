@@ -46,7 +46,6 @@ static int fdfs_dump_group_stat(FDFSGroupInfo *pGroup, char *buff, const int buf
 		"server count=%d\n"
 		"active server count=%d\n"
 		"storage_port=%d\n"
-		"storage_http_port=%d\n"
 		"current_read_server=%d\n"
 		"current_write_server=%d\n"
 		"store_path_count=%d\n"
@@ -66,7 +65,6 @@ static int fdfs_dump_group_stat(FDFSGroupInfo *pGroup, char *buff, const int buf
 		pGroup->count, 
 		pGroup->active_count, 
 		pGroup->storage_port,
-		pGroup->storage_http_port, 
 		pGroup->current_read_server, 
 		pGroup->current_write_server, 
 		pGroup->store_path_count,
@@ -102,21 +100,6 @@ static int fdfs_dump_group_stat(FDFSGroupInfo *pGroup, char *buff, const int buf
 		total_len += snprintf(buff + total_len, buffSize - total_len, 
 			"\t%s\n", FDFS_CURRENT_IP_ADDR(*ppServer));
 	}
-
-#ifdef WITH_HTTPD
-	total_len += snprintf(buff + total_len, buffSize - total_len, 
-		"\nhttp active server count=%d\n"
-		"current_http_server=%d\n", 
-		pGroup->http_server_count,
-		pGroup->current_http_server);
-
-	ppServerEnd = pGroup->http_servers + pGroup->http_server_count;
-	for (ppServer=pGroup->http_servers; ppServer<ppServerEnd; ppServer++)
-	{
-		total_len += snprintf(buff + total_len, buffSize - total_len, 
-			"\t%s\n", (*ppServer)->ip_addr);
-	}
-#endif
 
 	ppServerEnd = pGroup->sorted_servers + pGroup->count;
 	for (ppServer=pGroup->sorted_servers; ppServer<ppServerEnd; ppServer++)
@@ -173,7 +156,6 @@ static int fdfs_dump_storage_stat(FDFSStorageDetail *pServer,
 		"ip_addr=%s\n"
 		"version=%s\n"
 		"status=%d\n"
-		"domain_name=%s\n"
 		"sync_src_server=%s\n"
 		"sync_until_timestamp=%s\n"
 		"join_time=%s\n"
@@ -183,18 +165,10 @@ static int fdfs_dump_storage_stat(FDFSStorageDetail *pServer,
 		"changelog_offset=%"PRId64"\n"
 		"store_path_count=%d\n"
 		"storage_port=%d\n"
-		"storage_http_port=%d\n"
 		"subdir_count_per_path=%d\n"
 		"upload_priority=%d\n"
 		"current_write_path=%d\n"
 		"chg_count=%d\n"
-#ifdef WITH_HTTPD
-		"http_check_last_errno=%d\n"
-		"http_check_last_status=%d\n"
-		"http_check_fail_count=%d\n"
-		"http_check_error_info=%s\n"
-#endif
-
 		"total_upload_count=%"PRId64"\n"
 		"success_upload_count=%"PRId64"\n"
 		"total_set_meta_count=%"PRId64"\n"
@@ -216,7 +190,6 @@ static int fdfs_dump_storage_stat(FDFSStorageDetail *pServer,
 		FDFS_CURRENT_IP_ADDR(pServer),
 		pServer->version, 
 		pServer->status, 
-		pServer->domain_name, 
 		pServer->psync_src_server != NULL ? 
 		FDFS_CURRENT_IP_ADDR(pServer->psync_src_server) : "", 
 		formatDatetime(pServer->sync_until_timestamp, 
@@ -233,17 +206,10 @@ static int fdfs_dump_storage_stat(FDFSStorageDetail *pServer,
 		pServer->changelog_offset, 
 		pServer->store_path_count, 
 		pServer->storage_port, 
-		pServer->storage_http_port, 
 		pServer->subdir_count_per_path, 
 		pServer->upload_priority,
 		pServer->current_write_path,
 		pServer->chg_count,
-#ifdef WITH_HTTPD
-		pServer->http_check_last_errno,
-		pServer->http_check_last_status,
-		pServer->http_check_fail_count,
-		pServer->http_check_error_info,
-#endif
 		pServer->stat.total_upload_count,
 		pServer->stat.success_upload_count,
 		pServer->stat.total_set_meta_count,
@@ -327,21 +293,6 @@ static int fdfs_dump_global_vars(char *buff, const int buffSize)
 		"g_use_connection_pool=%d\n"
 		"g_connection_pool_max_idle_time=%d\n"
 		"connection_pool_conn_count=%d\n"
-	#ifdef WITH_HTTPD
-		"g_http_params.disabled=%d\n"
-		"g_http_params.anti_steal_token=%d\n"
-		"g_http_params.server_port=%d\n"
-		"g_http_params.content_type_hash item count=%d\n"
-		"g_http_params.anti_steal_secret_key length=%d\n"
-		"g_http_params.token_check_fail_buff length=%d\n"
-		"g_http_params.default_content_type=%s\n"
-		"g_http_params.token_check_fail_content_type=%s\n"
-		"g_http_params.token_ttl=%d\n"
-		"g_http_check_interval=%d\n"
-		"g_http_check_type=%d\n"
-		"g_http_check_uri=%s\n"
-		"g_http_servers_dirty=%d\n"
-	#endif
 	#if defined(DEBUG_FLAG) && defined(OS_LINUX)
 		"g_exe_name=%s\n"
 	#endif
@@ -383,22 +334,6 @@ static int fdfs_dump_global_vars(char *buff, const int buffSize)
 		, g_connection_pool_max_idle_time
 		, g_use_connection_pool ? conn_pool_get_connection_count( \
 			&g_connection_pool) : 0
-	#ifdef WITH_HTTPD
-		, g_http_params.disabled
-		, g_http_params.anti_steal_token
-		, g_http_params.server_port
-		, hash_count(&(g_http_params.content_type_hash))
-		, g_http_params.anti_steal_secret_key.length
-		, g_http_params.token_check_fail_buff.length
-		, g_http_params.default_content_type
-		, g_http_params.token_check_fail_content_type
-		, g_http_params.token_ttl
-		, g_http_check_interval
-		, g_http_check_type
-		, g_http_check_uri
-		, g_http_servers_dirty
-	#endif
-		
 	#if defined(DEBUG_FLAG) && defined(OS_LINUX)
 		, g_exe_name
 	#endif

@@ -48,14 +48,6 @@ int64_t g_trunk_create_file_space_threshold = 0;
 
 TrackerStatus g_tracker_last_status = {0, 0};
 
-#ifdef WITH_HTTPD
-FDFSHTTPParams g_http_params;
-int g_http_check_interval = 30;
-int g_http_check_type = FDFS_HTTP_CHECK_ALIVE_TYPE_TCP;
-char g_http_check_uri[128] = {0};
-bool g_http_servers_dirty = false;
-#endif
-
 #if defined(DEBUG_FLAG) && defined(OS_LINUX)
 char g_exe_name[256] = {0};
 #endif

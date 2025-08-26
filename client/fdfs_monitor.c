@@ -310,7 +310,6 @@ static int list_storages(FDFSGroupStat *pGroupStat)
 		"storage server count = %d\n"
 		"active server count = %d\n"
 		"storage server port = %d\n"
-		"storage HTTP port = %d\n"
 		"store path count = %d\n"
 		"subdir count per path = %d\n"
 		"current write server index = %d\n"
@@ -322,7 +321,6 @@ static int list_storages(FDFSGroupStat *pGroupStat)
 		pGroupStat->count,
 		pGroupStat->active_count,
 		pGroupStat->storage_port,
-		pGroupStat->storage_http_port,
 		pGroupStat->store_path_count,
 		pGroupStat->subdir_count_per_path,
 		pGroupStat->current_write_server,
@@ -438,7 +436,6 @@ static int list_storages(FDFSGroupStat *pGroupStat)
 			"\t\tid = %s\n"
 			"\t\tip_addr = %s%s  %s\n"
             "\t\tread write mode = %s\n"
-			"\t\thttp domain = %s\n"
 			"\t\tversion = %s\n"
 			"\t\tjoin time = %s\n"
 			"\t\tup time = %s\n"
@@ -448,7 +445,6 @@ static int list_storages(FDFSGroupStat *pGroupStat)
 			"\t\tstore_path_count = %d\n"
 			"\t\tsubdir_count_per_path = %d\n"
 			"\t\tstorage_port = %d\n"
-			"\t\tstorage_http_port = %d\n"
 			"\t\tcurrent_write_path = %d\n"
 			"\t\tsource storage id = %s\n"
 			"\t\tif_trunk_server = %d\n"
@@ -501,7 +497,6 @@ static int list_storages(FDFSGroupStat *pGroupStat)
 			szHostnamePrompt, get_storage_status_caption(
 			    pStorage->status),
             get_storage_rw_caption(pStorage->rw_mode),
-            pStorage->domain_name,
 			pStorage->version,
 			formatDatetime(pStorage->join_time,
 				"%Y-%m-%d %H:%M:%S",
@@ -512,7 +507,6 @@ static int list_storages(FDFSGroupStat *pGroupStat)
 			pStorage->store_path_count,
 			pStorage->subdir_count_per_path,
 			pStorage->storage_port,
-			pStorage->storage_http_port,
 			pStorage->current_write_path,
 			pStorage->src_id,
 			pStorage->if_trunk_server,

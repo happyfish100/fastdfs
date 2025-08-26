@@ -10,7 +10,6 @@
 #include <string.h>
 #include "client_global.h"
 
-int g_tracker_server_http_port = 80;
 TrackerServerGroup g_tracker_group = {0, 0, -1, NULL};
 
 bool g_multi_storage_ips = false;

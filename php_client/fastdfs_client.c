@@ -1325,9 +1325,6 @@ static void php_fdfs_tracker_list_groups_impl(INTERNAL_FUNCTION_PARAMETERS, \
 			sizeof("active_count"), pGroupStat->active_count);
 		zend_add_assoc_long_ex(group_info_array, "storage_port", \
 			sizeof("storage_port"), pGroupStat->storage_port);
-		zend_add_assoc_long_ex(group_info_array, "storage_http_port", \
-			sizeof("storage_http_port"), \
-			pGroupStat->storage_http_port);
 		zend_add_assoc_long_ex(group_info_array, "store_path_count", \
 			sizeof("store_path_count"), \
 			pGroupStat->store_path_count);
@@ -1379,11 +1376,6 @@ static void php_fdfs_tracker_list_groups_impl(INTERNAL_FUNCTION_PARAMETERS, \
 				pStorage->up_time);
 
 			zend_add_assoc_stringl_ex(server_info_array, \
-				"http_domain", sizeof("http_domain"), \
-				pStorage->domain_name, \
-				strlen(pStorage->domain_name), 1);
-
-			zend_add_assoc_stringl_ex(server_info_array, \
 				"version", sizeof("version"), \
 				pStorage->version, strlen(pStorage->version), 1);
 
@@ -1411,11 +1403,6 @@ static void php_fdfs_tracker_list_groups_impl(INTERNAL_FUNCTION_PARAMETERS, \
 			zend_add_assoc_long_ex(server_info_array, \
 				"storage_port", sizeof("storage_port"), \
 				pStorage->storage_port);
-
-			zend_add_assoc_long_ex(server_info_array, \
-				"storage_http_port", \
-				sizeof("storage_http_port"), \
-				pStorage->storage_http_port);
 
 			zend_add_assoc_long_ex(server_info_array, \
 				"current_write_path", \

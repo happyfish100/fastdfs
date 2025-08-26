@@ -39,11 +39,6 @@
 #include "tracker_status.h"
 #include "tracker_relationship.h"
 
-#ifdef WITH_HTTPD
-#include "tracker_httpd.h"
-#include "tracker_http_check.h"
-#endif
-
 #if defined(DEBUG_FLAG)
 #include "tracker_dump.h"
 #endif
@@ -270,28 +265,6 @@ int main(int argc, char *argv[])
 		return result;
 	}
 
-#ifdef WITH_HTTPD
-	if (!g_http_params.disabled)
-	{
-		if ((result=tracker_httpd_start(g_sf_context.inner_bind_addr)) != 0)
-		{
-			logCrit("file: "__FILE__", line: %d, " \
-				"tracker_httpd_start fail, program exit!", \
-				__LINE__);
-			return result;
-		}
-
-	}
-
-	if ((result=tracker_http_check_start()) != 0)
-	{
-		logCrit("file: "__FILE__", line: %d, " \
-			"tracker_http_check_start fail, " \
-			"program exit!", __LINE__);
-		return result;
-	}
-#endif
-
 	if ((result=set_run_by(g_sf_global_vars.run_by.group,
                     g_sf_global_vars.run_by.user)) != 0)
 	{
@@ -331,18 +304,6 @@ int main(int argc, char *argv[])
 	{
 		pthread_kill(schedule_tid, SIGINT);
 	}
-
-#ifdef WITH_HTTPD
-	if (g_http_check_flag)
-	{
-		tracker_http_check_stop();
-	}
-
-	while (g_http_check_flag)
-	{
-		usleep(50000);
-	}
-#endif
 
 	wait_count = 0;
 	while ((SF_G_ALIVE_THREAD_COUNT != 0) || g_schedule_flag)

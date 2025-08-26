@@ -16,10 +16,7 @@
 
 int g_subdir_count_per_path = DEFAULT_DATA_DIR_COUNT_PER_PATH;
 
-char g_http_domain[FDFS_DOMAIN_NAME_MAX_SIZE] = {0};
-int g_http_port = 80;
 int g_last_server_port = 0;
-int g_last_http_port = 0;
 
 bool g_disk_rw_direct = false;
 bool g_disk_rw_separated = true;
@@ -98,11 +95,6 @@ bool g_compress_binlog = false;
 TimeInfo g_compress_binlog_time = {0, 0};
 
 int g_upload_priority = DEFAULT_UPLOAD_PRIORITY;
-
-#ifdef WITH_HTTPD
-FDFSHTTPParams g_http_params;
-int g_http_trunk_size = 64 * 1024;
-#endif
 
 #if defined(DEBUG_FLAG) && defined(OS_LINUX)
 char g_exe_name[256] = {0};

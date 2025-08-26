@@ -71,7 +71,6 @@ int main(int argc, char *argv[])
 	char file_id[128];
 	char file_url[256];
 	char szDatetime[20];
-	char szPortPart[16];
 	int url_len;
 	time_t ts;
     char *file_buff;
@@ -275,18 +274,9 @@ g_fdfs_version.patch);
 			return result;
 		}
 
-		if (g_tracker_server_http_port == 80)
-		{
-			*szPortPart = '\0';
-		}
-		else
-		{
-			sprintf(szPortPart, ":%d", g_tracker_server_http_port);
-		}
-
 		sprintf(file_id, "%s/%s", group_name, remote_filename);
-		url_len = sprintf(file_url, "http://%s%s/%s", \
-				pStorageServer->ip_addr, szPortPart, file_id);
+		url_len = sprintf(file_url, "http://%s/%s",
+				pStorageServer->ip_addr, file_id);
 		if (g_anti_steal_token)
 		{
 			ts = time(NULL);
@@ -367,18 +357,9 @@ g_fdfs_version.patch);
 			return result;
 		}
 
-		if (g_tracker_server_http_port == 80)
-		{
-			*szPortPart = '\0';
-		}
-		else
-		{
-			sprintf(szPortPart, ":%d", g_tracker_server_http_port);
-		}
-
 		sprintf(file_id, "%s/%s", group_name, remote_filename);
-		url_len = sprintf(file_url, "http://%s%s/%s", \
-				pStorageServer->ip_addr, szPortPart, file_id);
+		url_len = sprintf(file_url, "http://%s/%s",
+				pStorageServer->ip_addr, file_id);
 		if (g_anti_steal_token)
 		{
 			ts = time(NULL);

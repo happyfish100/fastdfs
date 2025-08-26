@@ -48,10 +48,6 @@
 #include "storage_disk_recovery.h"
 #include "tracker_client.h"
 
-#ifdef WITH_HTTPD
-#include "fdfs_http_shared.h"
-#endif
-
 #define DATA_DIR_INITED_FILENAME_STR  ".data_init_flag"
 #define DATA_DIR_INITED_FILENAME_LEN  \
     (sizeof(DATA_DIR_INITED_FILENAME_STR) - 1)
@@ -87,10 +83,6 @@
 #define INIT_ITEM_LAST_SERVER_PORT_STR  "last_server_port"
 #define INIT_ITEM_LAST_SERVER_PORT_LEN  \
     (sizeof(INIT_ITEM_LAST_SERVER_PORT_STR) - 1)
-
-#define INIT_ITEM_LAST_HTTP_PORT_STR  "last_http_port"
-#define INIT_ITEM_LAST_HTTP_PORT_LEN  \
-    (sizeof(INIT_ITEM_LAST_HTTP_PORT_STR) - 1)
 
 #define INIT_ITEM_CURRENT_TRUNK_FILE_ID_STR  "current_trunk_file_id"
 #define INIT_ITEM_CURRENT_TRUNK_FILE_ID_LEN  \
@@ -1150,13 +1142,6 @@ int storage_write_to_sync_ini_file()
     p += fc_itoa(g_last_server_port, p);
     *p++ = '\n';
 
-    memcpy(p, INIT_ITEM_LAST_HTTP_PORT_STR,
-            INIT_ITEM_LAST_HTTP_PORT_LEN);
-    p += INIT_ITEM_LAST_HTTP_PORT_LEN;
-    *p++ = '=';
-    p += fc_itoa(g_last_http_port, p);
-    *p++ = '\n';
-
     memcpy(p, INIT_ITEM_CURRENT_TRUNK_FILE_ID_STR,
             INIT_ITEM_CURRENT_TRUNK_FILE_ID_LEN);
     p += INIT_ITEM_CURRENT_TRUNK_FILE_ID_LEN;
@@ -1591,13 +1576,6 @@ static int storage_check_and_make_data_dirs()
 			g_last_server_port = atoi(pValue);
 		}
 
-		pValue = iniGetStrValue(NULL, INIT_ITEM_LAST_HTTP_PORT_STR, \
-				&iniContext);
-		if (pValue != NULL)
-		{
-			g_last_http_port = atoi(pValue);
-		}
-
 		g_current_trunk_file_id = iniGetIntValue(NULL,
 			INIT_ITEM_CURRENT_TRUNK_FILE_ID_STR, &iniContext, 0);
 		g_trunk_last_compress_time = iniGetIntValue(NULL,
@@ -1614,16 +1592,11 @@ static int storage_check_and_make_data_dirs()
 
 		iniFreeContext(&iniContext);
 
-		if (g_last_server_port == 0 || g_last_http_port == 0)
+		if (g_last_server_port == 0)
 		{
 			if (g_last_server_port == 0)
 			{
 				g_last_server_port = SF_G_INNER_PORT;
-			}
-
-			if (g_last_http_port == 0)
-			{
-				g_last_http_port = g_http_port;
 			}
 
 			if ((result=storage_write_to_sync_ini_file()) != 0)
@@ -1638,11 +1611,10 @@ static int storage_check_and_make_data_dirs()
 			"g_sync_until_timestamp = %d, "
 			"g_last_storage_ip = %s, "
 			"g_last_server_port = %d, "
-			"g_last_http_port = %d, "
 			"g_current_trunk_file_id = %u, "
 			"g_trunk_last_compress_time = %d",
 			g_sync_old_done, g_sync_src_id, g_sync_until_timestamp,
-			g_last_storage_ip, g_last_server_port, g_last_http_port,
+			g_last_storage_ip, g_last_server_port,
 			g_current_trunk_file_id, (int)g_trunk_last_compress_time
 			);
 		*/
@@ -1654,7 +1626,6 @@ static int storage_check_and_make_data_dirs()
 			return result;
         }
 		g_last_server_port = SF_G_INNER_PORT;
-		g_last_http_port = g_http_port;
 		g_storage_join_time = g_current_time;
 		if ((result=storage_write_to_sync_ini_file()) != 0)
 		{
@@ -1950,7 +1921,6 @@ int storage_func_init(const char *filename)
 	char *pGroupName;
 	char *pFsyncAfterWrittenBytes;
 	char *pIfAliasPrefix;
-	char *pHttpDomain;
 	char *pRotateAccessLogSize;
     char *server_id_in_conf;
 	IniContext iniContext;
@@ -2362,28 +2332,6 @@ int storage_func_init(const char *filename)
 					&iniContext, false);
 		}
 
-		g_http_port = iniGetIntValue(NULL, "http.server_port", \
-                                        &iniContext, 80);
-		if (g_http_port <= 0)
-		{
-			logError("file: "__FILE__", line: %d, " \
-				"invalid param \"http.server_port\": %d", \
-				__LINE__, g_http_port);
-			result = EINVAL;
-			break;
-		}
- 
-		pHttpDomain = iniGetStrValue(NULL, \
-			"http.domain_name", &iniContext);
-		if (pHttpDomain == NULL)
-		{
-			*g_http_domain = '\0';
-		}
-		else
-		{
-			fc_safe_strcpy(g_http_domain, pHttpDomain);
-		}
-
 		g_use_access_log = iniGetBoolValue(NULL, "use_access_log", \
 					&iniContext, false);
 		if (g_use_access_log)
@@ -2471,34 +2419,6 @@ int storage_func_init(const char *filename)
 
         server_id_in_conf = iniGetStrValue(NULL,
                 "server_id", &iniContext);
-
-#ifdef WITH_HTTPD
-		{
-		char *pHttpTrunkSize;
-		int64_t http_trunk_size;
-
-		if ((result=fdfs_http_params_load(&iniContext, \
-				filename, &g_http_params)) != 0)
-		{
-			break;
-		}
-
-		pHttpTrunkSize = iniGetStrValue(NULL, \
-			"http.trunk_size", &iniContext);
-		if (pHttpTrunkSize == NULL)
-		{
-			http_trunk_size = 64 * 1024;
-		}
-		else if ((result=parse_bytes(pHttpTrunkSize, 1, \
-				&http_trunk_size)) != 0)
-		{
-			break;
-		}
-
-		g_http_trunk_size = (int)http_trunk_size;
-		}
-#endif
-
         sf_global_config_to_string_ex("buff_size", sz_global_config,
                 sizeof(sz_global_config));
         sf_context_config_to_string(&g_sf_context,
@@ -2523,7 +2443,6 @@ int storage_func_init(const char *filename)
 			"check_file_duplicate=%d, file_signature_method=%s, "
 			"FDHT group count=%d, FDHT server count=%d, "
 			"FDHT key_namespace=%s, FDHT keep_alive=%d, "
-			"HTTP server port=%d, domain name=%s, "
 			"use_access_log=%d, rotate_access_log=%d, "
 			"access_log_rotate_time=%02d:%02d, "
             "compress_old_access_log=%d, "
@@ -2554,8 +2473,7 @@ int storage_func_init(const char *filename)
 			g_file_signature_method == STORAGE_FILE_SIGNATURE_METHOD_HASH
 				? "hash" : "md5",
 			g_group_array.group_count, g_group_array.server_count,
-			g_key_namespace, g_keep_alive,
-			g_http_port, g_http_domain, g_use_access_log,
+			g_key_namespace, g_keep_alive, g_use_access_log,
 			g_rotate_access_log, g_access_log_rotate_time.hour,
 			g_access_log_rotate_time.minute, g_compress_old_access_log,
             g_compress_access_log_days_before,
@@ -2564,30 +2482,6 @@ int storage_func_init(const char *filename)
 			g_use_connection_pool, g_connection_pool_max_idle_time,
             g_compress_binlog, g_compress_binlog_time.hour,
             g_compress_binlog_time.minute, g_check_store_path_mark);
-
-#ifdef WITH_HTTPD
-		if (!g_http_params.disabled)
-		{
-			logInfo("HTTP supported: " \
-				"server_port=%d, " \
-				"http_trunk_size=%d, " \
-				"default_content_type=%s, " \
-				"anti_steal_token=%d, " \
-				"token_ttl=%ds, " \
-				"anti_steal_secret_key length=%d, "  \
-				"token_check_fail content_type=%s, " \
-				"token_check_fail buff length=%d",  \
-				g_http_params.server_port, \
-				g_http_trunk_size, \
-				g_http_params.default_content_type, \
-				g_http_params.anti_steal_token, \
-				g_http_params.token_ttl, \
-				g_http_params.anti_steal_secret_key.length, \
-				g_http_params.token_check_fail_content_type, \
-				g_http_params.token_check_fail_buff.length);
-		}
-#endif
-
 	} while (0);
 
 	iniFreeContext(&iniContext);
