@@ -5863,9 +5863,10 @@ int tracker_mem_active_store_server(FDFSGroupInfo *pGroup,
 
     if (pTargetServer->rw_mode == fdfs_rw_none)  //disable read and write
     {
-        if (pTargetServer->status != FDFS_STORAGE_STATUS_ONLINE)
+        if (pTargetServer->status != FDFS_STORAGE_STATUS_ACTIVE)
         {
-            pTargetServer->status = FDFS_STORAGE_STATUS_ONLINE;
+            pTargetServer->status = FDFS_STORAGE_STATUS_ACTIVE;
+            pGroup->chg_count++;
         }
         return 0;
     }
@@ -5897,6 +5898,7 @@ int tracker_mem_active_store_server(FDFSGroupInfo *pGroup,
         if (pTargetServer->status != FDFS_STORAGE_STATUS_ACTIVE)
         {
             pTargetServer->status = FDFS_STORAGE_STATUS_ACTIVE;
+            pGroup->chg_count++;
         }
         return 0;
     }
