@@ -1580,7 +1580,7 @@ static int tracker_deal_server_set_trunk_server(struct fast_task_info *pTask)
 		return ENOENT;
 	}
 
-	pTrunkServer = tracker_mem_set_trunk_server(pGroup, \
+	pTrunkServer = tracker_mem_set_trunk_server(pGroup,
 				pStorageId, &result);
 	if (result == 0 && pTrunkServer != NULL)
 	{

@@ -819,8 +819,8 @@ static int tracker_load_groups_new(FDFSGroups *pGroups, const char *data_path,
 			if (g_use_storage_id && (*pValue != '\0' && \
 				!fdfs_is_server_id_valid(pValue)))
 			{
-				if (tracker_mem_get_storage_id( \
-					pGroup->group_name, pValue, \
+				if (tracker_mem_get_storage_id(
+					pGroup->group_name, pValue,
 					pGroup->last_trunk_server_id) != 0)
 				{
 					logWarning("file: "__FILE__", line: %d,"\
@@ -884,9 +884,8 @@ static int tracker_load_groups_new(FDFSGroups *pGroups, const char *data_path,
 	return result;
 }
 
-static int tracker_locate_group_trunk_servers(FDFSGroups *pGroups, \
-		FDFSStorageSync *pTrunkServers, \
-		const int nTrunkServerCount, const bool bLoadFromFile)
+static int tracker_locate_group_trunk_servers(FDFSGroups *pGroups,
+		FDFSStorageSync *pTrunkServers, const int nTrunkServerCount)
 {
 	FDFSGroupInfo *pGroup;
 	FDFSStorageDetail *pStorage;
@@ -901,7 +900,7 @@ static int tracker_locate_group_trunk_servers(FDFSGroups *pGroups, \
 	pTrunkEnd = pTrunkServers + nTrunkServerCount;
 	for (pServer=pTrunkServers; pServer<pTrunkEnd; pServer++)
 	{
-		pGroup = tracker_mem_get_group_ex(pGroups, \
+		pGroup = tracker_mem_get_group_ex(pGroups,
 				pServer->group_name);
 		if (pGroup == NULL)
 		{
@@ -910,34 +909,32 @@ static int tracker_locate_group_trunk_servers(FDFSGroups *pGroups, \
 
 		pStorage = tracker_mem_get_storage(pGroup, pServer->id);
 		if (pStorage == NULL)
-		{
-			char buff[MAX_PATH_SIZE+64];
-			if (bLoadFromFile)
-			{
-				snprintf(buff, sizeof(buff), \
-					"in the file \"%s/data/%s\", ", \
-					SF_G_BASE_PATH_STR, \
-					STORAGE_GROUPS_LIST_FILENAME_NEW_STR);
-			}
-			else
-			{
-				*buff = '\0';
-			}
+        {
+            logError("file: "__FILE__", line: %d, "
+                    "in the file \"%s/data/%s\", "
+                    "group_name: %s, trunk server \"%s\" "
+                    "does not exist", __LINE__, SF_G_BASE_PATH_STR,
+                    STORAGE_GROUPS_LIST_FILENAME_NEW_STR,
+                    pServer->group_name, pServer->id);
+            return ENOENT;
+        }
 
-			logError("file: "__FILE__", line: %d, " \
-				"%sgroup_name: %s, trunk server \"%s\" " \
-				"does not exist", __LINE__, buff, \
-				pServer->group_name, pServer->id);
-
-			return ENOENT;
-		}
-
-		pGroup->pTrunkServer = pStorage;
-		pGroup->trunk_chg_count++;
-		if (*(pGroup->last_trunk_server_id) == '\0')
-		{
-			strcpy(pGroup->last_trunk_server_id, pStorage->id);
-		}
+        if (pStorage->rw_mode & W_OK)
+        {
+            pGroup->pTrunkServer = pStorage;
+            pGroup->trunk_chg_count++;
+            if (*(pGroup->last_trunk_server_id) == '\0')
+            {
+                strcpy(pGroup->last_trunk_server_id, pStorage->id);
+            }
+        }
+        else
+        {
+            logInfo("file: "__FILE__", line: %d, "
+                    "skip set trunk server to %s dual to it's "
+                    "rw_mode is %s", __LINE__, pStorage->id,
+                    fdfs_get_storage_rw_caption(pStorage->rw_mode));
+        }
 	}
 
 	return 0;
@@ -1807,13 +1804,13 @@ static int tracker_load_data(FDFSGroups *pGroups)
 	}
 
 	if (g_if_use_trunk_file)
-	{
-	if ((result=tracker_locate_group_trunk_servers(pGroups, \
-		pTrunkServers, nTrunkServerCount, true)) != 0)
-	{
-		return result;
-	}
-	}
+    {
+        if ((result=tracker_locate_group_trunk_servers(pGroups,
+                        pTrunkServers, nTrunkServerCount)) != 0)
+        {
+            return result;
+        }
+    }
 
 	if (pTrunkServers != NULL)
 	{
@@ -3925,8 +3922,8 @@ int tracker_mem_storage_ip_changed(FDFSGroupInfo *pGroup,
 	    pOldStorageServer->status == FDFS_STORAGE_STATUS_ACTIVE ||
 	    pOldStorageServer->status == FDFS_STORAGE_STATUS_RECOVERY)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"client ip: %s, old storage server: %s is online", \
+		logError("file: "__FILE__", line: %d, "
+			"client ip: %s, old storage server: %s is online",
 			__LINE__, new_storage_ip, old_storage_ip);
 		return EBUSY;
 	}
@@ -5524,7 +5521,7 @@ static int tracker_write_to_trunk_change_log(FDFSGroupInfo *pGroup, \
 	pLastTrunk = pLastTrunkServer;
 	if (pLastTrunk == NULL && *(pGroup->last_trunk_server_id) != '\0')
 	{
-		pLastTrunk = tracker_mem_get_storage(pGroup, \
+		pLastTrunk = tracker_mem_get_storage(pGroup,
 				pGroup->last_trunk_server_id);
 	}
 	if (g_use_storage_id)
@@ -5599,7 +5596,7 @@ static int tracker_set_trunk_server_and_log(FDFSGroupInfo *pGroup, \
 
 	pLastTrunkServer = pGroup->pTrunkServer;
 	pGroup->pTrunkServer = pNewTrunkServer;
-	if (pNewTrunkServer == NULL || strcmp(pNewTrunkServer->id, \
+	if (pNewTrunkServer == NULL || strcmp(pNewTrunkServer->id,
 					pGroup->last_trunk_server_id) != 0)
 	{
 		int result;
@@ -5611,7 +5608,7 @@ static int tracker_set_trunk_server_and_log(FDFSGroupInfo *pGroup, \
 		}
 		else
 		{
-			strcpy(pGroup->last_trunk_server_id, \
+			strcpy(pGroup->last_trunk_server_id,
 				pNewTrunkServer->id);
 		}
 		return result;
@@ -5710,7 +5707,7 @@ static int tracker_mem_find_trunk_server(FDFSGroupInfo *pGroup,
 	return tracker_mem_do_set_trunk_server(pGroup, pStoreServer, save);
 }
 
-const FDFSStorageDetail *tracker_mem_set_trunk_server( \
+const FDFSStorageDetail *tracker_mem_set_trunk_server(
 	FDFSGroupInfo *pGroup, const char *pStroageId, int *result)
 {
 	FDFSStorageDetail *pServer;
@@ -5725,7 +5722,7 @@ const FDFSStorageDetail *tracker_mem_set_trunk_server( \
 	pTrunkServer = pGroup->pTrunkServer;
 	if (pStroageId == NULL || *pStroageId == '\0')
 	{
-		if (pTrunkServer != NULL && pTrunkServer-> \
+		if (pTrunkServer != NULL && pTrunkServer->
 			status == FDFS_STORAGE_STATUS_ACTIVE)
 		{
 			*result = 0;
@@ -5733,11 +5730,14 @@ const FDFSStorageDetail *tracker_mem_set_trunk_server( \
 		}
 
 		*result = tracker_mem_find_trunk_server(pGroup, true);
-		if (*result != 0)
-		{
+        if (*result == 0)
+        {
+            return pGroup->pTrunkServer;
+        }
+        else
+        {
 			return NULL;
-		}
-		return pGroup->pTrunkServer;
+        }
 	}
 
 	if (pTrunkServer != NULL && pTrunkServer->status ==
@@ -5762,10 +5762,15 @@ const FDFSStorageDetail *tracker_mem_set_trunk_server( \
 	}
 
 	if (pServer->status != FDFS_STORAGE_STATUS_ACTIVE)
-	{
+    {
 		*result = ENONET;
 		return NULL;
-	}
+    }
+    if ((pServer->rw_mode & W_OK) == 0)
+    {
+        *result = EACCES;
+        return NULL;
+    }
 
 	*result = tracker_mem_do_set_trunk_server(pGroup,
 			pServer, true);
