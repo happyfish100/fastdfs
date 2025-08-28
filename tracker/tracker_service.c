@@ -200,7 +200,7 @@ static int tracker_check_and_sync(struct fast_task_info *pTask, \
 
 		pDestServer = (FDFSStorageBrief *)p;
 		ppEnd = pClientInfo->pGroup->sorted_servers + \
-				pClientInfo->pGroup->count;
+				pClientInfo->pGroup->storage_count;
 		for (ppServer=pClientInfo->pGroup->sorted_servers; \
 			ppServer<ppEnd; ppServer++)
 		{
@@ -2225,7 +2225,7 @@ static int tracker_deal_server_list_group_storages(struct fast_task_info *pTask)
 			pTask->send.ptr->size - sizeof(TrackerHeader));
 	pDest = pStart = (TrackerStorageStat *)(pTask->
             send.ptr->data + sizeof(TrackerHeader));
-	ppEnd = pGroup->sorted_servers + pGroup->count;
+	ppEnd = pGroup->sorted_servers + pGroup->storage_count;
 	for (ppServer=pGroup->sorted_servers; ppServer<ppEnd; \
 			ppServer++)
 	{
@@ -2378,7 +2378,7 @@ Header
 FDFS_GROUP_NAME_MAX_LEN bytes: group_name
 remain bytes: filename
 **/
-static int tracker_deal_service_query_fetch_update( \
+static int tracker_deal_service_query_fetch_update(
 		struct fast_task_info *pTask, const byte cmd)
 {
 	char group_name[FDFS_GROUP_NAME_MAX_LEN + 1];
@@ -2434,7 +2434,6 @@ static int tracker_deal_service_query_fetch_update( \
 		pTask->send.ptr->length = sizeof(TrackerHeader);
 		return result;
 	}
-
 
 	pTask->send.ptr->length = sizeof(TrackerHeader) +
 			TRACKER_QUERY_STORAGE_FETCH_BODY_LEN +
@@ -2534,7 +2533,7 @@ static int tracker_deal_service_query_storage( \
 			return ENOENT;
 		}
 
-		if (pStoreGroup->active_count == 0)
+		if (pStoreGroup->writable_storages.count <= 0)
 		{
 			pTask->send.ptr->length = sizeof(TrackerHeader);
 			return ENOENT;
@@ -2542,7 +2541,7 @@ static int tracker_deal_service_query_storage( \
 
 		if (!tracker_check_reserved_space(pStoreGroup))
 		{
-			if (!(g_if_use_trunk_file && \
+			if (!(g_if_use_trunk_file &&
 				tracker_check_reserved_space_trunk(pStoreGroup)))
 			{
 				pTask->send.ptr->length = sizeof(TrackerHeader);
@@ -2550,8 +2549,8 @@ static int tracker_deal_service_query_storage( \
 			}
 		}
 	}
-	else if (g_groups.store_lookup == FDFS_STORE_LOOKUP_ROUND_ROBIN
-		||g_groups.store_lookup==FDFS_STORE_LOOKUP_LOAD_BALANCE)
+	else if (g_groups.store_lookup == FDFS_STORE_LOOKUP_ROUND_ROBIN ||
+            g_groups.store_lookup == FDFS_STORE_LOOKUP_LOAD_BALANCE)
 	{
 		int write_group_index;
 
@@ -2564,22 +2563,22 @@ static int tracker_deal_service_query_storage( \
 
 		pStoreGroup = NULL;
 		ppFoundGroup = g_groups.sorted_groups + write_group_index;
-		if ((*ppFoundGroup)->active_count > 0)
-		{
-			bHaveActiveServer = true;
-			if (tracker_check_reserved_space(*ppFoundGroup))
-			{
-				pStoreGroup = *ppFoundGroup;
-			}
-			else if (g_if_use_trunk_file && \
-				g_groups.store_lookup == \
-				FDFS_STORE_LOOKUP_LOAD_BALANCE && \
-				tracker_check_reserved_space_trunk( \
-					*ppFoundGroup))
-			{
-				pStoreGroup = *ppFoundGroup;
-			}
-		}
+		if ((*ppFoundGroup)->writable_storages.count > 0)
+        {
+            bHaveActiveServer = true;
+            if (tracker_check_reserved_space(*ppFoundGroup))
+            {
+                pStoreGroup = *ppFoundGroup;
+            }
+            else if (g_if_use_trunk_file &&
+                    g_groups.store_lookup ==
+                    FDFS_STORE_LOOKUP_LOAD_BALANCE &&
+                    tracker_check_reserved_space_trunk(
+                        *ppFoundGroup))
+            {
+                pStoreGroup = *ppFoundGroup;
+            }
+        }
 
 		if (pStoreGroup == NULL)
 		{
@@ -2589,7 +2588,7 @@ static int tracker_deal_service_query_storage( \
 			for (ppGroup=ppFoundGroup+1;
 					ppGroup<ppGroupEnd; ppGroup++)
 			{
-				if ((*ppGroup)->active_count == 0)
+				if ((*ppGroup)->writable_storages.count <= 0)
 				{
 					continue;
 				}
@@ -2599,7 +2598,7 @@ static int tracker_deal_service_query_storage( \
 				{
 					pStoreGroup = *ppGroup;
 					g_groups.current_write_group =
-					       ppGroup-g_groups.sorted_groups;
+					       ppGroup - g_groups.sorted_groups;
 					break;
 				}
 			}
@@ -2609,7 +2608,7 @@ static int tracker_deal_service_query_storage( \
 				for (ppGroup=g_groups.sorted_groups;
 						ppGroup<ppFoundGroup; ppGroup++)
 				{
-					if ((*ppGroup)->active_count == 0)
+					if ((*ppGroup)->writable_storages.count <= 0)
 					{
 						continue;
 					}
@@ -2619,7 +2618,7 @@ static int tracker_deal_service_query_storage( \
 					{
 						pStoreGroup = *ppGroup;
 						g_groups.current_write_group =
-						 ppGroup-g_groups.sorted_groups;
+						 ppGroup - g_groups.sorted_groups;
 						break;
 					}
 				}
@@ -2642,7 +2641,7 @@ static int tracker_deal_service_query_storage( \
 				for (ppGroup=g_groups.sorted_groups;
 						ppGroup<ppGroupEnd; ppGroup++)
 				{
-					if ((*ppGroup)->active_count == 0)
+					if ((*ppGroup)->writable_storages.count <= 0)
 					{
 						continue;
 					}
@@ -2650,7 +2649,7 @@ static int tracker_deal_service_query_storage( \
 					{
 						pStoreGroup = *ppGroup;
 						g_groups.current_write_group =
-						 ppGroup-g_groups.sorted_groups;
+						 ppGroup - g_groups.sorted_groups;
 						break;
 					}
 				}
@@ -2673,27 +2672,24 @@ static int tracker_deal_service_query_storage( \
 		}
 	}
 	else if (g_groups.store_lookup == FDFS_STORE_LOOKUP_SPEC_GROUP)
-	{
-		if (g_groups.pStoreGroup == NULL ||
-				g_groups.pStoreGroup->active_count == 0)
-		{
-			pTask->send.ptr->length = sizeof(TrackerHeader);
-			return ENOENT;
-		}
+    {
+        pStoreGroup = g_groups.pStoreGroup;
+        if (pStoreGroup == NULL || pStoreGroup->writable_storages.count <= 0)
+        {
+            pTask->send.ptr->length = sizeof(TrackerHeader);
+            return ENOENT;
+        }
 
-		if (!tracker_check_reserved_space(g_groups.pStoreGroup))
-		{
-			if (!(g_if_use_trunk_file &&
-				tracker_check_reserved_space_trunk(
-						g_groups.pStoreGroup)))
-			{
-				pTask->send.ptr->length = sizeof(TrackerHeader);
-				return ENOSPC;
-			}
-		}
-
-		pStoreGroup = g_groups.pStoreGroup;
-	}
+        if (!tracker_check_reserved_space(pStoreGroup))
+        {
+            if (!(g_if_use_trunk_file &&
+                        tracker_check_reserved_space_trunk(pStoreGroup)))
+            {
+                pTask->send.ptr->length = sizeof(TrackerHeader);
+                return ENOSPC;
+            }
+        }
+    }
 	else
 	{
 		pTask->send.ptr->length = sizeof(TrackerHeader);
@@ -2706,8 +2702,8 @@ static int tracker_deal_service_query_storage( \
 		return ENOENT;
 	}
 
-	if (cmd == TRACKER_PROTO_CMD_SERVICE_QUERY_STORE_WITH_GROUP_ONE
-	  || cmd == TRACKER_PROTO_CMD_SERVICE_QUERY_STORE_WITHOUT_GROUP_ONE)
+	if (cmd == TRACKER_PROTO_CMD_SERVICE_QUERY_STORE_WITH_GROUP_ONE ||
+            cmd == TRACKER_PROTO_CMD_SERVICE_QUERY_STORE_WITHOUT_GROUP_ONE)
 	{
 		pStorageServer = tracker_get_writable_storage(pStoreGroup);
 		if (pStorageServer == NULL)
@@ -2718,7 +2714,7 @@ static int tracker_deal_service_query_storage( \
 	}
 	else  //query store server list, use the first to check
 	{
-		pStorageServer = *(pStoreGroup->active_servers);
+		pStorageServer = *(pStoreGroup->writable_storages.servers);
 	}
 
 	write_path_index = pStorageServer->current_write_path;
@@ -2797,9 +2793,9 @@ static int tracker_deal_service_query_storage( \
 
 	/*
 	//printf("pStoreGroup->current_write_server: %d, " \
-	"pStoreGroup->active_count=%d\n", \
+	"pStoreGroup->writable_storages.count=%d\n", \
 	pStoreGroup->current_write_server, \
-	pStoreGroup->active_count);
+	pStoreGroup->writable_storages.count);
 	*/
 
 	p = pTask->send.ptr->data + sizeof(TrackerHeader);
@@ -2813,7 +2809,7 @@ static int tracker_deal_service_query_storage( \
 		FDFSStorageDetail **ppServer;
 		FDFSStorageDetail **ppEnd;
 
-		active_count = pStoreGroup->active_count;
+		active_count = pStoreGroup->writable_storages.count;
 		if (active_count == 0)
 		{
 			pTask->send.ptr->length = sizeof(TrackerHeader);
@@ -2822,9 +2818,9 @@ static int tracker_deal_service_query_storage( \
 
         memset(p, 0, active_count * (IP_ADDRESS_SIZE +
                     FDFS_PROTO_PKG_LEN_SIZE));
-		ppEnd = pStoreGroup->active_servers + active_count;
-		for (ppServer=pStoreGroup->active_servers; ppServer<ppEnd; \
-			ppServer++)
+		ppEnd = pStoreGroup->writable_storages.servers + active_count;
+		for (ppServer=pStoreGroup->writable_storages.servers;
+                ppServer<ppEnd; ppServer++)
 		{
 			strcpy(p, fdfs_get_ipaddr_by_peer_ip(
                         &(*ppServer)->ip_addrs, pTask->client_ip));
@@ -2889,15 +2885,18 @@ static int tracker_deal_server_list_one_group(struct fast_task_info *pTask)
 	long2buff(pGroup->total_mb, pDest->sz_total_mb);
 	long2buff(pGroup->free_mb, pDest->sz_free_mb);
 	long2buff(pGroup->trunk_free_mb, pDest->sz_trunk_free_mb);
-	long2buff(pGroup->count, pDest->sz_count);
+	long2buff(pGroup->storage_count, pDest->sz_storage_count);
 	long2buff(pGroup->storage_port, pDest->sz_storage_port);
-	long2buff(pGroup->active_count, pDest->sz_active_count);
+	long2buff(pGroup->readable_storages.count,
+            pDest->sz_readable_server_count);
+	long2buff(pGroup->writable_storages.count,
+            pDest->sz_writable_server_count);
 	long2buff(pGroup->current_write_server, 
 			pDest->sz_current_write_server);
 	long2buff(pGroup->store_path_count, pDest->sz_store_path_count);
-	long2buff(pGroup->subdir_count_per_path, \
+	long2buff(pGroup->subdir_count_per_path,
 			pDest->sz_subdir_count_per_path);
-	long2buff(pGroup->current_trunk_file_id, \
+	long2buff(pGroup->current_trunk_file_id,
 			pDest->sz_current_trunk_file_id);
 	pTask->send.ptr->length = sizeof(TrackerHeader) + sizeof(TrackerGroupStat);
 
@@ -2958,28 +2957,30 @@ static int tracker_deal_server_list_all_groups(struct fast_task_info *pTask)
 	ppEnd = g_groups.sorted_groups + g_groups.count;
 	for (ppGroup=g_groups.sorted_groups; ppGroup<ppEnd; ppGroup++)
 	{
-		memcpy(pDest->group_name, (*ppGroup)->group_name, \
+		memcpy(pDest->group_name, (*ppGroup)->group_name,
 				FDFS_GROUP_NAME_MAX_LEN + 1);
 		long2buff((*ppGroup)->total_mb, pDest->sz_total_mb);
 		long2buff((*ppGroup)->free_mb, pDest->sz_free_mb);
 		long2buff((*ppGroup)->trunk_free_mb, pDest->sz_trunk_free_mb);
-		long2buff((*ppGroup)->count, pDest->sz_count);
-		long2buff((*ppGroup)->storage_port, \
+		long2buff((*ppGroup)->storage_count, pDest->sz_storage_count);
+		long2buff((*ppGroup)->storage_port,
 				pDest->sz_storage_port);
-		long2buff((*ppGroup)->active_count, \
-				pDest->sz_active_count);
-		long2buff((*ppGroup)->current_write_server, \
+		long2buff((*ppGroup)->readable_storages.count,
+				pDest->sz_readable_server_count);
+		long2buff((*ppGroup)->writable_storages.count,
+				pDest->sz_writable_server_count);
+		long2buff((*ppGroup)->current_write_server,
 				pDest->sz_current_write_server);
-		long2buff((*ppGroup)->store_path_count, \
+		long2buff((*ppGroup)->store_path_count,
 				pDest->sz_store_path_count);
-		long2buff((*ppGroup)->subdir_count_per_path, \
+		long2buff((*ppGroup)->subdir_count_per_path,
 				pDest->sz_subdir_count_per_path);
-		long2buff((*ppGroup)->current_trunk_file_id, \
+		long2buff((*ppGroup)->current_trunk_file_id,
 				pDest->sz_current_trunk_file_id);
 		pDest++;
 	}
 
-	pTask->send.ptr->length = sizeof(TrackerHeader) + (pDest - groupStats) * \
+	pTask->send.ptr->length = sizeof(TrackerHeader) + (pDest - groupStats) *
 			sizeof(TrackerGroupStat);
 
 	return 0;
@@ -3098,14 +3099,14 @@ static int tracker_deal_storage_sync_dest_req(struct fast_task_info *pTask)
 		return EINVAL;
 	}
 
-	if (pClientInfo->pGroup->count <= 1)
+	if (pClientInfo->pGroup->storage_count <= 1)
 	{
 		break;
 	}
 
 	source_count = 0;
 	ppServerEnd = pClientInfo->pGroup->all_servers + \
-		      pClientInfo->pGroup->count;
+		      pClientInfo->pGroup->storage_count;
 	for (ppServer=pClientInfo->pGroup->all_servers; \
 			ppServer<ppServerEnd; ppServer++)
 	{
@@ -3221,13 +3222,13 @@ static void tracker_find_max_free_space_group()
 			"errno: %d, error info: %s", \
 			__LINE__, result, STRERROR(result));
 	}
-	
+
 	ppMaxGroup = NULL;
 	ppGroupEnd = g_groups.sorted_groups + g_groups.count;
-	for (ppGroup=g_groups.sorted_groups; \
+	for (ppGroup=g_groups.sorted_groups;
 		ppGroup<ppGroupEnd; ppGroup++)
 	{
-		if ((*ppGroup)->active_count > 0)
+		if ((*ppGroup)->writable_storages.count > 0)
 		{
 			if (ppMaxGroup == NULL)
 			{
@@ -3246,26 +3247,26 @@ static void tracker_find_max_free_space_group()
 		return;
 	}
 
-	if (tracker_check_reserved_space(*ppMaxGroup) \
+	if (tracker_check_reserved_space(*ppMaxGroup)
 		|| !g_if_use_trunk_file)
-	{
-		g_groups.current_write_group = \
-			ppMaxGroup - g_groups.sorted_groups;
-		pthread_mutex_unlock(&lb_thread_lock);
-		return;
-	}
+    {
+        g_groups.current_write_group =
+            ppMaxGroup - g_groups.sorted_groups;
+        pthread_mutex_unlock(&lb_thread_lock);
+        return;
+    }
 
 	ppMaxGroup = NULL;
-	for (ppGroup=g_groups.sorted_groups; \
+	for (ppGroup=g_groups.sorted_groups;
 		ppGroup<ppGroupEnd; ppGroup++)
 	{
-		if ((*ppGroup)->active_count > 0)
+		if ((*ppGroup)->writable_storages.count > 0)
 		{
 			if (ppMaxGroup == NULL)
 			{
 				ppMaxGroup = ppGroup;
 			}
-			else if ((*ppGroup)->trunk_free_mb > \
+			else if ((*ppGroup)->trunk_free_mb >
 				(*ppMaxGroup)->trunk_free_mb)
 			{
 				ppMaxGroup = ppGroup;
@@ -3273,14 +3274,11 @@ static void tracker_find_max_free_space_group()
 		}
 	}
 
-	if (ppMaxGroup == NULL)
-	{
-		pthread_mutex_unlock(&lb_thread_lock);
-		return;
-	}
+	if (ppMaxGroup != NULL)
+    {
+        g_groups.current_write_group = ppMaxGroup - g_groups.sorted_groups;
+    }
 
-	g_groups.current_write_group = \
-			ppMaxGroup - g_groups.sorted_groups;
 	pthread_mutex_unlock(&lb_thread_lock);
 }
 
@@ -3289,23 +3287,24 @@ static void tracker_find_min_free_space(FDFSGroupInfo *pGroup)
 	FDFSStorageDetail **ppServerEnd;
 	FDFSStorageDetail **ppServer;
 
-	if (pGroup->active_count == 0)
+	if (pGroup->writable_storages.count <= 0)
 	{
 		return;
 	}
 
-	pGroup->total_mb = (*(pGroup->active_servers))->total_mb;
-	pGroup->free_mb = (*(pGroup->active_servers))->free_mb;
-	ppServerEnd = pGroup->active_servers + pGroup->active_count;
-	for (ppServer=pGroup->active_servers+1; \
+	pGroup->total_mb = (*(pGroup->writable_storages.servers))->total_mb;
+	pGroup->free_mb = (*(pGroup->writable_storages.servers))->free_mb;
+	ppServerEnd = pGroup->writable_storages.servers +
+        pGroup->writable_storages.count;
+	for (ppServer=pGroup->writable_storages.servers+1;
 		ppServer<ppServerEnd; ppServer++)
-	{
-		if ((*ppServer)->free_mb < pGroup->free_mb)
-		{
-			pGroup->total_mb = (*ppServer)->total_mb;
-			pGroup->free_mb = (*ppServer)->free_mb;
-		}
-	}
+    {
+        if ((*ppServer)->free_mb < pGroup->free_mb)
+        {
+            pGroup->total_mb = (*ppServer)->total_mb;
+            pGroup->free_mb = (*ppServer)->free_mb;
+        }
+    }
 }
 
 static int tracker_deal_storage_sync_report(struct fast_task_info *pTask)
@@ -3340,7 +3339,7 @@ static int tracker_deal_storage_sync_report(struct fast_task_info *pTask)
 	{
 	dest_index = tracker_mem_get_storage_index(pClientInfo->pGroup,
 			pClientInfo->pStorage);
-	if (dest_index < 0 || dest_index >= pClientInfo->pGroup->count)
+	if (dest_index < 0 || dest_index >= pClientInfo->pGroup->storage_count)
 	{
 		status = 0;
 		break;
@@ -3377,7 +3376,7 @@ static int tracker_deal_storage_sync_report(struct fast_task_info *pTask)
 			src_index = tracker_mem_get_storage_index( \
 					pClientInfo->pGroup, pSrcStorage);
 			if (src_index == dest_index || src_index < 0 || \
-					src_index >= pClientInfo->pGroup->count)
+					src_index >= pClientInfo->pGroup->storage_count)
 			{
 				continue;
 			}
@@ -3433,7 +3432,7 @@ static int tracker_deal_storage_sync_report(struct fast_task_info *pTask)
 			src_index = tracker_mem_get_storage_index( \
 					pClientInfo->pGroup, pSrcStorage);
 			if (src_index == dest_index || src_index < 0 || \
-					src_index >= pClientInfo->pGroup->count)
+					src_index >= pClientInfo->pGroup->storage_count)
 			{
 				continue;
 			}
@@ -3549,7 +3548,7 @@ static int tracker_deal_storage_df_report(struct fast_task_info *pTask)
 		pClientInfo->pStorage->free_mb);
 	*/
 
-	tracker_mem_active_store_server(pClientInfo->pGroup, \
+	tracker_mem_active_store_server(pClientInfo->pGroup,
 				pClientInfo->pStorage);
 
 	return tracker_check_and_sync(pTask, 0);
@@ -3694,7 +3693,7 @@ static int tracker_deal_storage_beat(struct fast_task_info *pTask)
 
 	if (status == 0)
 	{
-		tracker_mem_active_store_server(pClientInfo->pGroup, \
+		tracker_mem_active_store_server(pClientInfo->pGroup,
 				pClientInfo->pStorage);
 		pClientInfo->pStorage->stat.last_heart_beat_time = g_current_time;
 
@@ -3776,19 +3775,19 @@ static int tracker_deal_task(struct fast_task_info *pTask, const int stage)
 					pTask, pHeader->cmd);
 			break;
 		case TRACKER_PROTO_CMD_SERVICE_QUERY_STORE_WITHOUT_GROUP_ONE:
-			result = tracker_deal_service_query_storage( \
+			result = tracker_deal_service_query_storage(
 					pTask, pHeader->cmd);
 			break;
 		case TRACKER_PROTO_CMD_SERVICE_QUERY_STORE_WITH_GROUP_ONE:
-			result = tracker_deal_service_query_storage( \
+			result = tracker_deal_service_query_storage(
 					pTask, pHeader->cmd);
 			break;
 		case TRACKER_PROTO_CMD_SERVICE_QUERY_STORE_WITHOUT_GROUP_ALL:
-			result = tracker_deal_service_query_storage( \
+			result = tracker_deal_service_query_storage(
 					pTask, pHeader->cmd);
 			break;
 		case TRACKER_PROTO_CMD_SERVICE_QUERY_STORE_WITH_GROUP_ALL:
-			result = tracker_deal_service_query_storage( \
+			result = tracker_deal_service_query_storage(
 					pTask, pHeader->cmd);
 			break;
 		case TRACKER_PROTO_CMD_SERVER_LIST_ONE_GROUP:

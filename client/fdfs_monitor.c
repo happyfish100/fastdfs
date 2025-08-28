@@ -308,7 +308,8 @@ static int list_storages(FDFSGroupStat *pGroupStat)
 		"disk free space = %s MB\n"
 		"trunk free space = %s MB\n"
 		"storage server count = %d\n"
-		"active server count = %d\n"
+		"readable server count = %d\n"
+		"writable server count = %d\n"
 		"storage server port = %d\n"
 		"store path count = %d\n"
 		"subdir count per path = %d\n"
@@ -318,8 +319,9 @@ static int list_storages(FDFSGroupStat *pGroupStat)
 		long_to_comma_str(pGroupStat->total_mb, szDiskTotalSpace),
 		long_to_comma_str(pGroupStat->free_mb, szDiskFreeSpace),
 		long_to_comma_str(pGroupStat->trunk_free_mb, szTrunkSpace),
-		pGroupStat->count,
-		pGroupStat->active_count,
+		pGroupStat->storage_count,
+		pGroupStat->readable_server_count,
+		pGroupStat->writable_server_count,
 		pGroupStat->storage_port,
 		pGroupStat->store_path_count,
 		pGroupStat->subdir_count_per_path,

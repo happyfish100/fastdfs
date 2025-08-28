@@ -157,9 +157,10 @@ typedef struct
 	char sz_total_mb[FDFS_PROTO_PKG_LEN_SIZE]; //total disk storage in MB
 	char sz_free_mb[FDFS_PROTO_PKG_LEN_SIZE];  //free disk storage in MB
 	char sz_trunk_free_mb[FDFS_PROTO_PKG_LEN_SIZE];  //trunk free space in MB
-	char sz_count[FDFS_PROTO_PKG_LEN_SIZE];    //server count
+	char sz_storage_count[FDFS_PROTO_PKG_LEN_SIZE];  //total server count
 	char sz_storage_port[FDFS_PROTO_PKG_LEN_SIZE];
-	char sz_active_count[FDFS_PROTO_PKG_LEN_SIZE]; //active server count
+	char sz_readable_server_count[FDFS_PROTO_PKG_LEN_SIZE];
+	char sz_writable_server_count[FDFS_PROTO_PKG_LEN_SIZE];
 	char sz_current_write_server[FDFS_PROTO_PKG_LEN_SIZE];
 	char sz_store_path_count[FDFS_PROTO_PKG_LEN_SIZE];
 	char sz_subdir_count_per_path[FDFS_PROTO_PKG_LEN_SIZE];

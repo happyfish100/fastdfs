@@ -2328,11 +2328,11 @@ int storage_func_init(const char *filename)
 				break;
 			}
 
-			g_keep_alive = iniGetBoolValue(NULL, "keep_alive", \
+			g_keep_alive = iniGetBoolValue(NULL, "keep_alive",
 					&iniContext, false);
 		}
 
-		g_use_access_log = iniGetBoolValue(NULL, "use_access_log", \
+		g_use_access_log = iniGetBoolValue(NULL, "use_access_log",
 					&iniContext, false);
 		if (g_use_access_log)
 		{

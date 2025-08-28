@@ -85,7 +85,17 @@ extern FDFSStorageIdMapArray g_storage_ids_by_ip;  //sorted by group name and st
 
 bool fdfs_is_server_id_valid(const char *id);
 
-int fdfs_get_server_id_type(const int id);
+static inline int fdfs_get_server_id_type(const int id)
+{
+    if (id > 0 && id <= FDFS_MAX_SERVER_ID)
+    {
+        return FDFS_ID_TYPE_SERVER_ID;
+    }
+    else
+    {
+        return FDFS_ID_TYPE_IP_ADDRESS;
+    }
+}
 
 int fdfs_load_storage_ids(char *content, const char *pStorageIdsFilename);
 

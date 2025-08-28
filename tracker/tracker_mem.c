@@ -1598,14 +1598,14 @@ static int tracker_load_sync_timestamps(FDFSGroups *pGroups, const char *data_pa
 			src_index = 0;
 		}
 		
-		if (src_index >= pGroup->count)
+		if (src_index >= pGroup->storage_count)
 		{
 			logError("file: "__FILE__", line: %d, " \
 				"the format of the file \"%s/%s\" is invalid" \
 				", group: %s, row count:%d > server count:%d",\
 				__LINE__, data_path, \
 				STORAGE_SYNC_TIMESTAMP_FILENAME_STR, \
-				group_name, src_index+1, pGroup->count);
+				group_name, src_index+1, pGroup->storage_count);
 			result = errno != 0 ? errno : EINVAL;
 			break;
 		}
@@ -1640,14 +1640,14 @@ static int tracker_load_sync_timestamps(FDFSGroups *pGroups, const char *data_pa
 			break;
 		}
 
-		if (cols > pGroup->count + 2)
+		if (cols > pGroup->storage_count + 2)
 		{
 			logError("file: "__FILE__", line: %d, " \
 				"the format of the file \"%s/%s\" is invalid" \
 				", group_name: %s, colums: %d > %d", \
 				__LINE__, data_path, \
 				STORAGE_SYNC_TIMESTAMP_FILENAME_STR, \
-				group_name, cols, pGroup->count + 2);
+				group_name, cols, pGroup->storage_count + 2);
 			result = errno != 0 ? errno : EINVAL;
 			break;
 		}
@@ -1671,19 +1671,19 @@ static int tracker_load_sync_timestamps(FDFSGroups *pGroups, const char *data_pa
 	ppEnd = pGroups->groups + pGroups->count;
 	for (ppGroup=pGroups->groups; ppGroup<ppEnd; ppGroup++)
 	{
-		if ((*ppGroup)->count <= 1)
+		if ((*ppGroup)->storage_count <= 1)
 		{
 			continue;
 		}
 
-		for (dest_index=0; dest_index<(*ppGroup)->count; dest_index++)
+		for (dest_index=0; dest_index<(*ppGroup)->storage_count; dest_index++)
 		{
 			if (pGroups->store_server == FDFS_STORE_SERVER_ROUND_ROBIN)
 			{
 				int min_synced_timestamp;
 
 				min_synced_timestamp = 0;
-				for (src_index=0; src_index<(*ppGroup)->count; \
+				for (src_index=0; src_index<(*ppGroup)->storage_count; \
 					src_index++)
 				{
 					if (src_index == dest_index)
@@ -1720,7 +1720,7 @@ static int tracker_load_sync_timestamps(FDFSGroups *pGroups, const char *data_pa
 				int max_synced_timestamp;
 
 				max_synced_timestamp = 0;
-				for (src_index=0; src_index<(*ppGroup)->count; \
+				for (src_index=0; src_index<(*ppGroup)->storage_count; \
 					src_index++)
 				{
 					if (src_index == dest_index)
@@ -2064,7 +2064,7 @@ int tracker_save_storages()
 	for (ppGroup=g_groups.sorted_groups; \
 		(ppGroup < ppGroupEnd) && (result == 0); ppGroup++)
 	{
-		ppStorageEnd = (*ppGroup)->all_servers + (*ppGroup)->count;
+		ppStorageEnd = (*ppGroup)->all_servers + (*ppGroup)->storage_count;
 		for (ppStorage=(*ppGroup)->all_servers; \
 			ppStorage<ppStorageEnd; ppStorage++)
 		{
@@ -2640,7 +2640,7 @@ int tracker_save_sync_timestamps()
 		(ppGroup < ppGroupEnd) && (result == 0); ppGroup++)
 	{
 		last_sync_timestamps = (*ppGroup)->last_sync_timestamps;
-		for (i=0; i<(*ppGroup)->count; i++)
+		for (i=0; i<(*ppGroup)->storage_count; i++)
 		{
 			if ((*ppGroup)->all_servers[i]->status == \
 				FDFS_STORAGE_STATUS_DELETED \
@@ -2658,7 +2658,7 @@ int tracker_save_sync_timestamps()
             *p++ = STORAGE_DATA_FIELD_SEPERATOR;
             memcpy(p, (*ppGroup)->all_servers[i]->id, id_len);
             p += id_len;
-			for (k=0; k<(*ppGroup)->count; k++)
+			for (k=0; k<(*ppGroup)->storage_count; k++)
 			{
 				if ((*ppGroup)->all_servers[k]->status ==
 					FDFS_STORAGE_STATUS_DELETED
@@ -2961,44 +2961,62 @@ static void tracker_mem_free_group(FDFSGroupInfo *pGroup)
 		pGroup->sorted_servers = NULL;
 	}
 
-	if (pGroup->active_servers != NULL)
+	if (pGroup->readable_storages.servers != NULL)
 	{
-		free(pGroup->active_servers);
-		pGroup->active_servers = NULL;
+		free(pGroup->readable_storages.servers);
+		pGroup->readable_storages.servers = NULL;
+	}
+
+	if (pGroup->writable_storages.servers != NULL)
+	{
+		free(pGroup->writable_storages.servers);
+		pGroup->writable_storages.servers = NULL;
 	}
 
 	if (pGroup->all_servers != NULL)
 	{
-		tracker_mem_free_storages(pGroup->all_servers, \
+		tracker_mem_free_storages(pGroup->all_servers,
 				pGroup->alloc_size);
 		pGroup->all_servers = NULL;
 	}
 
-	tracker_free_last_sync_timestamps(pGroup->last_sync_timestamps, \
+	tracker_free_last_sync_timestamps(pGroup->last_sync_timestamps,
 				pGroup->alloc_size);
 	pGroup->last_sync_timestamps = NULL;
+}
+
+static FDFSStorageDetail **alloc_storage_ptr_servers(const int alloc_size)
+{
+    FDFSStorageDetail **servers;
+    int bytes;
+
+    bytes = sizeof(FDFSStorageDetail *) * alloc_size;
+    servers = (FDFSStorageDetail **)malloc(bytes);
+    if (servers == NULL)
+    {
+        logError("file: "__FILE__", line: %d, "
+                "malloc %d bytes fail",
+                __LINE__, bytes);
+        return NULL;
+    }
+    memset(servers, 0, bytes);
+    return servers;
 }
 
 static int tracker_mem_init_group(FDFSGroupInfo *pGroup)
 {
 	FDFSStorageDetail **ppServer;
 	FDFSStorageDetail **ppServerEnd;
-	int err_no;
+	int result;
 
 	pGroup->alloc_size = TRACKER_MEM_ALLOC_ONCE;
-	pGroup->count = 0;
-	pGroup->all_servers = (FDFSStorageDetail **) \
-			malloc(sizeof(FDFSStorageDetail *) * pGroup->alloc_size);
-	if (pGroup->all_servers == NULL)
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"malloc %d bytes fail", __LINE__, \
-			(int)sizeof(FDFSStorageDetail *) * pGroup->alloc_size);
-		return errno != 0 ? errno : ENOMEM;
-	}
+	pGroup->storage_count = 0;
+    if ((pGroup->all_servers=alloc_storage_ptr_servers(
+                    pGroup->alloc_size)) == NULL)
+    {
+        return ENOMEM;
+    }
 
-	memset(pGroup->all_servers, 0, \
-		sizeof(FDFSStorageDetail *) * pGroup->alloc_size);
 	ppServerEnd = pGroup->all_servers + pGroup->alloc_size;	
 	for (ppServer=pGroup->all_servers; ppServer<ppServerEnd; ppServer++)
 	{
@@ -3017,37 +3035,30 @@ static int tracker_mem_init_group(FDFSGroupInfo *pGroup)
 		memset(*ppServer, 0, sizeof(FDFSStorageDetail));
 	}
 
-	pGroup->sorted_servers = (FDFSStorageDetail **) \
-		malloc(sizeof(FDFSStorageDetail *) * pGroup->alloc_size);
-	if (pGroup->sorted_servers == NULL)
-	{
-		tracker_mem_free_group(pGroup);
+    if ((pGroup->sorted_servers=alloc_storage_ptr_servers(
+                    pGroup->alloc_size)) == NULL)
+    {
+        tracker_mem_free_group(pGroup);
+        return ENOMEM;
+    }
 
-		logError("file: "__FILE__", line: %d, " \
-			"malloc %d bytes fail", __LINE__, \
-			(int)sizeof(FDFSStorageDetail *) * pGroup->alloc_size);
-		return errno != 0 ? errno : ENOMEM;
-	}
-	memset(pGroup->sorted_servers, 0, \
-		sizeof(FDFSStorageDetail *) * pGroup->alloc_size);
+    if ((pGroup->readable_storages.servers=alloc_storage_ptr_servers(
+                    pGroup->alloc_size)) == NULL)
+    {
+        tracker_mem_free_group(pGroup);
+        return ENOMEM;
+    }
 
-	pGroup->active_servers = (FDFSStorageDetail **) \
-		malloc(sizeof(FDFSStorageDetail *) * pGroup->alloc_size);
-	if (pGroup->active_servers == NULL)
-	{
-		tracker_mem_free_group(pGroup);
-
-		logError("file: "__FILE__", line: %d, " \
-			"malloc %d bytes fail", __LINE__, \
-			(int)sizeof(FDFSStorageDetail *) * pGroup->alloc_size);
-		return errno != 0 ? errno : ENOMEM;
-	}
-	memset(pGroup->active_servers, 0, sizeof(FDFSStorageDetail *) *
-            pGroup->alloc_size);
+    if ((pGroup->writable_storages.servers=alloc_storage_ptr_servers(
+                    pGroup->alloc_size)) == NULL)
+    {
+        tracker_mem_free_group(pGroup);
+        return ENOMEM;
+    }
 
 	pGroup->last_sync_timestamps = tracker_malloc_last_sync_timestamps( \
-			pGroup->alloc_size, &err_no);
-	return err_no;
+			pGroup->alloc_size, &result);
+	return result;
 }
 
 static int tracker_mem_destroy_groups(FDFSGroups *pGroups, const bool saveFiles)
@@ -3217,7 +3228,7 @@ int tracker_get_group_file_count(FDFSGroupInfo *pGroup)
 	FDFSStorageDetail **ppServerEnd;
 
 	count = 0;
-	ppServerEnd = pGroup->all_servers + pGroup->count;
+	ppServerEnd = pGroup->all_servers + pGroup->storage_count;
 	for (ppServer=pGroup->all_servers; ppServer<ppServerEnd; ppServer++)
 	{
 		count += (*ppServer)->stat.success_upload_count - \
@@ -3234,7 +3245,7 @@ int tracker_get_group_success_upload_count(FDFSGroupInfo *pGroup)
 	FDFSStorageDetail **ppServerEnd;
 
 	count = 0;
-	ppServerEnd = pGroup->all_servers + pGroup->count;
+	ppServerEnd = pGroup->all_servers + pGroup->storage_count;
 	for (ppServer=pGroup->all_servers; ppServer<ppServerEnd; ppServer++)
 	{
 		count += (*ppServer)->stat.success_upload_count;
@@ -3243,154 +3254,168 @@ int tracker_get_group_success_upload_count(FDFSGroupInfo *pGroup)
 	return count;
 }
 
-FDFSStorageDetail *tracker_get_group_sync_src_server(FDFSGroupInfo *pGroup, \
+FDFSStorageDetail *tracker_get_group_sync_src_server(FDFSGroupInfo *pGroup,
 			FDFSStorageDetail *pDestServer)
 {
-	FDFSStorageDetail **ppServer;
-	FDFSStorageDetail **ppServerEnd;
+    FDFSStorageDetail **ppServer;
+    FDFSStorageDetail **ppServerEnd;
 
-	ppServerEnd = pGroup->active_servers + pGroup->active_count;
-	for (ppServer=pGroup->active_servers; ppServer<ppServerEnd; ppServer++)
-	{
-		if (strcmp((*ppServer)->id, pDestServer->id) == 0)
-		{
-			continue;
-		}
+    ppServerEnd = pGroup->writable_storages.servers +
+        pGroup->writable_storages.count;
+    for (ppServer=pGroup->writable_storages.servers;
+            ppServer<ppServerEnd; ppServer++)
+    {
+        if (strcmp((*ppServer)->id, pDestServer->id) == 0)
+        {
+            continue;
+        }
 
-		return *ppServer;
-	}
+        return *ppServer;
+    }
 
-	return NULL;
+    return NULL;
 }
 
-static int tracker_mem_realloc_store_servers(FDFSGroupInfo *pGroup, \
-		const int inc_count, const bool bNeedSleep)
+static int tracker_mem_realloc_store_servers(FDFSGroupInfo *pGroup,
+		const bool bNeedSleep)
 {
-	int result;
 	FDFSStorageDetail **old_servers;
 	FDFSStorageDetail **old_sorted_servers;
-	FDFSStorageDetail **old_active_servers;
+	FDFSStorageDetail **old_readable_servers;
+	FDFSStorageDetail **old_writable_servers;
 	int **old_last_sync_timestamps;
 	FDFSStorageDetail **new_servers;
 	FDFSStorageDetail **new_sorted_servers;
-	FDFSStorageDetail **new_active_servers;
+	FDFSStorageDetail **new_readable_servers;
+	FDFSStorageDetail **new_writable_servers;
 	FDFSStorageDetail **ppServer;
 	FDFSStorageDetail **ppServerEnd;
 	int **new_last_sync_timestamps;
 	int old_size;
 	int new_size;
-	int err_no;
+    int bytes;
 	int i;
-	
-	new_size = pGroup->alloc_size + inc_count + TRACKER_MEM_ALLOC_ONCE;
-	new_servers = (FDFSStorageDetail **) \
-		malloc(sizeof(FDFSStorageDetail *) * new_size);
-	if (new_servers == NULL)
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"malloc %d bytes fail", \
-			__LINE__, (int)sizeof(FDFSStorageDetail *) * new_size);
-		return errno != 0 ? errno : ENOMEM;
-	}
-	memset(new_servers, 0, sizeof(FDFSStorageDetail *) * new_size);
+	int result;
+
+    new_size = pGroup->alloc_size + TRACKER_MEM_ALLOC_ONCE;
+    bytes = sizeof(FDFSStorageDetail *) * new_size;
+    new_servers = (FDFSStorageDetail **)malloc(bytes);
+    if (new_servers == NULL)
+    {
+        logError("file: "__FILE__", line: %d, "
+                "malloc %d bytes fail",
+                __LINE__, bytes);
+        return errno != 0 ? errno : ENOMEM;
+    }
+    memset(new_servers, 0, bytes);
 
 	ppServerEnd = new_servers + new_size;	
-	for (ppServer=new_servers+pGroup->count; ppServer<ppServerEnd; ppServer++)
-	{
-		*ppServer = (FDFSStorageDetail *)malloc( \
-					sizeof(FDFSStorageDetail));
-		if (*ppServer == NULL)
-		{
-			tracker_mem_free_storages(new_servers, new_size);
+	for (ppServer=new_servers+pGroup->storage_count; ppServer<ppServerEnd; ppServer++)
+    {
+        *ppServer = (FDFSStorageDetail *)malloc(
+                sizeof(FDFSStorageDetail));
+        if (*ppServer == NULL)
+        {
+            tracker_mem_free_storages(new_servers, new_size);
 
-			logError("file: "__FILE__", line: %d, " \
-				"malloc %d bytes fail", __LINE__, \
-				(int)sizeof(FDFSStorageDetail));
-			return errno != 0 ? errno : ENOMEM;
-		}
+            logError("file: "__FILE__", line: %d, "
+                    "malloc %d bytes fail", __LINE__,
+                    (int)sizeof(FDFSStorageDetail));
+            return errno != 0 ? errno : ENOMEM;
+        }
 
-		memset(*ppServer, 0, sizeof(FDFSStorageDetail));
-	}
+        memset(*ppServer, 0, sizeof(FDFSStorageDetail));
+    }
+    memcpy(new_servers, pGroup->all_servers,
+            sizeof(FDFSStorageDetail *) * pGroup->storage_count);
 
-	memcpy(new_servers, pGroup->all_servers, \
-		sizeof(FDFSStorageDetail *) * pGroup->count);
-
-	new_sorted_servers = (FDFSStorageDetail **) \
-		malloc(sizeof(FDFSStorageDetail *) * new_size);
+	new_sorted_servers = (FDFSStorageDetail **)malloc(bytes);
 	if (new_sorted_servers == NULL)
-	{
-		free(new_servers);
-		logError("file: "__FILE__", line: %d, " \
-			"malloc %d bytes fail", \
-			__LINE__, (int)sizeof(FDFSStorageDetail *) * new_size);
-		return errno != 0 ? errno : ENOMEM;
-	}
+    {
+        free(new_servers);
+        logError("file: "__FILE__", line: %d, "
+                "malloc %d bytes fail",
+                __LINE__, bytes);
+        return errno != 0 ? errno : ENOMEM;
+    }
 
-	new_active_servers = (FDFSStorageDetail **) \
-		malloc(sizeof(FDFSStorageDetail *) * new_size);
-	if (new_active_servers == NULL)
+	new_readable_servers = (FDFSStorageDetail **)malloc(bytes);
+	new_writable_servers = (FDFSStorageDetail **)malloc(bytes);
+	if (new_readable_servers == NULL || new_writable_servers == NULL)
 	{
 		free(new_servers);
 		free(new_sorted_servers);
+        if (new_readable_servers != NULL)
+        {
+            free(new_readable_servers);
+        }
+        if (new_writable_servers != NULL)
+        {
+            free(new_writable_servers);
+        }
 
-		logError("file: "__FILE__", line: %d, " \
-			"malloc %d bytes fail", \
-			__LINE__, (int)sizeof(FDFSStorageDetail *) * new_size);
+		logError("file: "__FILE__", line: %d, "
+			"malloc %d bytes fail",
+			__LINE__, bytes);
 		return errno != 0 ? errno : ENOMEM;
 	}
+    memset(new_sorted_servers, 0, bytes);
+    memset(new_readable_servers, 0, bytes);
+    memset(new_writable_servers, 0, bytes);
 
-	memset(new_sorted_servers, 0, sizeof(FDFSStorageDetail *) * new_size);
-	memset(new_active_servers, 0, sizeof(FDFSStorageDetail *) * new_size);
 	if (pGroup->store_path_count > 0)
-	{
-		for (i=pGroup->count; i<new_size; i++)
-		{
-			result=tracker_malloc_storage_path_mbs(*(new_servers+i), \
-				pGroup->store_path_count);
-			if (result != 0)
-			{
-				free(new_servers);
-				free(new_sorted_servers);
-		        free(new_active_servers);
+    {
+        for (i=pGroup->storage_count; i<new_size; i++)
+        {
+            result=tracker_malloc_storage_path_mbs(*(new_servers+i),
+                    pGroup->store_path_count);
+            if (result != 0)
+            {
+                free(new_servers);
+                free(new_sorted_servers);
+                free(new_readable_servers);
+                free(new_writable_servers);
 
-				return result;
-			}
-		}
-	}
+                return result;
+            }
+        }
+    }
 
-	memcpy(new_sorted_servers, pGroup->sorted_servers, \
-		sizeof(FDFSStorageDetail *) * pGroup->count);
+    bytes = sizeof(FDFSStorageDetail *) * pGroup->storage_count;
+	memcpy(new_sorted_servers, pGroup->sorted_servers, bytes);
+    memcpy(new_readable_servers, pGroup->readable_storages.servers, bytes);
+    memcpy(new_writable_servers, pGroup->writable_storages.servers, bytes);
 
-	memcpy(new_active_servers, pGroup->active_servers, \
-		sizeof(FDFSStorageDetail *) * pGroup->count);
-
-	new_last_sync_timestamps = tracker_malloc_last_sync_timestamps( \
-		new_size, &err_no);
+	new_last_sync_timestamps = tracker_malloc_last_sync_timestamps(
+		new_size, &result);
 	if (new_last_sync_timestamps == NULL)
 	{
 		free(new_servers);
 		free(new_sorted_servers);
-		free(new_active_servers);
+        free(new_readable_servers);
+        free(new_writable_servers);
 
-		return err_no;
+		return result;
 	}
 	for (i=0; i<pGroup->alloc_size; i++)
-	{
-		memcpy(new_last_sync_timestamps[i],  \
-			pGroup->last_sync_timestamps[i], \
-			(int)sizeof(int) *  pGroup->alloc_size);
-	}
+    {
+        memcpy(new_last_sync_timestamps[i],
+                pGroup->last_sync_timestamps[i],
+                sizeof(int) * pGroup->alloc_size);
+    }
 
 	old_size = pGroup->alloc_size;
 	old_servers = pGroup->all_servers;
 	old_sorted_servers = pGroup->sorted_servers;
-	old_active_servers = pGroup->active_servers;
+	old_readable_servers = pGroup->readable_storages.servers;
+	old_writable_servers = pGroup->writable_storages.servers;
 	old_last_sync_timestamps = pGroup->last_sync_timestamps;
 
 	pGroup->alloc_size = new_size;
 	pGroup->all_servers = new_servers;
 	pGroup->sorted_servers = new_sorted_servers;
-	pGroup->active_servers = new_active_servers;
+	pGroup->readable_storages.servers = new_readable_servers;
+	pGroup->writable_storages.servers = new_writable_servers;
 	pGroup->last_sync_timestamps = new_last_sync_timestamps;
 
 	tracker_mem_find_store_server(pGroup);
@@ -3400,18 +3425,17 @@ static int tracker_mem_realloc_store_servers(FDFSGroupInfo *pGroup, \
 	}
 
 	if (bNeedSleep)
-	{
-		sleep(1);
-	}
+    {
+        sleep(1);  //for delay free
+    }
 
 	free(old_servers);
-	
 	free(old_sorted_servers);
-	free(old_active_servers);
+	free(old_readable_servers);
+	free(old_writable_servers);
 
 	tracker_free_last_sync_timestamps(old_last_sync_timestamps,
 				old_size);
-
 	return 0;
 }
 
@@ -3427,27 +3451,27 @@ static int tracker_mem_cmp_by_storage_id(const void *p1, const void *p2)
 			(*((FDFSStorageDetail **)p2))->id);
 }
 
-static void tracker_mem_insert_into_sorted_servers( \
-		FDFSStorageDetail *pTargetServer,   \
-		FDFSStorageDetail **sorted_servers, const int count)
+static void tracker_mem_insert_into_sorted_servers(
+        FDFSStorageDetail *pTargetServer,
+        FDFSStorageDetail **sorted_servers, const int count)
 {
-	FDFSStorageDetail **ppServer;
-	FDFSStorageDetail **ppEnd;
+    FDFSStorageDetail **ppServer;
+    FDFSStorageDetail **ppEnd;
 
-	ppEnd = sorted_servers + count;
-	for (ppServer=ppEnd; ppServer>sorted_servers; ppServer--)
-	{
-		if (strcmp(pTargetServer->id, (*(ppServer-1))->id) > 0)
-		{
-			break;
-		}
-		else
-		{
-			*ppServer = *(ppServer-1);
-		}
-	}
+    ppEnd = sorted_servers + count;
+    for (ppServer=ppEnd; ppServer>sorted_servers; ppServer--)
+    {
+        if (strcmp(pTargetServer->id, (*(ppServer-1))->id) > 0)
+        {
+            break;
+        }
+        else
+        {
+            *ppServer = *(ppServer-1);
+        }
+    }
 
-	*ppServer = pTargetServer;
+    *ppServer = pTargetServer;
 }
 
 static void tracker_mem_insert_into_sorted_groups(FDFSGroups *pGroups, \
@@ -3481,12 +3505,11 @@ FDFSGroupInfo *tracker_mem_get_group_ex(FDFSGroups *pGroups, \
 	FDFSGroupInfo *pTargetGroups;
 	FDFSGroupInfo **ppGroup;
 
-	memset(&target_groups, 0, sizeof(target_groups));
 	strcpy(target_groups.group_name, group_name);
 	pTargetGroups = &target_groups;
-	ppGroup = (FDFSGroupInfo **)bsearch(&pTargetGroups, \
-			pGroups->sorted_groups, \
-			pGroups->count, sizeof(FDFSGroupInfo *), \
+	ppGroup = (FDFSGroupInfo **)bsearch(&pTargetGroups,
+			pGroups->sorted_groups, pGroups->count,
+            sizeof(FDFSGroupInfo *),
 			tracker_mem_cmp_by_group_name);
 
 	if (ppGroup != NULL)
@@ -3499,8 +3522,8 @@ FDFSGroupInfo *tracker_mem_get_group_ex(FDFSGroups *pGroups, \
 	}
 }
 
-static int tracker_mem_add_group_ex(FDFSGroups *pGroups, \
-	TrackerClientInfo *pClientInfo, const char *group_name, \
+static int tracker_mem_add_group_ex(FDFSGroups *pGroups,
+	TrackerClientInfo *pClientInfo, const char *group_name,
 	const bool bNeedSleep, bool *bInserted)
 {
 	FDFSGroupInfo *pGroup;
@@ -3573,55 +3596,87 @@ static int tracker_mem_add_group_ex(FDFSGroups *pGroups, \
 	return 0;
 }
 
-static FDFSStorageDetail *tracker_mem_get_active_storage_by_id( \
+static inline FDFSStorageDetail *get_readable_storage_by_id(
 		FDFSGroupInfo *pGroup, const char *id)
 {
-	FDFSStorageDetail target_storage;
-	FDFSStorageDetail *pTargetStorage;
-	FDFSStorageDetail **ppStorageServer;
+    FDFSStorageDetail target_storage;
+    FDFSStorageDetail *pTargetStorage;
+    FDFSStorageDetail **ppStorageServer;
 
-	if (id == NULL)
-	{
-		return NULL;
-	}
-
-	memset(&target_storage, 0, sizeof(target_storage));
-	strcpy(target_storage.id, id);
-	pTargetStorage = &target_storage;
-	ppStorageServer = (FDFSStorageDetail **)bsearch(&pTargetStorage, \
-			pGroup->active_servers, \
-			pGroup->active_count, \
-			sizeof(FDFSStorageDetail *), \
-			tracker_mem_cmp_by_storage_id);
-	if (ppStorageServer != NULL)
-	{
-		return *ppStorageServer;
-	}
-	else
-	{
-		return NULL;
-	}
+    strcpy(target_storage.id, id);
+    pTargetStorage = &target_storage;
+    ppStorageServer = (FDFSStorageDetail **)bsearch(&pTargetStorage,
+            pGroup->readable_storages.servers, pGroup->readable_storages.count,
+            sizeof(FDFSStorageDetail *), tracker_mem_cmp_by_storage_id);
+    if (ppStorageServer != NULL)
+    {
+        return *ppStorageServer;
+    }
+    else
+    {
+        return NULL;
+    }
 }
 
-static FDFSStorageDetail *tracker_mem_get_active_storage_by_ip( \
+static inline FDFSStorageDetail *get_writable_active_storage_by_id(
+		FDFSGroupInfo *pGroup, const char *id)
+{
+    FDFSStorageDetail target_storage;
+    FDFSStorageDetail *pTargetStorage;
+    FDFSStorageDetail **ppStorageServer;
+
+    strcpy(target_storage.id, id);
+    pTargetStorage = &target_storage;
+    ppStorageServer = (FDFSStorageDetail **)bsearch(&pTargetStorage,
+            pGroup->writable_storages.servers, pGroup->writable_storages.count,
+            sizeof(FDFSStorageDetail *), tracker_mem_cmp_by_storage_id);
+    if (ppStorageServer != NULL)
+    {
+        return *ppStorageServer;
+    }
+    else
+    {
+        return NULL;
+    }
+}
+
+static inline FDFSStorageDetail *get_readable_storage_by_ip(
 		FDFSGroupInfo *pGroup, const char *ip_addr)
 {
-	FDFSStorageIdInfo *pStorageId;
+    FDFSStorageIdInfo *pStorageId;
 
-	if (!g_use_storage_id)
-	{
-		return tracker_mem_get_active_storage_by_id(pGroup, ip_addr);
-	}
+    if (!g_use_storage_id)
+    {
+        return get_readable_storage_by_id(pGroup, ip_addr);
+    }
 
-	pStorageId = fdfs_get_storage_id_by_ip(pGroup->group_name, ip_addr);
-	if (pStorageId == NULL)
-	{
-		return NULL;
-	}
-	return tracker_mem_get_active_storage_by_id(pGroup, pStorageId->id);
+    pStorageId = fdfs_get_storage_id_by_ip(pGroup->group_name, ip_addr);
+    if (pStorageId == NULL)
+    {
+        return NULL;
+    }
+    return get_readable_storage_by_id(pGroup, pStorageId->id);
 }
 
-FDFSStorageDetail *tracker_mem_get_storage_by_ip(FDFSGroupInfo *pGroup, \
+static inline FDFSStorageDetail *get_writable_active_storage_by_ip(
+		FDFSGroupInfo *pGroup, const char *ip_addr)
+{
+    FDFSStorageIdInfo *pStorageId;
+
+    if (!g_use_storage_id)
+    {
+        return get_writable_active_storage_by_id(pGroup, ip_addr);
+    }
+
+    pStorageId = fdfs_get_storage_id_by_ip(pGroup->group_name, ip_addr);
+    if (pStorageId == NULL)
+    {
+        return NULL;
+    }
+    return get_writable_active_storage_by_id(pGroup, pStorageId->id);
+}
+
+FDFSStorageDetail *tracker_mem_get_storage_by_ip(FDFSGroupInfo *pGroup,
 				const char *ip_addr)
 {
 	FDFSStorageId storage_id;
@@ -3629,7 +3684,7 @@ FDFSStorageDetail *tracker_mem_get_storage_by_ip(FDFSGroupInfo *pGroup, \
 	if (g_use_storage_id)
 	{
 		FDFSStorageIdInfo *pStorageIdInfo;
-		pStorageIdInfo = fdfs_get_storage_id_by_ip( \
+		pStorageIdInfo = fdfs_get_storage_id_by_ip(
 				pGroup->group_name, ip_addr);
 		if (pStorageIdInfo == NULL)
 		{
@@ -3654,20 +3709,18 @@ FDFSStorageDetail *tracker_mem_get_storage_by_ip(FDFSGroupInfo *pGroup, \
 	return tracker_mem_get_storage(pGroup, storage_id.ptr);
 }
 
-FDFSStorageDetail *tracker_mem_get_storage(FDFSGroupInfo *pGroup, \
+FDFSStorageDetail *tracker_mem_get_storage(FDFSGroupInfo *pGroup,
 				const char *id)
 {
 	FDFSStorageDetail target_storage;
 	FDFSStorageDetail *pTargetStorage;
 	FDFSStorageDetail **ppStorageServer;
 
-	memset(&target_storage, 0, sizeof(target_storage));
 	strcpy(target_storage.id, id);
 	pTargetStorage = &target_storage;
-	ppStorageServer = (FDFSStorageDetail **)bsearch(&pTargetStorage, \
-			pGroup->sorted_servers, \
-			pGroup->count, \
-			sizeof(FDFSStorageDetail *), \
+	ppStorageServer = (FDFSStorageDetail **)bsearch(
+            &pTargetStorage, pGroup->sorted_servers,
+            pGroup->storage_count, sizeof(FDFSStorageDetail *),
 			tracker_mem_cmp_by_storage_id);
 	if (ppStorageServer != NULL)
 	{
@@ -3745,13 +3798,13 @@ int tracker_mem_delete_group(const char *group_name)
         return ENOENT;
     }
 
-    if (pGroup->count != 0)
+    if (pGroup->storage_count != 0)
     {
         return EBUSY;
     }
 
 	pthread_mutex_lock(&mem_thread_lock);
-    if (pGroup->count != 0)
+    if (pGroup->storage_count != 0)
     {
         result = EBUSY;
     }
@@ -3795,14 +3848,14 @@ int tracker_mem_delete_storage(FDFSGroupInfo *pGroup, const char *id)
     char formatted_ip[FORMATTED_IP_SIZE];
 
 	pStorageServer = tracker_mem_get_storage(pGroup, id);
-	if (pStorageServer == NULL || pStorageServer->status == \
+	if (pStorageServer == NULL || pStorageServer->status ==
 		FDFS_STORAGE_STATUS_IP_CHANGED)
 	{
 		return ENOENT;
 	}
 
-	if (pStorageServer->status == FDFS_STORAGE_STATUS_ONLINE || \
-	    pStorageServer->status == FDFS_STORAGE_STATUS_ACTIVE || \
+	if (pStorageServer->status == FDFS_STORAGE_STATUS_ONLINE ||
+	    pStorageServer->status == FDFS_STORAGE_STATUS_ACTIVE ||
 	    pStorageServer->status == FDFS_STORAGE_STATUS_RECOVERY)
 	{
 		return EBUSY;
@@ -3813,7 +3866,7 @@ int tracker_mem_delete_storage(FDFSGroupInfo *pGroup, const char *id)
 		return EALREADY;
 	}
 
-	ppEnd = pGroup->all_servers + pGroup->count;
+	ppEnd = pGroup->all_servers + pGroup->storage_count;
 	for (ppServer=pGroup->all_servers; ppServer<ppEnd; ppServer++)
 	{
 		if ((*ppServer)->psync_src_server != NULL && \
@@ -3868,8 +3921,8 @@ int tracker_mem_storage_ip_changed(FDFSGroupInfo *pGroup,
 		return ENOENT;
 	}
 
-	if (pOldStorageServer->status == FDFS_STORAGE_STATUS_ONLINE || \
-	    pOldStorageServer->status == FDFS_STORAGE_STATUS_ACTIVE || \
+	if (pOldStorageServer->status == FDFS_STORAGE_STATUS_ONLINE ||
+	    pOldStorageServer->status == FDFS_STORAGE_STATUS_ACTIVE ||
 	    pOldStorageServer->status == FDFS_STORAGE_STATUS_RECOVERY)
 	{
 		logError("file: "__FILE__", line: %d, " \
@@ -3926,8 +3979,9 @@ int tracker_mem_storage_ip_changed(FDFSGroupInfo *pGroup,
 	pGroup->chg_count++;
 
 	//need re-sort
-	qsort(pGroup->sorted_servers, pGroup->count,
-		sizeof(FDFSStorageDetail *), tracker_mem_cmp_by_storage_id);
+	qsort(pGroup->sorted_servers, pGroup->storage_count,
+		sizeof(FDFSStorageDetail *),
+        tracker_mem_cmp_by_storage_id);
 
 	pthread_mutex_unlock(&mem_thread_lock);
 
@@ -4152,17 +4206,17 @@ static int _tracker_mem_add_storage(FDFSGroupInfo *pGroup,
 			break;
 		}
 
-		if (pGroup->count >= pGroup->alloc_size)
+		if (pGroup->storage_count >= pGroup->alloc_size)
 		{
 			result = tracker_mem_realloc_store_servers(
-					pGroup, 1, bNeedSleep);
+					pGroup, bNeedSleep);
 			if (result != 0)
 			{
 				break;
 			}
 		}
 
-		*ppStorageServer = *(pGroup->all_servers + pGroup->count);
+		*ppStorageServer = *(pGroup->all_servers + pGroup->storage_count);
 		fc_safe_strcpy((*ppStorageServer)->id, storage_id.ptr);
         (*ppStorageServer)->ip_addrs = multi_ip;
         if (g_use_storage_id)
@@ -4176,8 +4230,8 @@ static int _tracker_mem_add_storage(FDFSGroupInfo *pGroup,
         }
 
 		tracker_mem_insert_into_sorted_servers(*ppStorageServer,
-				pGroup->sorted_servers, pGroup->count);
-		pGroup->count++;
+				pGroup->sorted_servers, pGroup->storage_count);
+		pGroup->storage_count++;
 		pGroup->chg_count++;
 
 		*bInserted = true;
@@ -4949,7 +5003,7 @@ int tracker_mem_add_group_and_storage(TrackerClientInfo *pClientInfo,
 			pJoinBody->storage_port)
 		{
 			ppEnd = pClientInfo->pGroup->all_servers + \
-				pClientInfo->pGroup->count;
+				pClientInfo->pGroup->storage_count;
 			for (ppServer=pClientInfo->pGroup->all_servers; \
 				ppServer<ppEnd; ppServer++)
 			{
@@ -5066,7 +5120,7 @@ int tracker_mem_add_group_and_storage(TrackerClientInfo *pClientInfo,
 			pJoinBody->store_path_count)
 		{
 			ppEnd = pClientInfo->pGroup->all_servers +
-				pClientInfo->pGroup->count;
+				pClientInfo->pGroup->storage_count;
 			for (ppServer=pClientInfo->pGroup->all_servers;
 				ppServer<ppEnd; ppServer++)
 			{
@@ -5132,7 +5186,7 @@ int tracker_mem_add_group_and_storage(TrackerClientInfo *pClientInfo,
 				pJoinBody->subdir_count_per_path)
 		{
 			ppEnd = pClientInfo->pGroup->all_servers + \
-				pClientInfo->pGroup->count;
+				pClientInfo->pGroup->storage_count;
 			for (ppServer=pClientInfo->pGroup->all_servers; \
 				ppServer<ppEnd; ppServer++)
 			{
@@ -5188,7 +5242,7 @@ int tracker_mem_add_group_and_storage(TrackerClientInfo *pClientInfo,
 		}
 	}
 
-	if (pStorageServer->status == FDFS_STORAGE_STATUS_OFFLINE || \
+	if (pStorageServer->status == FDFS_STORAGE_STATUS_OFFLINE ||
 	    pStorageServer->status == FDFS_STORAGE_STATUS_RECOVERY)
 	{
 		pStorageServer->status = FDFS_STORAGE_STATUS_ONLINE;
@@ -5230,7 +5284,6 @@ int tracker_mem_sync_storages(FDFSGroupInfo *pGroup, \
 	result = 0;
 	do
 	{
-		memset(&target_storage, 0, sizeof(target_storage));
 		pEnd = briefServers + server_count;
 		for (pServer=briefServers; pServer<pEnd; pServer++)
 		{
@@ -5245,21 +5298,15 @@ int tracker_mem_sync_storages(FDFSGroupInfo *pGroup, \
 				FDFS_STORAGE_ID_MAX_SIZE);
 			pTargetStorage = &target_storage;
 			if ((ppFound=(FDFSStorageDetail **)bsearch(
-				&pTargetStorage,
-				pGroup->sorted_servers,
-				pGroup->count,
-				sizeof(FDFSStorageDetail *),
+				&pTargetStorage, pGroup->sorted_servers,
+				pGroup->storage_count, sizeof(FDFSStorageDetail *),
 				tracker_mem_cmp_by_storage_id)) != NULL)
 			{
-				if ((*ppFound)->status == pServer->status \
-				 || (*ppFound)->status == \
-					FDFS_STORAGE_STATUS_INIT \
-				 || (*ppFound)->status == \
-					FDFS_STORAGE_STATUS_ONLINE \
-				 || (*ppFound)->status == \
-					FDFS_STORAGE_STATUS_ACTIVE
-				 || (*ppFound)->status == \
-					FDFS_STORAGE_STATUS_RECOVERY)
+				if ((*ppFound)->status == pServer->status ||
+                        (*ppFound)->status == FDFS_STORAGE_STATUS_INIT ||
+                        (*ppFound)->status == FDFS_STORAGE_STATUS_ONLINE ||
+                        (*ppFound)->status == FDFS_STORAGE_STATUS_ACTIVE ||
+                        (*ppFound)->status == FDFS_STORAGE_STATUS_RECOVERY)
 				{
 					continue;
 				}
@@ -5272,10 +5319,8 @@ int tracker_mem_sync_storages(FDFSGroupInfo *pGroup, \
                         __LINE__, formatted_ip, (*ppFound)->storage_port,
                         pServer->status, (*ppFound)->status);
 
-				if (pServer->status == \
-					FDFS_STORAGE_STATUS_DELETED
-				 || pServer->status == \
-					FDFS_STORAGE_STATUS_IP_CHANGED)
+				if (pServer->status == FDFS_STORAGE_STATUS_DELETED ||
+                        pServer->status == FDFS_STORAGE_STATUS_IP_CHANGED)
 				{
 					(*ppFound)->status = pServer->status;
 					pGroup->chg_count++;
@@ -5327,7 +5372,11 @@ int tracker_mem_sync_storages(FDFSGroupInfo *pGroup, \
 
 static void tracker_mem_find_store_server(FDFSGroupInfo *pGroup)
 {
-	if (pGroup->active_count == 0)
+    FDFSStorageDetail **ppEnd;
+    FDFSStorageDetail **ppServer;
+    FDFSStorageDetail *pMinPriServer;
+
+	if (pGroup->writable_storages.count <= 0)
 	{
 		pGroup->pStoreServer = NULL;
 		return;
@@ -5335,28 +5384,31 @@ static void tracker_mem_find_store_server(FDFSGroupInfo *pGroup)
 
 	if (g_groups.store_server == FDFS_STORE_SERVER_FIRST_BY_PRI)
 	{
-		FDFSStorageDetail **ppEnd;
-		FDFSStorageDetail **ppServer;
-		FDFSStorageDetail *pMinPriServer;
+        pMinPriServer = *(pGroup->writable_storages.servers);
+        if (pGroup->writable_storages.count == 1)
+        {
+            pGroup->pStoreServer = pMinPriServer;
+            return;
+        }
 
-		pMinPriServer = *(pGroup->active_servers);
-		ppEnd = pGroup->active_servers + pGroup->active_count;
-		for (ppServer=pGroup->active_servers+1; ppServer<ppEnd; \
-			ppServer++)
-		{
-			if ((*ppServer)->upload_priority < \
-				pMinPriServer->upload_priority)
-			{
-				pMinPriServer = *ppServer;
-			}
-		}
+		ppEnd = pGroup->writable_storages.servers +
+            pGroup->writable_storages.count;
+		for (ppServer=pGroup->writable_storages.servers+1;
+                ppServer<ppEnd; ppServer++)
+        {
+            if ((*ppServer)->upload_priority <
+                    pMinPriServer->upload_priority)
+            {
+                pMinPriServer = *ppServer;
+            }
+        }
 
 		pGroup->pStoreServer = pMinPriServer;
 	}
-	else
-	{
-		pGroup->pStoreServer = *(pGroup->active_servers);
-	}
+	else  //use the first active writable storage server
+    {
+        pGroup->pStoreServer = *(pGroup->writable_storages.servers);
+    }
 }
 
 static int _storage_get_trunk_binlog_size(
@@ -5631,13 +5683,15 @@ static int tracker_mem_find_trunk_server(FDFSGroupInfo *pGroup,
 		return result;
 	}
 
-	ppServerEnd = pGroup->active_servers + pGroup->active_count;
-	for (ppServer=pGroup->active_servers; ppServer<ppServerEnd; ppServer++)
+	ppServerEnd = pGroup->writable_storages.servers +
+        pGroup->writable_storages.count;
+	for (ppServer=pGroup->writable_storages.servers;
+            ppServer<ppServerEnd; ppServer++)
 	{
 		if (*ppServer == pStoreServer)
-		{
-			continue;
-		}
+        {
+            continue;
+        }
 
 		result = tracker_mem_get_trunk_binlog_size(
                 FDFS_CURRENT_IP_ADDR(*ppServer),
@@ -5718,13 +5772,36 @@ const FDFSStorageDetail *tracker_mem_set_trunk_server( \
 	return *result == 0 ? pGroup->pTrunkServer : NULL;
 }
 
-int tracker_mem_deactive_store_server(FDFSGroupInfo *pGroup,
-			FDFSStorageDetail *pTargetServer) 
+static int remove_from_storage_array(FDFSStoragePtrArray *array,
+        FDFSStorageDetail *pTargetServer) 
+{
+    FDFSStorageDetail **ppStorageServer;
+    FDFSStorageDetail **ppEnd;
+    FDFSStorageDetail **ppServer;
+
+    ppStorageServer = (FDFSStorageDetail **)bsearch(
+            &pTargetServer, array->servers,
+            array->count, sizeof(FDFSStorageDetail *),
+            tracker_mem_cmp_by_storage_id);
+    if (ppStorageServer != NULL)
+    {
+        ppEnd = array->servers + array->count - 1;
+        for (ppServer=ppStorageServer; ppServer<ppEnd; ppServer++)
+        {
+            *ppServer = *(ppServer+1);
+        }
+
+        array->count--;
+        return 0;
+    }
+
+    return ENOENT;
+}
+
+static int deactive_storage_server(FDFSGroupInfo *pGroup,
+			FDFSStorageDetail *pStorageServer) 
 {
 	int result;
-	FDFSStorageDetail **ppStorageServer;
-	FDFSStorageDetail **ppEnd;
-	FDFSStorageDetail **ppServer;
 
 	if ((result=pthread_mutex_lock(&mem_thread_lock)) != 0)
 	{
@@ -5735,29 +5812,27 @@ int tracker_mem_deactive_store_server(FDFSGroupInfo *pGroup,
 		return result;
 	}
 
-	ppStorageServer = (FDFSStorageDetail **)bsearch( \
-			&pTargetServer, \
-			pGroup->active_servers, \
-			pGroup->active_count,   \
-			sizeof(FDFSStorageDetail *), \
-			tracker_mem_cmp_by_storage_id);
-	if (ppStorageServer != NULL)
-	{
-		(*ppStorageServer)->chg_count = 0;
-		(*ppStorageServer)->trunk_chg_count = 0;
+    if (pStorageServer->rw_mode & R_OK)
+    {
+        if (remove_from_storage_array(&pGroup->readable_storages,
+                    pStorageServer) == 0)
+        {
+            pGroup->chg_count++;
+        }
+    }
 
-		ppEnd = pGroup->active_servers + pGroup->active_count - 1;
-		for (ppServer=ppStorageServer; ppServer<ppEnd; ppServer++)
-		{
-			*ppServer = *(ppServer+1);
-		}
+    if (pStorageServer->rw_mode & W_OK)
+    {
+        if (remove_from_storage_array(&pGroup->writable_storages,
+                    pStorageServer) == 0)
+        {
+            pGroup->chg_count++;
+        }
+        tracker_mem_find_store_server(pGroup);
+    }
 
-		pGroup->active_count--;
-		pGroup->chg_count++;
-	}
-
-	tracker_mem_find_store_server(pGroup);
-
+    pStorageServer->chg_count = 0;
+    pStorageServer->trunk_chg_count = 0;
 	if ((result=pthread_mutex_unlock(&mem_thread_lock)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
@@ -5770,42 +5845,61 @@ int tracker_mem_deactive_store_server(FDFSGroupInfo *pGroup,
 	return 0;
 }
 
-int tracker_mem_active_store_server(FDFSGroupInfo *pGroup, \
+int tracker_mem_active_store_server(FDFSGroupInfo *pGroup,
 			FDFSStorageDetail *pTargetServer) 
 {
 	int result;
-	FDFSStorageDetail **ppStorageServer;
+    int insert_count;
+	FDFSStorageDetail **ppReadableServer;
+	FDFSStorageDetail **ppWritableServer;
 
-	if ((pTargetServer->status == FDFS_STORAGE_STATUS_WAIT_SYNC) || \
-		(pTargetServer->status == FDFS_STORAGE_STATUS_SYNCING) || \
-		(pTargetServer->status == FDFS_STORAGE_STATUS_IP_CHANGED) || \
+	if ((pTargetServer->status == FDFS_STORAGE_STATUS_WAIT_SYNC) ||
+		(pTargetServer->status == FDFS_STORAGE_STATUS_SYNCING) ||
+		(pTargetServer->status == FDFS_STORAGE_STATUS_IP_CHANGED) ||
 		(pTargetServer->status == FDFS_STORAGE_STATUS_INIT))
 	{
 		return 0;
 	}
 
-	/*
-	if (pTargetServer->status == FDFS_STORAGE_STATUS_DELETED)
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"storage ip: %s already deleted, you can " \
-			"restart the tracker servers to reset.", \
-			__LINE__, pTargetServer->ip_addr);
-		return EAGAIN;
-	}
-	*/
+    if (pTargetServer->rw_mode == fdfs_rw_none)  //disable read and write
+    {
+        if (pTargetServer->status != FDFS_STORAGE_STATUS_ONLINE)
+        {
+            pTargetServer->status = FDFS_STORAGE_STATUS_ONLINE;
+        }
+        return 0;
+    }
 
-	pTargetServer->status = FDFS_STORAGE_STATUS_ACTIVE;
+    if (pTargetServer->rw_mode & R_OK)
+    {
+        ppReadableServer = (FDFSStorageDetail **)bsearch(&pTargetServer,
+                pGroup->readable_storages.servers, pGroup->readable_storages.count,
+                sizeof(FDFSStorageDetail *), tracker_mem_cmp_by_storage_id);
+    }
+    else
+    {
+        ppReadableServer = &pTargetServer;
+    }
 
-	ppStorageServer = (FDFSStorageDetail **)bsearch(&pTargetServer, \
-			pGroup->active_servers, \
-			pGroup->active_count,   \
-			sizeof(FDFSStorageDetail *), \
-			tracker_mem_cmp_by_storage_id);
-	if (ppStorageServer != NULL)
-	{
-		return 0;
-	}
+    if (pTargetServer->rw_mode & W_OK)
+    {
+        ppWritableServer = (FDFSStorageDetail **)bsearch(&pTargetServer,
+                pGroup->writable_storages.servers, pGroup->writable_storages.count,
+                sizeof(FDFSStorageDetail *), tracker_mem_cmp_by_storage_id);
+    }
+    else
+    {
+        ppWritableServer = &pTargetServer;
+    }
+
+    if (ppReadableServer != NULL && ppWritableServer != NULL)
+    {
+        if (pTargetServer->status != FDFS_STORAGE_STATUS_ACTIVE)
+        {
+            pTargetServer->status = FDFS_STORAGE_STATUS_ACTIVE;
+        }
+        return 0;
+    }
 
 	if ((result=pthread_mutex_lock(&mem_thread_lock)) != 0)
 	{
@@ -5816,41 +5910,67 @@ int tracker_mem_active_store_server(FDFSGroupInfo *pGroup, \
 		return result;
 	}
 
-	ppStorageServer = (FDFSStorageDetail **)bsearch(&pTargetServer, \
-			pGroup->active_servers, \
-			pGroup->active_count,   \
-			sizeof(FDFSStorageDetail *), \
-			tracker_mem_cmp_by_storage_id);
-	if (ppStorageServer == NULL)
-	{
-		tracker_mem_insert_into_sorted_servers( \
-			pTargetServer, pGroup->active_servers, \
-			pGroup->active_count);
-		pGroup->active_count++;
-		pGroup->chg_count++;
+    insert_count = 0;
+    pTargetServer->status = FDFS_STORAGE_STATUS_ACTIVE;
+    if (pTargetServer->rw_mode & R_OK)
+    {
+        ppReadableServer = (FDFSStorageDetail **)bsearch(&pTargetServer,
+                pGroup->readable_storages.servers, pGroup->readable_storages.count,
+                sizeof(FDFSStorageDetail *), tracker_mem_cmp_by_storage_id);
+        if (ppReadableServer == NULL)
+        {
+            tracker_mem_insert_into_sorted_servers(pTargetServer,
+                    pGroup->readable_storages.servers,
+                    pGroup->readable_storages.count);
+            pGroup->readable_storages.count++;
+            ++insert_count;
+        }
+    }
 
-		if (g_use_storage_id)
-		{
-			logDebug("file: "__FILE__", line: %d, "
-				"storage server %s::%s(%s) now active",
-				__LINE__, pGroup->group_name,
-				pTargetServer->id, FDFS_CURRENT_IP_ADDR(pTargetServer));
-		}
-		else
-		{
-			logDebug("file: "__FILE__", line: %d, "
-				"storage server %s::%s now active",
-				__LINE__, pGroup->group_name,
-				FDFS_CURRENT_IP_ADDR(pTargetServer));
-		}
-	}
+    if (pTargetServer->rw_mode & W_OK)
+    {
+        ppWritableServer = (FDFSStorageDetail **)bsearch(&pTargetServer,
+                pGroup->writable_storages.servers, pGroup->writable_storages.count,
+                sizeof(FDFSStorageDetail *), tracker_mem_cmp_by_storage_id);
+        if (ppWritableServer == NULL)
+        {
+            tracker_mem_insert_into_sorted_servers(pTargetServer,
+                    pGroup->writable_storages.servers,
+                    pGroup->writable_storages.count);
+            pGroup->writable_storages.count++;
+            ++insert_count;
+        }
 
-	tracker_mem_find_store_server(pGroup);
-	if (g_if_leader_self && g_if_use_trunk_file && \
-		pGroup->pTrunkServer == NULL)
-	{
-		tracker_mem_find_trunk_server(pGroup, true);
-	}
+        tracker_mem_find_store_server(pGroup);
+        if (g_if_leader_self && g_if_use_trunk_file &&
+                pGroup->pTrunkServer == NULL)
+        {
+            tracker_mem_find_trunk_server(pGroup, true);
+        }
+    }
+
+    if (insert_count > 0)
+    {
+        pGroup->chg_count++;
+
+        if (FC_LOG_BY_LEVEL(LOG_DEBUG))
+        {
+            if (g_use_storage_id)
+            {
+                logDebug("file: "__FILE__", line: %d, "
+                        "storage server %s::%s(%s) now active",
+                        __LINE__, pGroup->group_name, pTargetServer->id,
+                        FDFS_CURRENT_IP_ADDR(pTargetServer));
+            }
+            else
+            {
+                logDebug("file: "__FILE__", line: %d, "
+                        "storage server %s::%s now active",
+                        __LINE__, pGroup->group_name,
+                        FDFS_CURRENT_IP_ADDR(pTargetServer));
+            }
+        }
+    }
 
 	if ((result=pthread_mutex_unlock(&mem_thread_lock)) != 0)
 	{
@@ -5917,31 +6037,43 @@ int tracker_mem_offline_store_server(FDFSGroupInfo *pGroup, \
 	}
 
 	pStorage->status = FDFS_STORAGE_STATUS_OFFLINE;
-	return tracker_mem_deactive_store_server(pGroup, pStorage);
+	return deactive_storage_server(pGroup, pStorage);
 }
 
 FDFSStorageDetail *tracker_get_writable_storage(FDFSGroupInfo *pStoreGroup)
 {
-	int write_server_index;
+    int write_server_index;
+
 	if (g_groups.store_server == FDFS_STORE_SERVER_ROUND_ROBIN)
 	{
-		write_server_index = pStoreGroup->current_write_server++;
-		if (pStoreGroup->current_write_server >= \
-				pStoreGroup->active_count)
-		{
-			pStoreGroup->current_write_server = 0;
-		}
+        if (pStoreGroup->writable_storages.count <= 0)
+        {
+            return NULL;
+        }
 
-		if (write_server_index >= pStoreGroup->active_count)
-		{
-			write_server_index = 0;
-		}
-		return  *(pStoreGroup->active_servers + write_server_index);
+        //only one active storage server
+        if (pStoreGroup->writable_storages.count == 1)
+        {
+            return *pStoreGroup->writable_storages.servers;
+        }
+
+        write_server_index = pStoreGroup->current_write_server++;
+        if (pStoreGroup->current_write_server >=
+                pStoreGroup->writable_storages.count)
+        {
+            pStoreGroup->current_write_server = 0;
+        }
+
+        if (write_server_index >= pStoreGroup->writable_storages.count)
+        {
+            write_server_index = 0;
+        }
+        return  *(pStoreGroup->writable_storages.servers + write_server_index);
 	}
-	else //use the first server
-	{
-		return pStoreGroup->pStoreServer;
-	}
+	else
+    {
+        return pStoreGroup->pStoreServer;
+    }
 }
 
 int tracker_mem_get_storage_by_filename(const byte cmd, const char *group_name,
@@ -5951,72 +6083,65 @@ int tracker_mem_get_storage_by_filename(const byte cmd, const char *group_name,
 	char szIpAddr[IP_ADDRESS_SIZE];
 	char storage_id[FDFS_STORAGE_ID_MAX_SIZE];
 	FDFSStorageDetail *pStoreSrcServer;
+	FDFSStorageDetail *pStorageServer;
 	FDFSStorageDetail **ppServer;
 	FDFSStorageDetail **ppServerEnd;
 	FDFSStorageDetail *pGroupStoreServer;
 	int file_timestamp;
 	int storage_ip;
+    int active_count;
 	int read_server_index;
-	int cmp_res;
+	bool is_source;
 	struct in_addr ip_addr;
 	time_t current_time;
 	bool bNormalFile;
+    int64_t file_size;
+    char name_buff[64];
+    int decoded_len;
 
 	*server_count = 0;
 	*ppGroup = tracker_mem_get_group(group_name);
 	if (*ppGroup == NULL)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"invalid group_name: %s", \
+		logError("file: "__FILE__", line: %d, "
+			"invalid group_name: %s",
 			__LINE__, group_name);
 		return ENOENT;
 	}
 
-	if ((*ppGroup)->active_count == 0)
-	{
-		return ENOENT;
-	}
+    if (cmd == TRACKER_PROTO_CMD_SERVICE_QUERY_UPDATE)
+    {
+        if ((*ppGroup)->writable_storages.count <= 0)
+        {
+            return ENOENT;
+        }
+    }
+    else
+    {
+        if ((*ppGroup)->readable_storages.count <= 0)
+        {
+            return ENOENT;
+        }
+    }
 
-	pGroupStoreServer = (*ppGroup)->pStoreServer;
-	if (pGroupStoreServer == NULL)
-	{
-		return ENOENT;
-	}
+    base64_decode_auto(&g_fdfs_base64_context, (char *)filename +
+            FDFS_LOGIC_FILE_PATH_LEN, FDFS_FILENAME_BASE64_LENGTH,
+            name_buff, &decoded_len);
+    storage_ip = ntohl(buff2int(name_buff));
+    file_timestamp = buff2int(name_buff+sizeof(int));
+    file_size = buff2long(name_buff + sizeof (int) * 2);
 
-	//file generated by version < v1.12
-	if (filename_len < 32 + (FDFS_FILE_EXT_NAME_MAX_LEN + 1))
-	{
-		storage_ip = INADDR_NONE;
-		*storage_id = '\0';
-		file_timestamp = 0;
-		bNormalFile = true;
-	}
-	else //file generated by version >= v1.12
-	{
-		int64_t file_size;
+    if (fdfs_get_server_id_type(storage_ip) == FDFS_ID_TYPE_SERVER_ID)
+    {
+        fc_ltostr(storage_ip, storage_id);
+    }
+    else
+    {
+        *storage_id = '\0';
+    }
 
-		char name_buff[64];
-		int decoded_len;
-
-		base64_decode_auto(&g_fdfs_base64_context, (char *)filename +
-			FDFS_LOGIC_FILE_PATH_LEN, FDFS_FILENAME_BASE64_LENGTH,
-			name_buff, &decoded_len);
-		storage_ip = ntohl(buff2int(name_buff));
-		file_timestamp = buff2int(name_buff+sizeof(int));
-		file_size = buff2long(name_buff + sizeof (int) * 2);
-
-		if (fdfs_get_server_id_type(storage_ip) == FDFS_ID_TYPE_SERVER_ID)
-		{
-			fc_ltostr(storage_ip, storage_id);
-		}
-		else
-		{
-			*storage_id = '\0';
-		}
-
-		bNormalFile = !(IS_SLAVE_FILE(filename_len, file_size) ||
-				IS_APPENDER_FILE(file_size));
-	}
+    bNormalFile = !(IS_SLAVE_FILE(filename_len, file_size) ||
+            IS_APPENDER_FILE(file_size));
 
 	/*
 	//logInfo("cmd=%d, bNormalFile=%d, storage_ip=%d, storage_id=%s, "
@@ -6024,140 +6149,24 @@ int tracker_mem_get_storage_by_filename(const byte cmd, const char *group_name,
     storage_id, file_timestamp);
 	*/
 
-	memset(szIpAddr, 0, sizeof(szIpAddr));
 	if (cmd == TRACKER_PROTO_CMD_SERVICE_QUERY_FETCH_ONE)
     {
-        if (g_groups.download_server == FDFS_DOWNLOAD_SERVER_SOURCE_FIRST)
+        if (!bNormalFile || g_groups.download_server ==
+                FDFS_DOWNLOAD_SERVER_SOURCE_FIRST)
         {
             if (*storage_id != '\0')
             {
-                pStoreSrcServer = tracker_mem_get_active_storage_by_id(
+                pStoreSrcServer = get_readable_storage_by_id(
                         *ppGroup, storage_id);
             }
             else
             {
                 memset(&ip_addr, 0, sizeof(ip_addr));
                 ip_addr.s_addr = storage_ip;
-                pStoreSrcServer = tracker_mem_get_active_storage_by_ip(
+                pStoreSrcServer = get_readable_storage_by_ip(
                         *ppGroup, inet_ntop(AF_INET, &ip_addr,
                             szIpAddr, sizeof(szIpAddr)));
             }
-
-            if (pStoreSrcServer != NULL && (pStoreSrcServer->rw_mode & R_OK))
-            {
-                ppStoreServers[(*server_count)++] = pStoreSrcServer;
-                return 0;
-            }
-        }
-
-        //round robin
-        read_server_index = (*ppGroup)->current_read_server;
-        if (read_server_index >= (*ppGroup)->active_count)
-        {
-            read_server_index = 0;
-        }
-        ppStoreServers[(*server_count)++]=*((*ppGroup)->active_servers
-                + read_server_index);
-
-        /*
-        //logInfo("filename=%s, storage server ip=%s, " \
-        "file_timestamp=%d, last_synced_timestamp=%d\n", 
-        filename, ppStoreServers[0]->ip_addr, file_timestamp, \
-        (int)ppStoreServers[0]->stat.last_synced_timestamp);
-         */
-
-        do
-        {
-            if (bNormalFile)
-            {
-                current_time = g_current_time;
-                if ((file_timestamp < current_time -
-                            g_storage_sync_file_max_delay) ||
-                        (ppStoreServers[0]->stat.last_synced_timestamp >
-                         file_timestamp) || (ppStoreServers[0]->stat.
-                             last_synced_timestamp + 1 >= file_timestamp &&
-                             current_time - file_timestamp >
-                             g_storage_sync_file_max_time) ||
-                        (storage_ip == INADDR_NONE && g_groups.store_server ==
-                         FDFS_STORE_SERVER_ROUND_ROBIN))
-                {
-                    break;
-                }
-
-                if (storage_ip == INADDR_NONE)
-                {
-                    ppStoreServers[0] = pGroupStoreServer;
-                    break;
-                }
-            }
-
-            memset(&ip_addr, 0, sizeof(ip_addr));
-            if (*storage_id != '\0')
-            {
-                cmp_res = strcmp(storage_id, ppStoreServers[0]->id);
-            }
-            else
-            {
-                ip_addr.s_addr = storage_ip;
-                inet_ntop(AF_INET, &ip_addr, szIpAddr, sizeof(szIpAddr));
-                cmp_res = strcmp(szIpAddr, FDFS_CURRENT_IP_ADDR(ppStoreServers[0]));
-            }
-            if (cmp_res == 0)
-            {
-                break;
-            }
-
-            if (g_groups.download_server == FDFS_DOWNLOAD_SERVER_ROUND_ROBIN)
-            {  //avoid search again
-                if (*storage_id != '\0')
-                {
-                    pStoreSrcServer = tracker_mem_get_active_storage_by_id(
-                            *ppGroup, storage_id);
-                }
-                else
-                {
-                    pStoreSrcServer = tracker_mem_get_active_storage_by_ip(
-                            *ppGroup, szIpAddr);
-                }
-
-                if (pStoreSrcServer != NULL)
-                {
-                    ppStoreServers[0] = pStoreSrcServer;
-                    break;
-                }
-            }
-
-            if (g_groups.store_server != FDFS_STORE_SERVER_ROUND_ROBIN)
-            {
-                ppStoreServers[0] = pGroupStoreServer;
-                break;
-            }
-        } while (0);
-
-        (*ppGroup)->current_read_server++;
-        if ((*ppGroup)->current_read_server >= (*ppGroup)->active_count)
-        {
-            (*ppGroup)->current_read_server = 0;
-        }
-    }
-	else if (cmd == TRACKER_PROTO_CMD_SERVICE_QUERY_UPDATE)
-	{
-		if (storage_ip != INADDR_NONE)
-        {
-            if (*storage_id != '\0')
-            {
-                pStoreSrcServer = tracker_mem_get_active_storage_by_id(
-                        *ppGroup, storage_id);
-            }
-            else
-            {
-                memset(&ip_addr, 0, sizeof(ip_addr));
-                ip_addr.s_addr = storage_ip;
-                pStoreSrcServer = tracker_mem_get_active_storage_by_ip(
-                        *ppGroup, inet_ntop(AF_INET, &ip_addr,
-                            szIpAddr, sizeof(szIpAddr)));
-            }
-
             if (pStoreSrcServer != NULL)
             {
                 ppStoreServers[(*server_count)++] = pStoreSrcServer;
@@ -6165,39 +6174,134 @@ int tracker_mem_get_storage_by_filename(const byte cmd, const char *group_name,
             }
         }
 
-		ppStoreServers[0] = tracker_get_writable_storage(*ppGroup);
-		*server_count = ppStoreServers[0] != NULL ? 1 : 0;
-	}
-	else //TRACKER_PROTO_CMD_SERVICE_QUERY_FETCH_ALL
-    {
-        memset(szIpAddr, 0, sizeof(szIpAddr));
-        if (storage_ip != INADDR_NONE)
+        //round robin or failover 
+        if (bNormalFile)
+        {
+            int index_end;
+            int server_index;
+
+            active_count = (*ppGroup)->readable_storages.count;
+            if (active_count <= 0)
+            {
+                return ENOENT;
+            }
+
+            current_time = g_current_time;
+            read_server_index = (*ppGroup)->current_read_server;
+            index_end = read_server_index + active_count;
+            for (server_index=read_server_index;
+                    server_index<index_end; server_index++)
+            {
+                pStorageServer = *((*ppGroup)->readable_storages.
+                        servers + server_index % active_count);
+                if (*storage_id != '\0')
+                {
+                    is_source = strcmp(storage_id, pStorageServer->id) == 0;
+                }
+                else
+                {
+                    memset(&ip_addr, 0, sizeof(ip_addr));
+                    ip_addr.s_addr = storage_ip;
+                    inet_ntop(AF_INET, &ip_addr, szIpAddr, sizeof(szIpAddr));
+                    is_source = strcmp(szIpAddr, FDFS_CURRENT_IP_ADDR(
+                                pStorageServer)) == 0;
+                }
+                if (is_source || (file_timestamp < current_time -
+                            g_storage_sync_file_max_delay) ||
+                        (pStorageServer->stat.last_synced_timestamp >
+                         file_timestamp) || (pStorageServer->stat.
+                             last_synced_timestamp + 1 >= file_timestamp &&
+                             current_time - file_timestamp >
+                             g_storage_sync_file_max_time))
+                {
+                    (*ppGroup)->current_read_server = server_index + 1;
+                    if ((*ppGroup)->current_read_server >=
+                            (*ppGroup)->readable_storages.count)
+                    {
+                        (*ppGroup)->current_read_server = 0;
+                    }
+                    ppStoreServers[(*server_count)++] = pStorageServer;
+                    return 0;
+                }
+            }
+        }
+
+        pGroupStoreServer = (*ppGroup)->pStoreServer;
+        if (pGroupStoreServer != NULL)
+        {
+            ppStoreServers[(*server_count)++] = pGroupStoreServer;
+            return 0;
+        }
+
+        return ENOENT;
+    }
+	else if (cmd == TRACKER_PROTO_CMD_SERVICE_QUERY_UPDATE)
+	{
+        if (*storage_id != '\0')
+        {
+            pStoreSrcServer = get_writable_active_storage_by_id(
+                    *ppGroup, storage_id);
+        }
+        else
         {
             memset(&ip_addr, 0, sizeof(ip_addr));
             ip_addr.s_addr = storage_ip;
-            inet_ntop(AF_INET, &ip_addr,szIpAddr,sizeof(szIpAddr));
+            pStoreSrcServer = get_writable_active_storage_by_ip(
+                    *ppGroup, inet_ntop(AF_INET, &ip_addr,
+                        szIpAddr, sizeof(szIpAddr)));
+        }
+        if (pStoreSrcServer != NULL)
+        {
+            ppStoreServers[(*server_count)++] = pStoreSrcServer;
+            return 0;
+        }
+
+        pStorageServer = tracker_get_writable_storage(*ppGroup);
+        if (pStorageServer != NULL)
+        {
+            ppStoreServers[(*server_count)++] = pStorageServer;
+            return 0;
+        }
+
+        return ENOENT;
+    }
+	else //TRACKER_PROTO_CMD_SERVICE_QUERY_FETCH_ALL
+    {
+        if (*storage_id == '\0')
+        {
+            memset(&ip_addr, 0, sizeof(ip_addr));
+            ip_addr.s_addr = storage_ip;
+            inet_ntop(AF_INET, &ip_addr, szIpAddr, sizeof(szIpAddr));
+        }
+        else
+        {
+            *szIpAddr = '\0';
         }
 
         if (bNormalFile)
         {
             current_time = g_current_time;
-            ppServerEnd = (*ppGroup)->active_servers +
-                          (*ppGroup)->active_count;
-
-            for (ppServer=(*ppGroup)->active_servers; \
+            ppServerEnd = (*ppGroup)->readable_storages.servers +
+                          (*ppGroup)->readable_storages.count;
+            for (ppServer=(*ppGroup)->readable_storages.servers;
                     ppServer<ppServerEnd; ppServer++)
             {
-                if ((file_timestamp < current_time -
+                if (*storage_id != '\0')
+                {
+                    is_source = strcmp(storage_id, (*ppServer)->id) == 0;
+                }
+                else
+                {
+                    is_source = strcmp(szIpAddr, FDFS_CURRENT_IP_ADDR(
+                                *ppServer)) == 0;
+                }
+                if (is_source || (file_timestamp < current_time -
                             g_storage_sync_file_max_delay) ||
                         ((*ppServer)->stat.last_synced_timestamp >
                          file_timestamp) || ((*ppServer)->stat.
                              last_synced_timestamp + 1 >=
-                         file_timestamp && current_time - file_timestamp >
-                         g_storage_sync_file_max_time)
-                        || (storage_ip == INADDR_NONE
-                            && g_groups.store_server ==
-                            FDFS_STORE_SERVER_ROUND_ROBIN)
-                        || strcmp(FDFS_CURRENT_IP_ADDR(*ppServer), szIpAddr) == 0)
+                             file_timestamp && current_time - file_timestamp >
+                             g_storage_sync_file_max_time))
                 {
                     ppStoreServers[(*server_count)++] = *ppServer;
                 }
@@ -6207,15 +6311,14 @@ int tracker_mem_get_storage_by_filename(const byte cmd, const char *group_name,
         {
             if (*storage_id != '\0')
             {
-                pStoreSrcServer = tracker_mem_get_active_storage_by_id(
+                pStoreSrcServer = get_readable_storage_by_id(
                         *ppGroup, storage_id);
             }
             else
             {
-                pStoreSrcServer = tracker_mem_get_active_storage_by_ip(
+                pStoreSrcServer = get_readable_storage_by_ip(
                         *ppGroup, szIpAddr);
             }
-
             if (pStoreSrcServer != NULL)
             {
                 ppStoreServers[(*server_count)++] = pStoreSrcServer;
@@ -6224,11 +6327,15 @@ int tracker_mem_get_storage_by_filename(const byte cmd, const char *group_name,
 
         if (*server_count == 0)
         {
-            ppStoreServers[(*server_count)++] = pGroupStoreServer;
+            pGroupStoreServer = (*ppGroup)->pStoreServer;
+            if (pGroupStoreServer != NULL)
+            {
+                ppStoreServers[(*server_count)++] = pGroupStoreServer;
+            }
         }
-    }
 
-	return *server_count > 0 ? 0 : ENOENT;
+        return *server_count > 0 ? 0 : ENOENT;
+    }
 }
 
 int tracker_mem_check_alive(void *arg)
@@ -6247,20 +6354,25 @@ int tracker_mem_check_alive(void *arg)
 	for (ppGroup=g_groups.groups; ppGroup<ppGroupEnd; ppGroup++)
 	{
 	deactiveCount = 0;
-	ppServerEnd = (*ppGroup)->active_servers + (*ppGroup)->active_count;
-	for (ppServer=(*ppGroup)->active_servers; ppServer<ppServerEnd; ppServer++)
-	{
-		if (current_time - (*ppServer)->stat.last_heart_beat_time > \
-			g_check_active_interval)
-		{
-			deactiveServers[deactiveCount] = *ppServer;
-			deactiveCount++;
-			if (deactiveCount >= FDFS_MAX_SERVERS_EACH_GROUP)
-			{
-				break;
-			}
-		}
-	}
+	ppServerEnd = (*ppGroup)->sorted_servers + (*ppGroup)->storage_count;
+	for (ppServer=(*ppGroup)->sorted_servers; ppServer<ppServerEnd; ppServer++)
+    {
+        if ((*ppServer)->status != FDFS_STORAGE_STATUS_ACTIVE)
+        {
+            continue;
+        }
+
+        if (current_time - (*ppServer)->stat.last_heart_beat_time >
+                g_check_active_interval)
+        {
+            deactiveServers[deactiveCount] = *ppServer;
+            deactiveCount++;
+            if (deactiveCount >= FDFS_MAX_SERVERS_EACH_GROUP)
+            {
+                break;
+            }
+        }
+    }
 
 	if (deactiveCount == 0)
 	{
@@ -6272,7 +6384,7 @@ int tracker_mem_check_alive(void *arg)
 	{
         format_ip_address(FDFS_CURRENT_IP_ADDR(*ppServer), formatted_ip);
 		(*ppServer)->status = FDFS_STORAGE_STATUS_OFFLINE;
-		tracker_mem_deactive_store_server(*ppGroup, *ppServer);
+		deactive_storage_server(*ppGroup, *ppServer);
 		if (g_use_storage_id)
 		{
 			logInfo("file: "__FILE__", line: %d, "
@@ -6370,7 +6482,7 @@ int tracker_mem_get_storage_index(FDFSGroupInfo *pGroup, \
 	FDFSStorageDetail **ppStorage;
 	FDFSStorageDetail **ppEnd;
 
-	ppEnd = pGroup->all_servers + pGroup->count;
+	ppEnd = pGroup->all_servers + pGroup->storage_count;
 	for (ppStorage=pGroup->all_servers; ppStorage<ppEnd; ppStorage++)
 	{
 		if (*ppStorage == pStorage)

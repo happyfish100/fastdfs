@@ -1313,30 +1313,28 @@ static void php_fdfs_tracker_list_groups_impl(INTERNAL_FUNCTION_PARAMETERS, \
 		zend_add_assoc_zval_ex(return_value, pGroupStat->group_name, \
 			strlen(pGroupStat->group_name) + 1, group_info_array);
 
-		zend_add_assoc_long_ex(group_info_array, "total_space", \
+		zend_add_assoc_long_ex(group_info_array, "total_space",
 			sizeof("total_space"), pGroupStat->total_mb);
-		zend_add_assoc_long_ex(group_info_array, "free_space", \
+		zend_add_assoc_long_ex(group_info_array, "free_space",
 			sizeof("free_space"), pGroupStat->free_mb);
-		zend_add_assoc_long_ex(group_info_array, "trunk_free_space", \
+		zend_add_assoc_long_ex(group_info_array, "trunk_free_space",
 			sizeof("trunk_free_space"), pGroupStat->trunk_free_mb);
-		zend_add_assoc_long_ex(group_info_array, "server_count", \
-			sizeof("server_count"), pGroupStat->count);
-		zend_add_assoc_long_ex(group_info_array, "active_count", \
-			sizeof("active_count"), pGroupStat->active_count);
-		zend_add_assoc_long_ex(group_info_array, "storage_port", \
+		zend_add_assoc_long_ex(group_info_array, "storage_server_count",
+			sizeof("storage_server_count"), pGroupStat->storage_count);
+		zend_add_assoc_long_ex(group_info_array, "readable_server_count",
+			sizeof("readable_server_count"), pGroupStat->readable_server_count);
+		zend_add_assoc_long_ex(group_info_array, "writable_server_count",
+			sizeof("writable_server_count"), pGroupStat->writable_server_count);
+		zend_add_assoc_long_ex(group_info_array, "storage_port",
 			sizeof("storage_port"), pGroupStat->storage_port);
-		zend_add_assoc_long_ex(group_info_array, "store_path_count", \
-			sizeof("store_path_count"), \
-			pGroupStat->store_path_count);
-		zend_add_assoc_long_ex(group_info_array, "subdir_count_per_path", \
-			sizeof("subdir_count_per_path"), \
-			pGroupStat->subdir_count_per_path);
-		zend_add_assoc_long_ex(group_info_array, "current_write_server", \
-			sizeof("current_write_server"), \
-			pGroupStat->current_write_server);
-		zend_add_assoc_long_ex(group_info_array, "current_trunk_file_id", \
-			sizeof("current_trunk_file_id"), \
-			pGroupStat->current_trunk_file_id);
+		zend_add_assoc_long_ex(group_info_array, "store_path_count",
+			sizeof("store_path_count"), pGroupStat->store_path_count);
+		zend_add_assoc_long_ex(group_info_array, "subdir_count_per_path",
+			sizeof("subdir_count_per_path"), pGroupStat->subdir_count_per_path);
+		zend_add_assoc_long_ex(group_info_array, "current_write_server",
+			sizeof("current_write_server"), pGroupStat->current_write_server);
+		zend_add_assoc_long_ex(group_info_array, "current_trunk_file_id",
+			sizeof("current_trunk_file_id"), pGroupStat->current_trunk_file_id);
 		       
 		result = tracker_list_servers(pTrackerServer, \
 				pGroupStat->group_name, NULL, \

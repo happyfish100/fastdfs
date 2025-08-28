@@ -44,7 +44,8 @@ static int fdfs_dump_group_stat(FDFSGroupInfo *pGroup, char *buff, const int buf
 		"free_mb=%"PRId64"\n"
 		"alloc_size=%d\n"
 		"server count=%d\n"
-		"active server count=%d\n"
+		"read active server count=%d\n"
+		"write active server count=%d\n"
 		"storage_port=%d\n"
 		"current_read_server=%d\n"
 		"current_write_server=%d\n"
@@ -62,8 +63,9 @@ static int fdfs_dump_group_stat(FDFSGroupInfo *pGroup, char *buff, const int buf
 		pGroup->total_mb, 
 		pGroup->free_mb, 
 		pGroup->alloc_size, 
-		pGroup->count, 
-		pGroup->active_count, 
+		pGroup->storage_count, 
+		pGroup->readable_storages.count, 
+		pGroup->writable_storages.count, 
 		pGroup->storage_port,
 		pGroup->current_read_server, 
 		pGroup->current_write_server, 
@@ -84,8 +86,8 @@ static int fdfs_dump_group_stat(FDFSGroupInfo *pGroup, char *buff, const int buf
 	);
 
 	total_len += snprintf(buff + total_len, buffSize - total_len, 
-		"total server count=%d\n", pGroup->count);
-	ppServerEnd = pGroup->all_servers + pGroup->count;
+		"total server count=%d\n", pGroup->storage_count);
+	ppServerEnd = pGroup->all_servers + pGroup->storage_count;
 	for (ppServer=pGroup->all_servers; ppServer<ppServerEnd; ppServer++)
 	{
 		total_len += snprintf(buff + total_len, buffSize - total_len, 
@@ -93,15 +95,30 @@ static int fdfs_dump_group_stat(FDFSGroupInfo *pGroup, char *buff, const int buf
 	}
 
 	total_len += snprintf(buff + total_len, buffSize - total_len, 
-		"\nactive server count=%d\n", pGroup->active_count);
-	ppServerEnd = pGroup->active_servers + pGroup->active_count;
-	for (ppServer=pGroup->active_servers; ppServer<ppServerEnd; ppServer++)
+		"\nactive read server count=%d\n",
+        pGroup->readable_storages.count);
+	ppServerEnd = pGroup->readable_storages.servers +
+        pGroup->readable_storages.count;
+	for (ppServer=pGroup->readable_storages.servers;
+            ppServer<ppServerEnd; ppServer++)
 	{
 		total_len += snprintf(buff + total_len, buffSize - total_len, 
 			"\t%s\n", FDFS_CURRENT_IP_ADDR(*ppServer));
 	}
 
-	ppServerEnd = pGroup->sorted_servers + pGroup->count;
+	total_len += snprintf(buff + total_len, buffSize - total_len, 
+		"\nactive write server count=%d\n",
+        pGroup->writable_storages.count);
+	ppServerEnd = pGroup->writable_storages.servers +
+        pGroup->writable_storages.count;
+	for (ppServer=pGroup->writable_storages.servers;
+            ppServer<ppServerEnd; ppServer++)
+	{
+		total_len += snprintf(buff + total_len, buffSize - total_len, 
+			"\t%s\n", FDFS_CURRENT_IP_ADDR(*ppServer));
+	}
+
+	ppServerEnd = pGroup->sorted_servers + pGroup->storage_count;
 	for (ppServer=pGroup->sorted_servers; ppServer<ppServerEnd; ppServer++)
 	{
 		total_len += snprintf(buff + total_len, buffSize - total_len, 
@@ -113,9 +130,9 @@ static int fdfs_dump_group_stat(FDFSGroupInfo *pGroup, char *buff, const int buf
 
 	total_len += snprintf(buff + total_len, buffSize - total_len, 
 			"\nsynced timestamp table:\n");
-	for (i=0; i<pGroup->count; i++)
+	for (i=0; i<pGroup->storage_count; i++)
 	{
-	for (j=0; j<pGroup->count; j++)
+	for (j=0; j<pGroup->storage_count; j++)
 	{
 		if (i == j)
 		{

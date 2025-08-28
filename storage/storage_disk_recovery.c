@@ -296,7 +296,7 @@ static int recovery_get_src_storage_server(ConnectionInfo *pSrcStorage)
 			continue;
 		}
 
-		result = tracker_list_one_group(pTrackerConn, \
+		result = tracker_list_one_group(pTrackerConn,
 				g_group_name, &groupStat);
 		if (result != 0)
 		{
@@ -305,21 +305,21 @@ static int recovery_get_src_storage_server(ConnectionInfo *pSrcStorage)
 			continue;
 		}
 
-		if (groupStat.count <= 0)
+		if (groupStat.storage_count <= 0)
 		{
-			logWarning("file: "__FILE__", line: %d, " \
-				"storage server count: %d in the group <= 0!",\
-				__LINE__, groupStat.count);
+			logWarning("file: "__FILE__", line: %d, "
+				"storage server count: %d in the group <= 0!",
+				__LINE__, groupStat.storage_count);
 
 			tracker_close_connection(pTrackerConn);
 			sleep(1);
 			continue;
 		}
 
-		if (groupStat.count == 1)
+		if (groupStat.storage_count == 1)
 		{
-			logInfo("file: "__FILE__", line: %d, " \
-				"storage server count in the group = 1, " \
+			logInfo("file: "__FILE__", line: %d, "
+				"storage server count in the group = 1, "
 				"does not need recovery", __LINE__);
 
 			tracker_close_connection(pTrackerConn);
@@ -338,7 +338,7 @@ static int recovery_get_src_storage_server(ConnectionInfo *pSrcStorage)
 			return ENOENT;
 		}
 
-		if (groupStat.active_count <= 0)
+		if (groupStat.readable_server_count <= 0)
 		{
 			tracker_close_connection(pTrackerConn);
 			sleep(5);
@@ -373,13 +373,14 @@ static int recovery_get_src_storage_server(ConnectionInfo *pSrcStorage)
 				continue;
 			}
 
-			if (pStorageStat->status == FDFS_STORAGE_STATUS_ACTIVE)
-			{
+			if (pStorageStat->status == FDFS_STORAGE_STATUS_ACTIVE &&
+                    (pStorageStat->rw_mode & R_OK))
+            {
                 found = true;
-				strcpy(pSrcStorage->ip_addr, pStorageStat->ip_addr);
-				pSrcStorage->port = pStorageStat->storage_port;
-				break;
-			}
+                strcpy(pSrcStorage->ip_addr, pStorageStat->ip_addr);
+                pSrcStorage->port = pStorageStat->storage_port;
+                break;
+            }
 		}
 
 		if (found)  //found src storage server

@@ -146,9 +146,10 @@ typedef struct
 	int64_t total_mb;  //total disk storage in MB
 	int64_t free_mb;  //free disk storage in MB
 	int64_t trunk_free_mb;  //trunk free disk storage in MB
-	int count;        //server count
-	int storage_port; //storage server port
-	int active_count; //active server count
+	int storage_count;      //storage server count
+	int storage_port;       //storage server listen port
+	int readable_server_count;
+	int writable_server_count;
 	int current_write_server; //current server index to upload file
 	int store_path_count;  //store base path count of each storage server
 	int subdir_count_per_path;
@@ -295,8 +296,7 @@ typedef struct StructFDFSMultiIP
 
 typedef struct StructFDFSStorageDetail
 {
-	char status;
-	char padding;  //just for padding
+	volatile char status;
     FDFSReadWriteMode rw_mode;  //since v6.13
 	char id[FDFS_STORAGE_ID_MAX_SIZE];
     FDFSMultiIP ip_addrs;
@@ -318,7 +318,7 @@ typedef struct StructFDFSStorageDetail
 	int subdir_count_per_path;
 	int upload_priority; //storage upload priority
 
-	int storage_port;   //storage server port
+	int storage_port;   //storage server listen port
 	int current_write_path; //current write path index
 
 	int chg_count;    //current server changed counter
@@ -328,24 +328,30 @@ typedef struct StructFDFSStorageDetail
 
 typedef struct
 {
+    volatile int count; //server count
+    FDFSStorageDetail **servers;  //storages order by ip addr
+} FDFSStoragePtrArray;
+
+typedef struct
+{
 	char group_name[FDFS_GROUP_NAME_MAX_LEN + 8];   //for 8 bytes alignment
 	int64_t total_mb;  //total disk storage in MB
 	int64_t free_mb;  //free disk storage in MB
 	int64_t trunk_free_mb;  //trunk free disk storage in MB
 	int alloc_size;  //alloc storage count
-	int count;    //total server count
-	int active_count; //active server count
-	int storage_port;  //storage server port
-	int current_trunk_file_id;  //current trunk file id report by storage
-	FDFSStorageDetail **all_servers;   //all storage servers
+	int storage_count; //total storage server count
+	int storage_port;  //storage server listen port
+	volatile int current_trunk_file_id;  //current trunk file id report by storage
+	FDFSStorageDetail **all_servers;     //all storage servers
 	FDFSStorageDetail **sorted_servers;  //storages order by ip addr
-	FDFSStorageDetail **active_servers;  //storages order by ip addr
+    FDFSStoragePtrArray readable_storages; //active storage servers for read
+    FDFSStoragePtrArray writable_storages; //active storage servers for write
 	FDFSStorageDetail *pStoreServer;  //for upload priority mode
 	FDFSStorageDetail *pTrunkServer;  //point to the trunk server
 	char last_trunk_server_id[FDFS_STORAGE_ID_MAX_SIZE];
 
-	int current_read_server;   //current read storage server index
-	int current_write_server;  //current write storage server index
+	volatile int current_read_server;   //current read storage server index
+	volatile int current_write_server;  //current write storage server index
 
 	int store_path_count;  //store base path count of each storage server
 

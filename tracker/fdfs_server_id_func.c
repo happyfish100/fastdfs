@@ -46,19 +46,7 @@ bool fdfs_is_server_id_valid(const char *id)
 	}
 
     fc_ltostr(n, buff);
-	return strcmp(buff, id) == 0;
-}
-
-int  fdfs_get_server_id_type(const int id)
-{
-  if (id > 0 && id <= FDFS_MAX_SERVER_ID)
-  {
-    return FDFS_ID_TYPE_SERVER_ID;
-  }
-  else
-  {
-    return FDFS_ID_TYPE_IP_ADDRESS;
-  }
+	return (strcmp(buff, id) == 0);
 }
 
 static int fdfs_cmp_group_name_and_ip(const void *p1, const void *p2)
