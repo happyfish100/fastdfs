@@ -5740,7 +5740,7 @@ const FDFSStorageDetail *tracker_mem_set_trunk_server( \
 		return pGroup->pTrunkServer;
 	}
 
-	if (pTrunkServer != NULL && pTrunkServer->status == \
+	if (pTrunkServer != NULL && pTrunkServer->status ==
 			FDFS_STORAGE_STATUS_ACTIVE)
 	{
 		if (strcmp(pStroageId, pTrunkServer->id) == 0)
@@ -5767,7 +5767,7 @@ const FDFSStorageDetail *tracker_mem_set_trunk_server( \
 		return NULL;
 	}
 
-	*result = tracker_mem_do_set_trunk_server(pGroup, \
+	*result = tracker_mem_do_set_trunk_server(pGroup,
 			pServer, true);
 	return *result == 0 ? pGroup->pTrunkServer : NULL;
 }
@@ -6068,7 +6068,7 @@ FDFSStorageDetail *tracker_get_writable_storage(FDFSGroupInfo *pStoreGroup)
         {
             write_server_index = 0;
         }
-        return  *(pStoreGroup->writable_storages.servers + write_server_index);
+        return *(pStoreGroup->writable_storages.servers + write_server_index);
 	}
 	else
     {
@@ -6086,7 +6086,6 @@ int tracker_mem_get_storage_by_filename(const byte cmd, const char *group_name,
 	FDFSStorageDetail *pStorageServer;
 	FDFSStorageDetail **ppServer;
 	FDFSStorageDetail **ppServerEnd;
-	FDFSStorageDetail *pGroupStoreServer;
 	int file_timestamp;
 	int storage_ip;
     int active_count;
@@ -6226,10 +6225,10 @@ int tracker_mem_get_storage_by_filename(const byte cmd, const char *group_name,
             }
         }
 
-        pGroupStoreServer = (*ppGroup)->pStoreServer;
-        if (pGroupStoreServer != NULL)
+        pStorageServer = (*ppGroup)->pStoreServer;
+        if (pStorageServer != NULL && (pStorageServer->rw_mode & R_OK))
         {
-            ppStoreServers[(*server_count)++] = pGroupStoreServer;
+            ppStoreServers[(*server_count)++] = pStorageServer;
             return 0;
         }
 
@@ -6327,10 +6326,10 @@ int tracker_mem_get_storage_by_filename(const byte cmd, const char *group_name,
 
         if (*server_count == 0)
         {
-            pGroupStoreServer = (*ppGroup)->pStoreServer;
-            if (pGroupStoreServer != NULL)
+            pStorageServer = (*ppGroup)->pStoreServer;
+            if (pStorageServer != NULL && (pStorageServer->rw_mode & R_OK))
             {
-                ppStoreServers[(*server_count)++] = pGroupStoreServer;
+                ppStoreServers[(*server_count)++] = pStorageServer;
             }
         }
 

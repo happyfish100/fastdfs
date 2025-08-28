@@ -197,7 +197,7 @@ int tracker_load_from_conf_file(const char *filename)
 		g_groups.store_server = (byte)iniGetIntValue(NULL, \
 				"store_server",  &iniContext, \
 				FDFS_STORE_SERVER_ROUND_ROBIN);
-		if (!(g_groups.store_server == FDFS_STORE_SERVER_FIRST_BY_IP ||\
+		if (!(g_groups.store_server == FDFS_STORE_SERVER_FIRST_BY_IP ||
 			g_groups.store_server == FDFS_STORE_SERVER_FIRST_BY_PRI||
 			g_groups.store_server == FDFS_STORE_SERVER_ROUND_ROBIN))
 		{
