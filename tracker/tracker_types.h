@@ -19,8 +19,6 @@
 #include "fdfs_define.h"
 #include "fastcommon/connection_pool.h"
 
-#define FDFS_ONE_MB	(1024 * 1024)
-
 #define FDFS_GROUP_NAME_MAX_LEN		16
 #define FDFS_MAX_SERVERS_EACH_GROUP	32
 #define FDFS_MAX_GROUPS		       512

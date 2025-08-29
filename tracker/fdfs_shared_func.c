@@ -256,7 +256,7 @@ int fdfs_parse_storage_reserved_space(IniContext *pIniContext,
 	}
 
 	pStorageReservedSpace->flag = TRACKER_STORAGE_RESERVED_SPACE_FLAG_MB;
-	pStorageReservedSpace->rs.mb = storage_reserved / FDFS_ONE_MB;
+	pStorageReservedSpace->rs.mb = storage_reserved / FC_BYTES_ONE_MB;
 	return 0;
 }
 

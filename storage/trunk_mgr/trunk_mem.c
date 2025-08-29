@@ -2585,7 +2585,7 @@ int trunk_create_trunk_file_advance(void *args)
 	}
 
 	if (!storage_check_reserved_space_path(total_mb_sum, free_mb_sum \
-		- (alloc_space / FDFS_ONE_MB), g_storage_reserved_space.rs.mb))
+		- (alloc_space / FC_BYTES_ONE_MB), g_storage_reserved_space.rs.mb))
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"free space is not enough!", __LINE__);

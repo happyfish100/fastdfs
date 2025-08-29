@@ -1824,7 +1824,7 @@ static int tracker_report_trunk_free_space(ConnectionInfo *pTrackerServer)
 	memset(out_buff, 0, sizeof(out_buff));
 	long2buff(8, pHeader->pkg_len);
 	pHeader->cmd = TRACKER_PROTO_CMD_STORAGE_REPORT_TRUNK_FREE;
-	long2buff(g_trunk_total_free_space / FDFS_ONE_MB, \
+	long2buff(g_trunk_total_free_space / FC_BYTES_ONE_MB, \
 		out_buff + sizeof(TrackerHeader));
 	if ((result=tcpsenddata_nb(pTrackerServer->sock, out_buff,
 			sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
@@ -2256,9 +2256,9 @@ static int tracker_report_df_stat(ConnectionInfo *pTrackerServer,
 		}
 
 		g_fdfs_store_paths.paths[i].total_mb = ((int64_t)(sbuf.f_blocks) * \
-					sbuf.f_frsize) / FDFS_ONE_MB;
+					sbuf.f_frsize) / FC_BYTES_ONE_MB;
 		g_fdfs_store_paths.paths[i].free_mb = ((int64_t)(sbuf.f_bavail) * \
-					sbuf.f_frsize) / FDFS_ONE_MB;
+					sbuf.f_frsize) / FC_BYTES_ONE_MB;
 		long2buff(g_fdfs_store_paths.paths[i].total_mb, pStatBuff->sz_total_mb);
 		long2buff(g_fdfs_store_paths.paths[i].free_mb, pStatBuff->sz_free_mb);
 

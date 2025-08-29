@@ -20,6 +20,9 @@
 #include "fdfs_global.h"
 #include "fdfs_client.h"
 
+#define MB_TO_HUMAN_STR(mb, buff) bytes_to_human_str( \
+        (int64_t)mb * FC_BYTES_ONE_MB, buff)
+
 static ConnectionInfo *pTrackerServer;
 
 static int list_all_groups(const char *group_name);
@@ -304,9 +307,9 @@ static int list_storages(FDFSGroupStat *pGroupStat)
 	int max_last_source_update;
 
 	printf( "group name = %s\n"
-		"disk total space = %s MB\n"
-		"disk free space = %s MB\n"
-		"trunk free space = %s MB\n"
+		"disk total space = %7s\n"
+		"disk free space  = %7s\n"
+		"trunk free space = %7s\n"
 		"storage server count = %d\n"
 		"readable server count = %d\n"
 		"writable server count = %d\n"
@@ -316,9 +319,9 @@ static int list_storages(FDFSGroupStat *pGroupStat)
 		"current write server index = %d\n"
 		"current trunk file id = %d\n\n",
 		pGroupStat->group_name,
-		long_to_comma_str(pGroupStat->total_mb, szDiskTotalSpace),
-		long_to_comma_str(pGroupStat->free_mb, szDiskFreeSpace),
-		long_to_comma_str(pGroupStat->trunk_free_mb, szTrunkSpace),
+		MB_TO_HUMAN_STR(pGroupStat->total_mb, szDiskTotalSpace),
+		MB_TO_HUMAN_STR(pGroupStat->free_mb, szDiskFreeSpace),
+		MB_TO_HUMAN_STR(pGroupStat->trunk_free_mb, szTrunkSpace),
 		pGroupStat->storage_count,
 		pGroupStat->readable_server_count,
 		pGroupStat->writable_server_count,
@@ -441,8 +444,8 @@ static int list_storages(FDFSGroupStat *pGroupStat)
 			"\t\tversion = %s\n"
 			"\t\tjoin time = %s\n"
 			"\t\tup time = %s\n"
-			"\t\ttotal storage = %s MB\n"
-			"\t\tfree storage = %s MB\n"
+			"\t\ttotal storage = %7s\n"
+			"\t\tfree storage  = %7s\n"
 			"\t\tupload priority = %d\n"
 			"\t\tstore_path_count = %d\n"
 			"\t\tsubdir_count_per_path = %d\n"
@@ -503,8 +506,8 @@ static int list_storages(FDFSGroupStat *pGroupStat)
 			formatDatetime(pStorage->join_time,
 				"%Y-%m-%d %H:%M:%S",
 				szJoinTime, sizeof(szJoinTime)), szUpTime,
-            long_to_comma_str(pStorage->total_mb, szDiskTotalSpace),
-            long_to_comma_str(pStorage->free_mb, szDiskFreeSpace),
+            MB_TO_HUMAN_STR(pStorage->total_mb, szDiskTotalSpace),
+            MB_TO_HUMAN_STR(pStorage->free_mb, szDiskFreeSpace),
 			pStorage->upload_priority,
 			pStorage->store_path_count,
 			pStorage->subdir_count_per_path,

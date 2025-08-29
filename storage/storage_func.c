@@ -2388,14 +2388,14 @@ int storage_func_init(const char *filename)
 			break;
 		}
 		if (rotate_access_log_size > 0 && \
-			rotate_access_log_size < FDFS_ONE_MB)
+			rotate_access_log_size < FC_BYTES_ONE_MB)
 		{
 			logWarning("file: "__FILE__", line: %d, " \
 				"item \"rotate_access_log_size\": " \
 				"%"PRId64" is too small, " \
 				"change to 1 MB", __LINE__, \
 				rotate_access_log_size);
-			rotate_access_log_size = FDFS_ONE_MB;
+			rotate_access_log_size = FC_BYTES_ONE_MB;
 		}
 		fdfs_set_log_rotate_size(&g_access_log_context, rotate_access_log_size);
 

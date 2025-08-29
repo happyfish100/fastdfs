@@ -335,8 +335,8 @@ static int fdfs_dump_global_vars(char *buff, const int buffSize)
 		, SF_G_THREAD_STACK_SIZE
 		, g_if_use_trunk_file
 		, g_slot_min_size
-		, g_slot_max_size / FDFS_ONE_MB
-		, g_trunk_file_size / FDFS_ONE_MB
+		, g_slot_max_size / FC_BYTES_ONE_MB
+		, g_trunk_file_size / FC_BYTES_ONE_MB
 		, g_changelog_fsize
 		, g_storage_sync_file_max_delay
 		, g_storage_sync_file_max_time
