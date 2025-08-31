@@ -1162,8 +1162,8 @@ static bool storage_trunk_is_space_occupied(const FDFSTrunkFullInfo *pTrunkInfo)
 		return false;
 	}
 
-	if (pTrunkInfo->file.offset > 0 && lseek(fd, pTrunkInfo->file.offset, \
-			SEEK_SET) < 0)
+	if (pTrunkInfo->file.offset > 0 && lseek(fd, pTrunkInfo->
+                file.offset, SEEK_SET) < 0)
 	{
 		result = errno != 0 ? errno : EIO;
 		logError("file: "__FILE__", line: %d, " \
@@ -1179,7 +1179,7 @@ static bool storage_trunk_is_space_occupied(const FDFSTrunkFullInfo *pTrunkInfo)
 	logInfo("fd: %d, trunk filename: %s, offset: %d", fd, full_filename, \
 			pTrunkInfo->file.offset);
 	*/
-	result = dio_check_trunk_file_ex(fd, full_filename, \
+	result = dio_check_trunk_file_ex(fd, full_filename,
 			pTrunkInfo->file.offset);
 	close(fd);
 	return (result == EEXIST);

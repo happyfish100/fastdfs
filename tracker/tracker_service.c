@@ -421,7 +421,7 @@ static int tracker_deal_get_trunk_fid(struct fast_task_info *pTask)
 	}
 
 	pTask->send.ptr->length = sizeof(TrackerHeader) + sizeof(int);
-	int2buff(pClientInfo->pGroup->current_trunk_file_id, \
+	int2buff(pClientInfo->pGroup->current_trunk_file_id,
 		pTask->send.ptr->data + sizeof(TrackerHeader));
 
 	return 0;
@@ -2099,12 +2099,12 @@ static int tracker_deal_storage_sync_notify(struct fast_task_info *pTask)
 
 	if (pClientInfo->pStorage->psync_src_server == NULL)
 	{
-		memcpy(sync_src_id, pBody->src_id, \
+		memcpy(sync_src_id, pBody->src_id,
 				FDFS_STORAGE_ID_MAX_SIZE);
 		sync_src_id[FDFS_STORAGE_ID_MAX_SIZE - 1] = '\0';
 
-		pClientInfo->pStorage->psync_src_server = \
-			tracker_mem_get_storage(pClientInfo->pGroup, \
+		pClientInfo->pStorage->psync_src_server =
+			tracker_mem_get_storage(pClientInfo->pGroup,
 				sync_src_id);
 		if (pClientInfo->pStorage->psync_src_server == NULL)
 		{
@@ -2847,6 +2847,9 @@ static int tracker_deal_service_query_storage( \
 	return 0;
 }
 
+#define CONVERT_CURRENT_TRUNK_FILE_ID(trunk_file_id) \
+    (g_if_use_trunk_file ? trunk_file_id : -1)
+
 static int tracker_deal_server_list_one_group(struct fast_task_info *pTask)
 {
 	char group_name[FDFS_GROUP_NAME_MAX_LEN + 1];
@@ -2896,7 +2899,8 @@ static int tracker_deal_server_list_one_group(struct fast_task_info *pTask)
 	long2buff(pGroup->store_path_count, pDest->sz_store_path_count);
 	long2buff(pGroup->subdir_count_per_path,
 			pDest->sz_subdir_count_per_path);
-	long2buff(pGroup->current_trunk_file_id,
+	long2buff(CONVERT_CURRENT_TRUNK_FILE_ID(
+                pGroup->current_trunk_file_id),
 			pDest->sz_current_trunk_file_id);
 	pTask->send.ptr->length = sizeof(TrackerHeader) + sizeof(TrackerGroupStat);
 
@@ -2975,14 +2979,14 @@ static int tracker_deal_server_list_all_groups(struct fast_task_info *pTask)
 				pDest->sz_store_path_count);
 		long2buff((*ppGroup)->subdir_count_per_path,
 				pDest->sz_subdir_count_per_path);
-		long2buff((*ppGroup)->current_trunk_file_id,
-				pDest->sz_current_trunk_file_id);
+		long2buff(CONVERT_CURRENT_TRUNK_FILE_ID(
+                    (*ppGroup)->current_trunk_file_id),
+                pDest->sz_current_trunk_file_id);
 		pDest++;
 	}
 
-	pTask->send.ptr->length = sizeof(TrackerHeader) + (pDest - groupStats) *
-			sizeof(TrackerGroupStat);
-
+	pTask->send.ptr->length = sizeof(TrackerHeader) +
+        (pDest - groupStats) * sizeof(TrackerGroupStat);
 	return 0;
 }
 
@@ -3362,7 +3366,7 @@ static int tracker_deal_storage_sync_report(struct fast_task_info *pTask)
 
 			src_id = p;
 			*(src_id + (FDFS_STORAGE_ID_MAX_SIZE - 1)) = '\0';
-			pSrcStorage = tracker_mem_get_storage( \
+			pSrcStorage = tracker_mem_get_storage(
 					pClientInfo->pGroup, src_id);
 			if (pSrcStorage == NULL)
 			{
@@ -3373,9 +3377,9 @@ static int tracker_deal_storage_sync_report(struct fast_task_info *pTask)
 				continue;
 			}
 
-			src_index = tracker_mem_get_storage_index( \
+			src_index = tracker_mem_get_storage_index(
 					pClientInfo->pGroup, pSrcStorage);
-			if (src_index == dest_index || src_index < 0 || \
+			if (src_index == dest_index || src_index < 0 ||
 					src_index >= pClientInfo->pGroup->storage_count)
 			{
 				continue;
@@ -3418,7 +3422,7 @@ static int tracker_deal_storage_sync_report(struct fast_task_info *pTask)
 
 			src_id = p;
 			*(src_id + (FDFS_STORAGE_ID_MAX_SIZE - 1)) = '\0';
-			pSrcStorage = tracker_mem_get_storage( \
+			pSrcStorage = tracker_mem_get_storage(
 					pClientInfo->pGroup, src_id);
 			if (pSrcStorage == NULL)
 			{
@@ -3429,9 +3433,9 @@ static int tracker_deal_storage_sync_report(struct fast_task_info *pTask)
 				continue;
 			}
 
-			src_index = tracker_mem_get_storage_index( \
+			src_index = tracker_mem_get_storage_index(
 					pClientInfo->pGroup, pSrcStorage);
-			if (src_index == dest_index || src_index < 0 || \
+			if (src_index == dest_index || src_index < 0 ||
 					src_index >= pClientInfo->pGroup->storage_count)
 			{
 				continue;

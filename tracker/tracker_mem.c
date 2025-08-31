@@ -1680,7 +1680,7 @@ static int tracker_load_sync_timestamps(FDFSGroups *pGroups, const char *data_pa
 				int min_synced_timestamp;
 
 				min_synced_timestamp = 0;
-				for (src_index=0; src_index<(*ppGroup)->storage_count; \
+				for (src_index=0; src_index<(*ppGroup)->storage_count;
 					src_index++)
 				{
 					if (src_index == dest_index)
@@ -1688,9 +1688,8 @@ static int tracker_load_sync_timestamps(FDFSGroups *pGroups, const char *data_pa
 						continue;
 					}
 
-					curr_synced_timestamp = \
-						(*ppGroup)->last_sync_timestamps \
-							[src_index][dest_index];
+					curr_synced_timestamp = (*ppGroup)->
+                        last_sync_timestamps[src_index][dest_index];
 					if (curr_synced_timestamp == 0)
 					{
 						continue;

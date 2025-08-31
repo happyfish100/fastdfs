@@ -306,45 +306,65 @@ static int list_storages(FDFSGroupStat *pGroupStat)
 	int k;
 	int max_last_source_update;
 
-	printf( "group name = %s\n"
-		"disk total space = %7s\n"
-		"disk free space  = %7s\n"
-		"trunk free space = %7s\n"
-		"storage server count = %d\n"
-		"readable server count = %d\n"
-		"writable server count = %d\n"
-		"storage server port = %d\n"
-		"store path count = %d\n"
-		"subdir count per path = %d\n"
-		"current write server index = %d\n"
-		"current trunk file id = %d\n\n",
-		pGroupStat->group_name,
-		MB_TO_HUMAN_STR(pGroupStat->total_mb, szDiskTotalSpace),
-		MB_TO_HUMAN_STR(pGroupStat->free_mb, szDiskFreeSpace),
-		MB_TO_HUMAN_STR(pGroupStat->trunk_free_mb, szTrunkSpace),
-		pGroupStat->storage_count,
-		pGroupStat->readable_server_count,
-		pGroupStat->writable_server_count,
-		pGroupStat->storage_port,
-		pGroupStat->store_path_count,
-		pGroupStat->subdir_count_per_path,
-		pGroupStat->current_write_server,
-		pGroupStat->current_trunk_file_id
-	);
-
-	result = tracker_list_servers(pTrackerServer, \
-		pGroupStat->group_name, NULL, \
-		storage_infos, FDFS_MAX_SERVERS_EACH_GROUP, \
-		&storage_count);
+	result = tracker_list_servers(pTrackerServer, pGroupStat->group_name,
+            NULL, storage_infos, FDFS_MAX_SERVERS_EACH_GROUP, &storage_count);
 	if (result != 0)
 	{
 		return result;
 	}
 
-	k = 0;
+    printf( "group name = %s\n"
+            "disk total space = %7s\n"
+            "disk free space  = %7s\n"
+            "trunk free space = %7s\n"
+            "storage server count = %d\n"
+            "readable server count = %d\n"
+            "writable server count = %d\n"
+            "storage server port = %d\n"
+            "store path count = %d\n"
+            "subdir count per path = %d\n"
+            "current write server index = %d\n",
+            pGroupStat->group_name,
+            MB_TO_HUMAN_STR(pGroupStat->total_mb, szDiskTotalSpace),
+            MB_TO_HUMAN_STR(pGroupStat->free_mb, szDiskFreeSpace),
+            MB_TO_HUMAN_STR(pGroupStat->trunk_free_mb, szTrunkSpace),
+            pGroupStat->storage_count,
+            pGroupStat->readable_server_count,
+            pGroupStat->writable_server_count,
+            pGroupStat->storage_port,
+            pGroupStat->store_path_count,
+            pGroupStat->subdir_count_per_path,
+            pGroupStat->current_write_server);
+
 	pStorageEnd = storage_infos + storage_count;
-	for (pStorage=storage_infos; pStorage<pStorageEnd; \
-		pStorage++)
+    if (pGroupStat->current_trunk_file_id >= 0) //use trunk file
+    {
+        for (pStorage=storage_infos; pStorage<pStorageEnd; pStorage++)
+        {
+            if (pStorage->if_trunk_server)
+            {
+                break;
+            }
+        }
+        if (pStorage < pStorageEnd)  //found trunk server
+        {
+            printf( "current trunk server = %s (%s)\n"
+                    "current trunk file id = %d\n\n",
+                    pStorage->id, pStorage->ip_addr,
+                    pGroupStat->current_trunk_file_id);
+        }
+        else
+        {
+            printf("\n");
+        }
+    }
+    else
+    {
+        printf("\n");
+    }
+
+	k = 0;
+	for (pStorage=storage_infos; pStorage<pStorageEnd; pStorage++)
 	{
 		max_last_source_update = 0;
 		for (p=storage_infos; p<pStorageEnd; p++)
@@ -583,9 +603,8 @@ static int list_all_groups(const char *group_name)
 	FDFSGroupStat *pGroupEnd;
 	int i;
 
-	result = tracker_list_groups(pTrackerServer, \
-		group_stats, FDFS_MAX_GROUPS, \
-		&group_count);
+	result = tracker_list_groups(pTrackerServer, group_stats,
+            FDFS_MAX_GROUPS, &group_count);
 	if (result != 0)
 	{
 		tracker_close_all_connections();
@@ -598,7 +617,7 @@ static int list_all_groups(const char *group_name)
 	{
 		printf("group count: %d\n", group_count);
 		i = 0;
-		for (pGroupStat=group_stats; pGroupStat<pGroupEnd; \
+		for (pGroupStat=group_stats; pGroupStat<pGroupEnd;
 			pGroupStat++)
 		{
 			printf( "\nGroup %d:\n", ++i);

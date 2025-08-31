@@ -427,7 +427,7 @@ int dio_write_file(struct fast_task_info *pTask)
 	{
 		if (pFileContext->extra_info.upload.before_open_callback!=NULL)
 		{
-			result = pFileContext->extra_info.upload. \
+			result = pFileContext->extra_info.upload.
 					before_open_callback(pTask);
 			if (result != 0)
 			{
@@ -467,7 +467,7 @@ int dio_write_file(struct fast_task_info *pTask)
 
 	if (pFileContext->calc_crc32)
 	{
-		pFileContext->crc32 = CRC32_ex(pDataBuff, write_bytes, \
+		pFileContext->crc32 = CRC32_ex(pDataBuff, write_bytes,
 					pFileContext->crc32);
 	}
 
@@ -475,12 +475,12 @@ int dio_write_file(struct fast_task_info *pTask)
 	{
 		if (g_file_signature_method == STORAGE_FILE_SIGNATURE_METHOD_HASH)
 		{
-			CALC_HASH_CODES4(pDataBuff, write_bytes, \
+			CALC_HASH_CODES4(pDataBuff, write_bytes,
 					pFileContext->file_hash_codes)
 		}
 		else
 		{
-			my_md5_update(&pFileContext->md5_context, \
+			my_md5_update(&pFileContext->md5_context,
 				(unsigned char *)pDataBuff, write_bytes);
 		}
 	}
@@ -501,7 +501,7 @@ int dio_write_file(struct fast_task_info *pTask)
 	{
 		if (pFileContext->calc_crc32)
 		{
-			pFileContext->crc32 = CRC32_FINAL( \
+			pFileContext->crc32 = CRC32_FINAL(
 						pFileContext->crc32);
 		}
 
@@ -513,14 +513,14 @@ int dio_write_file(struct fast_task_info *pTask)
 			}
 			else
 			{
-				my_md5_final((unsigned char *)(pFileContext-> \
+				my_md5_final((unsigned char *)(pFileContext->
 				file_hash_codes), &pFileContext->md5_context);
 			}
 		}
 
 		if (pFileContext->extra_info.upload.before_close_callback != NULL)
 		{
-			result = pFileContext->extra_info.upload. \
+			result = pFileContext->extra_info.upload.
 					before_close_callback(pTask);
 		}
 

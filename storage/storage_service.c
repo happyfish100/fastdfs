@@ -2672,8 +2672,8 @@ static int calc_crc32_continue_callback(struct fast_task_info *pTask,
     return storage_dio_queue_push(pTask);
 }
 
-static int storage_trunk_do_create_link(struct fast_task_info *pTask, \
-		const int64_t file_bytes, const int buff_offset, \
+static int storage_trunk_do_create_link(struct fast_task_info *pTask,
+		const int64_t file_bytes, const int buff_offset,
 		FileBeforeOpenCallback before_open_callback,
 		FileDealDoneCallback done_callback)
 {
@@ -2684,13 +2684,13 @@ static int storage_trunk_do_create_link(struct fast_task_info *pTask, \
 	pClientInfo = (StorageClientInfo *)pTask->arg;
 	pFileContext =  &(pClientInfo->file_context);
 
-	file_offset = TRUNK_FILE_START_OFFSET( \
-			pFileContext->extra_info.upload.trunk_info);
+	file_offset = TRUNK_FILE_START_OFFSET(pFileContext->
+            extra_info.upload.trunk_info);
 	trunk_get_full_filename(&(pFileContext->extra_info.upload.trunk_info), 
 			pFileContext->filename, sizeof(pFileContext->filename));
-	pFileContext->extra_info.upload.before_open_callback = \
+	pFileContext->extra_info.upload.before_open_callback =
 				before_open_callback;
-	pFileContext->extra_info.upload.before_close_callback = \
+	pFileContext->extra_info.upload.before_close_callback =
 				dio_write_chunk_header;
 	pFileContext->open_flags = O_RDWR | g_extra_open_file_flags;
 	pFileContext->op = FDFS_STORAGE_FILE_OP_WRITE;
@@ -4642,9 +4642,9 @@ static int storage_upload_file(struct fast_task_info *pTask, bool bAppenderFile)
         pFileContext->extra_info.upload.if_gen_filename = true;
 		trunk_get_full_filename(pTrunkInfo, pFileContext->filename,
 				sizeof(pFileContext->filename));
-		pFileContext->extra_info.upload.before_open_callback = \
+		pFileContext->extra_info.upload.before_open_callback =
 					dio_check_trunk_file_when_upload;
-		pFileContext->extra_info.upload.before_close_callback = \
+		pFileContext->extra_info.upload.before_close_callback =
 					dio_write_chunk_header;
 		pFileContext->open_flags = O_RDWR | g_extra_open_file_flags;
 	}
@@ -4676,10 +4676,10 @@ static int storage_upload_file(struct fast_task_info *pTask, bool bAppenderFile)
 		*filename = '\0';
 		filename_len = 0;
 		pFileContext->extra_info.upload.if_sub_path_alloced = false;
-		if ((result=storage_get_filename(pClientInfo, \
-			pFileContext->extra_info.upload.start_time, \
-			file_bytes, crc32, pFileContext->extra_info.upload.\
-			formatted_ext_name, filename, &filename_len, \
+		if ((result=storage_get_filename(pClientInfo,
+			pFileContext->extra_info.upload.start_time,
+			file_bytes, crc32, pFileContext->extra_info.upload.
+			formatted_ext_name, filename, &filename_len,
 			pFileContext->filename)) != 0)
 		{
 			return result;
@@ -4690,7 +4690,7 @@ static int storage_upload_file(struct fast_task_info *pTask, bool bAppenderFile)
         pFileContext->extra_info.upload.if_gen_filename = true;
 		pFileContext->extra_info.upload.before_open_callback = NULL;
 		pFileContext->extra_info.upload.before_close_callback = NULL;
-		pFileContext->open_flags = O_WRONLY | O_CREAT | O_TRUNC \
+		pFileContext->open_flags = O_WRONLY | O_CREAT | O_TRUNC
 						| g_extra_open_file_flags;
 	}
 
@@ -5403,7 +5403,7 @@ static int storage_do_truncate_file(struct fast_task_info *pTask)
 	pFileContext->extra_info.upload.file_type = _FILE_TYPE_APPENDER;
 	pFileContext->extra_info.upload.before_open_callback = NULL;
 	pFileContext->extra_info.upload.before_close_callback = NULL;
-	pFileContext->extra_info.upload.trunk_info.path.store_path_index = \
+	pFileContext->extra_info.upload.trunk_info.path.store_path_index =
 			store_path_index;
 	pFileContext->op = FDFS_STORAGE_FILE_OP_WRITE;
 	pFileContext->open_flags = O_WRONLY | g_extra_open_file_flags;
@@ -5633,13 +5633,13 @@ static int storage_upload_slave_file(struct fast_task_info *pTask)
 	strcpy(pFileContext->extra_info.upload.master_filename, master_filename);
 	strcpy(pFileContext->extra_info.upload.prefix_name, prefix_name);
 
-	pFileContext->extra_info.upload.file_type = _FILE_TYPE_SLAVE | \
+	pFileContext->extra_info.upload.file_type = _FILE_TYPE_SLAVE |
 						_FILE_TYPE_REGULAR;
 	pFileContext->sync_flag = STORAGE_OP_TYPE_SOURCE_CREATE_FILE;
 	pFileContext->timestamp2log = pFileContext->extra_info.upload.start_time;
 	pFileContext->extra_info.upload.before_open_callback = NULL;
 	pFileContext->extra_info.upload.before_close_callback = NULL;
-	pFileContext->extra_info.upload.trunk_info.path.store_path_index = \
+	pFileContext->extra_info.upload.trunk_info.path.store_path_index =
 			store_path_index;
 	pFileContext->op = FDFS_STORAGE_FILE_OP_WRITE;
 	pFileContext->open_flags = O_WRONLY | O_CREAT | O_TRUNC \
@@ -5868,14 +5868,14 @@ static int storage_sync_copy_file(struct fast_task_info *pTask, \
 			trunkHeader.formatted_ext_name);
 
 		clean_func = dio_trunk_write_finish_clean_up;
-		file_offset = TRUNK_FILE_START_OFFSET(pFileContext-> \
+		file_offset = TRUNK_FILE_START_OFFSET(pFileContext->
 					extra_info.upload.trunk_info);
-		trunk_get_full_filename(&pFileContext-> \
-			extra_info.upload.trunk_info, pFileContext->filename, \
+		trunk_get_full_filename(&pFileContext->extra_info.
+                upload.trunk_info, pFileContext->filename,
 			sizeof(pFileContext->filename));
-		pFileContext->extra_info.upload.before_open_callback = \
+		pFileContext->extra_info.upload.before_open_callback =
 					dio_check_trunk_file_when_sync;
-		pFileContext->extra_info.upload.before_close_callback = \
+		pFileContext->extra_info.upload.before_close_callback =
 					dio_write_chunk_header;
 		pFileContext->open_flags = O_RDWR | g_extra_open_file_flags;
 	}
