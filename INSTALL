@@ -11,7 +11,7 @@ Chinese language: http://www.fastken.com/
 # command lines as:
 
    git clone https://github.com/happyfish100/libfastcommon.git
-   cd libfastcommon; git checkout V1.0.75
+   cd libfastcommon; git checkout V1.0.79
    ./make.sh clean && ./make.sh && ./make.sh install
 
 
@@ -21,7 +21,7 @@ Chinese language: http://www.fastken.com/
 # command lines as:
 
    git clone https://github.com/happyfish100/libserverframe.git
-   cd libserverframe; git checkout V1.2.5
+   cd libserverframe; git checkout V1.2.8
    ./make.sh clean && ./make.sh && ./make.sh install
 
 # step 3. download fastdfs source codes and install it, 
@@ -30,7 +30,7 @@ Chinese language: http://www.fastken.com/
 # command lines as:
 
    git clone https://github.com/happyfish100/fastdfs.git
-   cd fastdfs; git checkout V6.12.2
+   cd fastdfs; git checkout V6.13.0
    ./make.sh clean && ./make.sh && ./make.sh install
 
 
@@ -57,10 +57,12 @@ such as:
 # start the storage server:
 /usr/bin/fdfs_storaged /etc/fdfs/storage.conf restart
 
-# (optional) in Linux, you can start fdfs_trackerd and fdfs_storaged as a service:
+# (optional) in Linux, you can start fdfs_trackerd and fdfs_storaged as a service
+# the default base_path is /opt/fastdfs, if you changed it, you MUST change the
+# PIDFile of /usr/lib/systemd/system/fdfs_trackerd.service and
+# /usr/lib/systemd/system/fdfs_storaged.service
 /sbin/service fdfs_trackerd restart
 /sbin/service fdfs_storaged restart
-
 
 # step 7. (optional) run monitor program
 # such as:
