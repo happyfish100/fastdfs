@@ -7,18 +7,18 @@
   FastDFS的架构比较简单，如下图所示：
   ![architect](images/architect.png)
 
-```
-  FastDFS特点：
-    1）分组存储，简单灵活；
-    2）对等结构，不存在单点；
-    3）文件ID由FastDFS生成，作为文件访问凭证。FastDFS不需要传统的name server或meta server；
-    4）大、中、小文件均可以很好支持，可以存储海量小文件；
-    5）一台storage支持多块磁盘，支持单盘数据恢复；
-    6）提供了nginx扩展模块，可以和nginx无缝衔接；
-    7）支持IPv6，支持读写分离，支持跨机房灾备；
-    8）支持多线程方式上传和下载文件，支持断点续传；
-    9）存储服务器上可以保存文件附加属性。
-```
+
+### FastDFS特点：
+
+* 分组存储，简单灵活；
+* 对等结构，不存在单点；
+* 文件ID由FastDFS生成，作为文件访问凭证。FastDFS不需要传统的name server或meta server；
+* 大、中、小文件均可以很好支持，可以存储海量小文件；
+* 一台storage支持多块磁盘，支持单盘数据恢复；
+* 提供了nginx扩展模块，可以和nginx无缝衔接；
+* 支持IPv6，支持读写分离，支持跨机房灾备；
+* 提供了truncate、append和modify接口，支持多线程方式上传和下载文件，支持断点续传；
+* 存储服务器上可以保存文件附加属性。
 
   FastDFS更多更详细的功能和特性介绍，请参阅FastDFS微信公众号的其他文章，搜索公众号：fastdfs。
 

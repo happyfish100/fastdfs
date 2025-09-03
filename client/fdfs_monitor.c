@@ -315,19 +315,24 @@ static int list_storages(FDFSGroupStat *pGroupStat)
 
     printf( "group name = %s\n"
             "disk total space = %7s\n"
-            "disk free space  = %7s\n"
-            "trunk free space = %7s\n"
-            "storage server count = %d\n"
+            "disk free space  = %7s\n",
+            pGroupStat->group_name,
+            MB_TO_HUMAN_STR(pGroupStat->total_mb, szDiskTotalSpace),
+            MB_TO_HUMAN_STR(pGroupStat->free_mb, szDiskFreeSpace));
+
+    if (pGroupStat->current_trunk_file_id >= 0) //use trunk file
+    {
+        printf("trunk free space = %7s\n", MB_TO_HUMAN_STR(
+                    pGroupStat->trunk_free_mb, szTrunkSpace));
+    }
+
+    printf( "storage server count = %d\n"
             "readable server count = %d\n"
             "writable server count = %d\n"
             "storage server port = %d\n"
             "store path count = %d\n"
             "subdir count per path = %d\n"
             "current write server index = %d\n",
-            pGroupStat->group_name,
-            MB_TO_HUMAN_STR(pGroupStat->total_mb, szDiskTotalSpace),
-            MB_TO_HUMAN_STR(pGroupStat->free_mb, szDiskFreeSpace),
-            MB_TO_HUMAN_STR(pGroupStat->trunk_free_mb, szTrunkSpace),
             pGroupStat->storage_count,
             pGroupStat->readable_server_count,
             pGroupStat->writable_server_count,
@@ -464,8 +469,8 @@ static int list_storages(FDFSGroupStat *pGroupStat)
 			"\t\tversion = %s\n"
 			"\t\tjoin time = %s\n"
 			"\t\tup time = %s\n"
-			"\t\ttotal storage = %7s\n"
-			"\t\tfree storage  = %7s\n"
+			"\t\tdisk total space = %7s\n"
+			"\t\tdisk free space  = %7s\n"
 			"\t\tupload priority = %d\n"
 			"\t\tstore_path_count = %d\n"
 			"\t\tsubdir_count_per_path = %d\n"
