@@ -179,8 +179,8 @@ typedef struct
 	char sz_join_time[8];
 	char sz_up_time[8];
 	char sz_total_mb[8];
-	char sz_reserved_mb[8];  //since v6.13.1
 	char sz_free_mb[8];
+	char sz_reserved_mb[8];  //since v6.13.1
 	char sz_upload_priority[8];
 	char sz_store_path_count[8];
 	char sz_subdir_count_per_path[8];
