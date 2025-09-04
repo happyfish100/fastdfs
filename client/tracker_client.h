@@ -21,13 +21,14 @@ typedef struct
 {
     bool if_trunk_server;
     char status;
-    FDFSReadWriteMode rw_mode;
+    FDFSReadWriteMode rw_mode;   //since v6.13
     char id[FDFS_STORAGE_ID_MAX_SIZE];
     char ip_addr[IP_ADDRESS_SIZE];
     char src_id[FDFS_STORAGE_ID_MAX_SIZE];  //src storage id
     char version[FDFS_VERSION_SIZE];
-    int64_t total_mb;  //total disk storage in MB
-    int64_t free_mb;   //free disk storage in MB
+    int64_t total_mb;    //disk total space in MB
+    int64_t free_mb;     //disk free space in MB
+    int64_t reserved_mb; //disk available space in MB, since v6.13.1
     int upload_priority;  //upload priority
     time_t join_time; //storage join timestamp (create timestamp)
     time_t up_time;   //storage service started timestamp

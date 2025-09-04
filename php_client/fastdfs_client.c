@@ -1317,6 +1317,8 @@ static void php_fdfs_tracker_list_groups_impl(INTERNAL_FUNCTION_PARAMETERS, \
 			sizeof("total_space"), pGroupStat->total_mb);
 		zend_add_assoc_long_ex(group_info_array, "free_space",
 			sizeof("free_space"), pGroupStat->free_mb);
+		zend_add_assoc_long_ex(group_info_array, "reserved_space",
+			sizeof("reserved_space"), pGroupStat->reserved_mb);
 		zend_add_assoc_long_ex(group_info_array, "trunk_free_space",
 			sizeof("trunk_free_space"), pGroupStat->trunk_free_mb);
 		zend_add_assoc_long_ex(group_info_array, "storage_server_count",
@@ -1407,12 +1409,14 @@ static void php_fdfs_tracker_list_groups_impl(INTERNAL_FUNCTION_PARAMETERS, \
 				sizeof("current_write_path"), \
 				pStorage->current_write_path);
 
-			zend_add_assoc_long_ex(server_info_array, "status", \
+			zend_add_assoc_long_ex(server_info_array, "status",
 				sizeof("status"), pStorage->status);
-			zend_add_assoc_long_ex(server_info_array, "total_space", \
+			zend_add_assoc_long_ex(server_info_array, "total_space",
 				sizeof("total_space"), pStorage->total_mb);
-			zend_add_assoc_long_ex(server_info_array, "free_space", \
+			zend_add_assoc_long_ex(server_info_array, "free_space",
 				sizeof("free_space"), pStorage->free_mb);
+            zend_add_assoc_long_ex(server_info_array, "reserved_space",
+                    sizeof("reserved_space"), pStorage->reserved_mb);
 
 			pStorageStat = &(pStorage->stat);
 

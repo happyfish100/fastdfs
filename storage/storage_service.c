@@ -4652,9 +4652,9 @@ static int storage_upload_file(struct fast_task_info *pTask, bool bAppenderFile)
 	{
 		char reserved_space_str[32];
 
-		if (!storage_check_reserved_space_path(g_fdfs_store_paths.paths \
-			[store_path_index].total_mb, g_fdfs_store_paths.paths \
-			[store_path_index].free_mb - (file_bytes/FC_BYTES_ONE_MB), \
+		if (!storage_check_reserved_space_path(g_fdfs_store_paths.paths
+			[store_path_index].total_mb, g_fdfs_store_paths.paths
+			[store_path_index].free_mb - (file_bytes/FC_BYTES_ONE_MB),
 			g_avg_storage_reserved_mb))
 		{
 			logError("file: "__FILE__", line: %d, " \
@@ -5536,9 +5536,9 @@ static int storage_upload_slave_file(struct fast_task_info *pTask)
 		return result;
 	}
 
-	if (!storage_check_reserved_space_path(g_fdfs_store_paths.paths \
-		[store_path_index].total_mb, g_fdfs_store_paths.paths \
-		[store_path_index].free_mb - (file_bytes / FC_BYTES_ONE_MB), \
+	if (!storage_check_reserved_space_path(g_fdfs_store_paths.paths
+		[store_path_index].total_mb, g_fdfs_store_paths.paths
+		[store_path_index].free_mb - (file_bytes / FC_BYTES_ONE_MB),
 		g_avg_storage_reserved_mb))
 	{
 		logError("file: "__FILE__", line: %d, " \

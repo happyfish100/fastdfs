@@ -1,4 +1,7 @@
 
+Version 6.13.1  2025-09-04
+ * fdfs_monitor output reserved and available space
+
 Version 6.13.0  2025-08-31
  * use libfastcommon V1.79 and libserverframe 1.2.8
  * Merge pull request #753 from lystormenvoy/store_path_readonly

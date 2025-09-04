@@ -141,8 +141,9 @@ typedef struct
 typedef struct
 {
 	char group_name[FDFS_GROUP_NAME_MAX_LEN + 8];  //for 8 bytes alignment
-	int64_t total_mb;  //total disk storage in MB
-	int64_t free_mb;  //free disk storage in MB
+	int64_t total_mb;       //disk total space in MB
+	int64_t free_mb;        //disk free space in MB
+    int64_t reserved_mb;    //disk reserved space in MB, since v6.13.1
 	int64_t trunk_free_mb;  //trunk free disk storage in MB
 	int storage_count;      //storage server count
 	int storage_port;       //storage server listen port
@@ -305,7 +306,7 @@ typedef struct StructFDFSStorageDetail
 	int64_t *path_free_mbs;  //free disk storage in MB
 
 	int64_t total_mb;  //total disk storage in MB
-	int64_t free_mb;  //free disk storage in MB
+	int64_t free_mb;   //free disk storage in MB
 	int64_t changelog_offset;  //changelog file offset
 
 	time_t sync_until_timestamp;

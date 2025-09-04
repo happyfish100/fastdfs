@@ -156,11 +156,12 @@ typedef struct
 	char group_name[FDFS_GROUP_NAME_MAX_LEN + 1];
 	char sz_total_mb[FDFS_PROTO_PKG_LEN_SIZE]; //total disk storage in MB
 	char sz_free_mb[FDFS_PROTO_PKG_LEN_SIZE];  //free disk storage in MB
-	char sz_trunk_free_mb[FDFS_PROTO_PKG_LEN_SIZE];  //trunk free space in MB
-	char sz_storage_count[FDFS_PROTO_PKG_LEN_SIZE];  //total server count
+	char sz_reserved_mb[FDFS_PROTO_PKG_LEN_SIZE];  //disk reserved space in MB, since v6.13.1
+	char sz_trunk_free_mb[FDFS_PROTO_PKG_LEN_SIZE]; //trunk free space in MB
+	char sz_storage_count[FDFS_PROTO_PKG_LEN_SIZE]; //total server count
 	char sz_storage_port[FDFS_PROTO_PKG_LEN_SIZE];
-	char sz_readable_server_count[FDFS_PROTO_PKG_LEN_SIZE];
-	char sz_writable_server_count[FDFS_PROTO_PKG_LEN_SIZE];
+	char sz_readable_server_count[FDFS_PROTO_PKG_LEN_SIZE];  //since v6.13
+	char sz_writable_server_count[FDFS_PROTO_PKG_LEN_SIZE];  //since v6.13
 	char sz_current_write_server[FDFS_PROTO_PKG_LEN_SIZE];
 	char sz_store_path_count[FDFS_PROTO_PKG_LEN_SIZE];
 	char sz_subdir_count_per_path[FDFS_PROTO_PKG_LEN_SIZE];
@@ -170,7 +171,7 @@ typedef struct
 typedef struct
 {
 	char status;
-	char rw_mode;
+	char rw_mode;   //since v6.13
 	char id[FDFS_STORAGE_ID_MAX_SIZE];
 	char ip_addr[IP_ADDRESS_SIZE];
 	char src_id[FDFS_STORAGE_ID_MAX_SIZE];  //src storage id
@@ -178,6 +179,7 @@ typedef struct
 	char sz_join_time[8];
 	char sz_up_time[8];
 	char sz_total_mb[8];
+	char sz_reserved_mb[8];  //since v6.13.1
 	char sz_free_mb[8];
 	char sz_upload_priority[8];
 	char sz_store_path_count[8];

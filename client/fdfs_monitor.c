@@ -286,6 +286,9 @@ static int list_storages(FDFSGroupStat *pGroupStat)
 {
 	int result;
 	int storage_count;
+	int k;
+	int max_last_source_update;
+    int64_t avail_space;
 	FDFSStorageInfo storage_infos[FDFS_MAX_SERVERS_EACH_GROUP];
 	FDFSStorageInfo *p;
 	FDFSStorageInfo *pStorage;
@@ -302,9 +305,9 @@ static int list_storages(FDFSGroupStat *pGroupStat)
 	char szHostnamePrompt[128+8];
     char szDiskTotalSpace[32];
     char szDiskFreeSpace[32];
+    char szDiskReservedSpace[32];
+    char szDiskAvailSpace[32];
     char szTrunkSpace[32];
-	int k;
-	int max_last_source_update;
 
 	result = tracker_list_servers(pTrackerServer, pGroupStat->group_name,
             NULL, storage_infos, FDFS_MAX_SERVERS_EACH_GROUP, &storage_count);
@@ -313,12 +316,22 @@ static int list_storages(FDFSGroupStat *pGroupStat)
 		return result;
 	}
 
+    avail_space = pGroupStat->free_mb - pGroupStat->reserved_mb;
+    if (avail_space < 0)
+    {
+        avail_space = 0;
+    }
+
     printf( "group name = %s\n"
-            "disk total space = %7s\n"
-            "disk free space  = %7s\n",
+            "disk total space     = %7s\n"
+            "disk free space      = %7s\n"
+            "disk reserved space  = %7s\n"
+            "disk available space = %7s\n",
             pGroupStat->group_name,
             MB_TO_HUMAN_STR(pGroupStat->total_mb, szDiskTotalSpace),
-            MB_TO_HUMAN_STR(pGroupStat->free_mb, szDiskFreeSpace));
+            MB_TO_HUMAN_STR(pGroupStat->free_mb, szDiskFreeSpace),
+            MB_TO_HUMAN_STR(pGroupStat->reserved_mb, szDiskReservedSpace),
+            MB_TO_HUMAN_STR(avail_space, szDiskAvailSpace));
 
     if (pGroupStat->current_trunk_file_id >= 0) //use trunk file
     {
@@ -462,6 +475,12 @@ static int list_storages(FDFSGroupStat *pGroupStat)
 			*szUpTime = '\0';
 		}
 
+        avail_space = pStorage->free_mb - pStorage->reserved_mb;
+        if (avail_space < 0)
+        {
+            avail_space = 0;
+        }
+
 		printf( "\tStorage %d:\n"
 			"\t\tid = %s\n"
 			"\t\tip_addr = %s%s  %s\n"
@@ -469,8 +488,10 @@ static int list_storages(FDFSGroupStat *pGroupStat)
 			"\t\tversion = %s\n"
 			"\t\tjoin time = %s\n"
 			"\t\tup time = %s\n"
-			"\t\tdisk total space = %7s\n"
-			"\t\tdisk free space  = %7s\n"
+			"\t\tdisk total space     = %7s\n"
+			"\t\tdisk free space      = %7s\n"
+            "\t\tdisk reserved space  = %7s\n"
+            "\t\tdisk available space = %7s\n"
 			"\t\tupload priority = %d\n"
 			"\t\tstore_path_count = %d\n"
 			"\t\tsubdir_count_per_path = %d\n"
@@ -533,6 +554,8 @@ static int list_storages(FDFSGroupStat *pGroupStat)
 				szJoinTime, sizeof(szJoinTime)), szUpTime,
             MB_TO_HUMAN_STR(pStorage->total_mb, szDiskTotalSpace),
             MB_TO_HUMAN_STR(pStorage->free_mb, szDiskFreeSpace),
+            MB_TO_HUMAN_STR(pStorage->reserved_mb, szDiskReservedSpace),
+            MB_TO_HUMAN_STR(avail_space, szDiskAvailSpace),
 			pStorage->upload_priority,
 			pStorage->store_path_count,
 			pStorage->subdir_count_per_path,

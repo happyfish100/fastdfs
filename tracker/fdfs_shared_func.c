@@ -227,8 +227,7 @@ int fdfs_parse_storage_reserved_space(IniContext *pIniContext,
 		pStorageReservedSpace->flag = TRACKER_STORAGE_RESERVED_SPACE_FLAG_RATIO;
 		endptr = NULL;
 		*(pReservedSpaceStr + len - 1) = '\0';
-		pStorageReservedSpace->rs.ratio =
-					strtod(pReservedSpaceStr, &endptr);
+		pStorageReservedSpace->rs.ratio = strtod(pReservedSpaceStr, &endptr);
 		if (endptr != NULL && *endptr != '\0')
 		{
 			logError("file: "__FILE__", line: %d, "
@@ -250,14 +249,14 @@ int fdfs_parse_storage_reserved_space(IniContext *pIniContext,
 		return 0;
 	}
 
-	if ((result=parse_bytes(pReservedSpaceStr, 1, &storage_reserved)) != 0)
-	{
-		return result;
-	}
+    if ((result=parse_bytes(pReservedSpaceStr, 1, &storage_reserved)) != 0)
+    {
+        return result;
+    }
 
-	pStorageReservedSpace->flag = TRACKER_STORAGE_RESERVED_SPACE_FLAG_MB;
-	pStorageReservedSpace->rs.mb = storage_reserved / FC_BYTES_ONE_MB;
-	return 0;
+    pStorageReservedSpace->flag = TRACKER_STORAGE_RESERVED_SPACE_FLAG_MB;
+    pStorageReservedSpace->rs.mb = storage_reserved / FC_BYTES_ONE_MB;
+    return 0;
 }
 
 const char *fdfs_storage_reserved_space_to_string(FDFSStorageReservedSpace

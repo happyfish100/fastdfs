@@ -2155,6 +2155,19 @@ static int tracker_deal_storage_sync_notify(struct fast_task_info *pTask)
 	return 0;
 }
 
+static inline int64_t calc_reserved_space(int64_t total_mb)
+{
+    if (g_storage_reserved_space.flag == TRACKER_STORAGE_RESERVED_SPACE_FLAG_MB)
+    {
+        return g_storage_reserved_space.rs.mb;
+    }
+    else
+    {
+        return total_mb * g_storage_reserved_space.rs.ratio;
+    }
+}
+
+
 /**
 pkg format:
 Header
@@ -2243,16 +2256,17 @@ static int tracker_deal_server_list_group_storages(struct fast_task_info *pTask)
 		strcpy(pDest->ip_addr, fdfs_get_ipaddr_by_peer_ip(
                     &(*ppServer)->ip_addrs, pTask->client_ip));
 		if ((*ppServer)->psync_src_server != NULL)
-		{
-			strcpy(pDest->src_id, \
-				(*ppServer)->psync_src_server->id);
-		}
+        {
+            strcpy(pDest->src_id, (*ppServer)->psync_src_server->id);
+        }
 
 		strcpy(pDest->version, (*ppServer)->version);
 		long2buff((*ppServer)->join_time, pDest->sz_join_time);
 		long2buff((*ppServer)->up_time, pDest->sz_up_time);
 		long2buff((*ppServer)->total_mb, pDest->sz_total_mb);
 		long2buff((*ppServer)->free_mb, pDest->sz_free_mb);
+		long2buff(calc_reserved_space((*ppServer)->total_mb),
+                pDest->sz_reserved_mb);
 		long2buff((*ppServer)->upload_priority, \
 				pDest->sz_upload_priority);
 		long2buff((*ppServer)->storage_port, \
@@ -2887,6 +2901,7 @@ static int tracker_deal_server_list_one_group(struct fast_task_info *pTask)
 	memcpy(pDest->group_name, pGroup->group_name, FDFS_GROUP_NAME_MAX_LEN + 1);
 	long2buff(pGroup->total_mb, pDest->sz_total_mb);
 	long2buff(pGroup->free_mb, pDest->sz_free_mb);
+    long2buff(calc_reserved_space(pGroup->total_mb), pDest->sz_reserved_mb);
 	long2buff(pGroup->trunk_free_mb, pDest->sz_trunk_free_mb);
 	long2buff(pGroup->storage_count, pDest->sz_storage_count);
 	long2buff(pGroup->storage_port, pDest->sz_storage_port);
@@ -2965,6 +2980,8 @@ static int tracker_deal_server_list_all_groups(struct fast_task_info *pTask)
 				FDFS_GROUP_NAME_MAX_LEN + 1);
 		long2buff((*ppGroup)->total_mb, pDest->sz_total_mb);
 		long2buff((*ppGroup)->free_mb, pDest->sz_free_mb);
+        long2buff(calc_reserved_space((*ppGroup)->total_mb),
+                pDest->sz_reserved_mb);
 		long2buff((*ppGroup)->trunk_free_mb, pDest->sz_trunk_free_mb);
 		long2buff((*ppGroup)->storage_count, pDest->sz_storage_count);
 		long2buff((*ppGroup)->storage_port,

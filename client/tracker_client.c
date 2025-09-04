@@ -371,6 +371,7 @@ int tracker_list_servers(ConnectionInfo *pTrackerServer, \
 		pDest->up_time = buff2long(pSrc->sz_up_time);
 		pDest->total_mb = buff2long(pSrc->sz_total_mb);
 		pDest->free_mb = buff2long(pSrc->sz_free_mb);
+		pDest->reserved_mb = buff2long(pSrc->sz_reserved_mb);
 		pDest->upload_priority = buff2long(pSrc->sz_upload_priority);
 		pDest->store_path_count = buff2long(pSrc->sz_store_path_count);
 		pDest->subdir_count_per_path = buff2long( \
@@ -543,6 +544,7 @@ int tracker_list_one_group(ConnectionInfo *pTrackerServer, \
 	memcpy(pDest->group_name, src.group_name, FDFS_GROUP_NAME_MAX_LEN);
 	pDest->total_mb = buff2long(src.sz_total_mb);
 	pDest->free_mb = buff2long(src.sz_free_mb);
+    pDest->reserved_mb = buff2long(src.sz_reserved_mb);
 	pDest->trunk_free_mb = buff2long(src.sz_trunk_free_mb);
 	pDest->storage_count = buff2long(src.sz_storage_count);
 	pDest->storage_port = buff2long(src.sz_storage_port);
@@ -643,6 +645,7 @@ int tracker_list_groups(ConnectionInfo *pTrackerServer, \
 				FDFS_GROUP_NAME_MAX_LEN);
 		pDest->total_mb = buff2long(pSrc->sz_total_mb);
 		pDest->free_mb = buff2long(pSrc->sz_free_mb);
+		pDest->reserved_mb = buff2long(pSrc->sz_reserved_mb);
 		pDest->trunk_free_mb = buff2long(pSrc->sz_trunk_free_mb);
 		pDest->storage_count = buff2long(pSrc->sz_storage_count);
 		pDest->storage_port = buff2long(pSrc->sz_storage_port);
