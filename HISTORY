@@ -1,6 +1,7 @@
 
-Version 6.13.1  2025-09-04
+Version 6.13.1  2025-09-05
  * fdfs_monitor output reserved and available space
+ * ignore empty storage_stat.dat
 
 Version 6.13.0  2025-08-31
  * use libfastcommon V1.79 and libserverframe 1.2.8

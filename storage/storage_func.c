@@ -563,27 +563,43 @@ int storage_write_to_fd(int fd, get_filename_func filename_func, \
 static int storage_open_stat_file()
 {
 	char full_filename[MAX_PATH_SIZE];
+    struct stat buf;
 	IniContext iniContext;
 	int result;
 
 	get_storage_stat_filename(NULL, full_filename);
-	if (fileExists(full_filename))
+    if (stat(full_filename, &buf) != 0)
+    {
+        result = errno != 0 ? errno : EIO;
+        if (result == ENOENT)
+        {
+            buf.st_size = 0;
+        }
+        else
+        {
+            logError("file: "__FILE__", line: %d, "
+                    "stat file %s fail, "
+                    "errno: %d, error info: %s", __LINE__,
+                    full_filename, result, STRERROR(result));
+            return result;
+        }
+    }
+
+	if (buf.st_size > 0)
 	{
-		if ((result=iniLoadFromFile(full_filename, &iniContext)) \
-			 != 0)
+		if ((result=iniLoadFromFile(full_filename, &iniContext)) != 0)
 		{
-			logError("file: "__FILE__", line: %d, " \
-				"load from stat file \"%s\" fail, " \
-				"error code: %d", \
-				__LINE__, full_filename, result);
+			logError("file: "__FILE__", line: %d, "
+				"load from stat file \"%s\" fail, "
+				"error code: %d", __LINE__, full_filename, result);
 			return result;
 		}
 
 		if (iniContext.global.count < 12)
 		{
 			iniFreeContext(&iniContext);
-			logError("file: "__FILE__", line: %d, " \
-				"in stat file \"%s\", item count: %d < 12", \
+			logError("file: "__FILE__", line: %d, "
+				"in stat file \"%s\", item count: %d < 12",
 				__LINE__, full_filename, iniContext.global.count);
 			return ENOENT;
 		}
