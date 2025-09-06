@@ -281,19 +281,6 @@ typedef struct
     int create_time;
 } FDFSStorePathMarkInfo;
 
-
-static int storage_stat_fd = -1;
-
-/*
-static pthread_mutex_t fsync_thread_mutex;
-static pthread_cond_t fsync_thread_cond;
-static int fsync_thread_count = 0;
-*/
-
-static pthread_mutex_t sync_stat_file_lock;
-
-static int storage_open_stat_file();
-static int storage_close_stat_file();
 static int storage_make_data_dirs(const string_t *base_path, bool *pathCreated);
 static int storage_check_and_make_data_dirs();
 
@@ -311,7 +298,7 @@ static int storage_do_get_group_name(ConnectionInfo *pTrackerServer)
 	long2buff(4, pHeader->pkg_len);
     int2buff(SF_G_INNER_PORT, out_buff + sizeof(TrackerHeader));
 	pHeader->cmd = TRACKER_PROTO_CMD_STORAGE_GET_GROUP_NAME;
-	if ((result=tcpsenddata_nb(pTrackerServer->sock, out_buff, \
+	if ((result=tcpsenddata_nb(pTrackerServer->sock, out_buff,
 			sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
         format_ip_address(pTrackerServer->ip_addr, formatted_ip);
@@ -323,8 +310,8 @@ static int storage_do_get_group_name(ConnectionInfo *pTrackerServer)
 	}
 
 	pInBuff = g_group_name;
-	if ((result=fdfs_recv_response(pTrackerServer, \
-		&pInBuff, FDFS_GROUP_NAME_MAX_LEN, &in_bytes)) != 0)
+	if ((result=fdfs_recv_response(pTrackerServer, &pInBuff,
+                    FDFS_GROUP_NAME_MAX_LEN, &in_bytes)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, "
                 "fdfs_recv_response fail, result: %d",
@@ -497,83 +484,30 @@ static int tracker_get_my_server_id(const char *conf_filename,
 	return 0;
 }
 
-static char *get_storage_stat_filename(const void *pArg, char *full_filename)
+static inline char *get_storage_stat_filename(char *full_filename)
 {
-	static char buff[MAX_PATH_SIZE];
-
-	if (full_filename == NULL)
-	{
-		full_filename = buff;
-	}
-
     fc_get_one_subdir_full_filename_ex(SF_G_BASE_PATH_STR,
             SF_G_BASE_PATH_LEN, "data", 4,
             STORAGE_STAT_FILENAME_STR,
             STORAGE_STAT_FILENAME_LEN,
             full_filename, MAX_PATH_SIZE);
-	return full_filename;
+    return full_filename;
 }
 
-int storage_write_to_fd(int fd, get_filename_func filename_func, \
-		const void *pArg, const char *buff, const int len)
+static int load_from_stat_file()
 {
-	if (ftruncate(fd, 0) != 0)
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"truncate file \"%s\" to empty fail, " \
-			"error no: %d, error info: %s", \
-			__LINE__, filename_func(pArg, NULL), \
-			errno, STRERROR(errno));
-		return errno != 0 ? errno : ENOENT;
-	}
-
-	if (lseek(fd, 0, SEEK_SET) != 0)
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"rewind file \"%s\" to start fail, " \
-			"error no: %d, error info: %s", \
-			__LINE__, filename_func(pArg, NULL), \
-			errno, STRERROR(errno));
-		return errno != 0 ? errno : ENOENT;
-	}
-
-	if (fc_safe_write(fd, buff, len) != len)
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"write to file \"%s\" fail, " \
-			"error no: %d, error info: %s", \
-			__LINE__, filename_func(pArg, NULL), \
-			errno, STRERROR(errno));
-		return errno != 0 ? errno : ENOENT;
-	}
-
-	if (fsync(fd) != 0)
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"sync file \"%s\" to disk fail, " \
-			"error no: %d, error info: %s", \
-			__LINE__, filename_func(pArg, NULL), \
-			errno, STRERROR(errno));
-		return errno != 0 ? errno : ENOENT;
-	}
-
-	return 0;
-}
-
-static int storage_open_stat_file()
-{
-	char full_filename[MAX_PATH_SIZE];
+    char full_filename[MAX_PATH_SIZE];
     struct stat buf;
-	IniContext iniContext;
-	int result;
+    IniContext iniContext;
+    int result;
 
-	get_storage_stat_filename(NULL, full_filename);
+    get_storage_stat_filename(full_filename);
     if (stat(full_filename, &buf) != 0)
     {
         result = errno != 0 ? errno : EIO;
         if (result == ENOENT)
         {
-            buf.st_size = 0;
+            return 0;
         }
         else
         {
@@ -585,163 +519,118 @@ static int storage_open_stat_file()
         }
     }
 
-	if (buf.st_size > 0)
-	{
-		if ((result=iniLoadFromFile(full_filename, &iniContext)) != 0)
-		{
-			logError("file: "__FILE__", line: %d, "
-				"load from stat file \"%s\" fail, "
-				"error code: %d", __LINE__, full_filename, result);
-			return result;
-		}
+    if (buf.st_size == 0)
+    {
+        return 0;
+    }
 
-		if (iniContext.global.count < 12)
-		{
-			iniFreeContext(&iniContext);
-			logError("file: "__FILE__", line: %d, "
-				"in stat file \"%s\", item count: %d < 12",
-				__LINE__, full_filename, iniContext.global.count);
-			return ENOENT;
-		}
+    if ((result=iniLoadFromFile(full_filename, &iniContext)) != 0)
+    {
+        logError("file: "__FILE__", line: %d, "
+                "load from stat file \"%s\" fail, "
+                "error code: %d", __LINE__, full_filename, result);
+        return result;
+    }
 
-		g_storage_stat.total_upload_count = iniGetInt64Value(NULL, \
-				STAT_ITEM_TOTAL_UPLOAD_STR, &iniContext, 0);
-		g_storage_stat.success_upload_count = iniGetInt64Value(NULL, \
-				STAT_ITEM_SUCCESS_UPLOAD_STR, &iniContext, 0);
-		g_storage_stat.total_append_count = iniGetInt64Value(NULL, \
-				STAT_ITEM_TOTAL_APPEND_STR, &iniContext, 0);
-		g_storage_stat.success_append_count = iniGetInt64Value(NULL, \
-				STAT_ITEM_SUCCESS_APPEND_STR, &iniContext, 0);
-		g_storage_stat.total_modify_count = iniGetInt64Value(NULL, \
-				STAT_ITEM_TOTAL_MODIFY_STR, &iniContext, 0);
-		g_storage_stat.success_modify_count = iniGetInt64Value(NULL, \
-				STAT_ITEM_SUCCESS_MODIFY_STR, &iniContext, 0);
-		g_storage_stat.total_truncate_count = iniGetInt64Value(NULL, \
-				STAT_ITEM_TOTAL_TRUNCATE_STR, &iniContext, 0);
-		g_storage_stat.success_truncate_count = iniGetInt64Value(NULL, \
-				STAT_ITEM_SUCCESS_TRUNCATE_STR, &iniContext, 0);
-		g_storage_stat.total_download_count = iniGetInt64Value(NULL,  \
-				STAT_ITEM_TOTAL_DOWNLOAD_STR, &iniContext, 0);
-		g_storage_stat.success_download_count = iniGetInt64Value(NULL, \
-				STAT_ITEM_SUCCESS_DOWNLOAD_STR, &iniContext, 0);
-		g_storage_stat.last_source_update = iniGetIntValue(NULL, \
-				STAT_ITEM_LAST_SOURCE_UPD_STR, &iniContext, 0);
-		g_storage_stat.last_sync_update = iniGetIntValue(NULL, \
-				STAT_ITEM_LAST_SYNC_UPD_STR, &iniContext, 0);
-		g_storage_stat.total_set_meta_count = iniGetInt64Value(NULL, \
-				STAT_ITEM_TOTAL_SET_META_STR, &iniContext, 0);
-		g_storage_stat.success_set_meta_count = iniGetInt64Value(NULL, \
-				STAT_ITEM_SUCCESS_SET_META_STR, &iniContext, 0);
-		g_storage_stat.total_delete_count = iniGetInt64Value(NULL, \
-				STAT_ITEM_TOTAL_DELETE_STR, &iniContext, 0);
-		g_storage_stat.success_delete_count = iniGetInt64Value(NULL, \
-				STAT_ITEM_SUCCESS_DELETE_STR, &iniContext, 0);
-		g_storage_stat.total_get_meta_count = iniGetInt64Value(NULL, \
-				STAT_ITEM_TOTAL_GET_META_STR, &iniContext, 0);
-		g_storage_stat.success_get_meta_count = iniGetInt64Value(NULL, \
-				STAT_ITEM_SUCCESS_GET_META_STR, &iniContext, 0);
-		g_storage_stat.total_create_link_count = iniGetInt64Value(NULL, \
-				STAT_ITEM_TOTAL_CREATE_LINK_STR, &iniContext, 0);
-		g_storage_stat.success_create_link_count = iniGetInt64Value(NULL, \
-				STAT_ITEM_SUCCESS_CREATE_LINK_STR, &iniContext, 0);
-		g_storage_stat.total_delete_link_count = iniGetInt64Value(NULL, \
-				STAT_ITEM_TOTAL_DELETE_LINK_STR, &iniContext, 0);
-		g_storage_stat.success_delete_link_count = iniGetInt64Value(NULL, \
-				STAT_ITEM_SUCCESS_DELETE_LINK_STR, &iniContext, 0);
-		g_storage_stat.total_upload_bytes = iniGetInt64Value(NULL, \
-				STAT_ITEM_TOTAL_UPLOAD_BYTES_STR, &iniContext, 0);
-		g_storage_stat.success_upload_bytes = iniGetInt64Value(NULL, \
-				STAT_ITEM_SUCCESS_UPLOAD_BYTES_STR, &iniContext, 0);
-		g_storage_stat.total_append_bytes = iniGetInt64Value(NULL, \
-				STAT_ITEM_TOTAL_APPEND_BYTES_STR, &iniContext, 0);
-		g_storage_stat.success_append_bytes = iniGetInt64Value(NULL, \
-				STAT_ITEM_SUCCESS_APPEND_BYTES_STR, &iniContext, 0);
-		g_storage_stat.total_modify_bytes = iniGetInt64Value(NULL, \
-				STAT_ITEM_TOTAL_MODIFY_BYTES_STR, &iniContext, 0);
-		g_storage_stat.success_modify_bytes = iniGetInt64Value(NULL, \
-				STAT_ITEM_SUCCESS_MODIFY_BYTES_STR, &iniContext, 0);
-		g_storage_stat.total_download_bytes = iniGetInt64Value(NULL, \
-				STAT_ITEM_TOTAL_DOWNLOAD_BYTES_STR, &iniContext, 0);
-		g_storage_stat.success_download_bytes = iniGetInt64Value(NULL, \
-				STAT_ITEM_SUCCESS_DOWNLOAD_BYTES_STR, &iniContext, 0);
-		g_storage_stat.total_sync_in_bytes = iniGetInt64Value(NULL, \
-				STAT_ITEM_TOTAL_SYNC_IN_BYTES_STR, &iniContext, 0);
-		g_storage_stat.success_sync_in_bytes = iniGetInt64Value(NULL, \
-				STAT_ITEM_SUCCESS_SYNC_IN_BYTES_STR, &iniContext, 0);
-		g_storage_stat.total_sync_out_bytes = iniGetInt64Value(NULL, \
-				STAT_ITEM_TOTAL_SYNC_OUT_BYTES_STR, &iniContext, 0);
-		g_storage_stat.success_sync_out_bytes = iniGetInt64Value(NULL, \
-				STAT_ITEM_SUCCESS_SYNC_OUT_BYTES_STR, &iniContext, 0);
-		g_storage_stat.total_file_open_count = iniGetInt64Value(NULL, \
-				STAT_ITEM_TOTAL_FILE_OPEN_COUNT_STR, &iniContext, 0);
-		g_storage_stat.success_file_open_count = iniGetInt64Value(NULL, \
-				STAT_ITEM_SUCCESS_FILE_OPEN_COUNT_STR, &iniContext, 0);
-		g_storage_stat.total_file_read_count = iniGetInt64Value(NULL, \
-				STAT_ITEM_TOTAL_FILE_READ_COUNT_STR, &iniContext, 0);
-		g_storage_stat.success_file_read_count = iniGetInt64Value(NULL, \
-				STAT_ITEM_SUCCESS_FILE_READ_COUNT_STR, &iniContext, 0);
-		g_storage_stat.total_file_write_count = iniGetInt64Value(NULL, \
-				STAT_ITEM_TOTAL_FILE_WRITE_COUNT_STR, &iniContext, 0);
-		g_storage_stat.success_file_write_count = iniGetInt64Value(NULL, \
-				STAT_ITEM_SUCCESS_FILE_WRITE_COUNT_STR, &iniContext, 0);
-		g_dist_path_index_high = iniGetIntValue(NULL, \
-				STAT_ITEM_DIST_PATH_INDEX_HIGH_STR, &iniContext, 0);
-		g_dist_path_index_low = iniGetIntValue(NULL, \
-				STAT_ITEM_DIST_PATH_INDEX_LOW_STR, &iniContext, 0);
-		g_dist_write_file_count = iniGetIntValue(NULL, \
-				STAT_ITEM_DIST_WRITE_FILE_COUNT_STR, &iniContext, 0);
+    g_storage_stat.total_upload_count = iniGetInt64Value(NULL,
+            STAT_ITEM_TOTAL_UPLOAD_STR, &iniContext, 0);
+    g_storage_stat.success_upload_count = iniGetInt64Value(NULL,
+            STAT_ITEM_SUCCESS_UPLOAD_STR, &iniContext, 0);
+    g_storage_stat.total_append_count = iniGetInt64Value(NULL,
+            STAT_ITEM_TOTAL_APPEND_STR, &iniContext, 0);
+    g_storage_stat.success_append_count = iniGetInt64Value(NULL,
+            STAT_ITEM_SUCCESS_APPEND_STR, &iniContext, 0);
+    g_storage_stat.total_modify_count = iniGetInt64Value(NULL,
+            STAT_ITEM_TOTAL_MODIFY_STR, &iniContext, 0);
+    g_storage_stat.success_modify_count = iniGetInt64Value(NULL,
+            STAT_ITEM_SUCCESS_MODIFY_STR, &iniContext, 0);
+    g_storage_stat.total_truncate_count = iniGetInt64Value(NULL,
+            STAT_ITEM_TOTAL_TRUNCATE_STR, &iniContext, 0);
+    g_storage_stat.success_truncate_count = iniGetInt64Value(NULL,
+            STAT_ITEM_SUCCESS_TRUNCATE_STR, &iniContext, 0);
+    g_storage_stat.total_download_count = iniGetInt64Value(NULL,
+            STAT_ITEM_TOTAL_DOWNLOAD_STR, &iniContext, 0);
+    g_storage_stat.success_download_count = iniGetInt64Value(NULL,
+            STAT_ITEM_SUCCESS_DOWNLOAD_STR, &iniContext, 0);
+    g_storage_stat.last_source_update = iniGetIntValue(NULL,
+            STAT_ITEM_LAST_SOURCE_UPD_STR, &iniContext, 0);
+    g_storage_stat.last_sync_update = iniGetIntValue(NULL,
+            STAT_ITEM_LAST_SYNC_UPD_STR, &iniContext, 0);
+    g_storage_stat.total_set_meta_count = iniGetInt64Value(NULL,
+            STAT_ITEM_TOTAL_SET_META_STR, &iniContext, 0);
+    g_storage_stat.success_set_meta_count = iniGetInt64Value(NULL,
+            STAT_ITEM_SUCCESS_SET_META_STR, &iniContext, 0);
+    g_storage_stat.total_delete_count = iniGetInt64Value(NULL,
+            STAT_ITEM_TOTAL_DELETE_STR, &iniContext, 0);
+    g_storage_stat.success_delete_count = iniGetInt64Value(NULL,
+            STAT_ITEM_SUCCESS_DELETE_STR, &iniContext, 0);
+    g_storage_stat.total_get_meta_count = iniGetInt64Value(NULL,
+            STAT_ITEM_TOTAL_GET_META_STR, &iniContext, 0);
+    g_storage_stat.success_get_meta_count = iniGetInt64Value(NULL,
+            STAT_ITEM_SUCCESS_GET_META_STR, &iniContext, 0);
+    g_storage_stat.total_create_link_count = iniGetInt64Value(NULL,
+            STAT_ITEM_TOTAL_CREATE_LINK_STR, &iniContext, 0);
+    g_storage_stat.success_create_link_count = iniGetInt64Value(NULL,
+            STAT_ITEM_SUCCESS_CREATE_LINK_STR, &iniContext, 0);
+    g_storage_stat.total_delete_link_count = iniGetInt64Value(NULL,
+            STAT_ITEM_TOTAL_DELETE_LINK_STR, &iniContext, 0);
+    g_storage_stat.success_delete_link_count = iniGetInt64Value(NULL,
+            STAT_ITEM_SUCCESS_DELETE_LINK_STR, &iniContext, 0);
+    g_storage_stat.total_upload_bytes = iniGetInt64Value(NULL,
+            STAT_ITEM_TOTAL_UPLOAD_BYTES_STR, &iniContext, 0);
+    g_storage_stat.success_upload_bytes = iniGetInt64Value(NULL,
+            STAT_ITEM_SUCCESS_UPLOAD_BYTES_STR, &iniContext, 0);
+    g_storage_stat.total_append_bytes = iniGetInt64Value(NULL,
+            STAT_ITEM_TOTAL_APPEND_BYTES_STR, &iniContext, 0);
+    g_storage_stat.success_append_bytes = iniGetInt64Value(NULL,
+            STAT_ITEM_SUCCESS_APPEND_BYTES_STR, &iniContext, 0);
+    g_storage_stat.total_modify_bytes = iniGetInt64Value(NULL,
+            STAT_ITEM_TOTAL_MODIFY_BYTES_STR, &iniContext, 0);
+    g_storage_stat.success_modify_bytes = iniGetInt64Value(NULL,
+            STAT_ITEM_SUCCESS_MODIFY_BYTES_STR, &iniContext, 0);
+    g_storage_stat.total_download_bytes = iniGetInt64Value(NULL,
+            STAT_ITEM_TOTAL_DOWNLOAD_BYTES_STR, &iniContext, 0);
+    g_storage_stat.success_download_bytes = iniGetInt64Value(NULL,
+            STAT_ITEM_SUCCESS_DOWNLOAD_BYTES_STR, &iniContext, 0);
+    g_storage_stat.total_sync_in_bytes = iniGetInt64Value(NULL,
+            STAT_ITEM_TOTAL_SYNC_IN_BYTES_STR, &iniContext, 0);
+    g_storage_stat.success_sync_in_bytes = iniGetInt64Value(NULL,
+            STAT_ITEM_SUCCESS_SYNC_IN_BYTES_STR, &iniContext, 0);
+    g_storage_stat.total_sync_out_bytes = iniGetInt64Value(NULL,
+            STAT_ITEM_TOTAL_SYNC_OUT_BYTES_STR, &iniContext, 0);
+    g_storage_stat.success_sync_out_bytes = iniGetInt64Value(NULL,
+            STAT_ITEM_SUCCESS_SYNC_OUT_BYTES_STR, &iniContext, 0);
+    g_storage_stat.total_file_open_count = iniGetInt64Value(NULL,
+            STAT_ITEM_TOTAL_FILE_OPEN_COUNT_STR, &iniContext, 0);
+    g_storage_stat.success_file_open_count = iniGetInt64Value(NULL,
+            STAT_ITEM_SUCCESS_FILE_OPEN_COUNT_STR, &iniContext, 0);
+    g_storage_stat.total_file_read_count = iniGetInt64Value(NULL,
+            STAT_ITEM_TOTAL_FILE_READ_COUNT_STR, &iniContext, 0);
+    g_storage_stat.success_file_read_count = iniGetInt64Value(NULL,
+            STAT_ITEM_SUCCESS_FILE_READ_COUNT_STR, &iniContext, 0);
+    g_storage_stat.total_file_write_count = iniGetInt64Value(NULL,
+            STAT_ITEM_TOTAL_FILE_WRITE_COUNT_STR, &iniContext, 0);
+    g_storage_stat.success_file_write_count = iniGetInt64Value(NULL,
+            STAT_ITEM_SUCCESS_FILE_WRITE_COUNT_STR, &iniContext, 0);
+    g_dist_path_index_high = iniGetIntValue(NULL,
+            STAT_ITEM_DIST_PATH_INDEX_HIGH_STR, &iniContext, 0);
+    g_dist_path_index_low = iniGetIntValue(NULL,
+            STAT_ITEM_DIST_PATH_INDEX_LOW_STR, &iniContext, 0);
+    g_dist_write_file_count = iniGetIntValue(NULL,
+            STAT_ITEM_DIST_WRITE_FILE_COUNT_STR, &iniContext, 0);
 
-		iniFreeContext(&iniContext);
-	}
-	else
-	{
-		memset(&g_storage_stat, 0, sizeof(g_storage_stat));
-	}
-
-	storage_stat_fd = open(full_filename, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-	if (storage_stat_fd < 0)
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"open stat file \"%s\" fail, " \
-			"error no: %d, error info: %s", \
-			__LINE__, full_filename, errno, STRERROR(errno));
-		return errno != 0 ? errno : ENOENT;
-	}
-
-	if ((result=storage_write_to_stat_file()) != 0)
-	{
-		return result;
-	}
-
-	SF_FCHOWN_TO_RUNBY_RETURN_ON_ERROR(storage_stat_fd, full_filename);
-	return 0;
-}
-
-static int storage_close_stat_file()
-{
-	int result;
-
-	result = 0;
-	if (storage_stat_fd >= 0)
-	{
-		result = storage_write_to_stat_file();
-		if (close(storage_stat_fd) != 0)
-		{
-			result += errno != 0 ? errno : ENOENT;
-		}
-		storage_stat_fd = -1;
-	}
-
-	return result;
+    iniFreeContext(&iniContext);
+    return 0;
 }
 
 int storage_write_to_stat_file()
 {
+    static volatile int write_lock = 0;
+    char full_filename[MAX_PATH_SIZE];
     char buff[2048];
     char *p;
     int len;
     int result;
-    int write_ret;
 
     p = buff;
     memcpy(p, STAT_ITEM_TOTAL_UPLOAD_STR,
@@ -1046,26 +935,17 @@ int storage_write_to_stat_file()
     *p++ = '\n';
 
     len = p - buff;
-    if ((result=pthread_mutex_lock(&sync_stat_file_lock)) != 0)
+    get_storage_stat_filename(full_filename);
+    if (__sync_bool_compare_and_swap(&write_lock, 0, 1))
     {
-        logError("file: "__FILE__", line: %d, " \
-                "call pthread_mutex_lock fail, " \
-                "errno: %d, error info: %s", \
-                __LINE__, result, STRERROR(result));
+        result = safeWriteToFile(full_filename, buff, len);
+        __sync_bool_compare_and_swap(&write_lock, 1, 0);
+        return result;
     }
-
-    write_ret = storage_write_to_fd(storage_stat_fd, \
-            get_storage_stat_filename, NULL, buff, len);
-
-    if ((result=pthread_mutex_unlock(&sync_stat_file_lock)) != 0)
+    else
     {
-        logError("file: "__FILE__", line: %d, " \
-                "call pthread_mutex_unlock fail, " \
-                "errno: %d, error info: %s", \
-                __LINE__, result, STRERROR(result));
+        return 0;
     }
-
-    return write_ret;
 }
 
 int storage_write_to_sync_ini_file()
@@ -1980,7 +1860,7 @@ int storage_func_init(const char *filename)
 
 		g_subdir_count_per_path=iniGetIntValue(NULL, \
 				"subdir_count_per_path", &iniContext, \
-				DEFAULT_DATA_DIR_COUNT_PER_PATH);
+				FDFS_DEFAULT_DATA_DIR_COUNT_PER_PATH);
 		if (g_subdir_count_per_path <= 0 || \
 		    g_subdir_count_per_path > 256)
 		{
@@ -2147,7 +2027,7 @@ int storage_func_init(const char *filename)
 
 		g_disk_reader_threads = iniGetIntValue(NULL, \
 				"disk_reader_threads", \
-				&iniContext, DEFAULT_DISK_READER_THREADS);
+				&iniContext, FDFS_DEFAULT_DISK_READER_THREADS);
 		if (g_disk_reader_threads < 0)
 		{
 			logError("file: "__FILE__", line: %d, " \
@@ -2160,7 +2040,7 @@ int storage_func_init(const char *filename)
 
 		g_disk_writer_threads = iniGetIntValue(NULL, \
 				"disk_writer_threads", \
-				&iniContext, DEFAULT_DISK_WRITER_THREADS);
+				&iniContext, FDFS_DEFAULT_DISK_WRITER_THREADS);
 		if (g_disk_writer_threads < 0)
 		{
 			logError("file: "__FILE__", line: %d, " \
@@ -2263,10 +2143,10 @@ int storage_func_init(const char *filename)
 
 		g_sync_stat_file_interval = iniGetIntValue(NULL, \
 				"sync_stat_file_interval", &iniContext, \
-				DEFAULT_SYNC_STAT_FILE_INTERVAL);
+				FDFS_DEFAULT_SYNC_STAT_FILE_INTERVAL);
 		if (g_sync_stat_file_interval <= 0)
 		{
-			g_sync_stat_file_interval=DEFAULT_SYNC_STAT_FILE_INTERVAL;
+			g_sync_stat_file_interval=FDFS_DEFAULT_SYNC_STAT_FILE_INTERVAL;
 		}
 
 		if (SF_G_THREAD_STACK_SIZE < FAST_WRITE_BUFF_SIZE + 64 * 1024)
@@ -2281,7 +2161,7 @@ int storage_func_init(const char *filename)
 
 		g_upload_priority = iniGetIntValue(NULL, \
 				"upload_priority", &iniContext, \
-				DEFAULT_UPLOAD_PRIORITY);
+				FDFS_DEFAULT_UPLOAD_PRIORITY);
 
 		pIfAliasPrefix = iniGetStrValue(NULL, \
 			"if_alias_prefix", &iniContext);
@@ -2570,19 +2450,13 @@ int storage_func_init(const char *filename)
 		return result;
 	}
 
-	if ((result=init_pthread_lock(&sync_stat_file_lock)) != 0)
-	{
-		return result;
-	}
-
-	return storage_open_stat_file();
+	return load_from_stat_file();
 }
 
 int storage_func_destroy()
 {
 	int i;
 	int result;
-	int close_ret;
 
 	if (g_fdfs_store_paths.paths != NULL)
 	{
@@ -2606,23 +2480,14 @@ int storage_func_destroy()
 		g_tracker_group.server_index = 0;
 	}
 
-	close_ret = storage_close_stat_file();
+	result = storage_write_to_stat_file();
 
 	if (g_use_access_log)
 	{
 		log_destroy_ex(&g_access_log_context);
 	}
 
-	if ((result=pthread_mutex_destroy(&sync_stat_file_lock)) != 0)
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"call pthread_mutex_destroy fail, " \
-			"errno: %d, error info: %s", \
-			__LINE__, result, STRERROR(result));
-		return result;
-	}
-
-	return close_ret;
+	return result;
 }
 
 bool storage_server_is_myself(const FDFSStorageBrief *pStorageBrief)

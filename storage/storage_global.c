@@ -14,14 +14,14 @@
 #include "fastcommon/shared_func.h"
 #include "storage_global.h"
 
-int g_subdir_count_per_path = DEFAULT_DATA_DIR_COUNT_PER_PATH;
+int g_subdir_count_per_path = FDFS_DEFAULT_DATA_DIR_COUNT_PER_PATH;
 
 int g_last_server_port = 0;
 
 bool g_disk_rw_direct = false;
 bool g_disk_rw_separated = true;
-int g_disk_reader_threads = DEFAULT_DISK_READER_THREADS;
-int g_disk_writer_threads = DEFAULT_DISK_WRITER_THREADS;
+int g_disk_reader_threads = FDFS_DEFAULT_DISK_READER_THREADS;
+int g_disk_writer_threads = FDFS_DEFAULT_DISK_WRITER_THREADS;
 int g_disk_recovery_threads = 1;
 int g_extra_open_file_flags = 0;
 
@@ -48,7 +48,7 @@ TimeInfo g_sync_end_time = {23, 59};
 bool g_sync_part_time = false;
 int g_sync_binlog_buff_interval = SYNC_BINLOG_BUFF_DEF_INTERVAL;
 int g_write_mark_file_freq = FDFS_DEFAULT_SYNC_MARK_FILE_FREQ;
-int g_sync_stat_file_interval = DEFAULT_SYNC_STAT_FILE_INTERVAL;
+int g_sync_stat_file_interval = FDFS_DEFAULT_SYNC_STAT_FILE_INTERVAL;
 
 FDFSStorageStat g_storage_stat;
 int g_stat_change_count = 1;
@@ -94,7 +94,7 @@ bool g_check_store_path_mark = true;
 bool g_compress_binlog = false;
 TimeInfo g_compress_binlog_time = {0, 0};
 
-int g_upload_priority = DEFAULT_UPLOAD_PRIORITY;
+int g_upload_priority = FDFS_DEFAULT_UPLOAD_PRIORITY;
 
 #if defined(DEBUG_FLAG) && defined(OS_LINUX)
 char g_exe_name[256] = {0};
