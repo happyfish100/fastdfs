@@ -1741,7 +1741,8 @@ static int storage_load_paths(IniContext *pItemContext,
 
 void storage_set_access_log_header(struct log_context *pContext)
 {
-#define STORAGE_ACCESS_HEADER_STR "client_ip action filename status time_used_ms req_len resp_len"
+#define STORAGE_ACCESS_HEADER_STR "client_ip action filename "  \
+    "status time_used_ms req_len resp_len"
 #define STORAGE_ACCESS_HEADER_LEN (sizeof(STORAGE_ACCESS_HEADER_STR) - 1)
 
     log_header(pContext, STORAGE_ACCESS_HEADER_STR, STORAGE_ACCESS_HEADER_LEN);
