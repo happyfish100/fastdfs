@@ -1,4 +1,7 @@
 
+Version 6.13.2  2025-09-13
+ * use libfastcommon V1.80 and libserverframe 1.2.8
+
 Version 6.13.1  2025-09-06
  * fdfs_monitor output reserved and available space
  * write to storage_stat.dat more gracefully

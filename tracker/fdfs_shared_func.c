@@ -262,34 +262,58 @@ int fdfs_parse_storage_reserved_space(IniContext *pIniContext,
 const char *fdfs_storage_reserved_space_to_string(FDFSStorageReservedSpace
 			*pStorageReservedSpace, char *buff)
 {
-	if (pStorageReservedSpace->flag ==
-			TRACKER_STORAGE_RESERVED_SPACE_FLAG_MB)
-	{
-		sprintf(buff, "%"PRId64"MB", pStorageReservedSpace->rs.mb);
-	}
-	else
-	{
-		sprintf(buff, "%.2f%%", 100.00 * pStorageReservedSpace->rs.ratio);
-	}
+    int len;
+    char *p;
 
-	return buff;
+    if (pStorageReservedSpace->flag ==
+            TRACKER_STORAGE_RESERVED_SPACE_FLAG_MB)
+    {
+        len = fc_itoa(pStorageReservedSpace->rs.mb, buff);
+        p = buff + len;
+        *p++ = 'M';
+        *p++ = 'B';
+    }
+    else
+    {
+        len = fc_ftoa(100.00 * pStorageReservedSpace->rs.ratio, 2, buff);
+        p = buff + len;
+        *p++ = '%';
+    }
+
+    *p = '\0';
+    return buff;
 }
 
 const char *fdfs_storage_reserved_space_to_string_ex(const bool flag,
 	const int64_t space_mb, const int64_t total_mb,
     const double space_ratio, char *buff)
 {
-	if (flag == TRACKER_STORAGE_RESERVED_SPACE_FLAG_MB)
-	{
-		sprintf(buff, "%"PRId64" MB", space_mb);
-	}
-	else
-	{
-		sprintf(buff, "%"PRId64" MB(%.2f%%)", (int64_t)(total_mb * space_ratio),
-			 100.00 * space_ratio);
-	}
+    int len;
+    char *p;
 
-	return buff;
+    if (flag == TRACKER_STORAGE_RESERVED_SPACE_FLAG_MB)
+    {
+        len = fc_itoa(space_mb, buff);
+        p = buff + len;
+        *p++ = ' ';
+        *p++ = 'M';
+        *p++ = 'B';
+    }
+    else
+    {
+        len = fc_itoa((int64_t)(total_mb * space_ratio), buff);
+        p = buff + len;
+        *p++ = ' ';
+        *p++ = 'M';
+        *p++ = 'B';
+        *p++ = '(';
+        p += fc_ftoa(100.00 * space_ratio, 2, p);
+        *p++ = '%';
+        *p++ = ')';
+    }
+
+    *p = '\0';
+    return buff;
 }
 
 int64_t fdfs_get_storage_reserved_space_mb(const int64_t total_mb,
