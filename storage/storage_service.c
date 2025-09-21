@@ -1812,7 +1812,6 @@ int storage_service_init()
             sock_send_done_callback, storage_deal_task, sf_task_finish_clean_up,
             NULL, 1000, sizeof(TrackerHeader), sizeof(StorageClientInfo));
     sf_enable_thread_notify(false);
-    sf_set_remove_from_ready_list(false);
     free_queue_set_release_callback(&g_sf_context.
             free_queue, storage_clear_task);
 

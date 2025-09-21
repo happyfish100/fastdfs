@@ -23,10 +23,13 @@ fi
 
 if [ -f /usr/include/fastcommon/_os_define.h ]; then
   OS_BITS=$(grep -F OS_BITS /usr/include/fastcommon/_os_define.h | awk '{print $NF;}')
+  USE_URING=$(grep -F IOEVENT_USE_URING /usr/include/fastcommon/_os_define.h | awk '{print $NF;}')
 elif [ -f /usr/local/include/fastcommon/_os_define.h ]; then
   OS_BITS=$(grep -F OS_BITS /usr/local/include/fastcommon/_os_define.h | awk '{print $NF;}')
+  USE_URING=$(grep -F IOEVENT_USE_URING /usr/local/include/fastcommon/_os_define.h | awk '{print $NF;}')
 else
   OS_BITS=64
+  USE_URING=''
 fi
 
 uname=$(uname)
@@ -51,12 +54,15 @@ fi
 
 LIBS=''
 
-
 if [ "$uname" = "Linux" ]; then
   if [ "$OS_BITS" -eq 64 ]; then
     LIBS="$LIBS -L/usr/lib64"
   else
     LIBS="$LIBS -L/usr/lib"
+  fi
+
+  if [ -n "$USE_URING" ]; then
+    LIBS="$LIBS -luring"
   fi
   CFLAGS="$CFLAGS"
 elif [ "$uname" = "FreeBSD" ] || [ "$uname" = "Darwin" ]; then

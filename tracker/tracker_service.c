@@ -98,7 +98,6 @@ int tracker_service_init()
             tracker_deal_task, task_finish_clean_up, NULL, 1000,
             sizeof(TrackerHeader), sizeof(TrackerClientInfo));
     sf_enable_thread_notify(false);
-    sf_set_remove_from_ready_list(false);
     return result;
 }
 
