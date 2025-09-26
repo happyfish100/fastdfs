@@ -391,10 +391,10 @@ static void sigHupHandler(int sig)
 		g_log_context.rotate_immediately = true;
 	}
 
-	if (g_rotate_access_log)
-	{
-		g_access_log_context.rotate_immediately = true;
-	}
+	if (g_access_log_context.enabled)
+    {
+        g_access_log_context.log_ctx.rotate_immediately = true;
+    }
 
 	logInfo("file: "__FILE__", line: %d, " \
 		"catch signal %d, rotate log", __LINE__, sig);
@@ -456,33 +456,14 @@ static int setup_schedule_tasks()
 		scheduleArray.count++;
 	}
 
-	if (g_use_access_log)
-	{
-		INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
-			sched_generate_next_id(), TIME_NONE, TIME_NONE, TIME_NONE,
-			g_sf_global_vars.error_log.sync_log_buff_interval,
-            log_sync_func, &g_access_log_context);
-		scheduleArray.count++;
-
-		if (g_rotate_access_log)
-		{
-			INIT_SCHEDULE_ENTRY_EX(scheduleEntries[scheduleArray.count],
-				sched_generate_next_id(), g_access_log_rotate_time,
-				24 * 3600, log_notify_rotate, &g_access_log_context);
-			scheduleArray.count++;
-
-			if (g_sf_global_vars.error_log.keep_days > 0)
-			{
-				log_set_keep_days(&g_access_log_context,
-					g_sf_global_vars.error_log.keep_days);
-
-				INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],
-					sched_generate_next_id(), 1, 0, 0, 24 * 3600,
-					log_delete_old_files, &g_access_log_context);
-				scheduleArray.count++;
-			}
-		}
-	}
+	if (g_access_log_context.enabled)
+    {
+        ScheduleEntry *pScheduleEntry;
+        pScheduleEntry = scheduleEntries + scheduleArray.count;
+        pScheduleEntry = sf_logger_set_schedule_entries(&g_access_log_context.
+                log_ctx, &g_access_log_context.log_cfg, pScheduleEntry);
+        scheduleArray.count = pScheduleEntry - scheduleEntries;
+    }
 
 	if (g_compress_binlog)
 	{

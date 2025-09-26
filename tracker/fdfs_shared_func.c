@@ -443,20 +443,6 @@ void fdfs_connection_pool_destroy()
 	conn_pool_destroy(&g_connection_pool);
 }
 
-void fdfs_set_log_rotate_size(LogContext *pContext, const int64_t log_rotate_size)
-{
-	if (log_rotate_size > 0)
-	{
-		pContext->rotate_size = log_rotate_size;
-		log_set_rotate_time_format(pContext, "%Y%m%d_%H%M%S");
-	}
-	else
-	{
-		pContext->rotate_size = 0;
-		log_set_rotate_time_format(pContext, "%Y%m%d");
-	}
-}
-
 int fdfs_parse_server_info_ex(char *server_str, const int default_port,
         TrackerServerInfo *pServer, const bool resolve)
 {

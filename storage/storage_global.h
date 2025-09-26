@@ -17,6 +17,7 @@
 #include <time.h>
 #include "fastcommon/common_define.h"
 #include "fastcommon/local_ip_func.h"
+#include "sf/sf_types.h"
 #include "fdfs_define.h"
 #include "tracker_types.h"
 #include "client_global.h"
@@ -36,6 +37,12 @@
 
 #define STORAGE_FILE_SIGNATURE_METHOD_HASH  1
 #define STORAGE_FILE_SIGNATURE_METHOD_MD5   2
+
+typedef struct storage_access_log_context {
+    bool enabled;
+    SFLogConfig log_cfg;
+    LogContext log_ctx;
+} StorageAccessLogContext;
 
 #ifdef __cplusplus
 extern "C" {
@@ -91,18 +98,13 @@ extern char g_my_server_id_str[FDFS_STORAGE_ID_MAX_SIZE]; //my server id string
 extern FDFSMultiIP g_tracker_client_ip; //storage ip as tracker client
 extern FDFSMultiIP g_last_storage_ip;	//the last storage ip address
 
-extern LogContext g_access_log_context;
+extern StorageAccessLogContext g_access_log_context;
 
 extern in_addr_64_t g_server_id_in_filename;
 extern bool g_store_slave_file_use_link; //if store slave file use symbol link
 extern bool g_use_storage_id;  //identify storage by ID instead of IP address
 extern bool g_trust_storage_server_id;
 extern byte g_id_type_in_filename; //id type of the storage server in the filename
-extern bool g_use_access_log;  //if log to access log
-extern bool g_rotate_access_log;  //if rotate the access log every day
-extern bool g_compress_old_access_log; //if compress the old access log
-
-extern TimeInfo g_access_log_rotate_time; //rotate access log time base
 
 extern bool g_check_file_duplicate;  //if check file content duplicate
 extern byte g_file_signature_method; //file signature method
@@ -129,8 +131,6 @@ extern int g_upload_priority;
 #if defined(DEBUG_FLAG) && defined(OS_LINUX)
 extern char g_exe_name[256];
 #endif
-
-extern int g_compress_access_log_days_before;
 
 extern struct storage_dio_thread_data *g_dio_thread_data;  //disk io thread data
 

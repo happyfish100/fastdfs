@@ -63,8 +63,6 @@ int fdfs_connection_pool_init(const char *config_filename, \
 
 void fdfs_connection_pool_destroy();
 
-void fdfs_set_log_rotate_size(LogContext *pContext, const int64_t log_rotate_size);
-
 bool fdfs_server_contain(TrackerServerInfo *pServerInfo,
         const char *target_ip, const int target_port);
 

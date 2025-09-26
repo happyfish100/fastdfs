@@ -1810,6 +1810,21 @@ static int init_my_result_per_tracker()
     return 0;
 }
 
+static void access_log_config_to_string(char *output, const int size)
+{
+    int len;
+    char access_log_buff[256];
+
+    len = sprintf(access_log_buff, "enabled=%d", g_access_log_context.enabled);
+    if (!g_access_log_context.enabled) {
+        snprintf(output, size, "access-log: {%s}", access_log_buff);
+        return;
+    }
+
+    sf_log_config_to_string_ex(&g_access_log_context.log_cfg, "access-log",
+            access_log_buff, output, size);
+}
+
 int storage_func_init(const char *filename)
 {
     const int fixed_buffer_size = 0;
@@ -1818,15 +1833,15 @@ int storage_func_init(const char *filename)
 	char *pGroupName;
 	char *pFsyncAfterWrittenBytes;
 	char *pIfAliasPrefix;
-	char *pRotateAccessLogSize;
     char *server_id_in_conf;
 	IniContext iniContext;
+    IniFullContext full_ini_ctx;
     SFContextIniConfig config;
 	int result;
 	int64_t fsync_after_written_bytes;
-	int64_t rotate_access_log_size;
     char sz_global_config[512];
     char sz_service_config[128];
+    char access_log_config[256];
 
 	if ((result=iniLoadFromFile(filename, &iniContext)) != 0)
 	{
@@ -2219,7 +2234,7 @@ int storage_func_init(const char *filename)
 			memcpy(g_key_namespace, pKeyNamespace, g_namespace_len);
 			*(g_key_namespace + g_namespace_len) = '\0';
 
-			if ((result=fdht_load_groups(&iniContext, \
+			if ((result=fdht_load_groups(&iniContext,
 					&g_group_array)) != 0)
 			{
 				break;
@@ -2229,72 +2244,36 @@ int storage_func_init(const char *filename)
 					&iniContext, false);
 		}
 
-		g_use_access_log = iniGetBoolValue(NULL, "use_access_log",
-					&iniContext, false);
-		if (g_use_access_log)
-		{
-			result = log_init_ex(&g_access_log_context);
-			if (result != 0)
-			{
-				break;
-			}
-
-			log_set_time_precision(&g_access_log_context, \
-				LOG_TIME_PRECISION_MSECOND);
-			log_set_cache_ex(&g_access_log_context, true);
-			result = log_set_prefix_ex(&g_access_log_context, \
-				SF_G_BASE_PATH_STR, "storage_access");
-			if (result != 0)
-			{
-				break;
-			}
-            log_set_header_callback(&g_access_log_context, storage_set_access_log_header);
-		}
-	
-		g_rotate_access_log = iniGetBoolValue(NULL, "rotate_access_log",\
-					&iniContext, false);
-		if ((result=get_time_item_from_conf(&iniContext, \
-			"access_log_rotate_time", &g_access_log_rotate_time, \
-			0, 0)) != 0)
-		{
-			break;
-		}
-
-		g_compress_old_access_log = iniGetBoolValue(NULL,
-                "compress_old_access_log", &iniContext, false);
-		g_compress_access_log_days_before = iniGetIntValue(NULL,
-				"compress_access_log_days_before", &iniContext, 1);
-		if (g_use_access_log && g_compress_old_access_log)
+        FAST_INI_SET_FULL_CTX_EX(full_ini_ctx, filename,
+                "access-log", &iniContext);
+        g_access_log_context.enabled = iniGetBoolValue(full_ini_ctx.
+                section_name, "enabled", full_ini_ctx.context, false);
+		if (g_access_log_context.enabled)
         {
-            log_set_compress_log_flags_ex(&g_access_log_context,
-                    LOG_COMPRESS_FLAGS_ENABLED |
-                    LOG_COMPRESS_FLAGS_NEW_THREAD);
-            log_set_compress_log_days_before_ex(&g_access_log_context,
-                    g_compress_access_log_days_before);
-        }
+            if ((result=sf_load_log_config(&full_ini_ctx, &g_access_log_context.
+                            log_ctx, &g_access_log_context.log_cfg)) != 0)
+            {
+                return result;
+            }
 
-		pRotateAccessLogSize = iniGetStrValue(NULL, \
-			"rotate_access_log_size", &iniContext);
-		if (pRotateAccessLogSize == NULL)
-		{
-			rotate_access_log_size = 0;
-		}
-		else if ((result=parse_bytes(pRotateAccessLogSize, 1, \
-				&rotate_access_log_size)) != 0)
-		{
-			break;
-		}
-		if (rotate_access_log_size > 0 && \
-			rotate_access_log_size < FC_BYTES_ONE_MB)
-		{
-			logWarning("file: "__FILE__", line: %d, " \
-				"item \"rotate_access_log_size\": " \
-				"%"PRId64" is too small, " \
-				"change to 1 MB", __LINE__, \
-				rotate_access_log_size);
-			rotate_access_log_size = FC_BYTES_ONE_MB;
-		}
-		fdfs_set_log_rotate_size(&g_access_log_context, rotate_access_log_size);
+            result = log_init_ex(&g_access_log_context.log_ctx);
+            if (result != 0)
+            {
+                break;
+            }
+
+            log_set_time_precision(&g_access_log_context.log_ctx,
+                    LOG_TIME_PRECISION_MSECOND);
+            log_set_cache_ex(&g_access_log_context.log_ctx, true);
+            result = log_set_prefix_ex(&g_access_log_context.log_ctx,
+                    SF_G_BASE_PATH_STR, "storage_access");
+            if (result != 0)
+            {
+                break;
+            }
+            log_set_header_callback(&g_access_log_context.log_ctx,
+                    storage_set_access_log_header);
+        }
 
 		g_file_sync_skip_invalid_record = iniGetBoolValue(NULL, \
 			"file_sync_skip_invalid_record", &iniContext, false);
@@ -2321,6 +2300,9 @@ int storage_func_init(const char *filename)
         sf_context_config_to_string(&g_sf_context,
                 sz_service_config, sizeof(sz_service_config));
 
+        access_log_config_to_string(access_log_config,
+                sizeof(access_log_config));
+
 		logInfo("FastDFS v%d.%d.%d, %s, %s, store_path_count=%d, "
 			"subdir_count_per_path=%d, group_name=%s, client_bind=%d, "
             "disk_rw_separated=%d, disk_reader_threads=%d, "
@@ -2340,12 +2322,7 @@ int storage_func_init(const char *filename)
 			"check_file_duplicate=%d, file_signature_method=%s, "
 			"FDHT group count=%d, FDHT server count=%d, "
 			"FDHT key_namespace=%s, FDHT keep_alive=%d, "
-			"use_access_log=%d, rotate_access_log=%d, "
-			"access_log_rotate_time=%02d:%02d, "
-            "compress_old_access_log=%d, "
-            "compress_access_log_days_before=%d, "
-			"rotate_access_log_size=%"PRId64", "
-			"file_sync_skip_invalid_record=%d, "
+			"%s, file_sync_skip_invalid_record=%d, "
 			"use_connection_pool=%d, "
 			"g_connection_pool_max_idle_time=%ds, "
 			"compress_binlog=%d, "
@@ -2370,11 +2347,7 @@ int storage_func_init(const char *filename)
 			g_file_signature_method == STORAGE_FILE_SIGNATURE_METHOD_HASH
 				? "hash" : "md5",
 			g_group_array.group_count, g_group_array.server_count,
-			g_key_namespace, g_keep_alive, g_use_access_log,
-			g_rotate_access_log, g_access_log_rotate_time.hour,
-			g_access_log_rotate_time.minute, g_compress_old_access_log,
-            g_compress_access_log_days_before,
-			g_access_log_context.rotate_size,
+			g_key_namespace, g_keep_alive, access_log_config,
 			g_file_sync_skip_invalid_record,
 			g_use_connection_pool, g_connection_pool_max_idle_time,
             g_compress_binlog, g_compress_binlog_time.hour,
@@ -2483,9 +2456,9 @@ int storage_func_destroy()
 
 	result = storage_write_to_stat_file();
 
-	if (g_use_access_log)
+	if (g_access_log_context.enabled)
 	{
-		log_destroy_ex(&g_access_log_context);
+		log_destroy_ex(&g_access_log_context.log_ctx);
 	}
 
 	return result;

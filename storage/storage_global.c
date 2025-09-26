@@ -64,12 +64,8 @@ char g_my_server_id_str[FDFS_STORAGE_ID_MAX_SIZE] = {0}; //my server id string
 FDFSMultiIP g_tracker_client_ip = {0, 0}; //storage ip as tracker client
 FDFSMultiIP g_last_storage_ip = {0, 0};	  //the last storage ip address
 
-LogContext g_access_log_context = {LOG_INFO, STDERR_FILENO, NULL};
-
+StorageAccessLogContext g_access_log_context;
 in_addr_64_t g_server_id_in_filename = 0;
-bool g_use_access_log = false;    //if log to access log
-bool g_rotate_access_log = false; //if rotate the access log every day
-bool g_compress_old_access_log = false; //if compress the old access log
 bool g_use_storage_id = false;    //identify storage by ID instead of IP address
 bool g_trust_storage_server_id = false;
 byte g_id_type_in_filename = FDFS_ID_TYPE_IP_ADDRESS; //id type of the storage server in the filename
@@ -82,8 +78,6 @@ int g_namespace_len = 0;
 int g_allow_ip_count = 0;
 in_addr_64_t *g_allow_ip_addrs = NULL;
 StorageStatusPerTracker *g_my_report_status = NULL;  //returned by tracker server
-
-TimeInfo g_access_log_rotate_time = {0, 0}; //rotate access log time base
 
 bool g_client_bind_addr = true;
 bool g_storage_ip_changed_auto_adjust = false;
@@ -100,7 +94,6 @@ int g_upload_priority = FDFS_DEFAULT_UPLOAD_PRIORITY;
 char g_exe_name[256] = {0};
 #endif
 
-int g_compress_access_log_days_before = 0;
 struct storage_dio_thread_data *g_dio_thread_data = NULL;
 
 FDFSStorageIdInfo *g_my_storage_id_info = NULL;

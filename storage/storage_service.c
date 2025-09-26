@@ -304,7 +304,7 @@ static void storage_log_access_log(struct fast_task_info *pTask, \
     if (ip_len + action_len + pClientInfo->file_context.
             fname2log.len + 64 >= sizeof(buff))
     {
-        logAccess(&g_access_log_context, &(pClientInfo->file_context.
+        logAccess(&g_access_log_context.log_ctx, &(pClientInfo->file_context.
                     tv_deal_start), "%s %s %s %d %d %"PRId64" "
                 "%"PRId64, pTask->client_ip, action_str,
                 pClientInfo->file_context.fname2log.str, status, time_used_ms,
@@ -331,7 +331,7 @@ static void storage_log_access_log(struct fast_task_info *pTask, \
         *p++ = ' ';
         p += fc_itoa(pClientInfo->total_length, p);
         *p = '\0';
-        log_it_ex3(&g_access_log_context, &pClientInfo->file_context.
+        log_it_ex3(&g_access_log_context.log_ctx, &pClientInfo->file_context.
                 tv_deal_start, NULL, buff, p - buff, false, true);
     }
 }
@@ -339,7 +339,7 @@ static void storage_log_access_log(struct fast_task_info *pTask, \
 #define STORAGE_ACCESS_STRCPY_FNAME2LOG(filename, filename_len, pClientInfo) \
 	do \
 	{ \
-		if (g_use_access_log) \
+		if (g_access_log_context.enabled) \
 		{ \
 			if (filename_len < sizeof(pClientInfo-> \
 				file_context.fname2log.str)) \
@@ -364,7 +364,7 @@ static void storage_log_access_log(struct fast_task_info *pTask, \
 #define STORAGE_ACCESS_LOG(pTask, action_str, action_len, status) \
 	do \
 	{ \
-		if (g_use_access_log && (status != TASK_STATUS_CONTINUE)) \
+		if (g_access_log_context.enabled && (status != TASK_STATUS_CONTINUE)) \
 		{ \
 			storage_log_access_log(pTask, action_str, action_len, status); \
 		} \
@@ -4892,7 +4892,7 @@ static void calc_crc32_done_callback_for_regenerate(
                     p += FDFS_GROUP_NAME_MAX_LEN;
                     memcpy(p, logic_filename, logic_file_len);
 
-                    if (g_use_access_log)
+                    if (g_access_log_context.enabled)
                     {
                         int remain_size;
                         remain_size = sizeof(pFileContext->fname2log.str) -
@@ -5582,7 +5582,7 @@ static int storage_upload_slave_file(struct fast_task_info *pTask)
 		return result;
 	}
 
-	if (g_use_access_log)
+	if (g_access_log_context.enabled)
     {
         pFileContext->fname2log.len = storage_server_get_logic_filename(
                 store_path_index, filename, filename_len,
@@ -8398,7 +8398,7 @@ int fdfs_stat_file_sync_func(void *args)
 #define ACCESS_LOG_INIT_FIELDS() \
 	do \
 	{ \
-		if (g_use_access_log) \
+		if (g_access_log_context.enabled) \
 		{ \
 			*(pClientInfo->file_context.fname2log.str) = '-'; \
 			*(pClientInfo->file_context.fname2log.str+1)='\0';\
