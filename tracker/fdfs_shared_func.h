@@ -138,7 +138,7 @@ static inline int fdfs_parse_multi_ips(char *ip_str, FDFSMultiIP *ip_addrs,
             error_info, error_size, resolve);
 }
 
-int fdfs_get_ip_type(const char* ip);
+int fdfs_get_ip_type(const char *ip);
 
 int fdfs_check_server_ips(const TrackerServerInfo *pServer,
         char *error_info, const int error_size);
@@ -168,6 +168,8 @@ void fdfs_set_server_info_ex(TrackerServerInfo *pServer,
         const FDFSMultiIP *ip_addrs, const int port);
 
 char *fdfs_ip_to_shortcode(const char *ipAddr, char *shortCode);
+
+bool fdfs_multi_ips_contain_ipv6(const FDFSMultiIP *ip_addrs);
 
 #ifdef __cplusplus
 }

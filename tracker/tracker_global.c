@@ -48,6 +48,8 @@ int64_t g_trunk_create_file_space_threshold = 0;
 
 TrackerStatus g_tracker_last_status = {0, 0};
 
+int g_response_ip_addr_size = IPV6_ADDRESS_SIZE;
+
 #if defined(DEBUG_FLAG) && defined(OS_LINUX)
 char g_exe_name[256] = {0};
 #endif

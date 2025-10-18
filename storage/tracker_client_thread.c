@@ -1998,11 +1998,11 @@ static int tracker_sync_notify(ConnectionInfo *pTrackerServer, const int tracker
     return result;
 }
 
-int tracker_report_join(ConnectionInfo *pTrackerServer, \
-			const int tracker_index, const bool sync_old_done)
+int tracker_report_join(ConnectionInfo *pTrackerServer,
+        const int tracker_index, const bool sync_old_done)
 {
-	char out_buff[sizeof(TrackerHeader) + sizeof(TrackerStorageJoinBody) + \
-			FDFS_MAX_TRACKERS * FDFS_PROTO_MULTI_IP_PORT_SIZE];
+	char out_buff[sizeof(TrackerHeader) + sizeof(TrackerStorageJoinBody) +
+			FDFS_MAX_TRACKERS * FDFS_MAX_MULTI_IP_PORT_SIZE];
     char formatted_ip[FORMATTED_IP_SIZE];
 	TrackerHeader *pHeader;
 	TrackerStorageJoinBody *pReqBody;
@@ -2089,11 +2089,11 @@ int tracker_report_join(ConnectionInfo *pTrackerServer, \
 	p = out_buff + sizeof(TrackerHeader) + sizeof(TrackerStorageJoinBody);
 	pServerEnd = g_tracker_group.servers + g_tracker_group.server_count;
 	for (pServer=g_tracker_group.servers; pServer<pServerEnd; pServer++)
-	{
-        fdfs_server_info_to_string(pServer, p,
-                FDFS_PROTO_MULTI_IP_PORT_SIZE);
-		p += FDFS_PROTO_MULTI_IP_PORT_SIZE;
-	}
+    {
+        p += fdfs_server_info_to_string(pServer, p,
+                FDFS_MAX_MULTI_IP_PORT_SIZE);
+        *p++ = '\n';
+    }
 
 	out_len = p - out_buff;
 	long2buff(g_tracker_group.server_count, pReqBody->tracker_count);

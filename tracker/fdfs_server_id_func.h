@@ -116,6 +116,8 @@ int fdfs_get_storage_ids_from_tracker_group(TrackerServerGroup *pTrackerGroup);
 int fdfs_load_storage_ids_from_file(const char *config_filename,
 		IniContext *pItemContext);
 
+bool fdfs_storage_servers_contain_ipv6();
+
 static inline const char *fdfs_get_storage_rw_caption(
         const FDFSReadWriteMode rw_mode)
 {

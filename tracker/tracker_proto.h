@@ -110,13 +110,19 @@
 
 #define FDFS_PROTO_PKG_LEN_SIZE        8
 #define FDFS_PROTO_CMD_SIZE            1
-#define FDFS_PROTO_IP_PORT_SIZE        (IP_ADDRESS_SIZE + 6)
-#define FDFS_PROTO_MULTI_IP_PORT_SIZE  (2 * IP_ADDRESS_SIZE + 8)
 
-#define TRACKER_QUERY_STORAGE_FETCH_BODY_LEN	(FDFS_GROUP_NAME_MAX_LEN \
-			+ IP_ADDRESS_SIZE - 1 + FDFS_PROTO_PKG_LEN_SIZE)
-#define TRACKER_QUERY_STORAGE_STORE_BODY_LEN	(FDFS_GROUP_NAME_MAX_LEN \
-			+ IP_ADDRESS_SIZE - 1 + FDFS_PROTO_PKG_LEN_SIZE + 1)
+#define FDFS_MAX_IP_PORT_SIZE        (IPV6_ADDRESS_SIZE + 6)
+#define FDFS_MAX_MULTI_IP_PORT_SIZE  (2 * IPV6_ADDRESS_SIZE + 8)
+
+#define TRACKER_QUERY_STORAGE_FETCH_IPV4_BODY_LEN	(FDFS_GROUP_NAME_MAX_LEN \
+			+ IPV4_ADDRESS_SIZE - 1 + FDFS_PROTO_PKG_LEN_SIZE)
+#define TRACKER_QUERY_STORAGE_FETCH_IPV6_BODY_LEN	(FDFS_GROUP_NAME_MAX_LEN \
+			+ IPV6_ADDRESS_SIZE - 1 + FDFS_PROTO_PKG_LEN_SIZE)
+
+#define TRACKER_QUERY_STORAGE_STORE_IPV4_BODY_LEN	(FDFS_GROUP_NAME_MAX_LEN \
+			+ IPV4_ADDRESS_SIZE - 1 + FDFS_PROTO_PKG_LEN_SIZE + 1)
+#define TRACKER_QUERY_STORAGE_STORE_IPV6_BODY_LEN	(FDFS_GROUP_NAME_MAX_LEN \
+			+ IPV6_ADDRESS_SIZE - 1 + FDFS_PROTO_PKG_LEN_SIZE + 1)
 
 #define STORAGE_TRUNK_ALLOC_CONFIRM_REQ_BODY_LEN  (FDFS_GROUP_NAME_MAX_LEN \
 			+ sizeof(FDFSTrunkInfoBuff))
@@ -168,27 +174,31 @@ typedef struct
 	char sz_current_trunk_file_id[FDFS_PROTO_PKG_LEN_SIZE];
 } TrackerGroupStat;
 
-typedef struct
-{
-	char status;
-	char rw_mode;   //since v6.13
-	char id[FDFS_STORAGE_ID_MAX_SIZE];
-	char ip_addr[IP_ADDRESS_SIZE];
-	char src_id[FDFS_STORAGE_ID_MAX_SIZE];  //src storage id
-	char version[FDFS_VERSION_SIZE];
-	char sz_join_time[8];
-	char sz_up_time[8];
-	char sz_total_mb[8];
-	char sz_free_mb[8];
-	char sz_reserved_mb[8];  //since v6.13.1
-	char sz_upload_priority[8];
-	char sz_store_path_count[8];
-	char sz_subdir_count_per_path[8];
-	char sz_current_write_path[8];
-	char sz_storage_port[8];
-	FDFSStorageStatBuff stat_buff;
-	char if_trunk_server;
-} TrackerStorageStat;
+#define TRACKER_STORAGE_STAT_STRUCT(family, ip_size) \
+typedef struct \
+{ \
+	char status; \
+	char rw_mode;   /*since v6.13 */ \
+	char id[FDFS_STORAGE_ID_MAX_SIZE]; \
+	char ip_addr[ip_size]; \
+	char src_id[FDFS_STORAGE_ID_MAX_SIZE];  /* src storage id */ \
+	char version[FDFS_VERSION_SIZE]; \
+	char sz_join_time[8]; \
+	char sz_up_time[8];   \
+	char sz_total_mb[8];  \
+	char sz_free_mb[8];   \
+	char sz_reserved_mb[8];  /* since v6.13.1 */ \
+	char sz_upload_priority[8];  \
+	char sz_store_path_count[8]; \
+	char sz_subdir_count_per_path[8]; \
+	char sz_current_write_path[8];    \
+	char sz_storage_port[8];  \
+	FDFSStorageStatBuff stat_buff; \
+	char if_trunk_server; \
+} TrackerStorageStat##family
+
+TRACKER_STORAGE_STAT_STRUCT(IPv4, IPV4_ADDRESS_SIZE);
+TRACKER_STORAGE_STAT_STRUCT(IPv6, IPV6_ADDRESS_SIZE);
 
 typedef struct
 {

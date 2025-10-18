@@ -462,7 +462,6 @@ static int tracker_get_my_server_id(const char *conf_filename,
 	}
 	else
     {
-        // 当IP地址为IPv6时，其storage_id值为IP地址的short code
         if (is_ipv6_addr(g_tracker_client_ip.ips[0].address))
         {
             fdfs_ip_to_shortcode(g_tracker_client_ip.ips[0].address,
@@ -477,10 +476,10 @@ static int tracker_get_my_server_id(const char *conf_filename,
 
     fdfs_multi_ips_to_string(&g_tracker_client_ip,
             ip_str, sizeof(ip_str));
-	logInfo("file: "__FILE__", line: %d, "
-		"tracker_client_ip: %s, my_server_id_str: %s, "
-		"g_server_id_in_filename: %"PRIu64, __LINE__,
-		ip_str, g_my_server_id_str, g_server_id_in_filename);
+    logInfo("file: "__FILE__", line: %d, "
+            "tracker_client_ip: %s, my_server_id_str: %s, "
+            "g_server_id_in_filename: %"PRIu64, __LINE__,
+            ip_str, g_my_server_id_str, g_server_id_in_filename);
 	return 0;
 }
 
@@ -2316,6 +2315,7 @@ int storage_func_init(const char *filename)
 
         server_id_in_conf = iniGetStrValue(NULL,
                 "server_id", &iniContext);
+
         sf_global_config_to_string_ex("buff_size", sz_global_config,
                 sizeof(sz_global_config));
         sf_context_config_to_string(&g_sf_context,

@@ -70,6 +70,8 @@ extern int64_t g_trunk_create_file_space_threshold;
 
 extern TrackerStatus g_tracker_last_status;  //the status of last running
 
+extern int g_response_ip_addr_size;
+
 #if defined(DEBUG_FLAG) && defined(OS_LINUX)
 extern char g_exe_name[256];
 #endif

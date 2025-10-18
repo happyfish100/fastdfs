@@ -397,22 +397,28 @@ int storage_query_file_info_ex1(ConnectionInfo *pTrackerServer, \
 			group_name, filename, pFileInfo, bSilence);
 }
 
-int storage_query_file_info_ex(ConnectionInfo *pTrackerServer, \
-			ConnectionInfo *pStorageServer,  \
-			const char *group_name, const char *filename, \
+int storage_query_file_info_ex(ConnectionInfo *pTrackerServer,
+			ConnectionInfo *pStorageServer,
+			const char *group_name, const char *filename,
 			FDFSFileInfo *pFileInfo, const bool bSilence)
 {
+#define QUERY_FILE_INFO_IPV6_BODY_LEN   \
+    (3 * FDFS_PROTO_PKG_LEN_SIZE + IPV6_ADDRESS_SIZE)
+#define QUERY_FILE_INFO_IPV4_BODY_LEN   \
+    (3 * FDFS_PROTO_PKG_LEN_SIZE + IPV4_ADDRESS_SIZE)
+
 	TrackerHeader *pHeader;
 	int result;
 	ConnectionInfo storageServer;
 	char out_buff[sizeof(TrackerHeader)+FDFS_GROUP_NAME_MAX_LEN+128];
-	char in_buff[3 * FDFS_PROTO_PKG_LEN_SIZE + IP_ADDRESS_SIZE];
+	char in_buff[QUERY_FILE_INFO_IPV6_BODY_LEN];
     char formatted_ip[FORMATTED_IP_SIZE];
 	char buff[64];
 	int64_t in_bytes;
     int body_len;
 	int filename_len;
 	int buff_len;
+    int ip_size;
 	char *pInBuff;
 	char *p;
 	bool new_connection;
@@ -456,7 +462,7 @@ int storage_query_file_info_ex(ConnectionInfo *pTrackerServer, \
 	}
 
 	pInBuff = in_buff;
-	if ((result=fdfs_recv_response(pStorageServer, \
+	if ((result=fdfs_recv_response(pStorageServer,
 		&pInBuff, sizeof(in_buff), &in_bytes)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, "
@@ -465,14 +471,23 @@ int storage_query_file_info_ex(ConnectionInfo *pTrackerServer, \
 		break;
 	}
 
-	if (in_bytes != sizeof(in_buff))
+	if (in_bytes == QUERY_FILE_INFO_IPV4_BODY_LEN)
 	{
+        ip_size = IPV4_ADDRESS_SIZE;
+    }
+    else if (in_bytes == QUERY_FILE_INFO_IPV6_BODY_LEN)
+    {
+        ip_size = IPV6_ADDRESS_SIZE;
+    }
+    else
+    {
         format_ip_address(pStorageServer->ip_addr, formatted_ip);
 		logError("file: "__FILE__", line: %d, "
 			"recv data from storage server %s:%u fail, "
 			"recv bytes: %"PRId64" != %d", __LINE__, formatted_ip,
             pStorageServer->port, in_bytes, (int)sizeof(in_buff));
 		result = EINVAL;
+        break;
 	}
 
 	if (!g_base64_context_inited)
@@ -482,23 +497,23 @@ int storage_query_file_info_ex(ConnectionInfo *pTrackerServer, \
 	}
 
 	memset(buff, 0, sizeof(buff));
-	if (filename_len >= FDFS_LOGIC_FILE_PATH_LEN \
+	if (filename_len >= FDFS_LOGIC_FILE_PATH_LEN
 		+ FDFS_FILENAME_BASE64_LENGTH + FDFS_FILE_EXT_NAME_MAX_LEN + 1)
-	{
-		base64_decode_auto(&g_fdfs_base64_context, (char *)filename + \
-			FDFS_LOGIC_FILE_PATH_LEN, FDFS_FILENAME_BASE64_LENGTH, \
-			buff, &buff_len);
-	}
+    {
+        base64_decode_auto(&g_fdfs_base64_context, (char *)filename +
+                FDFS_LOGIC_FILE_PATH_LEN, FDFS_FILENAME_BASE64_LENGTH,
+                buff, &buff_len);
+    }
 
 	p = in_buff;
-        pFileInfo->file_size = buff2long(p);
+    pFileInfo->file_size = buff2long(p);
 	p += FDFS_PROTO_PKG_LEN_SIZE;
 	pFileInfo->create_timestamp = buff2long(p);
 	p += FDFS_PROTO_PKG_LEN_SIZE;
 	pFileInfo->crc32 = buff2long(p);
 	p += FDFS_PROTO_PKG_LEN_SIZE;
-	memcpy(pFileInfo->source_ip_addr, p, IP_ADDRESS_SIZE);
-	*(pFileInfo->source_ip_addr + IP_ADDRESS_SIZE - 1) = '\0';
+	memcpy(pFileInfo->source_ip_addr, p, ip_size);
+	*(pFileInfo->source_ip_addr + ip_size - 1) = '\0';
 	} while (0);
 
 	if (new_connection)
@@ -2273,11 +2288,11 @@ int fdfs_get_file_info_ex(const char *group_name, const char *remote_filename, \
 		}
 	}
 	else
-	{
-		pFileInfo->source_id = 0;
-		inet_ntop(AF_INET, &ip_addr, pFileInfo->source_ip_addr, \
-				IP_ADDRESS_SIZE);
-	}
+    {
+        pFileInfo->source_id = 0;
+        inet_ntop(AF_INET, &ip_addr, pFileInfo->source_ip_addr,
+                sizeof(pFileInfo->source_ip_addr));
+    }
 
 	pFileInfo->create_timestamp = buff2int(buff + sizeof(int));
 	pFileInfo->file_size = buff2long(buff + sizeof(int) * 2);

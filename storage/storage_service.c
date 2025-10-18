@@ -3395,7 +3395,7 @@ static int query_file_info_response(struct fast_task_info *pTask,
 	long2buff(crc32, p);
 	p += FDFS_PROTO_PKG_LEN_SIZE;
 
-	memset(p, 0, IP_ADDRESS_SIZE);
+	memset(p, 0, IPV6_ADDRESS_SIZE);
 	if (fdfs_get_server_id_type(finfo->storage_id) == FDFS_ID_TYPE_SERVER_ID)
 	{
 		if (g_use_storage_id)
@@ -3406,21 +3406,21 @@ static int query_file_info_response(struct fast_task_info *pTask,
             fc_ltostr(finfo->storage_id, id);
 			pStorageIdInfo = fdfs_get_storage_by_id(id);
 			if (pStorageIdInfo != NULL)
-			{
+            {
                 strcpy(p, fdfs_get_ipaddr_by_peer_ip(
                             &pStorageIdInfo->ip_addrs,
                             pTask->client_ip));
-			}
+            }
 		}
 	}
 	else
-	{
-		struct in_addr ip_addr;
-		memset(&ip_addr, 0, sizeof(ip_addr));
-		ip_addr.s_addr = finfo->storage_id;
-		inet_ntop(AF_INET, &ip_addr, p, IP_ADDRESS_SIZE);
-	}
-	p += IP_ADDRESS_SIZE;
+    {
+        struct in_addr ip_addr;
+        memset(&ip_addr, 0, sizeof(ip_addr));
+        ip_addr.s_addr = finfo->storage_id;
+        inet_ntop(AF_INET, &ip_addr, p, IPV4_ADDRESS_SIZE);
+    }
+	p += g_response_ip_addr_size;
 
 	((StorageClientInfo *)pTask->arg)->total_length = p - pTask->send.ptr->data;
     return 0;

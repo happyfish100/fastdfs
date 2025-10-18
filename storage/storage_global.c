@@ -96,6 +96,8 @@ TimeInfo g_compress_binlog_time = {0, 0};
 
 int g_upload_priority = FDFS_DEFAULT_UPLOAD_PRIORITY;
 
+int g_response_ip_addr_size = IPV6_ADDRESS_SIZE;
+
 #if defined(DEBUG_FLAG) && defined(OS_LINUX)
 char g_exe_name[256] = {0};
 #endif

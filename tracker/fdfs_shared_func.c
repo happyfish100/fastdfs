@@ -914,3 +914,27 @@ char *fdfs_ip_to_shortcode(const char *ipAddr, char *shortCode)
     return base64_encode(&g_fdfs_base64_context, (const char *)&crc64,
             sizeof(crc64), shortCode, &len);
 }
+
+bool fdfs_multi_ips_contain_ipv6(const FDFSMultiIP *ip_addrs)
+{
+    int i;
+
+    if (ip_addrs->count <= 0)
+    {
+        return false;
+    }
+    if (ip_addrs->count == 1)
+    {
+        return is_ipv6_addr(ip_addrs->ips[0].address);
+    }
+
+    for (i=0; i<ip_addrs->count; i++)
+    {
+        if (is_ipv6_addr(ip_addrs->ips[i].address))
+        {
+            return true;
+        }
+    }
+
+    return false;
+}

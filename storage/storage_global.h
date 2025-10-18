@@ -126,6 +126,8 @@ extern TimeInfo g_compress_binlog_time;  //compress binlog time base
 
 extern int g_upload_priority;
 
+extern int g_response_ip_addr_size;
+
 #if defined(DEBUG_FLAG) && defined(OS_LINUX)
 extern char g_exe_name[256];
 #endif
