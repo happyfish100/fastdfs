@@ -68,6 +68,8 @@ extern FDFSStorageServer *g_sorted_storages[FDFS_MAX_SERVERS_EACH_GROUP];
 extern int g_tracker_reporter_count;
 extern int g_heart_beat_interval;
 extern int g_stat_report_interval;
+extern int g_sync_min_threads;
+extern int g_sync_max_threads;
 extern int g_sync_wait_usec;
 extern int g_sync_interval; //unit: milliseconds
 extern TimeInfo g_sync_start_time;
