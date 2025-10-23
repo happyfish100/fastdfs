@@ -937,18 +937,15 @@ static int tracker_merge_servers(ConnectionInfo *pTrackerServer,
 
 			if (g_storage_count < FDFS_MAX_SERVERS_EACH_GROUP)
 			{
-				pInsertedServer = g_storage_servers + \
-						g_storage_count;
-				memcpy(&(pInsertedServer->server), \
+				pInsertedServer = g_storage_servers + g_storage_count;
+				memcpy(&(pInsertedServer->server),
 					pServer, sizeof(FDFSStorageBrief));
-				if (tracker_insert_into_sorted_servers( \
-						pInsertedServer))
-				{
-					g_storage_count++;
-
-					result = tracker_start_sync_threads( \
-						&(pInsertedServer->server));
-				}
+				if (tracker_insert_into_sorted_servers(pInsertedServer))
+                {
+                    g_storage_count++;
+                    result = tracker_start_sync_threads(
+                            &(pInsertedServer->server));
+                }
 				else
 				{
 					result = 0;

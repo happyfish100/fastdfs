@@ -86,8 +86,8 @@ int storage_binlog_write_ex(const time_t timestamp, const char op_type,
 		const char *filename_str, const int filename_len,
         const char *extra_str, const int extra_len);
 
-int storage_binlog_read(StorageBinLogReader *pReader, \
-			StorageBinLogRecord *pRecord, int *record_length);
+int storage_binlog_read(StorageBinLogReader *pReader,
+        StorageBinLogRecord *pRecord, int *record_length);
 
 int storage_sync_thread_start(const FDFSStorageBrief *pStorage);
 int kill_storage_sync_threads();

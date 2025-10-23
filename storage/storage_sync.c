@@ -26,6 +26,8 @@
 #include "fastcommon/sched_thread.h"
 #include "fastcommon/ini_file_reader.h"
 #include "fastcommon/fc_atomic.h"
+#include "fastcommon/thread_pool.h"
+#include "sf/sf_func.h"
 #include "fdfs_define.h"
 #include "fdfs_global.h"
 #include "tracker_types.h"
@@ -109,19 +111,60 @@
 
 int g_binlog_fd = -1;
 int g_binlog_index = 0;
-static int64_t binlog_file_size = 0;
-static int binlog_compress_index = 0;
 
-volatile int g_storage_sync_thread_count = 0;
-static pthread_mutex_t sync_thread_lock;
-static char *binlog_write_cache_buff = NULL;
-static int binlog_write_cache_len = 0;
-static int binlog_write_version = 1;
+volatile int g_storage_sync_thread_count;
 
-/* save sync thread ids */
-static pthread_t *sync_tids = NULL;
+struct storage_dispatch_context;
+typedef struct {
+    int result;
+    int record_len;
+    int binlog_index;
+    int64_t binlog_offset;
+    int64_t scan_row_count;
+    struct storage_dispatch_context *dispatch_ctx;
+    ConnectionInfo storage_server;
+    StorageBinLogRecord record;
+} StorageSyncTaskInfo;
 
-static struct fc_list_head reader_head;
+typedef struct {
+    StorageSyncTaskInfo *tasks;
+    StorageSyncTaskInfo *end;
+    int count;
+} StorageSyncTaskArray;
+
+typedef struct storage_dispatch_context {
+    int last_binlog_index;
+    int64_t last_binlog_offset;
+    int64_t scan_row_count;
+    StorageSyncTaskArray task_array;
+    SFSynchronizeContext notify_ctx;
+    StorageBinLogReader *pReader;
+} StorageDispatchContext;
+
+static struct {
+    int64_t binlog_file_size;
+    int binlog_compress_index;
+
+    char *binlog_write_cache_buff;
+    int binlog_write_cache_len;
+    int binlog_write_version;
+
+    /* save sync thread ids */
+    pthread_t *tids;
+
+    pthread_mutex_t lock;
+
+    struct fc_list_head reader_head;
+    FCThreadPool thread_pool;
+} storage_sync_ctx = {0, 0, NULL, 0, 1, NULL};
+
+#define BINLOG_WRITE_CACHE_BUFF  storage_sync_ctx.binlog_write_cache_buff
+#define BINLOG_WRITE_CACHE_LEN   storage_sync_ctx.binlog_write_cache_len
+#define BINLOG_WRITE_VERSION     storage_sync_ctx.binlog_write_version
+#define STORAGE_SYNC_TIDS        storage_sync_ctx.tids
+#define SYNC_THREAD_LOCK         storage_sync_ctx.lock
+#define SYNC_READER_HEAD         storage_sync_ctx.reader_head
+#define SYNC_THREAD_POOL         storage_sync_ctx.thread_pool
 
 static int storage_write_to_mark_file(StorageBinLogReader *pReader);
 static int storage_binlog_reader_skip(StorageBinLogReader *pReader);
@@ -136,8 +179,8 @@ FDFS_GROUP_NAME_MAX_LEN bytes: group_name
 filename bytes : filename
 file size bytes: file content
 **/
-static int storage_sync_copy_file(ConnectionInfo *pStorageServer, \
-	StorageBinLogReader *pReader, const StorageBinLogRecord *pRecord, \
+static int storage_sync_copy_file(ConnectionInfo *pStorageServer,
+	StorageBinLogReader *pReader, const StorageBinLogRecord *pRecord,
 	char proto_cmd)
 {
 	TrackerHeader *pHeader;
@@ -184,12 +227,12 @@ static int storage_sync_copy_file(ConnectionInfo *pStorageServer, \
 	}
 
 	need_sync_file = true;
-	if (pReader->last_file_exist && proto_cmd == \
+	if (pReader->last_file_exist && proto_cmd ==
 			STORAGE_PROTO_CMD_SYNC_CREATE_FILE)
 	{
 		FDFSFileInfo file_info;
-		result = storage_query_file_info_ex(NULL, \
-				pStorageServer, g_group_name, \
+		result = storage_query_file_info_ex(NULL,
+				pStorageServer, g_group_name,
 				pRecord->filename, &file_info, true);
 		if (result == 0)
 		{
@@ -290,9 +333,9 @@ static int storage_sync_copy_file(ConnectionInfo *pStorageServer, \
 			break;
 		}
 
-		if (need_sync_file && (stat_buf.st_size > 0) && \
-			((result=tcpsendfile_ex(pStorageServer->sock, \
-			full_filename, file_offset, stat_buf.st_size, \
+		if (need_sync_file && (stat_buf.st_size > 0) &&
+			((result=tcpsendfile_ex(pStorageServer->sock,
+			full_filename, file_offset, stat_buf.st_size,
 			SF_G_NETWORK_TIMEOUT, &total_send_bytes)) != 0))
 		{
             format_ip_address(pStorageServer->ip_addr, formatted_ip);
@@ -304,7 +347,7 @@ static int storage_sync_copy_file(ConnectionInfo *pStorageServer, \
 		}
 
 		pBuff = in_buff;
-		if ((result=fdfs_recv_response(pStorageServer, \
+		if ((result=fdfs_recv_response(pStorageServer,
 			&pBuff, 0, &in_bytes)) != 0)
 		{
             logError("file: "__FILE__", line: %d, "
@@ -325,7 +368,7 @@ static int storage_sync_copy_file(ConnectionInfo *pStorageServer, \
 	if (result == EEXIST)
 	{
 		if (need_sync_file && pRecord->op_type ==
-			STORAGE_OP_TYPE_SOURCE_CREATE_FILE)
+                STORAGE_OP_TYPE_SOURCE_CREATE_FILE)
 		{
             format_ip_address(pStorageServer->ip_addr, formatted_ip);
 			logWarning("file: "__FILE__", line: %d, "
@@ -863,10 +906,10 @@ static int storage_sync_link_file(ConnectionInfo *pStorageServer, \
 	}
 	else if (IS_TRUNK_FILE_BY_ID(trunkInfo))
 	{
-		result = trunk_file_get_content(&trunkInfo, \
-                	stat_buf.st_size, &fd, pRecord->src_filename, \
-			sizeof(pRecord->src_filename));
-		close(fd);
+        result = trunk_file_get_content(&trunkInfo,
+                stat_buf.st_size, &fd, pRecord->src_filename,
+                sizeof(pRecord->src_filename));
+        close(fd);
 
 		if (result != 0)
 		{
@@ -1050,9 +1093,8 @@ static int storage_sync_rename_file(ConnectionInfo *pStorageServer,
 
     if (pRecord->op_type == STORAGE_OP_TYPE_REPLICA_RENAME_FILE)
     {
-        return storage_sync_copy_file(pStorageServer,
-                pReader, pRecord,
-                STORAGE_PROTO_CMD_SYNC_CREATE_FILE);
+        return storage_sync_copy_file(pStorageServer, pReader,
+                pRecord, STORAGE_PROTO_CMD_SYNC_CREATE_FILE);
     }
 
     fc_get_one_subdir_full_filename(
@@ -1122,9 +1164,8 @@ static int storage_sync_rename_file(ConnectionInfo *pStorageServer,
     {
         if (result == ENOENT)
         {
-            return storage_sync_copy_file(pStorageServer,
-                    pReader, pRecord,
-                    STORAGE_PROTO_CMD_SYNC_CREATE_FILE);
+            return storage_sync_copy_file(pStorageServer, pReader,
+                    pRecord, STORAGE_PROTO_CMD_SYNC_CREATE_FILE);
         }
         else if (result == EEXIST)
         {
@@ -1148,92 +1189,110 @@ static int storage_sync_rename_file(ConnectionInfo *pStorageServer,
 	return result;
 }
 
-#define STARAGE_CHECK_IF_NEED_SYNC_OLD(pReader, pRecord) \
-	if ((!pReader->need_sync_old) || pReader->sync_old_done || \
-		(pRecord->timestamp > pReader->until_timestamp)) \
-	{ \
-		return 0; \
-	} \
+static int storage_check_need_sync(StorageBinLogReader *pReader,
+			StorageBinLogRecord *pRecord)
+{
+    switch(pRecord->op_type) {
+        case STORAGE_OP_TYPE_SOURCE_CREATE_FILE:
+        case STORAGE_OP_TYPE_SOURCE_DELETE_FILE:
+        case STORAGE_OP_TYPE_SOURCE_UPDATE_FILE:
+        case STORAGE_OP_TYPE_SOURCE_APPEND_FILE:
+        case STORAGE_OP_TYPE_SOURCE_MODIFY_FILE:
+        case STORAGE_OP_TYPE_SOURCE_TRUNCATE_FILE:
+        case STORAGE_OP_TYPE_SOURCE_RENAME_FILE:
+        case STORAGE_OP_TYPE_SOURCE_CREATE_LINK:
+            return 0;
+        case STORAGE_OP_TYPE_REPLICA_CREATE_FILE:
+        case STORAGE_OP_TYPE_REPLICA_DELETE_FILE:
+        case STORAGE_OP_TYPE_REPLICA_UPDATE_FILE:
+        case STORAGE_OP_TYPE_REPLICA_CREATE_LINK:
+        case STORAGE_OP_TYPE_REPLICA_RENAME_FILE:
+            if ((!pReader->need_sync_old) || pReader->sync_old_done ||
+                    (pRecord->timestamp > pReader->until_timestamp))
+            {
+                return EALREADY;
+            } else {
+                return 0;
+            }
+        case STORAGE_OP_TYPE_REPLICA_APPEND_FILE:
+        case STORAGE_OP_TYPE_REPLICA_MODIFY_FILE:
+        case STORAGE_OP_TYPE_REPLICA_TRUNCATE_FILE:
+            return EALREADY;
+        default:
+            logError("file: "__FILE__", line: %d, " \
+                    "invalid file operation type: %d", \
+                    __LINE__, pRecord->op_type);
+            return EINVAL;
+    }
+}
 
-static int storage_sync_data(StorageBinLogReader *pReader, \
-			ConnectionInfo *pStorageServer, \
+static int storage_sync_data(StorageBinLogReader *pReader,
+			ConnectionInfo *pStorageServer,
 			StorageBinLogRecord *pRecord)
 {
 	int result;
 	switch(pRecord->op_type)
 	{
 		case STORAGE_OP_TYPE_SOURCE_CREATE_FILE:
-			result = storage_sync_copy_file(pStorageServer, \
-					pReader, pRecord, \
-					STORAGE_PROTO_CMD_SYNC_CREATE_FILE);
+			result = storage_sync_copy_file(pStorageServer, pReader,
+                    pRecord, STORAGE_PROTO_CMD_SYNC_CREATE_FILE);
 			break;
 		case STORAGE_OP_TYPE_SOURCE_DELETE_FILE:
-			result = storage_sync_delete_file( \
-					pStorageServer, pRecord);
+			result = storage_sync_delete_file(pStorageServer, pRecord);
 			break;
 		case STORAGE_OP_TYPE_SOURCE_UPDATE_FILE:
-			result = storage_sync_copy_file(pStorageServer, \
-					pReader, pRecord, \
-					STORAGE_PROTO_CMD_SYNC_UPDATE_FILE);
+			result = storage_sync_copy_file(pStorageServer, pReader,
+                    pRecord, STORAGE_PROTO_CMD_SYNC_UPDATE_FILE);
 			break;
 		case STORAGE_OP_TYPE_SOURCE_APPEND_FILE:
-			result = storage_sync_modify_file(pStorageServer, \
-					pReader, pRecord, \
-					STORAGE_PROTO_CMD_SYNC_APPEND_FILE);
+			result = storage_sync_modify_file(pStorageServer, pReader,
+                    pRecord, STORAGE_PROTO_CMD_SYNC_APPEND_FILE);
 			if (result == ENOENT)  //resync appender file
 			{
-			result = storage_sync_copy_file(pStorageServer, \
-					pReader, pRecord, \
-					STORAGE_PROTO_CMD_SYNC_UPDATE_FILE);
+			result = storage_sync_copy_file(pStorageServer, pReader,
+                    pRecord, STORAGE_PROTO_CMD_SYNC_UPDATE_FILE);
 			}
 			break;
 		case STORAGE_OP_TYPE_SOURCE_MODIFY_FILE:
-			result = storage_sync_modify_file(pStorageServer, \
-					pReader, pRecord, \
-					STORAGE_PROTO_CMD_SYNC_MODIFY_FILE);
+			result = storage_sync_modify_file(pStorageServer, pReader,
+                    pRecord, STORAGE_PROTO_CMD_SYNC_MODIFY_FILE);
 			if (result == ENOENT)  //resync appender file
 			{
-			result = storage_sync_copy_file(pStorageServer, \
-					pReader, pRecord, \
-					STORAGE_PROTO_CMD_SYNC_UPDATE_FILE);
+			result = storage_sync_copy_file(pStorageServer, pReader,
+                    pRecord, STORAGE_PROTO_CMD_SYNC_UPDATE_FILE);
 			}
 			break;
 		case STORAGE_OP_TYPE_SOURCE_TRUNCATE_FILE:
-			result = storage_sync_truncate_file(pStorageServer, \
-					pReader, pRecord);
+			result = storage_sync_truncate_file(pStorageServer,
+                    pReader, pRecord);
 			break;
 		case STORAGE_OP_TYPE_SOURCE_RENAME_FILE:
 			result = storage_sync_rename_file(pStorageServer,
 					pReader, pRecord);
 			break;
 		case STORAGE_OP_TYPE_SOURCE_CREATE_LINK:
-			result = storage_sync_link_file(pStorageServer, \
+			result = storage_sync_link_file(pStorageServer,
 					pRecord);
 			break;
 		case STORAGE_OP_TYPE_REPLICA_CREATE_FILE:
-			STARAGE_CHECK_IF_NEED_SYNC_OLD(pReader, pRecord)
 			result = storage_sync_copy_file(pStorageServer, \
 					pReader, pRecord, \
 					STORAGE_PROTO_CMD_SYNC_CREATE_FILE);
 			break;
 		case STORAGE_OP_TYPE_REPLICA_DELETE_FILE:
-			STARAGE_CHECK_IF_NEED_SYNC_OLD(pReader, pRecord)
 			result = storage_sync_delete_file( \
 					pStorageServer, pRecord);
 			break;
 		case STORAGE_OP_TYPE_REPLICA_UPDATE_FILE:
-			STARAGE_CHECK_IF_NEED_SYNC_OLD(pReader, pRecord)
 			result = storage_sync_copy_file(pStorageServer, \
 					pReader, pRecord, \
 					STORAGE_PROTO_CMD_SYNC_UPDATE_FILE);
 			break;
 		case STORAGE_OP_TYPE_REPLICA_CREATE_LINK:
-			STARAGE_CHECK_IF_NEED_SYNC_OLD(pReader, pRecord)
 			result = storage_sync_link_file(pStorageServer, \
 					pRecord);
 			break;
         case STORAGE_OP_TYPE_REPLICA_RENAME_FILE:
-			STARAGE_CHECK_IF_NEED_SYNC_OLD(pReader, pRecord)
 			result = storage_sync_rename_file(pStorageServer,
 					pReader, pRecord);
 			break;
@@ -1244,31 +1303,102 @@ static int storage_sync_data(StorageBinLogReader *pReader, \
 		case STORAGE_OP_TYPE_REPLICA_TRUNCATE_FILE:
 			return 0;
 		default:
-			logError("file: "__FILE__", line: %d, " \
-				"invalid file operation type: %d", \
+			logError("file: "__FILE__", line: %d, "
+				"invalid file operation type: %d",
 				__LINE__, pRecord->op_type);
 			return EINVAL;
 	}
 
-	if (result == 0)
-	{
-		pReader->sync_row_count++;
-
-		if (pReader->sync_row_count - pReader->last_sync_rows >= \
-			g_write_mark_file_freq)
-		{
-			if ((result=storage_write_to_mark_file(pReader)) != 0)
-			{
-				logCrit("file: "__FILE__", line: %d, " \
-					"storage_write_to_mark_file " \
-					"fail, program exit!", __LINE__);
-				SF_G_CONTINUE_FLAG = false;
-				return result;
-			}
-		}
-	}
-
 	return result;
+}
+
+static void sync_data_func(StorageSyncTaskInfo *task, void *thread_data)
+{
+    //TODO check and make connection
+
+    task->result = storage_sync_data(task->dispatch_ctx->pReader,
+            &task->storage_server, &task->record);
+    sf_synchronize_counter_notify(&task->dispatch_ctx->notify_ctx, 1);
+}
+
+static int storage_batch_sync_data(StorageDispatchContext *dispatch_ctx)
+{
+    int result;
+    int sync_row_count;
+    StorageSyncTaskInfo *task;
+    StorageSyncTaskInfo *end;
+
+    if (dispatch_ctx->task_array.count == 1) {
+        task = dispatch_ctx->task_array.tasks;
+        if ((result=storage_sync_data(dispatch_ctx->pReader, &task->
+                        storage_server, &task->record)) == 0)
+        {
+            sync_row_count = 1;
+        } else {
+            dispatch_ctx->last_binlog_index = task->binlog_index;
+            dispatch_ctx->last_binlog_offset = task->binlog_offset;
+            dispatch_ctx->scan_row_count = 0;
+            sync_row_count = 0;
+        }
+    } else {
+        dispatch_ctx->notify_ctx.waiting_count = dispatch_ctx->task_array.count;
+        end = dispatch_ctx->task_array.tasks + dispatch_ctx->task_array.count;
+        for (task=dispatch_ctx->task_array.tasks; task<end; task++) {
+            if ((result=fc_thread_pool_run(&SYNC_THREAD_POOL,
+                            (fc_thread_pool_callback)sync_data_func,
+                            task)) != 0)
+            {
+                logCrit("file: "__FILE__", line: %d, "
+                        "fc_thread_pool_run fail, error info: %s, "
+                        "program exit!", __LINE__, STRERROR(result));
+                SF_G_CONTINUE_FLAG = false;
+                return result;
+            }
+        }
+
+        sf_synchronize_counter_wait(&dispatch_ctx->notify_ctx);
+        if (!SF_G_CONTINUE_FLAG) {
+            return EINTR;
+        }
+
+        sync_row_count = 0;
+        result = 0;
+        for (task=dispatch_ctx->task_array.tasks; task<end; task++) {
+            if (task->result == 0) {
+                ++sync_row_count;
+            } else {
+                result = task->result;
+                dispatch_ctx->last_binlog_index = task->binlog_index;
+                dispatch_ctx->last_binlog_offset = task->binlog_offset;
+
+                end = task;
+                dispatch_ctx->scan_row_count = 0;
+                for (task=dispatch_ctx->task_array.tasks; task<end; task++) {
+                    dispatch_ctx->scan_row_count += task->scan_row_count;
+                }
+                break;
+            }
+        }
+    }
+
+    if (sync_row_count > 0) {
+        dispatch_ctx->pReader->sync_row_count += sync_row_count;
+        if (dispatch_ctx->pReader->sync_row_count - dispatch_ctx->
+                pReader->last_sync_rows >= g_write_mark_file_freq)
+        {
+            if ((result=storage_write_to_mark_file(dispatch_ctx->
+                            pReader)) != 0)
+            {
+                logCrit("file: "__FILE__", line: %d, "
+                        "storage_write_to_mark_file "
+                        "fail, program exit!", __LINE__);
+                SF_G_CONTINUE_FLAG = false;
+                return result;
+            }
+        }
+    }
+
+    return result;
 }
 
 static int write_to_binlog_index(const int binlog_index)
@@ -1307,7 +1437,7 @@ static int write_to_binlog_index(const int binlog_index)
             BINLOG_INDEX_ITEM_CURRENT_COMPRESS_LEN);
     p += BINLOG_INDEX_ITEM_CURRENT_COMPRESS_LEN;
     *p++ = '=';
-    p += fc_itoa(binlog_compress_index, p);
+    p += fc_itoa(storage_sync_ctx.binlog_compress_index, p);
     *p++ = '\n';
 	len = p - buff;
 	if (fc_safe_write(fd, buff, len) != len)
@@ -1412,7 +1542,7 @@ static int get_binlog_index_from_file()
     g_binlog_index = iniGetIntValue(NULL,
             BINLOG_INDEX_ITEM_CURRENT_WRITE_STR,
             &iniContext, 0);
-    binlog_compress_index = iniGetIntValue(NULL,
+    storage_sync_ctx.binlog_compress_index = iniGetIntValue(NULL,
             BINLOG_INDEX_ITEM_CURRENT_COMPRESS_STR,
             &iniContext, 0);
 
@@ -1533,10 +1663,12 @@ static int open_next_writable_binlog()
 
 int storage_sync_init()
 {
+    const int max_idle_time = 300;
 	char data_path[MAX_PATH_SIZE];
 	char sync_path[MAX_PATH_SIZE];
 	char full_filename[MAX_PATH_SIZE];
     int path_len;
+    int limit;
 	int result;
 
     path_len = fc_get_full_filepath(SF_G_BASE_PATH_STR,
@@ -1574,13 +1706,13 @@ int storage_sync_init()
 		SF_CHOWN_TO_RUNBY_RETURN_ON_ERROR(sync_path);
 	}
 
-	binlog_write_cache_buff = (char *)malloc(SYNC_BINLOG_WRITE_BUFF_SIZE);
-	if (binlog_write_cache_buff == NULL)
+	BINLOG_WRITE_CACHE_BUFF = (char *)malloc(
+            SYNC_BINLOG_WRITE_BUFF_SIZE);
+	if (BINLOG_WRITE_CACHE_BUFF == NULL)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"malloc %d bytes fail, " \
-			"errno: %d, error info: %s", \
-			__LINE__, SYNC_BINLOG_WRITE_BUFF_SIZE, \
+		logError("file: "__FILE__", line: %d, "
+			"malloc %d bytes fail, errno: %d, error info: %s",
+			__LINE__, SYNC_BINLOG_WRITE_BUFF_SIZE,
 			errno, STRERROR(errno));
 		return errno != 0 ? errno : ENOMEM;
 	}
@@ -1594,22 +1726,18 @@ int storage_sync_init()
 	g_binlog_fd = open(full_filename, O_WRONLY | O_CREAT | O_APPEND, 0644);
 	if (g_binlog_fd < 0)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"open file \"%s\" fail, " \
-			"errno: %d, error info: %s", \
-			__LINE__, full_filename, \
-			errno, STRERROR(errno));
+		logError("file: "__FILE__", line: %d, "
+			"open file \"%s\" fail, errno: %d, error info: %s",
+			__LINE__, full_filename, errno, STRERROR(errno));
 		return errno != 0 ? errno : EACCES;
 	}
 
-	binlog_file_size = lseek(g_binlog_fd, 0, SEEK_END);
-	if (binlog_file_size < 0)
+	storage_sync_ctx.binlog_file_size = lseek(g_binlog_fd, 0, SEEK_END);
+	if (storage_sync_ctx.binlog_file_size < 0)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"ftell file \"%s\" fail, " \
-			"errno: %d, error info: %s", \
-			__LINE__, full_filename, \
-			errno, STRERROR(errno));
+		logError("file: "__FILE__", line: %d, "
+			"ftell file \"%s\" fail, errno: %d, error info: %s",
+			__LINE__, full_filename, errno, STRERROR(errno));
 		storage_sync_destroy();
 		return errno != 0 ? errno : EIO;
 	}
@@ -1618,17 +1746,25 @@ int storage_sync_init()
 
 	/*
 	//printf("full_filename=%s, binlog_file_size=%d\n", \
-			full_filename, binlog_file_size);
+			full_filename, storage_sync_ctx.binlog_file_size);
 	*/
 	
-	if ((result=init_pthread_lock(&sync_thread_lock)) != 0)
+	if ((result=init_pthread_lock(&SYNC_THREAD_LOCK)) != 0)
 	{
 		return result;
 	}
 
+    limit = g_sync_max_threads * FDFS_MAX_SERVERS_EACH_GROUP;
+    if ((result=fc_thread_pool_init(&SYNC_THREAD_POOL, "storage-sync-pool",
+                    limit, SF_G_THREAD_STACK_SIZE, max_idle_time,
+                    g_sync_min_threads, (bool *)&SF_G_CONTINUE_FLAG)) != 0)
+    {
+        return result;
+    }
+
 	load_local_host_ip_addrs();
 
-    FC_INIT_LIST_HEAD(&reader_head);
+    FC_INIT_LIST_HEAD(&SYNC_READER_HEAD);
 
 	return 0;
 }
@@ -1644,11 +1780,11 @@ int storage_sync_destroy()
 		g_binlog_fd = -1;
 	}
 
-	if (binlog_write_cache_buff != NULL)
+	if (BINLOG_WRITE_CACHE_BUFF != NULL)
 	{
-		free(binlog_write_cache_buff);
-		binlog_write_cache_buff = NULL;
-		if ((result=pthread_mutex_destroy(&sync_thread_lock)) != 0)
+		free(BINLOG_WRITE_CACHE_BUFF);
+		BINLOG_WRITE_CACHE_BUFF = NULL;
+		if ((result=pthread_mutex_destroy(&SYNC_THREAD_LOCK)) != 0)
 		{
 			logError("file: "__FILE__", line: %d, " \
 				"call pthread_mutex_destroy fail, " \
@@ -1666,12 +1802,12 @@ int kill_storage_sync_threads()
 	int result;
 	int kill_res;
 
-	if (sync_tids == NULL)
+	if (STORAGE_SYNC_TIDS == NULL)
 	{
 		return 0;
 	}
 
-	if ((result=pthread_mutex_lock(&sync_thread_lock)) != 0)
+	if ((result=pthread_mutex_lock(&SYNC_THREAD_LOCK)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"call pthread_mutex_lock fail, " \
@@ -1679,10 +1815,10 @@ int kill_storage_sync_threads()
 			__LINE__, result, STRERROR(result));
 	}
 
-	kill_res = kill_work_threads(sync_tids, FC_ATOMIC_GET(
+	kill_res = kill_work_threads(STORAGE_SYNC_TIDS, FC_ATOMIC_GET(
                 g_storage_sync_thread_count));
 
-	if ((result=pthread_mutex_unlock(&sync_thread_lock)) != 0)
+	if ((result=pthread_mutex_unlock(&SYNC_THREAD_LOCK)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"call pthread_mutex_unlock fail, " \
@@ -1700,7 +1836,7 @@ int kill_storage_sync_threads()
 
 int fdfs_binlog_sync_func(void *args)
 {
-	if (binlog_write_cache_len > 0)
+	if (BINLOG_WRITE_CACHE_LEN > 0)
 	{
 		return storage_binlog_fsync(true);
 	}
@@ -1715,7 +1851,7 @@ static int storage_binlog_fsync(const bool bNeedLock)
 	int result;
 	int write_ret;
 
-	if (bNeedLock && (result=pthread_mutex_lock(&sync_thread_lock)) != 0)
+	if (bNeedLock && (result=pthread_mutex_lock(&SYNC_THREAD_LOCK)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"call pthread_mutex_lock fail, " \
@@ -1723,12 +1859,12 @@ static int storage_binlog_fsync(const bool bNeedLock)
 			__LINE__, result, STRERROR(result));
 	}
 
-	if (binlog_write_cache_len == 0) //ignore
+	if (BINLOG_WRITE_CACHE_LEN == 0) //ignore
 	{
 		write_ret = 0;  //skip
 	}
-	else if (fc_safe_write(g_binlog_fd, binlog_write_cache_buff, \
-		binlog_write_cache_len) != binlog_write_cache_len)
+	else if (fc_safe_write(g_binlog_fd, BINLOG_WRITE_CACHE_BUFF,
+		BINLOG_WRITE_CACHE_LEN) != BINLOG_WRITE_CACHE_LEN)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"write to binlog file \"%s\" fail, fd=%d, " \
@@ -1748,8 +1884,8 @@ static int storage_binlog_fsync(const bool bNeedLock)
 	}
 	else
 	{
-		binlog_file_size += binlog_write_cache_len;
-		if (binlog_file_size >= SYNC_BINLOG_FILE_MAX_SIZE)
+		storage_sync_ctx.binlog_file_size += BINLOG_WRITE_CACHE_LEN;
+		if (storage_sync_ctx.binlog_file_size >= SYNC_BINLOG_FILE_MAX_SIZE)
 		{
 			if ((write_ret=write_to_binlog_index( \
 				g_binlog_index + 1)) == 0)
@@ -1757,7 +1893,7 @@ static int storage_binlog_fsync(const bool bNeedLock)
 				write_ret = open_next_writable_binlog();
 			}
 
-			binlog_file_size = 0;
+			storage_sync_ctx.binlog_file_size = 0;
 			if (write_ret != 0)
 			{
 				SF_G_CONTINUE_FLAG = false;
@@ -1774,10 +1910,10 @@ static int storage_binlog_fsync(const bool bNeedLock)
 		}
 	}
 
-	binlog_write_version++;
-	binlog_write_cache_len = 0;  //reset cache buff
+	BINLOG_WRITE_VERSION++;
+	BINLOG_WRITE_CACHE_LEN = 0;  //reset cache buff
 
-	if (bNeedLock && (result=pthread_mutex_unlock(&sync_thread_lock)) != 0)
+	if (bNeedLock && (result=pthread_mutex_unlock(&SYNC_THREAD_LOCK)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"call pthread_mutex_unlock fail, " \
@@ -1796,7 +1932,7 @@ int storage_binlog_write_ex(const time_t timestamp, const char op_type,
 	int write_ret;
     char *p;
 
-	if ((result=pthread_mutex_lock(&sync_thread_lock)) != 0)
+	if ((result=pthread_mutex_lock(&SYNC_THREAD_LOCK)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"call pthread_mutex_lock fail, " \
@@ -1804,7 +1940,7 @@ int storage_binlog_write_ex(const time_t timestamp, const char op_type,
 			__LINE__, result, STRERROR(result));
 	}
 
-    p = binlog_write_cache_buff + binlog_write_cache_len;
+    p = BINLOG_WRITE_CACHE_BUFF + BINLOG_WRITE_CACHE_LEN;
     p += fc_itoa(timestamp, p);
     *p++ = ' ';
     *p++ = op_type;
@@ -1818,10 +1954,10 @@ int storage_binlog_write_ex(const time_t timestamp, const char op_type,
         p += extra_len;
     }
     *p++ = '\n';
-    binlog_write_cache_len = p - binlog_write_cache_buff;
+    BINLOG_WRITE_CACHE_LEN = p - BINLOG_WRITE_CACHE_BUFF;
 
 	//check if buff full
-	if (SYNC_BINLOG_WRITE_BUFF_SIZE - binlog_write_cache_len < 256)
+	if (SYNC_BINLOG_WRITE_BUFF_SIZE - BINLOG_WRITE_CACHE_LEN < 256)
 	{
 		write_ret = storage_binlog_fsync(false);  //sync to disk
 	}
@@ -1830,7 +1966,7 @@ int storage_binlog_write_ex(const time_t timestamp, const char op_type,
 		write_ret = 0;
 	}
 
-	if ((result=pthread_mutex_unlock(&sync_thread_lock)) != 0)
+	if ((result=pthread_mutex_unlock(&SYNC_THREAD_LOCK)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"call pthread_mutex_unlock fail, " \
@@ -1955,9 +2091,9 @@ static int uncompress_binlog_file(StorageBinLogReader *pReader,
 
     if (access(filename, F_OK) == 0)
     {
-        if (pReader->binlog_index < binlog_compress_index)
+        if (pReader->binlog_index < storage_sync_ctx.binlog_compress_index)
         {
-            binlog_compress_index = pReader->binlog_index;
+            storage_sync_ctx.binlog_compress_index = pReader->binlog_index;
             write_to_binlog_index(g_binlog_index);
         }
     }
@@ -2697,24 +2833,26 @@ static int storage_write_to_mark_file(StorageBinLogReader *pReader)
 	return result;
 }
 
-static int rewind_to_prev_rec_end(StorageBinLogReader *pReader)
+static int rewind_to_prev_rec_end_ex(StorageBinLogReader *pReader,
+        const int64_t binlog_offset)
 {
-	if (lseek(pReader->binlog_fd, pReader->binlog_offset, SEEK_SET) < 0)
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"seek binlog file \"%s\"fail, " \
-			"file offset: %"PRId64", " \
-			"errno: %d, error info: %s", \
-			__LINE__, get_binlog_readable_filename(pReader, NULL), \
-			pReader->binlog_offset, \
-			errno, STRERROR(errno));
-		return errno != 0 ? errno : ENOENT;
-	}
+    if (lseek(pReader->binlog_fd, binlog_offset, SEEK_SET) < 0) {
+        logError("file: "__FILE__", line: %d, "
+                "seek binlog file \"%s\"fail, file offset: %"PRId64", "
+                "errno: %d, error info: %s", __LINE__,
+                get_binlog_readable_filename(pReader, NULL),
+                binlog_offset, errno, STRERROR(errno));
+        return errno != 0 ? errno : ENOENT;
+    }
 
-	pReader->binlog_buff.current = pReader->binlog_buff.buffer;
-	pReader->binlog_buff.length = 0;
+    pReader->binlog_buff.current = pReader->binlog_buff.buffer;
+    pReader->binlog_buff.length = 0;
+    return 0;
+}
 
-	return 0;
+static inline int rewind_to_prev_rec_end(StorageBinLogReader *pReader)
+{
+    return rewind_to_prev_rec_end_ex(pReader, pReader->binlog_offset);
 }
 
 static int storage_binlog_preread(StorageBinLogReader *pReader)
@@ -2722,29 +2860,29 @@ static int storage_binlog_preread(StorageBinLogReader *pReader)
 	int bytes_read;
 	int saved_binlog_write_version;
 
-	if (pReader->binlog_buff.version == binlog_write_version &&
+	if (pReader->binlog_buff.version == BINLOG_WRITE_VERSION &&
 		pReader->binlog_buff.length == 0)
 	{
 		return ENOENT;
 	}
 
-	saved_binlog_write_version = binlog_write_version;
+	saved_binlog_write_version = BINLOG_WRITE_VERSION;
 	if (pReader->binlog_buff.current != pReader->binlog_buff.buffer)
 	{
 		if (pReader->binlog_buff.length > 0)
 		{
-			memcpy(pReader->binlog_buff.buffer, \
-				pReader->binlog_buff.current, \
+			memcpy(pReader->binlog_buff.buffer,
+				pReader->binlog_buff.current,
 				pReader->binlog_buff.length);
 		}
 
 		pReader->binlog_buff.current = pReader->binlog_buff.buffer;
 	}
 
-	bytes_read = fc_safe_read(pReader->binlog_fd, pReader->binlog_buff.buffer \
-		+ pReader->binlog_buff.length, \
-		STORAGE_BINLOG_BUFFER_SIZE - pReader->binlog_buff.length);
-	if (bytes_read < 0)
+    bytes_read = fc_safe_read(pReader->binlog_fd,
+            pReader->binlog_buff.buffer + pReader->binlog_buff.length,
+            STORAGE_BINLOG_BUFFER_SIZE - pReader->binlog_buff.length);
+    if (bytes_read < 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"read from binlog file \"%s\" fail, " \
@@ -2765,7 +2903,7 @@ static int storage_binlog_preread(StorageBinLogReader *pReader)
 	return 0;
 }
 
-static int storage_binlog_do_line_read(StorageBinLogReader *pReader, \
+static int storage_binlog_do_line_read(StorageBinLogReader *pReader,
 		char *line, const int line_size, int *line_length)
 {
 	char *pLineEnd;
@@ -2776,7 +2914,7 @@ static int storage_binlog_do_line_read(StorageBinLogReader *pReader, \
 		return ENOENT;
 	}
 
-	pLineEnd = (char *)memchr(pReader->binlog_buff.current, '\n', \
+	pLineEnd = (char *)memchr(pReader->binlog_buff.current, '\n',
 			pReader->binlog_buff.length);
 	if (pLineEnd == NULL)
 	{
@@ -2802,7 +2940,6 @@ static int storage_binlog_do_line_read(StorageBinLogReader *pReader, \
 
 	pReader->binlog_buff.current = pLineEnd + 1;
 	pReader->binlog_buff.length -= *line_length;
-
 	return 0;
 }
 
@@ -2811,7 +2948,7 @@ static int storage_binlog_read_line(StorageBinLogReader *pReader, \
 {
 	int result;
 
-	result = storage_binlog_do_line_read(pReader, line, \
+	result = storage_binlog_do_line_read(pReader, line,
 			line_size, line_length);
 	if (result != ENOENT)
 	{
@@ -2824,12 +2961,12 @@ static int storage_binlog_read_line(StorageBinLogReader *pReader, \
 		return result;
 	}
 
-	return storage_binlog_do_line_read(pReader, line, \
+	return storage_binlog_do_line_read(pReader, line,
 			line_size, line_length);
 }
 
-int storage_binlog_read(StorageBinLogReader *pReader, \
-			StorageBinLogRecord *pRecord, int *record_length)
+int storage_binlog_read(StorageBinLogReader *pReader,
+        StorageBinLogRecord *pRecord, int *record_length)
 {
 	char line[STORAGE_BINLOG_LINE_SIZE];
 	char *cols[3];
@@ -2837,7 +2974,7 @@ int storage_binlog_read(StorageBinLogReader *pReader, \
 
 	while (1)
 	{
-		result = storage_binlog_read_line(pReader, line, \
+		result = storage_binlog_read_line(pReader, line,
 				sizeof(line), record_length);
 		if (result == 0)
 		{
@@ -2966,7 +3103,7 @@ static int storage_binlog_reader_skip(StorageBinLogReader *pReader)
 
 	while (1)
 	{
-		result = storage_binlog_read(pReader, \
+		result = storage_binlog_read(pReader,
 				&record, &record_len);
 		if (result != 0)
 		{
@@ -2996,6 +3133,176 @@ static int storage_binlog_reader_skip(StorageBinLogReader *pReader)
 	}
 
 	return result;
+}
+
+static inline int storage_check_conflict(
+        StorageSyncTaskInfo *start,
+        StorageSyncTaskInfo *last)
+{
+    StorageSyncTaskInfo *task;
+
+    for (task=start; task<last; task++) {
+        /* check filename */
+        if (fc_string_equals_ex(task->record.filename,
+                    task->record.filename_len,
+                    last->record.filename,
+                    last->record.filename_len))
+        {
+            return EBUSY;
+        }
+
+        if (fc_string_equals_ex(task->record.src_filename,
+                    task->record.src_filename_len,
+                    last->record.filename,
+                    last->record.filename_len))
+        {
+            return EBUSY;
+        }
+
+        if (last->record.src_filename_len == 0) {
+            continue;
+        }
+
+        /* check src filename */
+        if (fc_string_equals_ex(task->record.filename,
+                    task->record.filename_len,
+                    last->record.src_filename,
+                    last->record.src_filename_len))
+        {
+            return EBUSY;
+        }
+
+        if (fc_string_equals_ex(task->record.src_filename,
+                    task->record.src_filename_len,
+                    last->record.src_filename,
+                    last->record.src_filename_len))
+        {
+            return EBUSY;
+        }
+    }
+
+    return 0;
+}
+
+static inline void storage_binlog_rewind_buff(StorageBinLogReader *pReader,
+        const int record_len)
+{
+    pReader->binlog_buff.current -= record_len;
+    pReader->binlog_buff.length += record_len;
+}
+
+static int storage_binlog_batch_read(StorageDispatchContext *dispatch_ctx)
+{
+	int result;
+    StorageSyncTaskInfo *task;
+
+    task = dispatch_ctx->task_array.tasks;
+    while (1) {
+        result = storage_binlog_read(dispatch_ctx->pReader,
+                &task->record, &task->record_len);
+        if (result != 0) {
+            if (result == EINVAL) {
+                dispatch_ctx->last_binlog_index = dispatch_ctx->
+                    pReader->binlog_index;
+                dispatch_ctx->last_binlog_offset = dispatch_ctx->
+                    pReader->binlog_offset + task->record_len;
+                dispatch_ctx->scan_row_count = 1;
+            } else {
+                dispatch_ctx->last_binlog_index = dispatch_ctx->
+                    pReader->binlog_index;
+                dispatch_ctx->last_binlog_offset = dispatch_ctx->
+                    pReader->binlog_offset;
+                dispatch_ctx->scan_row_count = 0;
+            }
+
+            return result;
+        }
+
+        result = storage_check_need_sync(dispatch_ctx->pReader, &task->record);
+        if (result == 0) {  //OK, need sync
+            task->binlog_index = dispatch_ctx->pReader->binlog_index;
+            task->binlog_offset = dispatch_ctx->pReader->binlog_offset;
+            task->scan_row_count = 1;
+            break;
+        } else if (result == EINVAL) {
+            dispatch_ctx->last_binlog_index = dispatch_ctx->
+                pReader->binlog_index;
+            dispatch_ctx->last_binlog_offset = dispatch_ctx->
+                pReader->binlog_offset + task->record_len;
+            dispatch_ctx->scan_row_count = 1;
+            return result;
+        }
+
+        /* skip NOT need sync record directly */
+        dispatch_ctx->pReader->binlog_offset += task->record_len;
+        dispatch_ctx->pReader->scan_row_count++;
+    }
+
+    dispatch_ctx->scan_row_count = task->scan_row_count;
+    dispatch_ctx->last_binlog_index = task->binlog_index;
+    dispatch_ctx->last_binlog_offset = task->binlog_offset + task->record_len;
+    ++task;
+    while (task < dispatch_ctx->task_array.end) {
+        task->scan_row_count = 0;
+        while (1) {
+            result = storage_binlog_read(dispatch_ctx->pReader,
+                    &task->record, &task->record_len);
+            if (result != 0) {
+                break;
+            }
+
+            result = storage_check_need_sync(dispatch_ctx->
+                    pReader, &task->record);
+            if (result == 0) {  //OK, need sync
+                if ((result=storage_check_conflict(dispatch_ctx->task_array.
+                                tasks, task)) == 0)
+                {
+                    task->scan_row_count++;
+                    if (dispatch_ctx->last_binlog_index != dispatch_ctx->
+                            pReader->binlog_index)
+                    {
+                        dispatch_ctx->last_binlog_index =
+                            dispatch_ctx->pReader->binlog_index;
+                        dispatch_ctx->last_binlog_offset =
+                            dispatch_ctx->pReader->binlog_offset;
+                    }
+
+                    task->binlog_index = dispatch_ctx->pReader->binlog_index;
+                    task->binlog_offset = dispatch_ctx->last_binlog_offset;
+                    dispatch_ctx->last_binlog_offset += task->record_len;
+                } else {
+                    storage_binlog_rewind_buff(dispatch_ctx->
+                            pReader, task->record_len);
+                }
+
+                break;
+            } else if (result == EINVAL) {
+                storage_binlog_rewind_buff(dispatch_ctx->
+                        pReader, task->record_len);
+                break;
+            } else {  //do NOT need sync, just skip
+                task->scan_row_count++;
+                if (dispatch_ctx->last_binlog_index != dispatch_ctx->
+                        pReader->binlog_index)
+                {
+                    dispatch_ctx->last_binlog_index = dispatch_ctx->
+                        pReader->binlog_index;
+                    dispatch_ctx->last_binlog_offset = dispatch_ctx->
+                        pReader->binlog_offset;
+                }
+                dispatch_ctx->last_binlog_offset += task->record_len;
+            }
+        }
+
+        dispatch_ctx->scan_row_count += task->scan_row_count;
+        if (result != 0) {
+            break;
+        }
+        ++task;
+    }
+
+    dispatch_ctx->task_array.count = task - dispatch_ctx->task_array.tasks;
+    return 0;
 }
 
 int storage_unlink_mark_file(const char *storage_id)
@@ -3101,7 +3408,7 @@ static void storage_sync_get_start_end_times(time_t current_time, \
 	*end_time = mktime(&tm_time);
 }
 
-static void storage_sync_thread_exit(ConnectionInfo *pStorage)
+static void storage_sync_thread_exit(const FDFSStorageBrief *pStorage)
 {
 	int result;
 	int i;
@@ -3109,7 +3416,7 @@ static void storage_sync_thread_exit(ConnectionInfo *pStorage)
 	pthread_t tid;
     char formatted_ip[FORMATTED_IP_SIZE];
 
-	if ((result=pthread_mutex_lock(&sync_thread_lock)) != 0)
+	if ((result=pthread_mutex_lock(&SYNC_THREAD_LOCK)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"call pthread_mutex_lock fail, " \
@@ -3121,7 +3428,7 @@ static void storage_sync_thread_exit(ConnectionInfo *pStorage)
 	tid = pthread_self();
 	for (i=0; i<thread_count; i++)
 	{
-		if (pthread_equal(sync_tids[i], tid))
+		if (pthread_equal(STORAGE_SYNC_TIDS[i], tid))
 		{
 			break;
 		}
@@ -3129,13 +3436,13 @@ static void storage_sync_thread_exit(ConnectionInfo *pStorage)
 
 	while (i < thread_count - 1)
 	{
-		sync_tids[i] = sync_tids[i + 1];
+		STORAGE_SYNC_TIDS[i] = STORAGE_SYNC_TIDS[i + 1];
 		i++;
 	}
 
 	FC_ATOMIC_DEC(g_storage_sync_thread_count);
 
-	if ((result=pthread_mutex_unlock(&sync_thread_lock)) != 0)
+	if ((result=pthread_mutex_unlock(&SYNC_THREAD_LOCK)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, "
 			"call pthread_mutex_unlock fail, "
@@ -3147,32 +3454,80 @@ static void storage_sync_thread_exit(ConnectionInfo *pStorage)
         format_ip_address(pStorage->ip_addr, formatted_ip);
         logDebug("file: "__FILE__", line: %d, "
                 "sync thread to storage server %s:%u exit",
-                __LINE__, formatted_ip, pStorage->port);
+                __LINE__, formatted_ip, SF_G_INNER_PORT);
     }
+}
+
+static int init_task_array(StorageDispatchContext *dispatch_ctx,
+        const FDFSStorageBrief *pStorage)
+{
+    StorageSyncTaskInfo *tasks;
+    StorageSyncTaskInfo *task;
+    StorageSyncTaskInfo *end;
+    int bytes;
+
+    bytes = sizeof(StorageSyncTaskInfo) * g_sync_max_threads;
+    if ((tasks=fc_malloc(bytes)) == NULL) {
+        return ENOMEM;
+    }
+
+    end = tasks + g_sync_max_threads;
+    for (task=tasks; task<end; task++) {
+        task->dispatch_ctx = dispatch_ctx;
+        conn_pool_set_server_info(&task->storage_server,
+                pStorage->ip_addr, SF_G_INNER_PORT);
+    }
+
+    dispatch_ctx->task_array.count = 0;
+    dispatch_ctx->task_array.tasks = tasks;
+    dispatch_ctx->task_array.end = end;
+    return 0;
+}
+
+static int init_dispatch_ctx(StorageDispatchContext *dispatch_ctx,
+        const FDFSStorageBrief *pStorage)
+{
+    int result;
+
+    if ((result=init_task_array(dispatch_ctx, pStorage)) != 0) {
+        return result;
+    }
+
+    if ((result=sf_synchronize_ctx_init(&dispatch_ctx->notify_ctx)) != 0) {
+        return result;
+    }
+
+    dispatch_ctx->pReader = malloc(sizeof(StorageBinLogReader));
+    if (dispatch_ctx->pReader == NULL) {
+        logCrit("file: "__FILE__", line: %d, "
+                "malloc %d bytes fail, "
+                "fail, program exit!",
+                __LINE__, (int)sizeof(StorageBinLogReader));
+        return ENOMEM;
+    }
+
+    memset(dispatch_ctx->pReader, 0, sizeof(StorageBinLogReader));
+    dispatch_ctx->pReader->binlog_fd = -1;
+    storage_reader_add_to_list(dispatch_ctx->pReader);
+    return 0;
 }
 
 static void* storage_sync_thread_entrance(void* arg)
 {
+    StorageDispatchContext dispatch_ctx;
 	FDFSStorageBrief *pStorage;
-	StorageBinLogReader *pReader;
-	StorageBinLogRecord record;
-	ConnectionInfo storage_server;
+	ConnectionInfo *storage_server;  //first connection
 	char local_ip_addr[IP_ADDRESS_SIZE];
     char formatted_ip[FORMATTED_IP_SIZE];
 	int read_result;
 	int sync_result;
 	int result;
-	int record_len;
-	time_t current_time;
+    time_t current_time;
 	time_t start_time;
 	time_t end_time;
 	time_t last_keep_alive_time;
 
 	pStorage = (FDFSStorageBrief *)arg;
-    memset(&storage_server, 0, sizeof(storage_server));
-    conn_pool_set_server_info(&storage_server,
-            pStorage->ip_addr, SF_G_INNER_PORT);
-
 #ifdef OS_LINUX
     {
         char thread_name[32];
@@ -3183,41 +3538,31 @@ static void* storage_sync_thread_entrance(void* arg)
 #endif
 
 	memset(local_ip_addr, 0, sizeof(local_ip_addr));
-    pReader = (StorageBinLogReader *)malloc(sizeof(StorageBinLogReader));
-    if (pReader == NULL)
-    {
-        logCrit("file: "__FILE__", line: %d, "
-                "malloc %d bytes fail, "
-                "fail, program exit!",
-                __LINE__, (int)sizeof(StorageBinLogReader));
+    if (init_dispatch_ctx(&dispatch_ctx, pStorage) != 0) {
         SF_G_CONTINUE_FLAG = false;
-        storage_sync_thread_exit(&storage_server);
+        storage_sync_thread_exit(pStorage);
         return NULL;
     }
+    storage_server = &dispatch_ctx.task_array.tasks[0].storage_server;
 
-	memset(pReader, 0, sizeof(StorageBinLogReader));
-	pReader->binlog_fd = -1;
-
-    storage_reader_add_to_list(pReader);
-
-	current_time =  g_current_time;
+	current_time = g_current_time;
 	last_keep_alive_time = 0;
 	start_time = 0;
 	end_time = 0;
 
     if (FC_LOG_BY_LEVEL(LOG_DEBUG)) {
-        format_ip_address(storage_server.ip_addr, formatted_ip);
+        format_ip_address(storage_server->ip_addr, formatted_ip);
         logDebug("file: "__FILE__", line: %d, "
                 "sync thread to storage server %s:%u started",
-                __LINE__, formatted_ip, storage_server.port);
+                __LINE__, formatted_ip, storage_server->port);
     }
  
-	while (SF_G_CONTINUE_FLAG && \
-		pStorage->status != FDFS_STORAGE_STATUS_DELETED && \
-		pStorage->status != FDFS_STORAGE_STATUS_IP_CHANGED && \
+	while (SF_G_CONTINUE_FLAG &&
+		pStorage->status != FDFS_STORAGE_STATUS_DELETED &&
+		pStorage->status != FDFS_STORAGE_STATUS_IP_CHANGED &&
 		pStorage->status != FDFS_STORAGE_STATUS_NONE)
 	{
-		while (SF_G_CONTINUE_FLAG && \
+		while (SF_G_CONTINUE_FLAG &&
 			(pStorage->status == FDFS_STORAGE_STATUS_INIT ||
 			 pStorage->status == FDFS_STORAGE_STATUS_OFFLINE ||
 			 pStorage->status == FDFS_STORAGE_STATUS_ONLINE))
@@ -3226,179 +3571,162 @@ static void* storage_sync_thread_entrance(void* arg)
 		}
 
 		if ((!SF_G_CONTINUE_FLAG) ||
-			pStorage->status == FDFS_STORAGE_STATUS_DELETED || \
-			pStorage->status == FDFS_STORAGE_STATUS_IP_CHANGED || \
+			pStorage->status == FDFS_STORAGE_STATUS_DELETED ||
+			pStorage->status == FDFS_STORAGE_STATUS_IP_CHANGED ||
 			pStorage->status == FDFS_STORAGE_STATUS_NONE)
 		{
 			break;
 		}
 
-		if (g_sync_part_time)
-		{
-			current_time = g_current_time;
-			storage_sync_get_start_end_times(current_time, \
-				&g_sync_end_time, &g_sync_start_time, \
-				&start_time, &end_time);
-			start_time += 60;
-			end_time -= 60;
-			while (SF_G_CONTINUE_FLAG && (current_time >= start_time \
-					&& current_time <= end_time))
-			{
-				current_time = g_current_time;
-				sleep(1);
-			}
-		}
+		if (g_sync_part_time) {
+            current_time = g_current_time;
+            storage_sync_get_start_end_times(current_time,
+                    &g_sync_end_time, &g_sync_start_time,
+                    &start_time, &end_time);
+            start_time += 60;
+            end_time -= 60;
+            while (SF_G_CONTINUE_FLAG && (current_time >= start_time
+                        && current_time <= end_time))
+            {
+                current_time = g_current_time;
+                sleep(1);
+            }
+        }
 
-        storage_sync_connect_storage_server(pStorage, &storage_server);
+        if (storage_sync_connect_storage_server_always(pStorage,
+                    storage_server) != 0)
+        {
+            break;
+        }
 
-		if ((!SF_G_CONTINUE_FLAG) ||
-			pStorage->status == FDFS_STORAGE_STATUS_DELETED || \
-			pStorage->status == FDFS_STORAGE_STATUS_IP_CHANGED || \
+		if (pStorage->status == FDFS_STORAGE_STATUS_DELETED ||
+			pStorage->status == FDFS_STORAGE_STATUS_IP_CHANGED ||
 			pStorage->status == FDFS_STORAGE_STATUS_NONE)
-		{
-			break;
-		}
+        {
+            break;
+        }
 
-		if (pStorage->status != FDFS_STORAGE_STATUS_ACTIVE && \
-			pStorage->status != FDFS_STORAGE_STATUS_WAIT_SYNC && \
+		if (pStorage->status != FDFS_STORAGE_STATUS_ACTIVE &&
+			pStorage->status != FDFS_STORAGE_STATUS_WAIT_SYNC &&
 			pStorage->status != FDFS_STORAGE_STATUS_SYNCING)
-		{
-			close(storage_server.sock);
-			sleep(5);
-			continue;
-		}
+        {
+            close(storage_server->sock);
+            storage_server->sock = -1;
+            sleep(5);
+            continue;
+        }
 
-        storage_reader_remove_from_list(pReader);
-        result = storage_reader_init(pStorage, pReader);
-        storage_reader_add_to_list(pReader);
-		if (result != 0)
-		{
-			logCrit("file: "__FILE__", line: %d, " \
-				"storage_reader_init fail, errno=%d, " \
-				"program exit!", \
-				__LINE__, result);
+        storage_reader_remove_from_list(dispatch_ctx.pReader);
+        result = storage_reader_init(pStorage, dispatch_ctx.pReader);
+        storage_reader_add_to_list(dispatch_ctx.pReader);
+		if (result != 0) {
+			logCrit("file: "__FILE__", line: %d, "
+				"storage_reader_init fail, errno=%d, "
+				"program exit!", __LINE__, result);
 			SF_G_CONTINUE_FLAG = false;
 			break;
 		}
 
-		if (!pReader->need_sync_old)
-		{
-			while (SF_G_CONTINUE_FLAG && \
-			(pStorage->status != FDFS_STORAGE_STATUS_ACTIVE && \
-			 pStorage->status != FDFS_STORAGE_STATUS_DELETED && \
-			 pStorage->status != FDFS_STORAGE_STATUS_IP_CHANGED && \
+		if (!dispatch_ctx.pReader->need_sync_old) {
+			while (SF_G_CONTINUE_FLAG &&
+			(pStorage->status != FDFS_STORAGE_STATUS_ACTIVE &&
+			 pStorage->status != FDFS_STORAGE_STATUS_DELETED &&
+			 pStorage->status != FDFS_STORAGE_STATUS_IP_CHANGED &&
 			 pStorage->status != FDFS_STORAGE_STATUS_NONE))
 			{
 				sleep(1);
 			}
 
-			if (pStorage->status != FDFS_STORAGE_STATUS_ACTIVE)
-			{
-				close(storage_server.sock);
-				storage_reader_destroy(pReader);
+			if (pStorage->status != FDFS_STORAGE_STATUS_ACTIVE) {
+				close(storage_server->sock);
+				storage_reader_destroy(dispatch_ctx.pReader);
 				continue;
 			}
 		}
 
-		getSockIpaddr(storage_server.sock, \
-			local_ip_addr, IP_ADDRESS_SIZE);
+		getSockIpaddr(storage_server->sock,
+                local_ip_addr, IP_ADDRESS_SIZE);
 		insert_into_local_host_ip(local_ip_addr);
 
 		/*
 		//printf("file: "__FILE__", line: %d, " \
-			"storage_server.ip_addr=%s, " \
+			"storage_server->ip_addr=%s, " \
 			"local_ip_addr: %s\n", \
 			__LINE__, pStorage->ip_addr, local_ip_addr);
 		*/
 
-		if (strcmp(pStorage->id, g_my_server_id_str) == 0 ||
+        if (strcmp(pStorage->id, g_my_server_id_str) == 0 ||
                 is_local_host_ip(pStorage->ip_addr))
-		{  //can't self sync to self
+        {  //can't self sync to self
 			logError("file: "__FILE__", line: %d, " \
 				"ip_addr %s belong to the local host," \
 				" sync thread exit.", \
 				__LINE__, pStorage->ip_addr);
-			fdfs_quit(&storage_server);
-			close(storage_server.sock);
+			fdfs_quit(storage_server);
+			close(storage_server->sock);
 			break;
 		}
 
-		if (storage_report_my_server_id(&storage_server) != 0)
-		{
-			close(storage_server.sock);
-			storage_reader_destroy(pReader);
+		if (storage_report_my_server_id(storage_server) != 0) {
+			close(storage_server->sock);
+			storage_reader_destroy(dispatch_ctx.pReader);
 			sleep(1);
 			continue;
 		}
 
-		if (pStorage->status == FDFS_STORAGE_STATUS_WAIT_SYNC)
-		{
-			pStorage->status = FDFS_STORAGE_STATUS_SYNCING;
-			storage_report_storage_status(pStorage->id, \
-				pStorage->ip_addr, pStorage->status);
-		}
+        if (pStorage->status == FDFS_STORAGE_STATUS_WAIT_SYNC) {
+            pStorage->status = FDFS_STORAGE_STATUS_SYNCING;
+            storage_report_storage_status(pStorage->id,
+                    pStorage->ip_addr, pStorage->status);
+        }
 
-		if (pStorage->status == FDFS_STORAGE_STATUS_SYNCING)
-		{
-			if (pReader->need_sync_old && pReader->sync_old_done)
-			{
+		if (pStorage->status == FDFS_STORAGE_STATUS_SYNCING) {
+			if (dispatch_ctx.pReader->need_sync_old && dispatch_ctx.pReader->sync_old_done) {
 				pStorage->status = FDFS_STORAGE_STATUS_OFFLINE;
-				storage_report_storage_status(pStorage->id, \
-					pStorage->ip_addr, \
-					pStorage->status);
+				storage_report_storage_status(pStorage->id,
+					pStorage->ip_addr, pStorage->status);
 			}
 		}
 
-		if (g_sync_part_time)
-		{
+		if (g_sync_part_time) {
 			current_time = g_current_time;
-			storage_sync_get_start_end_times(current_time, \
-				&g_sync_start_time, &g_sync_end_time, \
+			storage_sync_get_start_end_times(current_time,
+				&g_sync_start_time, &g_sync_end_time,
 				&start_time, &end_time);
 		}
 
 		sync_result = 0;
-		while (SF_G_CONTINUE_FLAG && (!g_sync_part_time || \
-			(current_time >= start_time && \
-			current_time <= end_time)) && \
-			(pStorage->status == FDFS_STORAGE_STATUS_ACTIVE || \
+		while (SF_G_CONTINUE_FLAG && (!g_sync_part_time ||
+			(current_time >= start_time && current_time <= end_time)) &&
+			(pStorage->status == FDFS_STORAGE_STATUS_ACTIVE ||
 			pStorage->status == FDFS_STORAGE_STATUS_SYNCING))
 		{
-			read_result = storage_binlog_read(pReader, \
-					&record, &record_len);
-			if (read_result == ENOENT)
-			{
-				if (pReader->need_sync_old && \
-					!pReader->sync_old_done)
-				{
-				pReader->sync_old_done = true;
-				if (storage_write_to_mark_file(pReader) != 0)
-				{
-					logCrit("file: "__FILE__", line: %d, " \
-						"storage_write_to_mark_file " \
-						"fail, program exit!", \
-						__LINE__);
-					SF_G_CONTINUE_FLAG = false;
-					break;
-				}
+			read_result = storage_binlog_batch_read(&dispatch_ctx);
+			if (read_result == ENOENT) {
+				if (dispatch_ctx.pReader->need_sync_old &&
+                        !dispatch_ctx.pReader->sync_old_done)
+                {
+				dispatch_ctx.pReader->sync_old_done = true;
+				if (storage_write_to_mark_file(dispatch_ctx.pReader) != 0)
+                {
+                    logCrit("file: "__FILE__", line: %d, "
+                            "storage_write_to_mark_file "
+                            "fail, program exit!", __LINE__);
+                    SF_G_CONTINUE_FLAG = false;
+                    break;
+                }
 
-				if (pStorage->status == \
-					FDFS_STORAGE_STATUS_SYNCING)
-				{
-					pStorage->status = \
-						FDFS_STORAGE_STATUS_OFFLINE;
-					storage_report_storage_status( \
-						pStorage->id, \
-						pStorage->ip_addr, \
-						pStorage->status);
+				if (pStorage->status == FDFS_STORAGE_STATUS_SYNCING) {
+					pStorage->status = FDFS_STORAGE_STATUS_OFFLINE;
+					storage_report_storage_status(pStorage->id,
+                            pStorage->ip_addr, pStorage->status);
 				}
 				}
 
-
-				if (pReader->last_scan_rows!=pReader->scan_row_count)
+				if (dispatch_ctx.pReader->last_scan_rows !=
+                        dispatch_ctx.pReader->scan_row_count)
 				{
-					if (storage_write_to_mark_file(pReader)!=0)
-					{
+					if (storage_write_to_mark_file(dispatch_ctx.pReader)!=0) {
 					logCrit("file: "__FILE__", line: %d, " \
 						"storage_write_to_mark_file fail, " \
 						"program exit!", __LINE__);
@@ -3408,66 +3736,79 @@ static void* storage_sync_thread_entrance(void* arg)
 				}
 
 				current_time = g_current_time;
-				if (current_time - last_keep_alive_time >= \
-					g_heart_beat_interval)
-				{
-					if (fdfs_active_test(&storage_server)!=0)
-					{
-						break;
-					}
+                if (current_time - last_keep_alive_time >=
+                        g_heart_beat_interval)
+                {
+                    if (fdfs_active_test(storage_server) != 0) {
+                        break;
+                    }
 
-					last_keep_alive_time = current_time;
-				}
+                    last_keep_alive_time = current_time;
+                }
 
 				usleep(g_sync_wait_usec);
 				continue;
 			}
 
-			if (g_sync_part_time)
-			{
+			if (g_sync_part_time) {
 				current_time = g_current_time;
 			}
 
-			if (read_result != 0)
-			{
-			if (read_result == EINVAL && \
-				g_file_sync_skip_invalid_record)
-			{
-				logWarning("file: "__FILE__", line: %d, " \
-					"skip invalid record, binlog index: " \
-					"%d, offset: %"PRId64, \
-					__LINE__, pReader->binlog_index, \
-					pReader->binlog_offset);
-			}
-			else
-			{
-				sleep(5);
-				break;
-			}
-			}
-			else if ((sync_result=storage_sync_data(pReader, \
-				&storage_server, &record)) != 0)
-			{
+            if (read_result != 0) {
+                if (read_result == EINVAL && g_file_sync_skip_invalid_record) {
+                    logWarning("file: "__FILE__", line: %d, "
+                            "skip invalid record, binlog index: "
+                            "%d, offset: %"PRId64, __LINE__,
+                            dispatch_ctx.pReader->binlog_index,
+                            dispatch_ctx.pReader->binlog_offset);
+                } else {
+                    sleep(5);
+                    break;
+                }
+            } else if ((sync_result=storage_batch_sync_data(
+                            &dispatch_ctx)) != 0)
+            {
+                if (!SF_G_CONTINUE_FLAG) {
+                    break;
+                }
+
+                /*
 				logDebug("file: "__FILE__", line: %d, " \
 					"binlog index: %d, current record " \
 					"offset: %"PRId64", next " \
 					"record offset: %"PRId64, \
-					__LINE__, pReader->binlog_index, \
-					pReader->binlog_offset, \
-					pReader->binlog_offset + record_len);
-				if (rewind_to_prev_rec_end(pReader) != 0)
-				{
-					logCrit("file: "__FILE__", line: %d, " \
-						"rewind_to_prev_rec_end fail, "\
-						"program exit!", __LINE__);
-					SF_G_CONTINUE_FLAG = false;
-				}
+					__LINE__, dispatch_ctx.pReader->binlog_index, \
+					dispatch_ctx.pReader->binlog_offset, \
+					dispatch_ctx.pReader->binlog_offset + record_len);
+                    */
+                if (dispatch_ctx.last_binlog_index == dispatch_ctx.
+                        pReader->binlog_index)
+                {
+                    if (rewind_to_prev_rec_end_ex(dispatch_ctx.pReader,
+                                dispatch_ctx.last_binlog_offset) != 0)
+                    {
+                        logCrit("file: "__FILE__", line: %d, "
+                                "rewind_to_prev_rec_end fail, "
+                                "program exit!", __LINE__);
+                        SF_G_CONTINUE_FLAG = false;
+                    }
+                } else {
+                    //TODO
+                }
 
 				break;
 			}
 
-			pReader->binlog_offset += record_len;
-			pReader->scan_row_count++;
+            if (dispatch_ctx.last_binlog_index == dispatch_ctx.
+                    pReader->binlog_index)
+            {
+                dispatch_ctx.pReader->binlog_offset =
+                    dispatch_ctx.last_binlog_offset;
+            } else {
+                //TODO
+            }
+			dispatch_ctx.pReader->scan_row_count +=
+                dispatch_ctx.scan_row_count;
 
 			if (g_sync_interval > 0)
 			{
@@ -3475,21 +3816,21 @@ static void* storage_sync_thread_entrance(void* arg)
 			}
 		}
 
-		if (pReader->last_scan_rows != pReader->scan_row_count)
-		{
-			if (storage_write_to_mark_file(pReader) != 0)
-			{
-				logCrit("file: "__FILE__", line: %d, " \
-					"storage_write_to_mark_file fail, " \
-					"program exit!", __LINE__);
-				SF_G_CONTINUE_FLAG = false;
-				break;
-			}
-		}
+        if (dispatch_ctx.pReader->last_scan_rows !=
+                dispatch_ctx.pReader->scan_row_count)
+        {
+            if (storage_write_to_mark_file(dispatch_ctx.pReader) != 0) {
+                logCrit("file: "__FILE__", line: %d, "
+                        "storage_write_to_mark_file fail, "
+                        "program exit!", __LINE__);
+                SF_G_CONTINUE_FLAG = false;
+                break;
+            }
+        }
 
-		close(storage_server.sock);
-		storage_server.sock = -1;
-		storage_reader_destroy(pReader);
+		close(storage_server->sock);
+		storage_server->sock = -1;
+		storage_reader_destroy(dispatch_ctx.pReader);
 
 		if (!SF_G_CONTINUE_FLAG)
 		{
@@ -3502,12 +3843,8 @@ static void* storage_sync_thread_entrance(void* arg)
 		}
 	}
 
-	if (storage_server.sock >= 0)
-	{
-		close(storage_server.sock);
-	}
-    storage_reader_remove_from_list(pReader);
-	storage_reader_destroy(pReader);
+    storage_reader_remove_from_list(dispatch_ctx.pReader);
+	storage_reader_destroy(dispatch_ctx.pReader);
 
 	if (pStorage->status == FDFS_STORAGE_STATUS_DELETED
 	 || pStorage->status == FDFS_STORAGE_STATUS_IP_CHANGED)
@@ -3517,7 +3854,7 @@ static void* storage_sync_thread_entrance(void* arg)
 		pStorage->status = FDFS_STORAGE_STATUS_NONE;
 	}
 
-	storage_sync_thread_exit(&storage_server);
+	storage_sync_thread_exit(pStorage);
 	return NULL;
 }
 
@@ -3569,7 +3906,7 @@ int storage_sync_thread_start(const FDFSStorageBrief *pStorage)
 		return result;
 	}
 
-	if ((result=pthread_mutex_lock(&sync_thread_lock)) != 0)
+	if ((result=pthread_mutex_lock(&SYNC_THREAD_LOCK)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"call pthread_mutex_lock fail, " \
@@ -3578,7 +3915,7 @@ int storage_sync_thread_start(const FDFSStorageBrief *pStorage)
 	}
 
     thread_count = FC_ATOMIC_INC(g_storage_sync_thread_count);
-    pthread_t *new_sync_tids = (pthread_t *)realloc(sync_tids,
+    pthread_t *new_sync_tids = (pthread_t *)realloc(STORAGE_SYNC_TIDS,
             sizeof(pthread_t) * thread_count);
 	if (new_sync_tids == NULL)
 	{
@@ -3586,16 +3923,16 @@ int storage_sync_thread_start(const FDFSStorageBrief *pStorage)
 			"malloc %d bytes fail, errno: %d, error info: %s",
 			__LINE__, (int)sizeof(pthread_t) * thread_count,
             errno, STRERROR(errno));
-        free(sync_tids);
-        sync_tids = NULL;
+        free(STORAGE_SYNC_TIDS);
+        STORAGE_SYNC_TIDS = NULL;
 	}
 	else
 	{
-        sync_tids = new_sync_tids;
-		sync_tids[thread_count - 1] = tid;
+        STORAGE_SYNC_TIDS = new_sync_tids;
+		STORAGE_SYNC_TIDS[thread_count - 1] = tid;
 	}
 
-	if ((result=pthread_mutex_unlock(&sync_thread_lock)) != 0)
+	if ((result=pthread_mutex_unlock(&SYNC_THREAD_LOCK)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"call pthread_mutex_unlock fail, " \
@@ -3611,16 +3948,16 @@ int storage_sync_thread_start(const FDFSStorageBrief *pStorage)
 
 void storage_reader_add_to_list(StorageBinLogReader *pReader)
 {
-	pthread_mutex_lock(&sync_thread_lock);
-    fc_list_add_tail(&pReader->link, &reader_head);
-	pthread_mutex_unlock(&sync_thread_lock);
+	pthread_mutex_lock(&SYNC_THREAD_LOCK);
+    fc_list_add_tail(&pReader->link, &SYNC_READER_HEAD);
+	pthread_mutex_unlock(&SYNC_THREAD_LOCK);
 }
 
 void storage_reader_remove_from_list(StorageBinLogReader *pReader)
 {
-	pthread_mutex_lock(&sync_thread_lock);
+	pthread_mutex_lock(&SYNC_THREAD_LOCK);
     fc_list_del_init(&pReader->link);
-	pthread_mutex_unlock(&sync_thread_lock);
+	pthread_mutex_unlock(&SYNC_THREAD_LOCK);
 }
 
 static int calc_compress_until_binlog_index()
@@ -3628,10 +3965,10 @@ static int calc_compress_until_binlog_index()
     StorageBinLogReader *pReader;
     int min_index;
 
-	pthread_mutex_lock(&sync_thread_lock);
+	pthread_mutex_lock(&SYNC_THREAD_LOCK);
 
     min_index = g_binlog_index;
-    fc_list_for_each_entry(pReader, &reader_head, link)
+    fc_list_for_each_entry(pReader, &SYNC_READER_HEAD, link)
     {
         if (pReader->binlog_fd >= 0 && pReader->binlog_index >= 0 &&
                 pReader->binlog_index < min_index)
@@ -3639,7 +3976,7 @@ static int calc_compress_until_binlog_index()
             min_index = pReader->binlog_index;
         }
     }
-	pthread_mutex_unlock(&sync_thread_lock);
+	pthread_mutex_unlock(&SYNC_THREAD_LOCK);
 
     return min_index;
 }
@@ -3651,14 +3988,14 @@ int fdfs_binlog_compress_func(void *args)
     int bindex;
     int result;
 
-    if (binlog_compress_index >= g_binlog_index)
+    if (storage_sync_ctx.binlog_compress_index >= g_binlog_index)
     {
         return 0;
     }
 
     until_index = calc_compress_until_binlog_index();
-    for (bindex = binlog_compress_index; bindex < until_index;
-            bindex++)
+    for (bindex = storage_sync_ctx.binlog_compress_index;
+            bindex < until_index; bindex++)
     {
         get_binlog_readable_filename_ex(bindex, full_filename);
         result = compress_binlog_file(full_filename);
@@ -3667,7 +4004,7 @@ int fdfs_binlog_compress_func(void *args)
             break;
         }
 
-        binlog_compress_index = bindex + 1;
+        storage_sync_ctx.binlog_compress_index = bindex + 1;
         write_to_binlog_index(g_binlog_index);
     }
 
