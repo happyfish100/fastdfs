@@ -26,6 +26,7 @@
 #include "fastcommon/pthread_func.h"
 #include "fastcommon/sched_thread.h"
 #include "fastcommon/fast_task_queue.h"
+#include "fastcommon/fc_atomic.h"
 #include "tracker_types.h"
 #include "tracker_proto.h"
 #include "tracker_client_thread.h"
@@ -2175,7 +2176,7 @@ static int tracker_report_sync_timestamp(ConnectionInfo *pTrackerServer,
 	{
 		memcpy(p, pServer->server.id, FDFS_STORAGE_ID_MAX_SIZE);
 		p += FDFS_STORAGE_ID_MAX_SIZE;
-		int2buff(pServer->last_sync_src_timestamp, p);
+		int2buff(FC_ATOMIC_GET(pServer->last_sync_src_timestamp), p);
 		p += 4;
 	}
 

@@ -218,7 +218,23 @@ static FDFSStorageServer *get_storage_server(const char *storage_server_id)
 	}
 }
 
-#define CHECK_AND_WRITE_TO_STAT_FILE1  \
+#define SET_LAST_SYNC_SRC_TIMESTAMP(pSrcStorage, new_timestamp) \
+    do {  \
+        time_t old_timestamp;  \
+        old_timestamp = FC_ATOMIC_GET(pSrcStorage-> \
+                last_sync_src_timestamp);     \
+        if (old_timestamp >= new_timestamp) { \
+            break; \
+        } \
+        if (__sync_bool_compare_and_swap(&pSrcStorage-> \
+                last_sync_src_timestamp, old_timestamp, \
+                    new_timestamp)) \
+        {  \
+            break; \
+        }  \
+    } while (1)
+
+#define CHECK_AND_WRITE_TO_STAT_FILE1()  \
 \
 		if (pClientInfo->pSrcStorage == NULL) \
 		{ \
@@ -227,33 +243,20 @@ static FDFSStorageServer *get_storage_server(const char *storage_server_id)
 		} \
 		if (pClientInfo->pSrcStorage != NULL) \
 		{ \
-			pClientInfo->pSrcStorage->last_sync_src_timestamp = \
-					pFileContext->timestamp2log; \
+            SET_LAST_SYNC_SRC_TIMESTAMP(pClientInfo->pSrcStorage, \
+                    pFileContext->timestamp2log);  \
 			g_sync_change_count++; \
 		} \
 \
 		g_storage_stat.last_sync_update = g_current_time; \
-		++g_stat_change_count; \
+		++g_stat_change_count
 
 #define CHECK_AND_WRITE_TO_STAT_FILE1_WITH_BYTES( \
 		total_bytes, success_bytes, bytes)  \
 \
-		if (pClientInfo->pSrcStorage == NULL) \
-		{ \
-			pClientInfo->pSrcStorage = get_storage_server( \
-					pClientInfo->storage_server_id); \
-		} \
-		if (pClientInfo->pSrcStorage != NULL) \
-		{ \
-			pClientInfo->pSrcStorage->last_sync_src_timestamp = \
-					pFileContext->timestamp2log; \
-			g_sync_change_count++; \
-		} \
-\
-		g_storage_stat.last_sync_update = g_current_time; \
+        CHECK_AND_WRITE_TO_STAT_FILE1();    \
         __sync_add_and_fetch(&total_bytes, bytes);   \
 		__sync_add_and_fetch(&success_bytes, bytes); \
-		++g_stat_change_count; \
 
 #define CHECK_AND_WRITE_TO_STAT_FILE2(total_count, success_count)  \
 		__sync_add_and_fetch(&total_count, 1);   \
@@ -484,7 +487,7 @@ static void storage_sync_delete_file_done_callback( \
 
 	if (result == 0)
 	{
-		CHECK_AND_WRITE_TO_STAT_FILE1
+		CHECK_AND_WRITE_TO_STAT_FILE1();
 	}
 
 	pClientInfo->total_length = sizeof(TrackerHeader);
@@ -525,7 +528,7 @@ static void storage_sync_truncate_file_done_callback( \
 
 	if (result == 0)
 	{
-		CHECK_AND_WRITE_TO_STAT_FILE1
+		CHECK_AND_WRITE_TO_STAT_FILE1();
 	}
 
 	pClientInfo->total_length = sizeof(TrackerHeader);
@@ -623,7 +626,7 @@ static void storage_sync_copy_file_done_callback(struct fast_task_info *pTask, \
 	{
 		if (result == 0)
 		{
-			CHECK_AND_WRITE_TO_STAT_FILE1
+			CHECK_AND_WRITE_TO_STAT_FILE1();
 		}
 
 		result = EEXIST;
@@ -701,7 +704,7 @@ static void storage_sync_modify_file_done_callback( \
 				result = EEXIST;
 			}
 
-			CHECK_AND_WRITE_TO_STAT_FILE1
+			CHECK_AND_WRITE_TO_STAT_FILE1();
 		}
 	}
 
@@ -3328,9 +3331,8 @@ static int storage_server_report_server_id(struct fast_task_info *pTask)
 	}
 
 	strcpy(pClientInfo->storage_server_id, storage_server_id);
-
-	logDebug("file: "__FILE__", line: %d, " \
-			"client ip: %s, storage server id: %s", \
+	logDebug("file: "__FILE__", line: %d, "
+			"client ip: %s, storage server id: %s",
 			__LINE__, pTask->client_ip, storage_server_id);
 
 	return 0;
@@ -6848,7 +6850,7 @@ static int storage_do_sync_link_file(struct fast_task_info *pTask)
 			binlog_buff, binlog_len);
 	} while (0);
 
-	CHECK_AND_WRITE_TO_STAT_FILE1
+	CHECK_AND_WRITE_TO_STAT_FILE1();
 
 	pClientInfo->total_offset = 0;
 	pTask->send.ptr->length = pClientInfo->total_length;

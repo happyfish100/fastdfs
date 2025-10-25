@@ -138,13 +138,15 @@ int storage_sync_connect_storage_server_ex(const FDFSStorageBrief *pStorage,
     if (nContinuousFail > 0) {
         int avg_fails;
         avg_fails = (nContinuousFail + ip_addrs.count - 1) / ip_addrs.count;
-        for (i=0; i<ip_addrs.count; i++) {
-            format_ip_address(ip_addrs.ips[i].address, formatted_ip);
-            logError("file: "__FILE__", line: %d, "
-                    "connect to storage server %s:%u fail, "
-                    "try count: %d, errno: %d, error info: %s",
-                    __LINE__, formatted_ip, SF_G_INNER_PORT, avg_fails,
-                    conn_results[i], STRERROR(conn_results[i]));
+        if (avg_fails > 1) {
+            for (i=0; i<ip_addrs.count; i++) {
+                format_ip_address(ip_addrs.ips[i].address, formatted_ip);
+                logError("file: "__FILE__", line: %d, "
+                        "connect to storage server %s:%u fail, "
+                        "try count: %d, errno: %d, error info: %s",
+                        __LINE__, formatted_ip, SF_G_INNER_PORT, avg_fails,
+                        conn_results[i], STRERROR(conn_results[i]));
+            }
         }
     }
 

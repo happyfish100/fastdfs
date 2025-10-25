@@ -121,6 +121,7 @@ typedef struct {
     int binlog_index;
     int64_t binlog_offset;
     int64_t scan_row_count;
+    time_t last_communicate_time;
     struct storage_dispatch_context *dispatch_ctx;
     ConnectionInfo storage_server;
     StorageBinLogRecord record;
@@ -138,6 +139,7 @@ typedef struct storage_dispatch_context {
     int64_t scan_row_count;
     StorageSyncTaskArray task_array;
     SFSynchronizeContext notify_ctx;
+	const FDFSStorageBrief *pStorage;
     StorageBinLogReader *pReader;
 } StorageDispatchContext;
 
@@ -272,7 +274,7 @@ static int storage_sync_copy_file(ConnectionInfo *pStorageServer,
 	if (IS_TRUNK_FILE_BY_ID(trunkInfo))
 	{
 		file_offset = TRUNK_FILE_START_OFFSET(trunkInfo);
-		trunk_get_full_filename((&trunkInfo), full_filename, \
+		trunk_get_full_filename((&trunkInfo), full_filename,
 				sizeof(full_filename));
 	}
 	else
@@ -294,8 +296,8 @@ static int storage_sync_copy_file(ConnectionInfo *pStorageServer,
 		pHeader = (TrackerHeader *)out_buff;
 		memset(pHeader, 0, sizeof(TrackerHeader));
 
-		body_len = 2 * FDFS_PROTO_PKG_LEN_SIZE + \
-				4 + FDFS_GROUP_NAME_MAX_LEN + \
+		body_len = 2 * FDFS_PROTO_PKG_LEN_SIZE +
+				4 + FDFS_GROUP_NAME_MAX_LEN +
 				pRecord->filename_len;
 		if (need_sync_file)
 		{
@@ -1314,10 +1316,21 @@ static int storage_sync_data(StorageBinLogReader *pReader,
 
 static void sync_data_func(StorageSyncTaskInfo *task, void *thread_data)
 {
-    //TODO check and make connection
+    if (task->storage_server.sock < 0 || g_current_time -
+            task->last_communicate_time > 3600)
+    {
+        conn_pool_disconnect_server(&task->storage_server);
+        task->result = storage_sync_connect_storage_server_once(
+                task->dispatch_ctx->pStorage, &task->storage_server);
+    } else {
+        task->result = 0;
+    }
 
-    task->result = storage_sync_data(task->dispatch_ctx->pReader,
-            &task->storage_server, &task->record);
+    if (task->result == 0) {
+        task->last_communicate_time = g_current_time;
+        task->result = storage_sync_data(task->dispatch_ctx->pReader,
+                &task->storage_server, &task->record);
+    }
     sf_synchronize_counter_notify(&task->dispatch_ctx->notify_ctx, 1);
 }
 
@@ -1367,12 +1380,14 @@ static int storage_batch_sync_data(StorageDispatchContext *dispatch_ctx)
             if (task->result == 0) {
                 ++sync_row_count;
             } else {
+                /* set last_binlog_index, last_binlog_offset and
+                 * scan_row_count on error */
                 result = task->result;
                 dispatch_ctx->last_binlog_index = task->binlog_index;
                 dispatch_ctx->last_binlog_offset = task->binlog_offset;
 
                 end = task;
-                dispatch_ctx->scan_row_count = 0;
+                dispatch_ctx->scan_row_count = 0;  //re-calculate
                 for (task=dispatch_ctx->task_array.tasks; task<end; task++) {
                     dispatch_ctx->scan_row_count += task->scan_row_count;
                 }
@@ -2206,8 +2221,8 @@ int storage_open_readable_binlog(StorageBinLogReader *pReader, \
 		return errno != 0 ? errno : ENOENT;
 	}
 
-	if (pReader->binlog_offset > 0 && \
-	    lseek(pReader->binlog_fd, pReader->binlog_offset, SEEK_SET) < 0)
+	if (pReader->binlog_offset > 0 && lseek(pReader->binlog_fd,
+                pReader->binlog_offset, SEEK_SET) < 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"seek binlog file \"%s\" fail, file offset=" \
@@ -2523,7 +2538,8 @@ static int storage_reader_sync_init_req(StorageBinLogReader *pReader)
 	return result;
 }
 
-int storage_reader_init(FDFSStorageBrief *pStorage, StorageBinLogReader *pReader)
+int storage_reader_init(FDFSStorageBrief *pStorage,
+        StorageBinLogReader *pReader)
 {
 	IniContext iniContext;
 	int result;
@@ -2696,7 +2712,6 @@ int storage_reader_init(FDFSStorageBrief *pStorage, StorageBinLogReader *pReader
 
 	pReader->last_scan_rows = pReader->scan_row_count;
 	pReader->last_sync_rows = pReader->sync_row_count;
-
 	if ((result=storage_open_readable_binlog(pReader,
 			get_binlog_readable_filename, pReader)) != 0)
 	{
@@ -3255,7 +3270,7 @@ static int storage_binlog_batch_read(StorageDispatchContext *dispatch_ctx)
                     pReader, &task->record);
             if (result == 0) {  //OK, need sync
                 if ((result=storage_check_conflict(dispatch_ctx->task_array.
-                                tasks, task)) == 0)
+                                tasks, task)) == 0)  //OK, no conflict
                 {
                     task->scan_row_count++;
                     if (dispatch_ctx->last_binlog_index != dispatch_ctx->
@@ -3470,6 +3485,7 @@ static int init_task_array(StorageDispatchContext *dispatch_ctx,
     if ((tasks=fc_malloc(bytes)) == NULL) {
         return ENOMEM;
     }
+    memset(tasks, 0, bytes);
 
     end = tasks + g_sync_max_threads;
     for (task=tasks; task<end; task++) {
@@ -3489,6 +3505,7 @@ static int init_dispatch_ctx(StorageDispatchContext *dispatch_ctx,
 {
     int result;
 
+    dispatch_ctx->pStorage = pStorage;
     if ((result=init_task_array(dispatch_ctx, pStorage)) != 0) {
         return result;
     }
@@ -3512,6 +3529,19 @@ static int init_dispatch_ctx(StorageDispatchContext *dispatch_ctx,
     return 0;
 }
 
+static void dispatch_ctx_close(StorageDispatchContext *dispatch_ctx)
+{
+    StorageSyncTaskInfo *task;
+
+    for (task=dispatch_ctx->task_array.tasks;
+            task<dispatch_ctx->task_array.end; task++)
+    {
+        conn_pool_disconnect_server(&task->storage_server);
+    }
+
+    storage_reader_destroy(dispatch_ctx->pReader);
+}
+
 static void* storage_sync_thread_entrance(void* arg)
 {
     StorageDispatchContext dispatch_ctx;
@@ -3525,7 +3555,6 @@ static void* storage_sync_thread_entrance(void* arg)
     time_t current_time;
 	time_t start_time;
 	time_t end_time;
-	time_t last_keep_alive_time;
 
 	pStorage = (FDFSStorageBrief *)arg;
 #ifdef OS_LINUX
@@ -3546,7 +3575,6 @@ static void* storage_sync_thread_entrance(void* arg)
     storage_server = &dispatch_ctx.task_array.tasks[0].storage_server;
 
 	current_time = g_current_time;
-	last_keep_alive_time = 0;
 	start_time = 0;
 	end_time = 0;
 
@@ -3598,6 +3626,8 @@ static void* storage_sync_thread_entrance(void* arg)
         {
             break;
         }
+        dispatch_ctx.task_array.tasks[0].
+            last_communicate_time = g_current_time;
 
 		if (pStorage->status == FDFS_STORAGE_STATUS_DELETED ||
 			pStorage->status == FDFS_STORAGE_STATUS_IP_CHANGED ||
@@ -3610,8 +3640,7 @@ static void* storage_sync_thread_entrance(void* arg)
 			pStorage->status != FDFS_STORAGE_STATUS_WAIT_SYNC &&
 			pStorage->status != FDFS_STORAGE_STATUS_SYNCING)
         {
-            close(storage_server->sock);
-            storage_server->sock = -1;
+            conn_pool_disconnect_server(storage_server);
             sleep(5);
             continue;
         }
@@ -3638,7 +3667,7 @@ static void* storage_sync_thread_entrance(void* arg)
 			}
 
 			if (pStorage->status != FDFS_STORAGE_STATUS_ACTIVE) {
-				close(storage_server->sock);
+                conn_pool_disconnect_server(storage_server);
 				storage_reader_destroy(dispatch_ctx.pReader);
 				continue;
 			}
@@ -3649,26 +3678,24 @@ static void* storage_sync_thread_entrance(void* arg)
 		insert_into_local_host_ip(local_ip_addr);
 
 		/*
-		//printf("file: "__FILE__", line: %d, " \
-			"storage_server->ip_addr=%s, " \
-			"local_ip_addr: %s\n", \
-			__LINE__, pStorage->ip_addr, local_ip_addr);
+		logInfo("file: "__FILE__", line: %d, "
+			"storage_server->ip_addr=%s, "
+			"local_ip_addr: %s\n", __LINE__,
+            pStorage->ip_addr, local_ip_addr);
 		*/
 
         if (strcmp(pStorage->id, g_my_server_id_str) == 0 ||
                 is_local_host_ip(pStorage->ip_addr))
         {  //can't self sync to self
-			logError("file: "__FILE__", line: %d, " \
-				"ip_addr %s belong to the local host," \
-				" sync thread exit.", \
-				__LINE__, pStorage->ip_addr);
-			fdfs_quit(storage_server);
-			close(storage_server->sock);
+			logError("file: "__FILE__", line: %d, "
+				"ip_addr %s belong to the local host, "
+				"sync thread exit.", __LINE__, pStorage->ip_addr);
+            conn_pool_disconnect_server(storage_server);
 			break;
 		}
 
 		if (storage_report_my_server_id(storage_server) != 0) {
-			close(storage_server->sock);
+			conn_pool_disconnect_server(storage_server);
 			storage_reader_destroy(dispatch_ctx.pReader);
 			sleep(1);
 			continue;
@@ -3681,7 +3708,9 @@ static void* storage_sync_thread_entrance(void* arg)
         }
 
 		if (pStorage->status == FDFS_STORAGE_STATUS_SYNCING) {
-			if (dispatch_ctx.pReader->need_sync_old && dispatch_ctx.pReader->sync_old_done) {
+			if (dispatch_ctx.pReader->need_sync_old &&
+                    dispatch_ctx.pReader->sync_old_done)
+            {
 				pStorage->status = FDFS_STORAGE_STATUS_OFFLINE;
 				storage_report_storage_status(pStorage->id,
 					pStorage->ip_addr, pStorage->status);
@@ -3706,44 +3735,45 @@ static void* storage_sync_thread_entrance(void* arg)
 				if (dispatch_ctx.pReader->need_sync_old &&
                         !dispatch_ctx.pReader->sync_old_done)
                 {
-				dispatch_ctx.pReader->sync_old_done = true;
-				if (storage_write_to_mark_file(dispatch_ctx.pReader) != 0)
-                {
-                    logCrit("file: "__FILE__", line: %d, "
-                            "storage_write_to_mark_file "
-                            "fail, program exit!", __LINE__);
-                    SF_G_CONTINUE_FLAG = false;
-                    break;
+                    dispatch_ctx.pReader->sync_old_done = true;
+                    if (storage_write_to_mark_file(dispatch_ctx.pReader) != 0)
+                    {
+                        logCrit("file: "__FILE__", line: %d, "
+                                "storage_write_to_mark_file "
+                                "fail, program exit!", __LINE__);
+                        SF_G_CONTINUE_FLAG = false;
+                        break;
+                    }
+
+                    if (pStorage->status == FDFS_STORAGE_STATUS_SYNCING) {
+                        pStorage->status = FDFS_STORAGE_STATUS_OFFLINE;
+                        storage_report_storage_status(pStorage->id,
+                                pStorage->ip_addr, pStorage->status);
+                    }
                 }
 
-				if (pStorage->status == FDFS_STORAGE_STATUS_SYNCING) {
-					pStorage->status = FDFS_STORAGE_STATUS_OFFLINE;
-					storage_report_storage_status(pStorage->id,
-                            pStorage->ip_addr, pStorage->status);
-				}
-				}
-
-				if (dispatch_ctx.pReader->last_scan_rows !=
+                if (dispatch_ctx.pReader->last_scan_rows !=
                         dispatch_ctx.pReader->scan_row_count)
-				{
-					if (storage_write_to_mark_file(dispatch_ctx.pReader)!=0) {
-					logCrit("file: "__FILE__", line: %d, " \
-						"storage_write_to_mark_file fail, " \
-						"program exit!", __LINE__);
-					SF_G_CONTINUE_FLAG = false;
-					break;
-					}
+                {
+                    if (storage_write_to_mark_file(dispatch_ctx.pReader) != 0) {
+                        logCrit("file: "__FILE__", line: %d, "
+                                "storage_write_to_mark_file fail, "
+                                "program exit!", __LINE__);
+                        SF_G_CONTINUE_FLAG = false;
+                        break;
+                    }
 				}
 
 				current_time = g_current_time;
-                if (current_time - last_keep_alive_time >=
-                        g_heart_beat_interval)
+                if (current_time - dispatch_ctx.task_array.tasks[0].
+                        last_communicate_time >= g_heart_beat_interval)
                 {
                     if (fdfs_active_test(storage_server) != 0) {
                         break;
                     }
 
-                    last_keep_alive_time = current_time;
+                    dispatch_ctx.task_array.tasks[0].
+                        last_communicate_time = current_time;
                 }
 
 				usleep(g_sync_wait_usec);
@@ -3771,47 +3801,24 @@ static void* storage_sync_thread_entrance(void* arg)
                 if (!SF_G_CONTINUE_FLAG) {
                     break;
                 }
+            }
 
-                /*
-				logDebug("file: "__FILE__", line: %d, " \
-					"binlog index: %d, current record " \
-					"offset: %"PRId64", next " \
-					"record offset: %"PRId64, \
-					__LINE__, dispatch_ctx.pReader->binlog_index, \
-					dispatch_ctx.pReader->binlog_offset, \
-					dispatch_ctx.pReader->binlog_offset + record_len);
-                    */
-                if (dispatch_ctx.last_binlog_index == dispatch_ctx.
-                        pReader->binlog_index)
-                {
-                    if (rewind_to_prev_rec_end_ex(dispatch_ctx.pReader,
-                                dispatch_ctx.last_binlog_offset) != 0)
-                    {
-                        logCrit("file: "__FILE__", line: %d, "
-                                "rewind_to_prev_rec_end fail, "
-                                "program exit!", __LINE__);
-                        SF_G_CONTINUE_FLAG = false;
-                    }
-                } else {
-                    //TODO
-                }
-
-				break;
-			}
-
-            if (dispatch_ctx.last_binlog_index == dispatch_ctx.
+            dispatch_ctx.pReader->binlog_offset =
+                dispatch_ctx.last_binlog_offset;
+            dispatch_ctx.pReader->scan_row_count +=
+                dispatch_ctx.scan_row_count;
+            if (dispatch_ctx.last_binlog_index < dispatch_ctx.
                     pReader->binlog_index)
             {
-                dispatch_ctx.pReader->binlog_offset =
-                    dispatch_ctx.last_binlog_offset;
-            } else {
-                //TODO
+                dispatch_ctx.pReader->binlog_index =
+                    dispatch_ctx.last_binlog_index;
+                break;
             }
-			dispatch_ctx.pReader->scan_row_count +=
-                dispatch_ctx.scan_row_count;
+            if (sync_result != 0) {
+                break;
+            }
 
-			if (g_sync_interval > 0)
-			{
+			if (g_sync_interval > 0) {
 				usleep(g_sync_interval);
 			}
 		}
@@ -3828,19 +3835,15 @@ static void* storage_sync_thread_entrance(void* arg)
             }
         }
 
-		close(storage_server->sock);
-		storage_server->sock = -1;
-		storage_reader_destroy(dispatch_ctx.pReader);
+        dispatch_ctx_close(&dispatch_ctx);
+        storage_reader_destroy(dispatch_ctx.pReader);
+        if (!SF_G_CONTINUE_FLAG) {
+            break;
+        }
 
-		if (!SF_G_CONTINUE_FLAG)
-		{
-			break;
-		}
-
-		if (!(sync_result == ENOTCONN || sync_result == EIO))
-		{
-			sleep(1);
-		}
+        if (!(sync_result == ENOTCONN || sync_result == EIO)) {
+            sleep(5);
+        }
 	}
 
     storage_reader_remove_from_list(dispatch_ctx.pReader);

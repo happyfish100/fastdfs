@@ -57,7 +57,7 @@ typedef int (*FileBeforeCloseCallback)(struct fast_task_info *pTask);
 typedef struct
 {
     FDFSStorageBrief server;
-    int last_sync_src_timestamp;
+    volatile int last_sync_src_timestamp;
 } FDFSStorageServer;
 
 typedef struct
@@ -117,8 +117,8 @@ typedef struct
 		StorageSetMetaInfo setmeta;
 	} extra_info;
 
-	int dio_thread_index;		//dio thread index
 	int timestamp2log;		//timestamp to log
+	int dio_thread_index;	//dio thread index
 	int delete_flag;     //delete file flag
 	int create_flag;    //create file flag
 	int buff_offset;    //buffer offset after recv to write to file
