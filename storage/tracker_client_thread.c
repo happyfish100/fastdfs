@@ -26,6 +26,7 @@
 #include "fastcommon/pthread_func.h"
 #include "fastcommon/sched_thread.h"
 #include "fastcommon/fast_task_queue.h"
+#include "fastcommon/fc_atomic.h"
 #include "tracker_types.h"
 #include "tracker_proto.h"
 #include "tracker_client_thread.h"
@@ -937,18 +938,15 @@ static int tracker_merge_servers(ConnectionInfo *pTrackerServer,
 
 			if (g_storage_count < FDFS_MAX_SERVERS_EACH_GROUP)
 			{
-				pInsertedServer = g_storage_servers + \
-						g_storage_count;
-				memcpy(&(pInsertedServer->server), \
+				pInsertedServer = g_storage_servers + g_storage_count;
+				memcpy(&(pInsertedServer->server),
 					pServer, sizeof(FDFSStorageBrief));
-				if (tracker_insert_into_sorted_servers( \
-						pInsertedServer))
-				{
-					g_storage_count++;
-
-					result = tracker_start_sync_threads( \
-						&(pInsertedServer->server));
-				}
+				if (tracker_insert_into_sorted_servers(pInsertedServer))
+                {
+                    g_storage_count++;
+                    result = tracker_start_sync_threads(
+                            &(pInsertedServer->server));
+                }
 				else
 				{
 					result = 0;
@@ -1998,11 +1996,11 @@ static int tracker_sync_notify(ConnectionInfo *pTrackerServer, const int tracker
     return result;
 }
 
-int tracker_report_join(ConnectionInfo *pTrackerServer, \
-			const int tracker_index, const bool sync_old_done)
+int tracker_report_join(ConnectionInfo *pTrackerServer,
+        const int tracker_index, const bool sync_old_done)
 {
-	char out_buff[sizeof(TrackerHeader) + sizeof(TrackerStorageJoinBody) + \
-			FDFS_MAX_TRACKERS * FDFS_PROTO_MULTI_IP_PORT_SIZE];
+	char out_buff[sizeof(TrackerHeader) + sizeof(TrackerStorageJoinBody) +
+			FDFS_MAX_TRACKERS * FDFS_MAX_MULTI_IP_PORT_SIZE];
     char formatted_ip[FORMATTED_IP_SIZE];
 	TrackerHeader *pHeader;
 	TrackerStorageJoinBody *pReqBody;
@@ -2089,11 +2087,11 @@ int tracker_report_join(ConnectionInfo *pTrackerServer, \
 	p = out_buff + sizeof(TrackerHeader) + sizeof(TrackerStorageJoinBody);
 	pServerEnd = g_tracker_group.servers + g_tracker_group.server_count;
 	for (pServer=g_tracker_group.servers; pServer<pServerEnd; pServer++)
-	{
-        fdfs_server_info_to_string(pServer, p,
-                FDFS_PROTO_MULTI_IP_PORT_SIZE);
-		p += FDFS_PROTO_MULTI_IP_PORT_SIZE;
-	}
+    {
+        p += fdfs_server_info_to_string(pServer, p,
+                FDFS_MAX_MULTI_IP_PORT_SIZE);
+        *p++ = '\n';
+    }
 
 	out_len = p - out_buff;
 	long2buff(g_tracker_group.server_count, pReqBody->tracker_count);
@@ -2178,7 +2176,7 @@ static int tracker_report_sync_timestamp(ConnectionInfo *pTrackerServer,
 	{
 		memcpy(p, pServer->server.id, FDFS_STORAGE_ID_MAX_SIZE);
 		p += FDFS_STORAGE_ID_MAX_SIZE;
-		int2buff(pServer->last_sync_src_timestamp, p);
+		int2buff(FC_ATOMIC_GET(pServer->last_sync_src_timestamp), p);
 		p += 4;
 	}
 

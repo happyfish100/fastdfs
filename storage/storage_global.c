@@ -41,6 +41,8 @@ int g_tracker_reporter_count = 0;
 int g_heart_beat_interval  = STORAGE_BEAT_DEF_INTERVAL;
 int g_stat_report_interval = STORAGE_REPORT_DEF_INTERVAL;
 
+int g_sync_min_threads = 1;
+int g_sync_max_threads = 2;
 int g_sync_wait_usec = STORAGE_DEF_SYNC_WAIT_MSEC;
 int g_sync_interval = 0; //unit: milliseconds
 TimeInfo g_sync_start_time = {0, 0};
@@ -89,6 +91,8 @@ bool g_compress_binlog = false;
 TimeInfo g_compress_binlog_time = {0, 0};
 
 int g_upload_priority = FDFS_DEFAULT_UPLOAD_PRIORITY;
+
+int g_response_ip_addr_size = IPV6_ADDRESS_SIZE;
 
 #if defined(DEBUG_FLAG) && defined(OS_LINUX)
 char g_exe_name[256] = {0};

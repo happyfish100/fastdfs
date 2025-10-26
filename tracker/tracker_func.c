@@ -144,6 +144,7 @@ int tracker_load_from_conf_file(const char *filename)
 	char *pSlotMaxSize;
 	char *pSpaceThreshold;
 	char *pTrunkFileSize;
+    char *pResponseIpAddrSize;
 	IniContext iniContext;
     SFContextIniConfig config;
 	int result;
@@ -450,6 +451,20 @@ int tracker_load_from_conf_file(const char *filename)
             g_groups.store_server = FDFS_STORE_SERVER_FIRST_BY_IP;
         }
 
+        pResponseIpAddrSize = iniGetStrValue(NULL,
+                "response_ip_addr_size", &iniContext);
+        if (pResponseIpAddrSize == NULL || strcasecmp(
+                    pResponseIpAddrSize, "auto") == 0)
+        {
+            if (g_use_storage_id && fdfs_storage_servers_contain_ipv6()) {
+                g_response_ip_addr_size = IPV6_ADDRESS_SIZE;
+            } else {
+                g_response_ip_addr_size = IPV4_ADDRESS_SIZE;
+            }
+        } else {
+            g_response_ip_addr_size = IPV6_ADDRESS_SIZE;
+        }
+
         sf_global_config_to_string(sz_global_config,
                 sizeof(sz_global_config));
         sf_context_config_to_string(&g_sf_context,
@@ -487,6 +502,7 @@ int tracker_load_from_conf_file(const char *filename)
 			"trust_storage_server_id=%d, "
 			"storage_id/ip_count=%d / %d, "
 			"store_slave_file_use_link=%d, "
+            "response_ip_addr_size=%s (%d), "
 			"use_connection_pool=%d, "
 			"g_connection_pool_max_idle_time=%ds",
 			g_fdfs_version.major, g_fdfs_version.minor,
@@ -523,7 +539,9 @@ int tracker_load_from_conf_file(const char *filename)
             g_trust_storage_server_id,
             g_storage_ids_by_id.count, g_storage_ids_by_ip.count,
 			g_store_slave_file_use_link,
-			g_use_connection_pool, g_connection_pool_max_idle_time);
+            (g_response_ip_addr_size == IPV6_ADDRESS_SIZE ? "IPv6" : "IPv4"),
+            g_response_ip_addr_size, g_use_connection_pool,
+            g_connection_pool_max_idle_time);
 	} while (0);
 
 	iniFreeContext(&iniContext);

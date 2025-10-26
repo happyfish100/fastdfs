@@ -98,7 +98,6 @@ int tracker_service_init()
             tracker_deal_task, task_finish_clean_up, NULL, 1000,
             sizeof(TrackerHeader), sizeof(TrackerClientInfo));
     sf_enable_thread_notify(false);
-    sf_set_remove_from_ready_list(false);
     return result;
 }
 
@@ -114,7 +113,7 @@ void tracker_service_destroy()
 /*
 storage server list
 */
-static int tracker_check_and_sync(struct fast_task_info *pTask, \
+static int tracker_check_and_sync(struct fast_task_info *pTask,
 			const int status)
 {
 	FDFSStorageDetail **ppServer;
@@ -450,6 +449,7 @@ static int tracker_deal_parameter_req(struct fast_task_info *pTask)
             "use_storage_id=%d\n"
             "id_type_in_filename=%s\n"
             "trust_storage_server_id=%d\n"
+            "response_ip_addr_size=%d\n"
             "storage_ip_changed_auto_adjust=%d\n"
             "storage_sync_file_max_delay=%d\n"
             "store_path=%d\n"
@@ -474,7 +474,7 @@ static int tracker_deal_parameter_req(struct fast_task_info *pTask)
             "store_slave_file_use_link=%d\n",
         g_use_storage_id, g_id_type_in_filename ==
             FDFS_ID_TYPE_SERVER_ID ? "id" : "ip",
-        g_trust_storage_server_id,
+        g_trust_storage_server_id, g_response_ip_addr_size,
         g_storage_ip_changed_auto_adjust,
         g_storage_sync_file_max_delay, g_groups.store_path,
         fdfs_storage_reserved_space_to_string(
@@ -649,16 +649,16 @@ static int tracker_deal_notify_next_leader(struct fast_task_info *pTask)
     char formatted_ip[FORMATTED_IP_SIZE];
 	int server_index;
 	
-	if (pTask->recv.ptr->length - sizeof(TrackerHeader) !=
-            FDFS_PROTO_IP_PORT_SIZE)
+	if (pTask->recv.ptr->length - sizeof(TrackerHeader) >
+            FDFS_MAX_IP_PORT_SIZE)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"cmd=%d, client ip addr: %s, " \
-			"package size "PKG_LEN_PRINTF_FORMAT" " \
-			"is not correct, expect length: %d", __LINE__, \
-			TRACKER_PROTO_CMD_STORAGE_REPORT_TRUNK_FID, \
-			pTask->client_ip, pTask->recv.ptr->length - \
-			(int)sizeof(TrackerHeader), FDFS_PROTO_IP_PORT_SIZE);
+		logError("file: "__FILE__", line: %d, "
+			"cmd=%d, client ip addr: %s, "
+			"package size "PKG_LEN_PRINTF_FORMAT" "
+			"is too large, exceeds max length: %d", __LINE__,
+			TRACKER_PROTO_CMD_STORAGE_REPORT_TRUNK_FID,
+			pTask->client_ip, pTask->recv.ptr->length -
+			(int)sizeof(TrackerHeader), FDFS_MAX_IP_PORT_SIZE);
 		pTask->send.ptr->length = sizeof(TrackerHeader);
 		return EINVAL;
 	}
@@ -716,17 +716,17 @@ static int tracker_deal_commit_next_leader(struct fast_task_info *pTask)
     char formatted_ip[FORMATTED_IP_SIZE];
 	int server_index;
     bool leader_self;
-	
-	if (pTask->recv.ptr->length - sizeof(TrackerHeader) !=
-            FDFS_PROTO_IP_PORT_SIZE)
+
+	if (pTask->recv.ptr->length - sizeof(TrackerHeader) >
+            FDFS_MAX_IP_PORT_SIZE)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"cmd=%d, client ip addr: %s, " \
-			"package size "PKG_LEN_PRINTF_FORMAT" " \
-			"is not correct, expect length: %d", __LINE__, \
-			TRACKER_PROTO_CMD_STORAGE_REPORT_TRUNK_FID, \
-			pTask->client_ip, pTask->recv.ptr->length - \
-			(int)sizeof(TrackerHeader), FDFS_PROTO_IP_PORT_SIZE);
+		logError("file: "__FILE__", line: %d, "
+			"cmd=%d, client ip addr: %s, "
+			"package size "PKG_LEN_PRINTF_FORMAT" "
+			"is too large, exceeds max length: %d", __LINE__,
+			TRACKER_PROTO_CMD_STORAGE_REPORT_TRUNK_FID,
+			pTask->client_ip, pTask->recv.ptr->length -
+			(int)sizeof(TrackerHeader), FDFS_MAX_IP_PORT_SIZE);
 		pTask->send.ptr->length = sizeof(TrackerHeader);
 		return EINVAL;
 	}
@@ -1284,13 +1284,13 @@ static int tracker_deal_storage_join(struct fast_task_info *pTask)
 	TrackerServerInfo *pTrackerServer;
 	TrackerServerInfo *pTrackerEnd;
 	char *p;
+	char *line_end;
 	FDFSStorageJoinBody joinBody;
 	int result;
 	TrackerClientInfo *pClientInfo;
 	char tracker_ip[IP_ADDRESS_SIZE];
 
 	pClientInfo = (TrackerClientInfo *)pTask->arg;
-
 	if (pTask->recv.ptr->length - sizeof(TrackerHeader) <
 			sizeof(TrackerStorageJoinBody))
 	{
@@ -1322,22 +1322,22 @@ static int tracker_deal_storage_join(struct fast_task_info *pTask)
 		return EINVAL;
 	}
 
-	if (pTask->recv.ptr->length - sizeof(TrackerHeader) !=
-		sizeof(TrackerStorageJoinBody) + joinBody.tracker_count *
-		FDFS_PROTO_MULTI_IP_PORT_SIZE)
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"cmd: %d, client ip: %s, " \
-			"package size "PKG_LEN_PRINTF_FORMAT" " \
-			"is not correct, expect length %d.", \
-			__LINE__, TRACKER_PROTO_CMD_STORAGE_JOIN, \
-			pTask->client_ip, pTask->recv.ptr->length - \
-			(int)sizeof(TrackerHeader),
-			(int)sizeof(TrackerStorageJoinBody) + \
-			joinBody.tracker_count * FDFS_PROTO_MULTI_IP_PORT_SIZE);
-		pTask->send.ptr->length = sizeof(TrackerHeader);
-		return EINVAL;
-	}
+    if (pTask->recv.ptr->length - sizeof(TrackerHeader) >
+            sizeof(TrackerStorageJoinBody) + joinBody.tracker_count *
+            FDFS_MAX_MULTI_IP_PORT_SIZE)
+    {
+        logError("file: "__FILE__", line: %d, "
+                "cmd: %d, client ip: %s, "
+                "package size "PKG_LEN_PRINTF_FORMAT" "
+                "is too large, exceeds max length %d.",
+                __LINE__, TRACKER_PROTO_CMD_STORAGE_JOIN,
+                pTask->client_ip, pTask->recv.ptr->length -
+                (int)sizeof(TrackerHeader),
+                (int)sizeof(TrackerStorageJoinBody) +
+                joinBody.tracker_count * FDFS_MAX_MULTI_IP_PORT_SIZE);
+        pTask->send.ptr->length = sizeof(TrackerHeader);
+        return EINVAL;
+    }
 
 	memcpy(joinBody.group_name, pBody->group_name, FDFS_GROUP_NAME_MAX_LEN);
 	joinBody.group_name[FDFS_GROUP_NAME_MAX_LEN] = '\0';
@@ -1386,22 +1386,32 @@ static int tracker_deal_storage_join(struct fast_task_info *pTask)
 		return EINVAL;
 	}
 
-	p = pTask->recv.ptr->data + sizeof(TrackerHeader) +
+    *(pTask->recv.ptr->data + pTask->recv.ptr->length) = '\0';
+    p = pTask->recv.ptr->data + sizeof(TrackerHeader) +
         sizeof(TrackerStorageJoinBody);
 	pTrackerEnd = joinBody.tracker_servers + joinBody.tracker_count;
 	for (pTrackerServer=joinBody.tracker_servers;
 		pTrackerServer<pTrackerEnd; pTrackerServer++)
-	{
-		*(p + FDFS_PROTO_MULTI_IP_PORT_SIZE - 1) = '\0';
+    {
+        line_end = strchr(p, '\n');
+        if (line_end == NULL)
+        {
+            logError("file: "__FILE__", line: %d, "
+                    "client ip: %s, expect new line char!",
+                    __LINE__, pTask->client_ip);
+            pTask->send.ptr->length = sizeof(TrackerHeader);
+            return EINVAL;
+        }
+        *line_end = '\0';
         if ((result=fdfs_parse_server_info_ex(p, FDFS_TRACKER_SERVER_DEF_PORT,
-                pTrackerServer, false)) != 0)
+                        pTrackerServer, false)) != 0)
         {
             pTask->send.ptr->length = sizeof(TrackerHeader);
             return result;
         }
 
-		p += FDFS_PROTO_MULTI_IP_PORT_SIZE;
-	}
+        p = line_end + 1;
+    }
 
 	joinBody.upload_priority = (int)buff2long(pBody->upload_priority);
 	joinBody.join_time = (time_t)buff2long(pBody->join_time);
@@ -2168,6 +2178,131 @@ static inline int64_t calc_reserved_space(int64_t total_mb)
 }
 
 
+#define ENCODE_STORAGE_FIELDS(ppServer, pDest) \
+    pDest->status = (*ppServer)->status;   \
+    pDest->rw_mode = (*ppServer)->rw_mode; \
+    strcpy(pDest->id, (*ppServer)->id);    \
+    strcpy(pDest->ip_addr, fdfs_get_ipaddr_by_peer_ip( \
+                &(*ppServer)->ip_addrs, pTask->client_ip)); \
+    if ((*ppServer)->psync_src_server != NULL) \
+    { \
+        strcpy(pDest->src_id, (*ppServer)->psync_src_server->id); \
+    } \
+    strcpy(pDest->version, (*ppServer)->version); \
+    long2buff((*ppServer)->join_time, pDest->sz_join_time); \
+    long2buff((*ppServer)->up_time, pDest->sz_up_time);   \
+    long2buff((*ppServer)->total_mb, pDest->sz_total_mb); \
+    long2buff((*ppServer)->free_mb, pDest->sz_free_mb);   \
+    long2buff(calc_reserved_space((*ppServer)->total_mb), \
+            pDest->sz_reserved_mb); \
+    long2buff((*ppServer)->upload_priority, \
+            pDest->sz_upload_priority);     \
+	long2buff((*ppServer)->storage_port, \
+            pDest->sz_storage_port);     \
+	long2buff((*ppServer)->store_path_count, \
+            pDest->sz_store_path_count);     \
+	long2buff((*ppServer)->subdir_count_per_path, \
+            pDest->sz_subdir_count_per_path);     \
+	long2buff((*ppServer)->current_write_path,  \
+            pDest->sz_current_write_path);      \
+    pDest->if_trunk_server = (pGroup->pTrunkServer == *ppServer)
+
+static void encode_storage_stat(FDFSStorageStat *pStorageStat,
+        FDFSStorageStatBuff *pStatBuff)
+{
+    int2buff(pStorageStat->connection.alloc_count,
+            pStatBuff->connection.sz_alloc_count);
+    int2buff(pStorageStat->connection.current_count,
+            pStatBuff->connection.sz_current_count);
+    int2buff(pStorageStat->connection.max_count,
+            pStatBuff->connection.sz_max_count);
+
+    long2buff(pStorageStat->total_upload_count,
+            pStatBuff->sz_total_upload_count);
+    long2buff(pStorageStat->success_upload_count,
+            pStatBuff->sz_success_upload_count);
+    long2buff(pStorageStat->total_append_count,
+            pStatBuff->sz_total_append_count);
+    long2buff(pStorageStat->success_append_count,
+            pStatBuff->sz_success_append_count);
+    long2buff(pStorageStat->total_modify_count,
+            pStatBuff->sz_total_modify_count);
+    long2buff(pStorageStat->success_modify_count,
+            pStatBuff->sz_success_modify_count);
+    long2buff(pStorageStat->total_truncate_count,
+            pStatBuff->sz_total_truncate_count);
+    long2buff(pStorageStat->success_truncate_count,
+            pStatBuff->sz_success_truncate_count);
+    long2buff(pStorageStat->total_set_meta_count,
+            pStatBuff->sz_total_set_meta_count);
+    long2buff(pStorageStat->success_set_meta_count,
+            pStatBuff->sz_success_set_meta_count);
+    long2buff(pStorageStat->total_delete_count,
+            pStatBuff->sz_total_delete_count);
+    long2buff(pStorageStat->success_delete_count,
+            pStatBuff->sz_success_delete_count);
+    long2buff(pStorageStat->total_download_count,
+            pStatBuff->sz_total_download_count);
+    long2buff(pStorageStat->success_download_count,
+            pStatBuff->sz_success_download_count);
+    long2buff(pStorageStat->total_get_meta_count,
+            pStatBuff->sz_total_get_meta_count);
+    long2buff(pStorageStat->success_get_meta_count,
+            pStatBuff->sz_success_get_meta_count);
+    long2buff(pStorageStat->last_source_update,
+            pStatBuff->sz_last_source_update);
+    long2buff(pStorageStat->last_sync_update,
+            pStatBuff->sz_last_sync_update);
+    long2buff(pStorageStat->last_synced_timestamp,
+            pStatBuff->sz_last_synced_timestamp);
+    long2buff(pStorageStat->total_create_link_count,
+            pStatBuff->sz_total_create_link_count);
+    long2buff(pStorageStat->success_create_link_count,
+            pStatBuff->sz_success_create_link_count);
+    long2buff(pStorageStat->total_delete_link_count,
+            pStatBuff->sz_total_delete_link_count);
+    long2buff(pStorageStat->success_delete_link_count,
+            pStatBuff->sz_success_delete_link_count);
+    long2buff(pStorageStat->total_upload_bytes,
+            pStatBuff->sz_total_upload_bytes);
+    long2buff(pStorageStat->success_upload_bytes,
+            pStatBuff->sz_success_upload_bytes);
+    long2buff(pStorageStat->total_append_bytes,
+            pStatBuff->sz_total_append_bytes);
+    long2buff(pStorageStat->success_append_bytes,
+            pStatBuff->sz_success_append_bytes);
+    long2buff(pStorageStat->total_modify_bytes,
+            pStatBuff->sz_total_modify_bytes);
+    long2buff(pStorageStat->success_modify_bytes,
+            pStatBuff->sz_success_modify_bytes);
+    long2buff(pStorageStat->total_download_bytes,
+            pStatBuff->sz_total_download_bytes);
+    long2buff(pStorageStat->success_download_bytes,
+            pStatBuff->sz_success_download_bytes);
+    long2buff(pStorageStat->total_sync_in_bytes,
+            pStatBuff->sz_total_sync_in_bytes);
+    long2buff(pStorageStat->success_sync_in_bytes,
+            pStatBuff->sz_success_sync_in_bytes);
+    long2buff(pStorageStat->total_sync_out_bytes,
+            pStatBuff->sz_total_sync_out_bytes);
+    long2buff(pStorageStat->success_sync_out_bytes,
+            pStatBuff->sz_success_sync_out_bytes);
+    long2buff(pStorageStat->total_file_open_count,
+            pStatBuff->sz_total_file_open_count);
+    long2buff(pStorageStat->success_file_open_count,
+            pStatBuff->sz_success_file_open_count);
+    long2buff(pStorageStat->total_file_read_count,
+            pStatBuff->sz_total_file_read_count);
+    long2buff(pStorageStat->success_file_read_count,
+            pStatBuff->sz_success_file_read_count);
+    long2buff(pStorageStat->total_file_write_count,
+            pStatBuff->sz_total_file_write_count);
+    long2buff(pStorageStat->success_file_write_count,
+            pStatBuff->sz_success_file_write_count);
+    long2buff(pStorageStat->last_heart_beat_time,
+            pStatBuff->sz_last_heart_beat_time);
+}
+
 /**
 pkg format:
 Header
@@ -2181,12 +2316,13 @@ static int tracker_deal_server_list_group_storages(struct fast_task_info *pTask)
 	FDFSGroupInfo *pGroup;
 	FDFSStorageDetail **ppServer;
 	FDFSStorageDetail **ppEnd;
-	FDFSStorageStat *pStorageStat;
-	TrackerStorageStat *pStart;
-	TrackerStorageStat *pDest;
+	TrackerStorageStatIPv4 *pIPv4Dest = NULL;
+	TrackerStorageStatIPv6 *pIPv6Dest = NULL;
 	FDFSStorageStatBuff *pStatBuff;
 	int nPkgLen;
 	int id_len;
+    int struct_size;
+    int count;
 
 	nPkgLen = pTask->recv.ptr->length - sizeof(TrackerHeader);
 	if (nPkgLen < FDFS_GROUP_NAME_MAX_LEN || \
@@ -2236,154 +2372,55 @@ static int tracker_deal_server_list_group_storages(struct fast_task_info *pTask)
 
 	memset(pTask->send.ptr->data + sizeof(TrackerHeader), 0,
 			pTask->send.ptr->size - sizeof(TrackerHeader));
-	pDest = pStart = (TrackerStorageStat *)(pTask->
-            send.ptr->data + sizeof(TrackerHeader));
+    if (g_response_ip_addr_size == IPV4_ADDRESS_SIZE)
+    {
+        struct_size = sizeof(TrackerStorageStatIPv4);
+        pIPv4Dest = (TrackerStorageStatIPv4 *)(pTask->
+                send.ptr->data + sizeof(TrackerHeader));
+    }
+    else
+    {
+        struct_size = sizeof(TrackerStorageStatIPv6);
+        pIPv6Dest = (TrackerStorageStatIPv6 *)(pTask->
+                send.ptr->data + sizeof(TrackerHeader));
+    }
+
+    count = 0;
 	ppEnd = pGroup->sorted_servers + pGroup->storage_count;
-	for (ppServer=pGroup->sorted_servers; ppServer<ppEnd; \
+	for (ppServer=pGroup->sorted_servers; ppServer<ppEnd;
 			ppServer++)
 	{
-		if (pStorageId != NULL && strcmp(pStorageId, \
+		if (pStorageId != NULL && strcmp(pStorageId,
 					(*ppServer)->id) != 0)
 		{
 			continue;
 		}
 
-		pStatBuff = &(pDest->stat_buff);
-		pStorageStat = &((*ppServer)->stat);
-		pDest->status = (*ppServer)->status;
-		pDest->rw_mode = (*ppServer)->rw_mode;
-		strcpy(pDest->id, (*ppServer)->id);
-		strcpy(pDest->ip_addr, fdfs_get_ipaddr_by_peer_ip(
-                    &(*ppServer)->ip_addrs, pTask->client_ip));
-		if ((*ppServer)->psync_src_server != NULL)
+        if (g_response_ip_addr_size == IPV4_ADDRESS_SIZE)
         {
-            strcpy(pDest->src_id, (*ppServer)->psync_src_server->id);
+            pStatBuff = &(pIPv4Dest->stat_buff);
+            ENCODE_STORAGE_FIELDS(ppServer, pIPv4Dest);
+            pIPv4Dest++;
+        }
+        else
+        {
+            pStatBuff = &(pIPv6Dest->stat_buff);
+            ENCODE_STORAGE_FIELDS(ppServer, pIPv6Dest);
+            pIPv6Dest++;
         }
 
-		strcpy(pDest->version, (*ppServer)->version);
-		long2buff((*ppServer)->join_time, pDest->sz_join_time);
-		long2buff((*ppServer)->up_time, pDest->sz_up_time);
-		long2buff((*ppServer)->total_mb, pDest->sz_total_mb);
-		long2buff((*ppServer)->free_mb, pDest->sz_free_mb);
-		long2buff(calc_reserved_space((*ppServer)->total_mb),
-                pDest->sz_reserved_mb);
-		long2buff((*ppServer)->upload_priority, \
-				pDest->sz_upload_priority);
-		long2buff((*ppServer)->storage_port, \
-				pDest->sz_storage_port);
-		long2buff((*ppServer)->store_path_count, \
-				pDest->sz_store_path_count);
-		long2buff((*ppServer)->subdir_count_per_path, \
-				pDest->sz_subdir_count_per_path);
-		long2buff((*ppServer)->current_write_path, \
-				pDest->sz_current_write_path);
-
-
-		int2buff(pStorageStat->connection.alloc_count, \
-				pStatBuff->connection.sz_alloc_count);
-		int2buff(pStorageStat->connection.current_count, \
-				pStatBuff->connection.sz_current_count);
-		int2buff(pStorageStat->connection.max_count, \
-				pStatBuff->connection.sz_max_count);
-
-		long2buff(pStorageStat->total_upload_count, \
-				pStatBuff->sz_total_upload_count);
-		long2buff(pStorageStat->success_upload_count, \
-				pStatBuff->sz_success_upload_count);
-		long2buff(pStorageStat->total_append_count, \
-				pStatBuff->sz_total_append_count);
-		long2buff(pStorageStat->success_append_count, \
-				pStatBuff->sz_success_append_count);
-		long2buff(pStorageStat->total_modify_count, \
-				pStatBuff->sz_total_modify_count);
-		long2buff(pStorageStat->success_modify_count, \
-				pStatBuff->sz_success_modify_count);
-		long2buff(pStorageStat->total_truncate_count, \
-				pStatBuff->sz_total_truncate_count);
-		long2buff(pStorageStat->success_truncate_count, \
-				pStatBuff->sz_success_truncate_count);
-		long2buff(pStorageStat->total_set_meta_count, \
-				pStatBuff->sz_total_set_meta_count);
-		long2buff(pStorageStat->success_set_meta_count, \
-				pStatBuff->sz_success_set_meta_count);
-		long2buff(pStorageStat->total_delete_count, \
-				pStatBuff->sz_total_delete_count);
-		long2buff(pStorageStat->success_delete_count, \
-				pStatBuff->sz_success_delete_count);
-		long2buff(pStorageStat->total_download_count, \
-				pStatBuff->sz_total_download_count);
-		long2buff(pStorageStat->success_download_count, \
-				pStatBuff->sz_success_download_count);
-		long2buff(pStorageStat->total_get_meta_count, \
-				pStatBuff->sz_total_get_meta_count);
-		long2buff(pStorageStat->success_get_meta_count, \
-				pStatBuff->sz_success_get_meta_count);
-		long2buff(pStorageStat->last_source_update, \
-				pStatBuff->sz_last_source_update);
-		long2buff(pStorageStat->last_sync_update, \
-				pStatBuff->sz_last_sync_update);
-		long2buff(pStorageStat->last_synced_timestamp, \
-				pStatBuff->sz_last_synced_timestamp);
-		long2buff(pStorageStat->total_create_link_count, \
-				pStatBuff->sz_total_create_link_count);
-		long2buff(pStorageStat->success_create_link_count, \
-				pStatBuff->sz_success_create_link_count);
-		long2buff(pStorageStat->total_delete_link_count, \
-				pStatBuff->sz_total_delete_link_count);
-		long2buff(pStorageStat->success_delete_link_count, \
-				pStatBuff->sz_success_delete_link_count);
-		long2buff(pStorageStat->total_upload_bytes, \
-				pStatBuff->sz_total_upload_bytes);
-		long2buff(pStorageStat->success_upload_bytes, \
-				pStatBuff->sz_success_upload_bytes);
-		long2buff(pStorageStat->total_append_bytes, \
-				pStatBuff->sz_total_append_bytes);
-		long2buff(pStorageStat->success_append_bytes, \
-				pStatBuff->sz_success_append_bytes);
-		long2buff(pStorageStat->total_modify_bytes, \
-				pStatBuff->sz_total_modify_bytes);
-		long2buff(pStorageStat->success_modify_bytes, \
-				pStatBuff->sz_success_modify_bytes);
-		long2buff(pStorageStat->total_download_bytes, \
-				pStatBuff->sz_total_download_bytes);
-		long2buff(pStorageStat->success_download_bytes, \
-				pStatBuff->sz_success_download_bytes);
-		long2buff(pStorageStat->total_sync_in_bytes, \
-				pStatBuff->sz_total_sync_in_bytes);
-		long2buff(pStorageStat->success_sync_in_bytes, \
-				pStatBuff->sz_success_sync_in_bytes);
-		long2buff(pStorageStat->total_sync_out_bytes, \
-				pStatBuff->sz_total_sync_out_bytes);
-		long2buff(pStorageStat->success_sync_out_bytes, \
-				pStatBuff->sz_success_sync_out_bytes);
-		long2buff(pStorageStat->total_file_open_count, \
-				pStatBuff->sz_total_file_open_count);
-		long2buff(pStorageStat->success_file_open_count, \
-				pStatBuff->sz_success_file_open_count);
-		long2buff(pStorageStat->total_file_read_count, \
-				pStatBuff->sz_total_file_read_count);
-		long2buff(pStorageStat->success_file_read_count, \
-				pStatBuff->sz_success_file_read_count);
-		long2buff(pStorageStat->total_file_write_count, \
-				pStatBuff->sz_total_file_write_count);
-		long2buff(pStorageStat->success_file_write_count, \
-				pStatBuff->sz_success_file_write_count);
-		long2buff(pStorageStat->last_heart_beat_time, \
-				pStatBuff->sz_last_heart_beat_time);
-		pDest->if_trunk_server = (pGroup->pTrunkServer == *ppServer);
-
-		pDest++;
+        encode_storage_stat(&(*ppServer)->stat, pStatBuff);
+        ++count;
 	}
 
-	if (pStorageId != NULL && pDest - pStart == 0)
-	{
-		pTask->send.ptr->length = sizeof(TrackerHeader);
-		return ENOENT;
-	}
+	if (pStorageId != NULL && count == 0)
+    {
+        pTask->send.ptr->length = sizeof(TrackerHeader);
+        return ENOENT;
+    }
 
-	pTask->send.ptr->length = sizeof(TrackerHeader) + (pDest - pStart) * \
-				sizeof(TrackerStorageStat);
-	return 0;
+    pTask->send.ptr->length = sizeof(TrackerHeader) + count * struct_size;
+    return 0;
 }
 
 /**
@@ -2404,8 +2441,9 @@ static int tracker_deal_service_query_fetch_update(
 	FDFSStorageDetail *ppStoreServers[FDFS_MAX_SERVERS_EACH_GROUP];
 	int filename_len;
 	int server_count;
-	int result;
+    int ip_size;
 	int nPkgLen;
+	int result;
 
 	nPkgLen = pTask->recv.ptr->length - sizeof(TrackerHeader);
 	if (nPkgLen < FDFS_GROUP_NAME_MAX_LEN+22)
@@ -2449,29 +2487,42 @@ static int tracker_deal_service_query_fetch_update(
 		return result;
 	}
 
-	pTask->send.ptr->length = sizeof(TrackerHeader) +
-			TRACKER_QUERY_STORAGE_FETCH_BODY_LEN +
-			(server_count - 1) * (IP_ADDRESS_SIZE - 1);
+    if (g_response_ip_addr_size == IPV4_ADDRESS_SIZE)
+    {
+        ip_size = IPV4_ADDRESS_SIZE;
+        pTask->send.ptr->length = sizeof(TrackerHeader) +
+            TRACKER_QUERY_STORAGE_FETCH_IPV4_BODY_LEN +
+            (server_count - 1) * (ip_size - 1);
+    }
+    else
+    {
+        ip_size = IPV6_ADDRESS_SIZE;
+        pTask->send.ptr->length = sizeof(TrackerHeader) +
+            TRACKER_QUERY_STORAGE_FETCH_IPV6_BODY_LEN +
+            (server_count - 1) * (ip_size - 1);
+    }
 
 	p  = pTask->send.ptr->data + sizeof(TrackerHeader);
     memset(p, 0, pTask->send.ptr->length - sizeof(TrackerHeader));
 	memcpy(p, pGroup->group_name, FDFS_GROUP_NAME_MAX_LEN);
 	p += FDFS_GROUP_NAME_MAX_LEN;
-	strcpy(p, fdfs_get_ipaddr_by_peer_ip(
-                &ppStoreServers[0]->ip_addrs, pTask->client_ip));
-	p += IP_ADDRESS_SIZE - 1;
+    strcpy(p, fdfs_get_ipaddr_by_peer_ip(
+                &ppStoreServers[0]->ip_addrs,
+                pTask->client_ip));
+	p += ip_size - 1;
 	long2buff(pGroup->storage_port, p);
 	p += FDFS_PROTO_PKG_LEN_SIZE;
 
 	if (server_count > 1)
 	{
 		ppServerEnd = ppStoreServers + server_count;
-		for (ppServer=ppStoreServers+1; ppServer<ppServerEnd; \
+		for (ppServer=ppStoreServers+1; ppServer<ppServerEnd;
 				ppServer++)
 		{
-			strcpy(p, fdfs_get_ipaddr_by_peer_ip(
-                        &(*ppServer)->ip_addrs, pTask->client_ip));
-			p += IP_ADDRESS_SIZE - 1;
+            strcpy(p, fdfs_get_ipaddr_by_peer_ip(
+                        &(*ppServer)->ip_addrs,
+                        pTask->client_ip));
+			p += ip_size - 1;
 		}
 	}
 
@@ -2830,15 +2881,16 @@ static int tracker_deal_service_query_storage( \
 			return ENOENT;
 		}
 
-        memset(p, 0, active_count * (IP_ADDRESS_SIZE +
+        memset(p, 0, active_count * (IPV6_ADDRESS_SIZE +
                     FDFS_PROTO_PKG_LEN_SIZE));
 		ppEnd = pStoreGroup->writable_storages.servers + active_count;
 		for (ppServer=pStoreGroup->writable_storages.servers;
                 ppServer<ppEnd; ppServer++)
 		{
 			strcpy(p, fdfs_get_ipaddr_by_peer_ip(
-                        &(*ppServer)->ip_addrs, pTask->client_ip));
-			p += IP_ADDRESS_SIZE - 1;
+                        &(*ppServer)->ip_addrs,
+                        pTask->client_ip));
+			p += g_response_ip_addr_size - 1;
 
 			long2buff(pStoreGroup->storage_port, p);
 			p += FDFS_PROTO_PKG_LEN_SIZE;
@@ -2846,10 +2898,11 @@ static int tracker_deal_service_query_storage( \
 	}
 	else
 	{
-        memset(p, 0, IP_ADDRESS_SIZE);
+        memset(p, 0, g_response_ip_addr_size);
 		strcpy(p, fdfs_get_ipaddr_by_peer_ip(
-                    &pStorageServer->ip_addrs, pTask->client_ip));
-		p += IP_ADDRESS_SIZE - 1;
+                    &pStorageServer->ip_addrs,
+                    pTask->client_ip));
+		p += g_response_ip_addr_size - 1;
 
 		long2buff(pStoreGroup->storage_port, p);
 		p += FDFS_PROTO_PKG_LEN_SIZE;
@@ -2857,7 +2910,6 @@ static int tracker_deal_service_query_storage( \
 
 	*p++ = (char)write_path_index;
 	pTask->send.ptr->length = p - pTask->send.ptr->data;
-
 	return 0;
 }
 

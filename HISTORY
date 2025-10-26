@@ -1,4 +1,9 @@
 
+Version 6.15.0  2025-10-26
+ * storage sync support multi-threads
+ * conf/tracker.conf support config response_ip_addr_size
+ * use libfastcommon V1.81 and libserverframe 1.2.9
+
 Version 6.14.0  2025-09-26
  * access log use libserverframe
  * log config items in tracker.conf and storage.conf changed

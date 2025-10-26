@@ -181,6 +181,9 @@ int storage_get_params_from_tracker()
 	}
 	g_trust_storage_server_id = iniGetBoolValue(NULL,
 			"trust_storage_server_id", &iniContext, false);
+    g_response_ip_addr_size = iniGetIntValue(NULL,
+			"response_ip_addr_size", &iniContext,
+            IPV6_ADDRESS_SIZE);
 
 	iniFreeContext(&iniContext);
 
@@ -197,6 +200,7 @@ int storage_get_params_from_tracker()
 		"use_storage_id=%d, "
 		"id_type_in_filename=%s, "
         "trust_storage_server_id=%d, "
+        "response_ip_addr_size=%s (%d), "
 		"storage_ip_changed_auto_adjust=%d, "
 		"store_path=%d, "
 		"reserved_storage_space=%s, "
@@ -221,6 +225,8 @@ int storage_get_params_from_tracker()
 		__LINE__, g_use_storage_id,
 		g_id_type_in_filename == FDFS_ID_TYPE_SERVER_ID ? "id" : "ip",
         g_trust_storage_server_id,
+        (g_response_ip_addr_size == IPV6_ADDRESS_SIZE ? "IPv6" : "IPv4"),
+        g_response_ip_addr_size,
 		g_storage_ip_changed_auto_adjust,
 		g_store_path_mode, fdfs_storage_reserved_space_to_string(
 			&g_storage_reserved_space, reserved_space_str),

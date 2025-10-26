@@ -260,13 +260,15 @@ static int relationship_get_tracker_leader(TrackerRunningStatus *pTrackerStatus)
 static int do_notify_leader_changed(TrackerServerInfo *pTrackerServer, \
 		ConnectionInfo *pLeader, const char cmd, bool *bConnectFail)
 {
-	char out_buff[sizeof(TrackerHeader) + FDFS_PROTO_IP_PORT_SIZE];
+	char out_buff[sizeof(TrackerHeader) + FDFS_MAX_IP_PORT_SIZE];
     char formatted_ip[FORMATTED_IP_SIZE];
 	char in_buff[1];
 	ConnectionInfo *conn;
 	TrackerHeader *pHeader;
 	char *pInBuff;
+    char *pBody;
 	int64_t in_bytes;
+    int body_len;
 	int result;
 
     fdfs_server_sock_reset(pTrackerServer);
@@ -281,12 +283,14 @@ static int do_notify_leader_changed(TrackerServerInfo *pTrackerServer, \
 	{
 	memset(out_buff, 0, sizeof(out_buff));
 	pHeader = (TrackerHeader *)out_buff;
+    pBody = (char *)(pHeader + 1);
 	pHeader->cmd = cmd;
-    format_ip_port(pLeader->ip_addr, pLeader->port,
-            out_buff + sizeof(TrackerHeader));
-	long2buff(FDFS_PROTO_IP_PORT_SIZE, pHeader->pkg_len);
+    format_ip_port(pLeader->ip_addr, pLeader->port, pBody);
+    body_len = strlen(pBody);
+	long2buff(body_len, pHeader->pkg_len);
 	if ((result=tcpsenddata_nb(conn->sock, out_buff,
-			sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
+                    sizeof(TrackerHeader) + body_len,
+                    SF_G_NETWORK_TIMEOUT)) != 0)
 	{
         format_ip_address(conn->ip_addr, formatted_ip);
 		logError("file: "__FILE__", line: %d, "

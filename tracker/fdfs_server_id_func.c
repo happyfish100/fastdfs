@@ -960,3 +960,19 @@ int fdfs_load_storage_ids_from_file(const char *config_filename, \
 	return result;
 }
 
+bool fdfs_storage_servers_contain_ipv6()
+{
+    FDFSStorageIdInfo *storage;
+    FDFSStorageIdInfo *end;
+
+    end = g_storage_ids_by_id.ids + g_storage_ids_by_id.count;
+    for (storage=g_storage_ids_by_id.ids; storage<end; storage++)
+    {
+        if (fdfs_multi_ips_contain_ipv6(&storage->ip_addrs))
+        {
+            return true;
+        }
+    }
+
+    return false;
+}

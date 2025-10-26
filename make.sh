@@ -51,7 +51,6 @@ fi
 
 LIBS=''
 
-
 if [ "$uname" = "Linux" ]; then
   if [ "$OS_BITS" -eq 64 ]; then
     LIBS="$LIBS -L/usr/lib64"

@@ -48,6 +48,8 @@
 #include "storage_disk_recovery.h"
 #include "tracker_client.h"
 
+#define FDFS_FILE_SYNC_MAX_THREADS   256
+
 #define DATA_DIR_INITED_FILENAME_STR  ".data_init_flag"
 #define DATA_DIR_INITED_FILENAME_LEN  \
     (sizeof(DATA_DIR_INITED_FILENAME_STR) - 1)
@@ -462,7 +464,6 @@ static int tracker_get_my_server_id(const char *conf_filename,
 	}
 	else
     {
-        // 当IP地址为IPv6时，其storage_id值为IP地址的short code
         if (is_ipv6_addr(g_tracker_client_ip.ips[0].address))
         {
             fdfs_ip_to_shortcode(g_tracker_client_ip.ips[0].address,
@@ -477,10 +478,10 @@ static int tracker_get_my_server_id(const char *conf_filename,
 
     fdfs_multi_ips_to_string(&g_tracker_client_ip,
             ip_str, sizeof(ip_str));
-	logInfo("file: "__FILE__", line: %d, "
-		"tracker_client_ip: %s, my_server_id_str: %s, "
-		"g_server_id_in_filename: %"PRIu64, __LINE__,
-		ip_str, g_my_server_id_str, g_server_id_in_filename);
+    logInfo("file: "__FILE__", line: %d, "
+            "tracker_client_ip: %s, my_server_id_str: %s, "
+            "g_server_id_in_filename: %"PRIu64, __LINE__,
+            ip_str, g_my_server_id_str, g_server_id_in_filename);
 	return 0;
 }
 
@@ -1835,7 +1836,7 @@ int storage_func_init(const char *filename)
 	char *pIfAliasPrefix;
     char *server_id_in_conf;
 	IniContext iniContext;
-    IniFullContext full_ini_ctx;
+    IniFullContext ini_full_ctx;
     SFContextIniConfig config;
 	int result;
 	int64_t fsync_after_written_bytes;
@@ -1851,6 +1852,7 @@ int storage_func_init(const char *filename)
 		return result;
 	}
 
+    FAST_INI_SET_FULL_CTX_EX(ini_full_ctx, filename, NULL, &iniContext);
 	do
 	{
 		if (iniGetBoolValue(NULL, "disabled", &iniContext, false))
@@ -1985,15 +1987,46 @@ int storage_func_init(const char *filename)
 		    fc_safe_strcpy(g_group_name, pGroupName);
         }
 
-		if ((result=fdfs_validate_group_name(g_group_name)) != 0) \
+		if ((result=fdfs_validate_group_name(g_group_name)) != 0)
 		{
-			logError("file: "__FILE__", line: %d, " \
-				"conf file \"%s\", " \
-				"the group name \"%s\" is invalid!", \
+			logError("file: "__FILE__", line: %d, "
+				"conf file \"%s\", the group name \"%s\" is invalid!",
 				__LINE__, filename, g_group_name);
 			result = EINVAL;
 			break;
 		}
+
+        g_sync_min_threads = iniGetIntCorrectValue(&ini_full_ctx,
+                "sync_min_threads", 1, 1, FDFS_FILE_SYNC_MAX_THREADS);
+        g_sync_max_threads = iniGetIntCorrectValue(&ini_full_ctx,
+                "sync_max_threads", 0, 0, FDFS_FILE_SYNC_MAX_THREADS);
+        if (g_sync_max_threads == 0) {
+            char *sync_max_threads;
+            sync_max_threads = iniGetStrValue(NULL,
+                    "sync_max_threads", &iniContext);
+            if (sync_max_threads == NULL ||
+                    strcmp(sync_max_threads, "0") == 0 ||
+                    strcasecmp(sync_max_threads, "auto") == 0)
+            {
+                g_sync_max_threads = 2 * g_fdfs_store_paths.count;
+            } else {
+                logWarning("file: "__FILE__", line: %d, "
+                        "sync_max_threads \"%s\" is invalid, "
+                        "set to twice of sync_min_threads",
+                        __LINE__, sync_max_threads);
+                g_sync_max_threads = 2 * g_sync_min_threads;
+            }
+            if (g_sync_max_threads > FDFS_FILE_SYNC_MAX_THREADS) {
+                g_sync_max_threads = FDFS_FILE_SYNC_MAX_THREADS;
+            }
+        }
+        if (g_sync_max_threads < g_sync_min_threads) {
+            logWarning("file: "__FILE__", line: %d, "
+                    "sync_max_threads:%d < sync_min_threads: %d, "
+                    "set to sync_min_threads", __LINE__,
+                    g_sync_max_threads, g_sync_min_threads);
+            g_sync_max_threads = g_sync_min_threads;
+        }
 
 		g_sync_wait_usec = iniGetIntValue(NULL, "sync_wait_msec",\
 			 &iniContext, STORAGE_DEF_SYNC_WAIT_MSEC);
@@ -2244,13 +2277,13 @@ int storage_func_init(const char *filename)
 					&iniContext, false);
 		}
 
-        FAST_INI_SET_FULL_CTX_EX(full_ini_ctx, filename,
+        FAST_INI_SET_FULL_CTX_EX(ini_full_ctx, filename,
                 "access-log", &iniContext);
-        g_access_log_context.enabled = iniGetBoolValue(full_ini_ctx.
-                section_name, "enabled", full_ini_ctx.context, false);
+        g_access_log_context.enabled = iniGetBoolValue(ini_full_ctx.
+                section_name, "enabled", ini_full_ctx.context, false);
 		if (g_access_log_context.enabled)
         {
-            if ((result=sf_load_log_config(&full_ini_ctx, &g_access_log_context.
+            if ((result=sf_load_log_config(&ini_full_ctx, &g_access_log_context.
                             log_ctx, &g_access_log_context.log_cfg)) != 0)
             {
                 return result;
@@ -2295,6 +2328,7 @@ int storage_func_init(const char *filename)
 
         server_id_in_conf = iniGetStrValue(NULL,
                 "server_id", &iniContext);
+
         sf_global_config_to_string_ex("buff_size", sz_global_config,
                 sizeof(sz_global_config));
         sf_context_config_to_string(&g_sf_context,
@@ -2308,7 +2342,8 @@ int storage_func_init(const char *filename)
             "disk_rw_separated=%d, disk_reader_threads=%d, "
 			"disk_writer_threads=%d, disk_recovery_threads=%d, "
 			"heart_beat_interval=%ds, stat_report_interval=%ds, "
-            "tracker_server_count=%d, sync_wait_msec=%dms, "
+            "tracker_server_count=%d, sync_min_threads=%d, "
+            "sync_max_threads=%d, sync_wait_msec=%dms, "
             "sync_interval=%dms, sync_start_time=%02d:%02d, "
             "sync_end_time=%02d:%02d, write_mark_file_freq=%d, "
 			"allow_ip_count=%d, "
@@ -2335,6 +2370,7 @@ int storage_func_init(const char *filename)
 			g_disk_reader_threads, g_disk_writer_threads,
             g_disk_recovery_threads, g_heart_beat_interval,
             g_stat_report_interval, g_tracker_group.server_count,
+            g_sync_min_threads, g_sync_max_threads,
             g_sync_wait_usec / 1000, g_sync_interval / 1000,
 			g_sync_start_time.hour, g_sync_start_time.minute,
 			g_sync_end_time.hour, g_sync_end_time.minute,
