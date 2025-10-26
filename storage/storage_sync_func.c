@@ -29,7 +29,24 @@
 #include "storage_func.h"
 #include "storage_sync_func.h"
 
-int storage_sync_connect_storage_server_ex(const FDFSStorageBrief *pStorage,
+#define THREAD_PROMPT_PREFIX_STR  " thread #"
+#define THREAD_PROMPT_PREFIX_LEN  (sizeof(THREAD_PROMPT_PREFIX_STR) - 1)
+#define SET_THREAD_PROMPT(index, prompt) \
+    do { \
+        if (index >= 0) {  \
+            char *p;  \
+            memcpy(prompt, THREAD_PROMPT_PREFIX_STR, THREAD_PROMPT_PREFIX_LEN); \
+            p = prompt + THREAD_PROMPT_PREFIX_LEN;  \
+            p += fc_itoa(index, p);  \
+            *p++ = ',';  \
+            *p = '\0';   \
+        } else {  \
+            *prompt = '\0'; \
+        } \
+    } while (0)
+
+int storage_sync_connect_storage_server_ex(const char *module_name,
+        const int thread_index, const FDFSStorageBrief *pStorage,
         ConnectionInfo *conn, bool *check_flag)
 {
     int nContinuousFail;
@@ -41,6 +58,7 @@ int storage_sync_connect_storage_server_ex(const FDFSStorageBrief *pStorage,
     FDFSMultiIP *multi_ip;
     const char *bind_addr;
     char formatted_ip[FORMATTED_IP_SIZE];
+    char thread_prompt[64];
 
     if (g_use_storage_id) {
         FDFSStorageIdInfo *idInfo;
@@ -102,22 +120,25 @@ int storage_sync_connect_storage_server_ex(const FDFSStorageBrief *pStorage,
                             "count: %d", nContinuousFail);
                 }
 
+                SET_THREAD_PROMPT(thread_index, thread_prompt);
                 format_ip_address(conn->ip_addr, formatted_ip);
-                logInfo("file: "__FILE__", line: %d, "
+                logInfo("file: "__FILE__", line: %d, %s%s "
                         "successfully connect to storage server "
-                        "%s:%u%s", __LINE__, formatted_ip,
-                        SF_G_INNER_PORT, szFailPrompt);
+                        "%s:%u%s", __LINE__, module_name, thread_prompt,
+                        formatted_ip, SF_G_INNER_PORT, szFailPrompt);
                 return 0;
             }
 
             nContinuousFail++;
             if (previousCodes[i] != conn_results[i]) {
+                SET_THREAD_PROMPT(thread_index, thread_prompt);
                 format_ip_address(conn->ip_addr, formatted_ip);
-                logError("file: "__FILE__", line: %d, "
+                logError("file: "__FILE__", line: %d, %s%s "
                         "connect to storage server %s:%u fail, "
-                        "errno: %d, error info: %s",
-                        __LINE__, formatted_ip, SF_G_INNER_PORT,
-                        conn_results[i], STRERROR(conn_results[i]));
+                        "errno: %d, error info: %s", __LINE__,
+                        module_name, thread_prompt, formatted_ip,
+                        SF_G_INNER_PORT, conn_results[i],
+                        STRERROR(conn_results[i]));
                 previousCodes[i] = conn_results[i];
             }
 
@@ -140,11 +161,13 @@ int storage_sync_connect_storage_server_ex(const FDFSStorageBrief *pStorage,
         avg_fails = (nContinuousFail + ip_addrs.count - 1) / ip_addrs.count;
         if (avg_fails > 1) {
             for (i=0; i<ip_addrs.count; i++) {
+                SET_THREAD_PROMPT(thread_index, thread_prompt);
                 format_ip_address(ip_addrs.ips[i].address, formatted_ip);
-                logError("file: "__FILE__", line: %d, "
+                logError("file: "__FILE__", line: %d, %s%s "
                         "connect to storage server %s:%u fail, "
                         "try count: %d, errno: %d, error info: %s",
-                        __LINE__, formatted_ip, SF_G_INNER_PORT, avg_fails,
+                        __LINE__, module_name, thread_prompt,
+                        formatted_ip, SF_G_INNER_PORT, avg_fails,
                         conn_results[i], STRERROR(conn_results[i]));
             }
         }

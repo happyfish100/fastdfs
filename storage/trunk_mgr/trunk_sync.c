@@ -2202,9 +2202,8 @@ static void *trunk_sync_thread_entrance(void* arg)
 		pStorage->status != FDFS_STORAGE_STATUS_IP_CHANGED && \
 		pStorage->status != FDFS_STORAGE_STATUS_NONE)
 	{
-        storage_sync_connect_storage_server_ex(pStorage,
-                &storage_server, &g_if_trunker_self);
-
+        storage_sync_connect_storage_server_ex("[trunk-sync]", -1,
+                pStorage, &storage_server, &g_if_trunker_self);
 		if ((!SF_G_CONTINUE_FLAG) || (!g_if_trunker_self) || \
 			pStorage->status == FDFS_STORAGE_STATUS_DELETED || \
 			pStorage->status == FDFS_STORAGE_STATUS_IP_CHANGED || \

@@ -17,23 +17,26 @@
 extern "C" {
 #endif
 
-int storage_sync_connect_storage_server_ex(const FDFSStorageBrief *pStorage,
+int storage_sync_connect_storage_server_ex(const char *module_name,
+        const int thread_index, const FDFSStorageBrief *pStorage,
         ConnectionInfo *conn, bool *check_flag);
 
 static inline int storage_sync_connect_storage_server_always(
+        const char *module_name, const int thread_index,
         const FDFSStorageBrief *pStorage, ConnectionInfo *conn)
 {
     bool check_flag = true;
-    return storage_sync_connect_storage_server_ex(
-            pStorage, conn, &check_flag);
+    return storage_sync_connect_storage_server_ex(module_name,
+            thread_index, pStorage, conn, &check_flag);
 }
 
 static inline int storage_sync_connect_storage_server_once(
+        const char *module_name, const int thread_index,
         const FDFSStorageBrief *pStorage, ConnectionInfo *conn)
 {
     bool check_flag = false;
-    return storage_sync_connect_storage_server_ex(
-            pStorage, conn, &check_flag);
+    return storage_sync_connect_storage_server_ex(module_name,
+            thread_index, pStorage, conn, &check_flag);
 }
 
 #ifdef __cplusplus

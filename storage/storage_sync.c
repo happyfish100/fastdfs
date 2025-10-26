@@ -116,6 +116,7 @@ volatile int g_storage_sync_thread_count;
 
 struct storage_dispatch_context;
 typedef struct {
+    int thread_index;
     int result;
     int record_len;
     int binlog_index;
@@ -1321,7 +1322,8 @@ static void sync_data_func(StorageSyncTaskInfo *task, void *thread_data)
     {
         conn_pool_disconnect_server(&task->storage_server);
         task->result = storage_sync_connect_storage_server_once(
-                task->dispatch_ctx->pStorage, &task->storage_server);
+                "[file-sync]", task->thread_index, task->dispatch_ctx->
+                pStorage, &task->storage_server);
     } else {
         task->result = 0;
     }
@@ -3489,6 +3491,7 @@ static int init_task_array(StorageDispatchContext *dispatch_ctx,
 
     end = tasks + g_sync_max_threads;
     for (task=tasks; task<end; task++) {
+        task->thread_index = task - tasks;
         task->dispatch_ctx = dispatch_ctx;
         conn_pool_set_server_info(&task->storage_server,
                 pStorage->ip_addr, SF_G_INNER_PORT);
@@ -3621,8 +3624,9 @@ static void* storage_sync_thread_entrance(void* arg)
             }
         }
 
-        if (storage_sync_connect_storage_server_always(pStorage,
-                    storage_server) != 0)
+        if (storage_sync_connect_storage_server_always("[file-sync]",
+                    dispatch_ctx.task_array.tasks[0].thread_index,
+                    pStorage, storage_server) != 0)
         {
             break;
         }
