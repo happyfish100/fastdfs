@@ -1813,10 +1813,9 @@ static int init_my_result_per_tracker()
 
 static void access_log_config_to_string(char *output, const int size)
 {
-    int len;
     char access_log_buff[256];
 
-    len = sprintf(access_log_buff, "enabled=%d", g_access_log_context.enabled);
+    sprintf(access_log_buff, "enabled=%d", g_access_log_context.enabled);
     if (!g_access_log_context.enabled) {
         snprintf(output, size, "access-log: {%s}", access_log_buff);
         return;
