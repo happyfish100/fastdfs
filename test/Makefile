@@ -1,6 +1,6 @@
 .SUFFIXES: .c .o .lo
 
-COMPILE = $(CC) -g -Wall -O -D_FILE_OFFSET_BITS=64 -DDEBUG
+COMPILE = $(CC) -g -Wall -O -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 -DDEBUG
 INC_PATH = -I/usr/local/include
 LIB_PATH = -L/usr/local/lib -lfdfsclient -lfastcommon -lserverframe
 TARGET_PATH = $(TARGET_PREFIX)/bin
