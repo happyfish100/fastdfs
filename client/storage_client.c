@@ -314,7 +314,7 @@ int storage_get_metadata(ConnectionInfo *pTrackerServer, \
 	int body_len;
 	char *file_buff;
 	int64_t file_size;
-	bool new_connection;
+	bool new_connection = false;
 
 	file_buff = NULL;
 	*meta_list = NULL;
@@ -421,7 +421,7 @@ int storage_query_file_info_ex(ConnectionInfo *pTrackerServer,
     int ip_size;
 	char *pInBuff;
 	char *p;
-	bool new_connection;
+	bool new_connection = false;
 
 	if ((result=storage_get_read_connection(pTrackerServer, \
 		&pStorageServer, group_name, filename, \
@@ -559,7 +559,7 @@ int storage_delete_file(ConnectionInfo *pTrackerServer, \
 	char *pBuff;
 	int64_t in_bytes;
 	int body_len;
-	bool new_connection;
+	bool new_connection = false;
 
 	if ((result=storage_get_update_connection(pTrackerServer, \
 		&pStorageServer, group_name, filename, \
@@ -645,7 +645,7 @@ int storage_do_download_file_ex(ConnectionInfo *pTrackerServer, \
 	int out_bytes;
 	int64_t in_bytes;
 	int64_t total_recv_bytes;
-	bool new_connection;
+	bool new_connection = false;
 
 	*file_size = 0;
 	if ((result=storage_get_read_connection(pTrackerServer, \
@@ -1267,7 +1267,7 @@ int storage_set_metadata(ConnectionInfo *pTrackerServer, \
     char *filename_ptr;
 	char *p;
 	char *pEnd;
-	bool new_connection;
+	bool new_connection = false;
 
 	if ((result=storage_get_update_connection(pTrackerServer,
 		&pStorageServer, group_name, filename,
@@ -1445,7 +1445,7 @@ int storage_client_create_link(ConnectionInfo *pTrackerServer, \
 	int64_t in_bytes;
 	char *pInBuff;
 	ConnectionInfo storageServer;
-	bool new_connection;
+	bool new_connection = false;
 
 	*remote_filename = '\0';
 	if (master_filename != NULL)
@@ -1791,7 +1791,7 @@ int storage_do_append_file(ConnectionInfo *pTrackerServer, \
 	int64_t in_bytes;
 	int64_t total_send_bytes;
 	ConnectionInfo storageServer;
-	bool new_connection;
+	bool new_connection = false;
 	int appender_filename_len;
 
 	appender_filename_len = strlen(appender_filename);
@@ -1922,7 +1922,7 @@ int storage_do_modify_file(ConnectionInfo *pTrackerServer, \
 	int64_t in_bytes;
 	int64_t total_send_bytes;
 	ConnectionInfo storageServer;
-	bool new_connection;
+	bool new_connection = false;
 	int appender_filename_len;
 
 	appender_filename_len = strlen(appender_filename);
@@ -2390,7 +2390,7 @@ int storage_truncate_file(ConnectionInfo *pTrackerServer, \
 	char *p;
 	int64_t in_bytes;
 	ConnectionInfo storageServer;
-	bool new_connection;
+	bool new_connection = false;
 	int appender_filename_len;
 
 	appender_filename_len = strlen(appender_filename);
@@ -2478,7 +2478,7 @@ int storage_regenerate_appender_filename(ConnectionInfo *pTrackerServer,
 	char *pInBuff;
 	int64_t in_bytes;
 	ConnectionInfo storageServer;
-	bool new_connection;
+	bool new_connection = false;
 	int appender_filename_len;
 
 	appender_filename_len = strlen(appender_filename);

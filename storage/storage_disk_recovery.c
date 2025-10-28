@@ -1456,12 +1456,12 @@ static int storage_disk_recovery_do_restore(const string_t *base_path)
     }
 
     sleep(1);  //wait for thread exit
-    free(thread_data);
     free(args);
     free(recovery_tids);
 
     if (!SF_G_CONTINUE_FLAG)
     {
+        free(thread_data);
         return EINTR;
     }
 
@@ -1479,6 +1479,7 @@ static int storage_disk_recovery_do_restore(const string_t *base_path)
 
     if (!SF_G_CONTINUE_FLAG)
     {
+        free(thread_data);
         return EINTR;
     }
 
@@ -1486,10 +1487,13 @@ static int storage_disk_recovery_do_restore(const string_t *base_path)
     {
         if (!thread_data[i].done)
         {
-            return thread_data[i].result != 0 ?
+            result = thread_data[i].result != 0 ?
                 thread_data[i].result : EINTR;
+            free(thread_data);
+            return result;
         }
     }
+    free(thread_data);
 
     logInfo("file: "__FILE__", line: %d, "
             "disk recovery: end of recovery data path: %s",
