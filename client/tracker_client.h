@@ -45,7 +45,7 @@ typedef struct
 		if (pTrackerServer->sock < 0) \
 		{ \
 			if ((conn=tracker_make_connection( \
-				pTrackerServer, &result)) != NULL) \
+				pTrackerServer, &result)) == NULL) \
 			{ \
 				return result; \
 			} \
