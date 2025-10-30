@@ -1039,12 +1039,12 @@ static int tracker_merge_servers(ConnectionInfo *pTrackerServer,
 			continue;
 		}
 
-		memcpy(pDiffServer++, &((*ppGlobalServer)->server), \
+		memcpy(pDiffServer++, &((*ppGlobalServer)->server),
 			sizeof(FDFSStorageBrief));
 		ppGlobalServer++;
 	}
 
-	return tracker_sync_diff_servers(pTrackerServer, \
+	return tracker_sync_diff_servers(pTrackerServer,
 			diffServers, pDiffServer - diffServers);
 }
 
@@ -1381,7 +1381,7 @@ static int tracker_check_response(ConnectionInfo *pTrackerServer,
 			return EINVAL;
 		}
 
-		memcpy(tracker_leader_ip, pBriefServers->ip_addr, \
+		memcpy(tracker_leader_ip, pBriefServers->ip_addr,
 			IP_ADDRESS_SIZE - 1);
 		*(tracker_leader_ip + (IP_ADDRESS_SIZE - 1)) = '\0';
 		tracker_leader_port = buff2int(pBriefServers->port);
@@ -1454,12 +1454,12 @@ static int tracker_check_response(ConnectionInfo *pTrackerServer,
 		}
 
 		if (!g_if_use_trunk_file)
-		{
-			logInfo("file: "__FILE__", line: %d, " \
-				"reload parameters from tracker server", \
-				__LINE__);
-			storage_get_params_from_tracker();
-		}
+        {
+            logInfo("file: "__FILE__", line: %d, "
+                    "reload parameters from tracker server",
+                    __LINE__);
+            storage_get_params_from_tracker();
+        }
 
 		if (!g_if_use_trunk_file) {
             format_ip_address(pTrackerServer->ip_addr, formatted_ip);
