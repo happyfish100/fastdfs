@@ -390,17 +390,17 @@ int storage_get_metadata(ConnectionInfo *pTrackerServer, \
 
 int storage_query_file_info_ex1(ConnectionInfo *pTrackerServer, \
 		ConnectionInfo *pStorageServer,  const char *file_id, \
-		FDFSFileInfo *pFileInfo, const bool bSilence)
+		FDFSFileInfo *pFileInfo, const char flags)
 {
 	FDFS_SPLIT_GROUP_NAME_AND_FILENAME(file_id)
-	return storage_query_file_info_ex(pTrackerServer, pStorageServer,  \
-			group_name, filename, pFileInfo, bSilence);
+	return storage_query_file_info_ex(pTrackerServer, pStorageServer,
+			group_name, filename, pFileInfo, flags);
 }
 
 int storage_query_file_info_ex(ConnectionInfo *pTrackerServer,
 			ConnectionInfo *pStorageServer,
 			const char *group_name, const char *filename,
-			FDFSFileInfo *pFileInfo, const bool bSilence)
+			FDFSFileInfo *pFileInfo, const char flags)
 {
 #define QUERY_FILE_INFO_IPV6_BODY_LEN   \
     (3 * FDFS_PROTO_PKG_LEN_SIZE + IPV6_ADDRESS_SIZE)
@@ -423,8 +423,8 @@ int storage_query_file_info_ex(ConnectionInfo *pTrackerServer,
 	char *p;
 	bool new_connection = false;
 
-	if ((result=storage_get_read_connection(pTrackerServer, \
-		&pStorageServer, group_name, filename, \
+	if ((result=storage_get_read_connection(pTrackerServer,
+		&pStorageServer, group_name, filename,
 		&storageServer, &new_connection)) != 0)
 	{
 		return result;
@@ -446,8 +446,7 @@ int storage_query_file_info_ex(ConnectionInfo *pTrackerServer,
     filename_len = body_len - FDFS_GROUP_NAME_MAX_LEN;
 	long2buff(body_len, pHeader->pkg_len);
 	pHeader->cmd = STORAGE_PROTO_CMD_QUERY_FILE_INFO;
-	pHeader->status = bSilence ? ENOENT : 0;
-
+	pHeader->status = flags;
     if ((result=tcpsenddata_nb(pStorageServer->sock, out_buff,
                     sizeof(TrackerHeader) + body_len,
                     SF_G_NETWORK_TIMEOUT)) != 0)
@@ -2220,17 +2219,17 @@ int storage_modify_by_callback1(ConnectionInfo *pTrackerServer, \
 			group_name, filename);
 }
 
-int fdfs_get_file_info_ex1(const char *file_id, const bool get_from_server, \
-			FDFSFileInfo *pFileInfo)
+int fdfs_get_file_info_ex1(const char *file_id, const bool get_from_server,
+			FDFSFileInfo *pFileInfo, const char flags)
 {
 	FDFS_SPLIT_GROUP_NAME_AND_FILENAME(file_id)
 
-	return fdfs_get_file_info_ex(group_name, filename, get_from_server, \
-			pFileInfo);
+	return fdfs_get_file_info_ex(group_name, filename,
+            get_from_server, pFileInfo, flags);
 }
 
-int fdfs_get_file_info_ex(const char *group_name, const char *remote_filename, \
-	const bool get_from_server, FDFSFileInfo *pFileInfo)
+int fdfs_get_file_info_ex(const char *group_name, const char *remote_filename,
+	const bool get_from_server, FDFSFileInfo *pFileInfo, const char flags)
 {
 	struct in_addr ip_addr;
 	int filename_len;
@@ -2325,8 +2324,8 @@ int fdfs_get_file_info_ex(const char *group_name, const char *remote_filename, \
 				return result;
 			}
 
-			result = storage_query_file_info(conn,
-				NULL,  group_name, remote_filename, pFileInfo);
+			result = storage_query_file_info_ex(conn, NULL, group_name,
+                    remote_filename, pFileInfo, flags);
 			tracker_close_connection_ex(conn, result != 0 &&
 							result != ENOENT);
 
@@ -2363,10 +2362,11 @@ int storage_file_exist(ConnectionInfo *pTrackerServer, \
 			ConnectionInfo *pStorageServer,  \
 			const char *group_name, const char *remote_filename)
 {
-	FDFSFileInfo file_info;
-	return storage_query_file_info_ex(pTrackerServer, \
-			pStorageServer, group_name, remote_filename, \
-			&file_info, true);
+    FDFSFileInfo file_info;
+    return storage_query_file_info_ex(pTrackerServer,
+            pStorageServer, group_name, remote_filename,
+            &file_info, (FDFS_QUERY_FINFO_FLAGS_KEEP_SILENCE |
+                FDFS_QUERY_FINFO_FLAGS_NOT_CALC_CRC32));
 }
 
 int storage_file_exist1(ConnectionInfo *pTrackerServer, \

@@ -7,7 +7,7 @@
 %define CommitVersion %(echo $COMMIT_VERSION)
 
 Name: %{FastDFS}
-Version: 6.15.0
+Version: 6.15.1
 Release: 1%{?dist}
 Summary: FastDFS server and client
 License: GPL
@@ -16,7 +16,7 @@ URL: 	https://github.com/happyfish100/fastdfs/
 Source: https://github.com/happyfish100/fastdfs/%{name}-%{version}.tar.gz
 
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n) 
-BuildRequires: libserverframe-devel >= 1.2.9
+BuildRequires: libserverframe-devel >= 1.2.10
 Requires: %__cp %__mv %__chmod %__grep %__mkdir %__install %__id
 Requires: %{FDFSServer} = %{version}-%{release}
 Requires: %{FDFSTool} = %{version}-%{release}
@@ -26,7 +26,7 @@ This package provides tracker & storage of fastdfs
 commit version: %{CommitVersion}
 
 %package -n %{FDFSServer}
-Requires: libserverframe >= 1.2.9
+Requires: libserverframe >= 1.2.10
 Requires: %{FDFSConfig}
 Summary: fastdfs tracker & storage
 
@@ -35,7 +35,7 @@ Requires: %{FDFSClient}
 Summary: fastdfs tools
 
 %package -n %{FDFSClient}
-Requires: libserverframe >= 1.2.9
+Requires: libserverframe >= 1.2.10
 Requires: %{FDFSConfig}
 Summary: The client dynamic library of fastdfs
 

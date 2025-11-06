@@ -127,6 +127,9 @@
 #define STORAGE_TRUNK_ALLOC_CONFIRM_REQ_BODY_LEN  (FDFS_GROUP_NAME_MAX_LEN \
 			+ sizeof(FDFSTrunkInfoBuff))
 
+#define FDFS_QUERY_FINFO_FLAGS_NOT_CALC_CRC32   1
+#define FDFS_QUERY_FINFO_FLAGS_KEEP_SILENCE     2
+
 typedef struct
 {
 	char pkg_len[FDFS_PROTO_PKG_LEN_SIZE];  //body length, not including header

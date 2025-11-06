@@ -480,10 +480,10 @@ int storage_modify_by_filebuff1(ConnectionInfo *pTrackerServer, \
 		const char *appender_file_id);
 
 
-#define storage_query_file_info1(pTrackerServer, pStorageServer, file_id, \
-		pFileInfo) \
-	storage_query_file_info_ex1(pTrackerServer, pStorageServer, file_id, \
-		pFileInfo, false)
+#define storage_query_file_info1(pTrackerServer, \
+        pStorageServer, file_id, pFileInfo)      \
+	storage_query_file_info_ex1(pTrackerServer,  \
+            pStorageServer, file_id, pFileInfo, 0)
 
 /**
 * query file info
@@ -492,15 +492,18 @@ int storage_modify_by_filebuff1(ConnectionInfo *pTrackerServer, \
 *       pStorageServer: storage server
 *       file_id: the file id
 *	pFileInfo: return the file info (file size and create timestamp)
-*	bSilence: when this file not exist, do not log error on storage server
+*   flags: 
+*          FDFS_QUERY_FINFO_FLAGS_KEEP_SILENCE: when this file not exist,
+*                                      do not log error on storage server
+*          FDFS_QUERY_FINFO_FLAGS_NOT_CALC_CRC32: do NOT calculate CRC32
 * return: 0 success, !=0 fail, return the error code
 **/
-int storage_query_file_info_ex1(ConnectionInfo *pTrackerServer, \
-		ConnectionInfo *pStorageServer,  const char *file_id, \
-		FDFSFileInfo *pFileInfo, const bool bSilence);
+int storage_query_file_info_ex1(ConnectionInfo *pTrackerServer,
+		ConnectionInfo *pStorageServer,  const char *file_id,
+		FDFSFileInfo *pFileInfo, const char flags);
 
 #define fdfs_get_file_info1(file_id, pFileInfo) \
-	fdfs_get_file_info_ex1(file_id, true, pFileInfo)
+	fdfs_get_file_info_ex1(file_id, true, pFileInfo, 0)
 
 /**
 * get file info from the filename return by storage server
@@ -508,10 +511,14 @@ int storage_query_file_info_ex1(ConnectionInfo *pTrackerServer, \
 *       file_id: the file id return by storage server
 *       get_from_server: if get slave file info from storage server
 *       pFileInfo: return the file info
+*   flags: 
+*          FDFS_QUERY_FINFO_FLAGS_KEEP_SILENCE: when this file not exist,
+*                                      do not log error on storage server
+*          FDFS_QUERY_FINFO_FLAGS_NOT_CALC_CRC32: do NOT calculate CRC32
 * return: 0 success, !=0 fail, return the error code
 **/
-int fdfs_get_file_info_ex1(const char *file_id, const bool get_from_server, \
-		FDFSFileInfo *pFileInfo);
+int fdfs_get_file_info_ex1(const char *file_id, const bool get_from_server,
+		FDFSFileInfo *pFileInfo, const char flags);
 
 /**
 * check if file exist

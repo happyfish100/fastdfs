@@ -513,7 +513,7 @@ int storage_truncate_file(ConnectionInfo *pTrackerServer, \
 #define storage_query_file_info(pTrackerServer, pStorageServer, \
 		group_name, filename, pFileInfo) \
 	storage_query_file_info_ex(pTrackerServer, pStorageServer, \
-		group_name, filename, pFileInfo, false)
+		group_name, filename, pFileInfo, 0)
 
 /**
 * query file info
@@ -523,17 +523,20 @@ int storage_truncate_file(ConnectionInfo *pTrackerServer, \
 *	group_name: the group name of storage server
 *	filename: filename on storage server
 *	pFileInfo: return the file info (file size and create timestamp)
-*	bSilence: when this file not exist, do not log error on storage server
+*	flags: 
+*	       FDFS_QUERY_FINFO_FLAGS_KEEP_SILENCE: when this file not exist,
+*	                                   do not log error on storage server
+*          FDFS_QUERY_FINFO_FLAGS_NOT_CALC_CRC32: do NOT calculate CRC32
 * return: 0 success, !=0 fail, return the error code
 **/
 int storage_query_file_info_ex(ConnectionInfo *pTrackerServer, \
 			ConnectionInfo *pStorageServer,  \
 			const char *group_name, const char *filename, \
-			FDFSFileInfo *pFileInfo, const bool bSilence);
+			FDFSFileInfo *pFileInfo, const char flags);
 
 
 #define fdfs_get_file_info(group_name, remote_filename, pFileInfo) \
-	fdfs_get_file_info_ex(group_name, remote_filename, true, pFileInfo)
+	fdfs_get_file_info_ex(group_name, remote_filename, true, pFileInfo, 0)
 
 /**
 * check if file exist
@@ -550,14 +553,18 @@ int storage_file_exist(ConnectionInfo *pTrackerServer, \
 /**
 * get file info from the filename return by storage server
 * params:
-*	group_name: the group name of storage server
-*	remote_filename: filename on storage server
-*       get_from_server: if get slave file info from storage server
-*       pFileInfo: return the file info
+*   group_name: the group name of storage server
+*   remote_filename: filename on storage server
+*   get_from_server: if get slave file info from storage server
+*   pFileInfo: return the file info
+*	flags: 
+*	       FDFS_QUERY_FINFO_FLAGS_KEEP_SILENCE: when this file not exist,
+*	                                   do not log error on storage server
+*          FDFS_QUERY_FINFO_FLAGS_NOT_CALC_CRC32: do NOT calculate CRC32
 * return: 0 success, !=0 fail, return the error code
 **/
-int fdfs_get_file_info_ex(const char *group_name, const char *remote_filename, \
-	const bool get_from_server, FDFSFileInfo *pFileInfo);
+int fdfs_get_file_info_ex(const char *group_name, const char *remote_filename,
+	const bool get_from_server, FDFSFileInfo *pFileInfo, const char flags);
 
 
 /**

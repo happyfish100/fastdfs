@@ -1,4 +1,8 @@
 
+Version 6.15.1  2025-11-06
+ * query file info support combined flags:
+   FDFS_QUERY_FINFO_FLAGS_NOT_CALC_CRC32 and FDFS_QUERY_FINFO_FLAGS_KEEP_SILENCE
+
 Version 6.15.0  2025-10-26
  * storage sync support multi-threads
  * conf/tracker.conf support config response_ip_addr_size

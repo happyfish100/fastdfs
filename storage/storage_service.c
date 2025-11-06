@@ -3501,8 +3501,9 @@ static int push_calc_crc32_to_dio_queue(struct fast_task_info *pTask,
 }
 
 static int query_file_info_deal_response(struct fast_task_info *pTask,
-        const char *filename, const char *true_filename,
-        struct stat *file_stat, const int store_path_index)
+        const char *filename, const int filename_len,
+        const char *true_filename, struct stat *file_stat,
+        const int store_path_index, const char flags)
 {
 	char decode_buff[64];
 	int buff_len;
@@ -3517,30 +3518,36 @@ static int query_file_info_deal_response(struct fast_task_info *pTask,
 		decode_buff, &buff_len);
 	storage_id = ntohl(buff2int(decode_buff));
 	file_size = buff2long(decode_buff + sizeof(int) * 2);
-	if (IS_APPENDER_FILE(file_size))
+
+	if (IS_APPENDER_FILE(file_size) || IS_SLAVE_FILE(filename_len, file_size))
     {
-        StorageClientInfo *pClientInfo;
-        StorageFileContext *pFileContext;
+        if ((flags & FDFS_QUERY_FINFO_FLAGS_NOT_CALC_CRC32) != 0) {
+            crc32 = 0;
+        } else {
+            StorageClientInfo *pClientInfo;
+            StorageFileContext *pFileContext;
 
-        pClientInfo = (StorageClientInfo *)pTask->arg;
-        pFileContext =  &(pClientInfo->file_context);
+            pClientInfo = (StorageClientInfo *)pTask->arg;
+            pFileContext =  &(pClientInfo->file_context);
 
-        pFileContext->fname2log.len = fc_safe_strcpy(
-                pFileContext->fname2log.str, filename);
-        fc_get_one_subdir_full_filename(
-                FDFS_STORE_PATH_STR(store_path_index),
-                FDFS_STORE_PATH_LEN(store_path_index),
-                "data", 4, true_filename, strlen(true_filename),
-                pFileContext->filename);
-        return push_calc_crc32_to_dio_queue(pTask,
-                calc_crc32_done_callback_for_query_finfo,
-                store_path_index, file_stat, storage_id);
+            pFileContext->fname2log.len = fc_safe_strcpy(
+                    pFileContext->fname2log.str, filename);
+            fc_get_one_subdir_full_filename(
+                    FDFS_STORE_PATH_STR(store_path_index),
+                    FDFS_STORE_PATH_LEN(store_path_index),
+                    "data", 4, true_filename, strlen(true_filename),
+                    pFileContext->filename);
+            return push_calc_crc32_to_dio_queue(pTask,
+                    calc_crc32_done_callback_for_query_finfo,
+                    store_path_index, file_stat, storage_id);
+        }
+    } else {
+        crc32 = buff2int(decode_buff + sizeof(int) * 4);
     }
 
     finfo.storage_id = storage_id;
     finfo.fsize = file_stat->st_size;
     finfo.mtime = file_stat->st_mtime;
-	crc32 = buff2int(decode_buff + sizeof(int) * 4);
     return query_file_info_response(pTask, &finfo, crc32);
 }
 
@@ -3566,6 +3573,7 @@ static int storage_server_query_file_info(struct fast_task_info *pTask)
 	int true_filename_len;
 	int result;
 	int len;
+    char flags;
 	bool bSilence;
 
 	pClientInfo = (StorageClientInfo *)pTask->arg;
@@ -3601,7 +3609,8 @@ static int storage_server_query_file_info(struct fast_task_info *pTask)
 	STORAGE_ACCESS_STRCPY_FNAME2LOG(filename, filename_len, \
 			pClientInfo);
 
-	bSilence = ((TrackerHeader *)pTask->recv.ptr->data)->status != 0;
+    flags = ((TrackerHeader *)pTask->recv.ptr->data)->status;
+	bSilence = (flags & FDFS_QUERY_FINFO_FLAGS_KEEP_SILENCE) != 0;
 	memcpy(group_name, in_buff, FDFS_GROUP_NAME_MAX_LEN);
 	*(group_name + FDFS_GROUP_NAME_MAX_LEN) = '\0';
 	if (strcmp(group_name, g_group_name) != 0)
@@ -3752,8 +3761,8 @@ static int storage_server_query_file_info(struct fast_task_info *pTask)
 		return EINVAL;
 	}
 
-	return query_file_info_deal_response(pTask, filename,
-            true_filename, &file_stat, store_path_index);
+	return query_file_info_deal_response(pTask, filename, filename_len,
+            true_filename, &file_stat, store_path_index, flags);
 }
 
 #define CHECK_TRUNK_SERVER(pTask) \
@@ -4666,7 +4675,7 @@ static int storage_upload_file(struct fast_task_info *pTask, bool bAppenderFile)
 				free_mb, file_bytes, \
 				fdfs_storage_reserved_space_to_string_ex( \
 				  g_storage_reserved_space.flag, \
-          g_avg_storage_reserved_mb, \
+                  g_avg_storage_reserved_mb, \
 				  g_fdfs_store_paths.paths[store_path_index]. \
 				  total_mb, g_storage_reserved_space.rs.ratio,\
 				  reserved_space_str));
