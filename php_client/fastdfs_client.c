@@ -5032,6 +5032,7 @@ static void php_fdfs_get_file_info_impl(INTERNAL_FUNCTION_PARAMETERS, \
 {
 	int result;
 	int argc;
+    long flags;
 	char *group_name;
 	char *remote_filename;
 	zend_size_t group_nlen;
@@ -5049,7 +5050,7 @@ static void php_fdfs_get_file_info_impl(INTERNAL_FUNCTION_PARAMETERS, \
 		param_count = 2;
 	}
 
-    	argc = ZEND_NUM_ARGS();
+    argc = ZEND_NUM_ARGS();
 	if (argc != param_count)
 	{
 		logError("file: "__FILE__", line: %d, " \
@@ -5059,14 +5060,15 @@ static void php_fdfs_get_file_info_impl(INTERNAL_FUNCTION_PARAMETERS, \
 		RETURN_BOOL(false);
 	}
 
+    flags = 0;
 	if (bFileId)
 	{
 		char *pSeperator;
 		char *file_id;
 		zend_size_t file_id_len;
 
-		if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", \
-			&file_id, &file_id_len) == FAILURE)
+		if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s|l",
+			&file_id, &file_id_len, &flags) == FAILURE)
 		{
 			logError("file: "__FILE__", line: %d, " \
 				"zend_parse_parameters fail!", __LINE__);
@@ -5091,9 +5093,9 @@ static void php_fdfs_get_file_info_impl(INTERNAL_FUNCTION_PARAMETERS, \
 	}
 	else
 	{
-		if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ss", \
+		if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ss|l",
 			&group_name, &group_nlen, &remote_filename, \
-			&filename_len) == FAILURE)
+			&filename_len, &flags) == FAILURE)
 		{
 			logError("file: "__FILE__", line: %d, " \
 				"zend_parse_parameters fail!", __LINE__);
@@ -5102,7 +5104,8 @@ static void php_fdfs_get_file_info_impl(INTERNAL_FUNCTION_PARAMETERS, \
 		}
 	}
 
-	result = fdfs_get_file_info_ex(group_name, remote_filename, true, &file_info);
+	result = fdfs_get_file_info_ex(group_name, remote_filename,
+            true, &file_info, flags);
 	pContext->err_no = result;
 	if (result != 0)
 	{
@@ -6027,7 +6030,8 @@ ZEND_FUNCTION(fastdfs_http_gen_token)
 }
 
 /*
-array fastdfs_get_file_info(string group_name, string remote_filename)
+array fastdfs_get_file_info(string group_name,
+     string remote_filename[, int flags])
 return array for success, false for error
 */
 ZEND_FUNCTION(fastdfs_get_file_info)
@@ -6037,7 +6041,7 @@ ZEND_FUNCTION(fastdfs_get_file_info)
 }
 
 /*
-array fastdfs_get_file_info1(string file_id)
+array fastdfs_get_file_info1(string file_id[, int flags])
 return array for success, false for error
 */
 ZEND_FUNCTION(fastdfs_get_file_info1)
@@ -7800,6 +7804,11 @@ PHP_MINIT_FUNCTION(fastdfs_client)
 		FDFS_FILE_TYPE_SLAVE, CONST_CS | CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("FDFS_FILE_TYPE_APPENDER",
 		FDFS_FILE_TYPE_APPENDER, CONST_CS | CONST_PERSISTENT);
+
+    REGISTER_LONG_CONSTANT("FDFS_QUERY_FINFO_FLAGS_NOT_CALC_CRC32",
+       FDFS_QUERY_FINFO_FLAGS_NOT_CALC_CRC32, CONST_CS | CONST_PERSISTENT);
+    REGISTER_LONG_CONSTANT("FDFS_QUERY_FINFO_FLAGS_KEEP_SILENCE",
+        FDFS_QUERY_FINFO_FLAGS_KEEP_SILENCE, CONST_CS | CONST_PERSISTENT);
 
 	return SUCCESS;
 }
