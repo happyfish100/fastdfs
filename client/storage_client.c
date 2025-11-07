@@ -1241,8 +1241,8 @@ int storage_set_metadata1(ConnectionInfo *pTrackerServer, \
      'M' for merge, insert when the meta item not exist, otherwise update it
 FDFS_GROUP_NAME_MAX_LEN bytes: group_name
 filename
-meta data bytes: each meta data seperated by \x01,
-                 name and value seperated by \x02
+meta data bytes: each meta data separated by \x01,
+                 name and value separated by \x02
 **/
 int storage_set_metadata(ConnectionInfo *pTrackerServer, \
 			ConnectionInfo *pStorageServer, \
