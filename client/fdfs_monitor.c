@@ -278,7 +278,7 @@ static const char *get_storage_rw_caption(const FDFSReadWriteMode rw_mode)
         case fdfs_rw_both:
             return "both (normal)";
         default:
-            return "unkown";
+            return "unknown";
     }
 }
 
