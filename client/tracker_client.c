@@ -471,11 +471,11 @@ int tracker_list_servers(ConnectionInfo *pTrackerServer,
 	{
         format_ip_address(pTrackerServer->ip_addr, formatted_ip);
 		logError("file: "__FILE__", line: %d, "
-		 	"tracker server %s:%u insufficient space, "
-			"max storage count: %d, expect count: %d",
-			__LINE__, formatted_ip, pTrackerServer->port,
-            max_storages, *storage_count);
-		*storage_count = 0;
+                "tracker server %s:%u insufficient space, "
+                "max storage count: %d, expect count: %d",
+                __LINE__, formatted_ip, pTrackerServer->port,
+                max_storages, *storage_count);
+        *storage_count = 0;
 		return ENOSPC;
 	}
 
@@ -654,11 +654,11 @@ int tracker_list_groups(ConnectionInfo *pTrackerServer,
 	if (*group_count > max_groups)
 	{
         format_ip_address(pTrackerServer->ip_addr, formatted_ip);
-		logError("file: "__FILE__", line: %d, "
-			"tracker server %s:%u insufficient space, "
-			"max group count: %d, expect count: %d",
-			__LINE__, formatted_ip, pTrackerServer->port,
-            max_groups, *group_count);
+        logError("file: "__FILE__", line: %d, "
+                "tracker server %s:%u insufficient space, "
+                "max group count: %d, expect count: %d",
+                __LINE__, formatted_ip, pTrackerServer->port,
+                max_groups, *group_count);
 		*group_count = 0;
 		return ENOSPC;
 	}
