@@ -106,7 +106,7 @@ int storage_upload_by_filename_ex(ConnectionInfo *pTrackerServer, \
 /**
 * Upload file callback function prototype
 * params:
-*	arg: callback extra arguement
+*	arg: callback extra argument
 *       sock: connected storage socket for sending file content
 * return: 0 success, !=0 fail, should return the error code
 **/
@@ -119,7 +119,7 @@ typedef int (*UploadCallback) (void *arg, const int64_t file_size, int sock);
 *       pStorageServer: storage server
 *       store_path_index: the index of path on the storage server
 *       callback: callback function to send file content to storage server
-*       arg: callback extra arguement
+*       arg: callback extra argument
 *       file_size: the file size
 *       file_ext_name: file ext name, not include dot(.), can be NULL
 *	meta_list: meta info array
@@ -246,7 +246,7 @@ int storage_download_file_to_file(ConnectionInfo *pTrackerServer, \
 /**
 * Download file callback function prototype
 * params:
-*	arg: callback extra arguement
+*	arg: callback extra argument
 *       file_size: file size
 *       data: temp buff, should not keep persistently
 *	current_size: current data size
@@ -265,7 +265,7 @@ typedef int (*DownloadCallback) (void *arg, const int64_t file_size, \
 *       file_offset: the start offset to download
 *       download_bytes: download bytes, 0 means from start offset to the file end
 *	callback: callback function
-*	arg: callback extra arguement
+*	arg: callback extra argument
 *       file_size: return file size (bytes)
 * return: 0 success, !=0 fail, return the error code
 **/
@@ -368,7 +368,7 @@ int storage_upload_slave_by_filebuff(ConnectionInfo *pTrackerServer, \
 *       pTrackerServer: tracker server
 *       pStorageServer: storage server
 *       callback: callback function to send file content to storage server
-*       arg: callback extra arguement
+*       arg: callback extra argument
 *       file_size: the file size
 *       master_filename: the mater filename to generate the slave file id
 *       prefix_name: the prefix name to generate the slave file id
@@ -410,7 +410,7 @@ int storage_append_by_filename(ConnectionInfo *pTrackerServer, \
 *       pTrackerServer: tracker server
 *       pStorageServer: storage server
 *       callback: callback function to send file content to storage server
-*       arg: callback extra arguement
+*       arg: callback extra argument
 *       file_size: the file size
 *	group_name: the group name 
 *	appender_filename: the appender filename
@@ -462,7 +462,7 @@ int storage_modify_by_filename(ConnectionInfo *pTrackerServer, \
 *       pTrackerServer: tracker server
 *       pStorageServer: storage server
 *       callback: callback function to send file content to storage server
-*       arg: callback extra arguement
+*       arg: callback extra argument
 *       file_offset: the start offset to modify appender file
 *       file_size: the file size
 *	group_name: the group name 
@@ -495,7 +495,7 @@ int storage_modify_by_filebuff(ConnectionInfo *pTrackerServer, \
 
 
 /**
-* truncate file to sepecify size
+* truncate file to specify size
 * params:
 *       pTrackerServer: tracker server
 *       pStorageServer: storage server
