@@ -97,7 +97,7 @@ int main(int argc, char *argv[])
                 file_type_str = "appender";
                 break;
             default:
-                file_type_str = "unkown";
+                file_type_str = "unknown";
                 break;
         }
 
