@@ -36,7 +36,7 @@ cat > ./conf/storage_ids.conf << EOF
 # id is a natural number (1, 2, 3 etc.),
 # 6 bits of the id length is enough, such as 100001
 #
-# storage ip or hostname can be dual IPs seperated by comma,
+# storage ip or hostname can be dual IPs separated by comma,
 # one is an inner (intranet) IP and another is an outer (extranet) IP,
 # or two different types of inner (intranet) IPs
 # for example: 192.168.2.100,122.244.141.46
