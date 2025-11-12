@@ -27,7 +27,7 @@ extern "C" {
 *                      if be NULL will abstract ext name from the local filename
 *	meta_list: meta info array
 *       meta_count: meta item count
-*       group_name: specify the group name to upload file to, can be NULL or emtpy
+*       group_name: specify the group name to upload file to, can be NULL or empty
 *	file_id: return the new created file id (including group name and filename)
 * return: 0 success, !=0 fail, return the error code
 **/
@@ -64,7 +64,7 @@ int storage_upload_by_filename1_ex(ConnectionInfo *pTrackerServer, \
 *       file_ext_name: file ext name, not include dot(.), can be NULL
 *	meta_list: meta info array
 *       meta_count: meta item count
-*       group_name: specify the group name to upload file to, can be NULL or emtpy
+*       group_name: specify the group name to upload file to, can be NULL or empty
 *	file_id: return the new created file id (including group name and filename)
 * return: 0 success, !=0 fail, return the error code
 **/
@@ -102,10 +102,10 @@ int storage_do_upload_file1(ConnectionInfo *pTrackerServer, \
 *       file_size: the file size
 *       file_ext_name: file ext name, not include dot(.), can be NULL
 *       callback: callback function to send file content to storage server
-*       arg: callback extra arguement
+*       arg: callback extra argument
 *	meta_list: meta info array
 *       meta_count: meta item count
-*       group_name: specify the group name to upload file to, can be NULL or emtpy
+*       group_name: specify the group name to upload file to, can be NULL or empty
 *	file_id: return the new created file id (including group name and filename)
 * return: 0 success, !=0 fail, return the error code
 **/
@@ -267,7 +267,7 @@ int storage_get_metadata1(ConnectionInfo *pTrackerServer, \
 *       file_offset: the start offset to download
 *       download_bytes: download bytes, 0 means from start offset to the file end
 *	callback: callback function
-*	arg: callback extra arguement
+*	arg: callback extra argument
 *       file_size: return file size (bytes)
 * return: 0 success, !=0 fail, return the error code
 **/
@@ -366,7 +366,7 @@ int storage_upload_slave_by_filebuff1(ConnectionInfo *pTrackerServer, \
 *       pTrackerServer: tracker server
 *       pStorageServer: storage server
 *       callback: callback function to send file content to storage server
-*       arg: callback extra arguement
+*       arg: callback extra argument
 *       file_size: the file size
 *       master_file_id: the mater file id to generate the slave file id
 *       prefix_name: the prefix name to generate the file id
@@ -419,7 +419,7 @@ int storage_append_by_filebuff1(ConnectionInfo *pTrackerServer, \
 *       pTrackerServer: tracker server
 *       pStorageServer: storage server
 *       callback: callback function to send file content to storage server
-*       arg: callback extra arguement
+*       arg: callback extra argument
 *       file_size: the file size
 *       appender_file_id: the appender file id
 * return: 0 success, !=0 fail, return the error code
@@ -450,7 +450,7 @@ int storage_modify_by_filename1(ConnectionInfo *pTrackerServer, \
 *       pTrackerServer: tracker server
 *       pStorageServer: storage server
 *       callback: callback function to send file content to storage server
-*       arg: callback extra arguement
+*       arg: callback extra argument
 *       file_offset: the start offset to modify appender file
 *       file_size: the file size
 *       appender_file_id: the appender file id
