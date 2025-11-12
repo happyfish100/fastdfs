@@ -345,7 +345,7 @@ static FDHTServerInfo *get_connection(ServerArray *pServerArray, \
 /**
 * request body format:
 *       namespace_len:  4 bytes big endian integer
-*       namespace: can be emtpy
+*       namespace: can be empty
 *       obj_id_len:  4 bytes big endian integer
 *       object_id: the object id (can be empty)
 *       key_len:  4 bytes big endian integer
@@ -419,7 +419,7 @@ int fdht_get_ex1(GroupArray *pGroupArray, const bool bKeepAlive, \
 
 		if (in_bytes < 4)
 		{
-			logError("server %s:%u reponse bytes: %d < 4", \
+			logError("server %s:%u response bytes: %d < 4", \
 				pServer->ip_addr, pServer->port, in_bytes);
 			result = EINVAL;
 			break;
@@ -440,7 +440,7 @@ int fdht_get_ex1(GroupArray *pGroupArray, const bool bKeepAlive, \
 		vlen = buff2int(buff);
 		if (vlen != in_bytes - 4)
 		{
-			logError("server %s:%u reponse bytes: %d " \
+			logError("server %s:%u response bytes: %d " \
 				"is not correct, %d != %d", pServer->ip_addr, \
 				pServer->port, in_bytes, vlen, in_bytes - 4);
 			result = EINVAL;
@@ -630,7 +630,7 @@ int fdht_batch_set_ex(GroupArray *pGroupArray, const bool bKeepAlive, \
 
 		if (in_bytes != 8 + 5 * key_count + total_key_len)
 		{
-			logError("server %s:%u reponse bytes: %d != %d", \
+			logError("server %s:%u response bytes: %d != %d", \
 				pServer->ip_addr, pServer->port, in_bytes, \
 				8 + 5 * key_count + total_key_len);
 			result = EINVAL;
@@ -785,7 +785,7 @@ int fdht_batch_delete_ex(GroupArray *pGroupArray, const bool bKeepAlive, \
 
 		if (in_bytes != 8 + 5 * key_count + total_key_len)
 		{
-			logError("server %s:%u reponse bytes: %d != %d", \
+			logError("server %s:%u response bytes: %d != %d", \
 				pServer->ip_addr, pServer->port, in_bytes, \
 				8 + 5 * key_count + total_key_len);
 			result = EINVAL;
@@ -938,7 +938,7 @@ int fdht_batch_get_ex1(GroupArray *pGroupArray, const bool bKeepAlive, \
 
 		if (in_bytes < 17)
 		{
-			logError("server %s:%u reponse bytes: %d < 17", \
+			logError("server %s:%u response bytes: %d < 17", \
 				pServer->ip_addr, pServer->port, in_bytes);
 			result = EINVAL;
 			break;
@@ -1045,7 +1045,7 @@ int fdht_batch_get_ex1(GroupArray *pGroupArray, const bool bKeepAlive, \
 		if (in_bytes != p - pInBuff)
 		{
 			*success_count = 0;
-			logError("server %s:%u reponse bytes: %d != %d", \
+			logError("server %s:%u response bytes: %d != %d", \
 				pServer->ip_addr, pServer->port, \
 				in_bytes, (int)(p - pInBuff));
 			result = EINVAL;
@@ -1139,7 +1139,7 @@ int fdht_set_ex(GroupArray *pGroupArray, const bool bKeepAlive, \
 /**
 * request body format:
 *       namespace_len:  4 bytes big endian integer
-*       namespace: can be emtpy
+*       namespace: can be empty
 *       obj_id_len:  4 bytes big endian integer
 *       object_id: the object id (can be empty)
 *       key_len:  4 bytes big endian integer
@@ -1223,7 +1223,7 @@ int fdht_inc_ex(GroupArray *pGroupArray, const bool bKeepAlive, \
 
 		if (in_bytes < 4)
 		{
-			logError("server %s:%u reponse bytes: %d < 4!", \
+			logError("server %s:%u response bytes: %d < 4!", \
 				pServer->ip_addr, pServer->port, in_bytes);
 			result = EINVAL;
 			break;
@@ -1441,7 +1441,7 @@ int fdht_stat_ex(GroupArray *pGroupArray, const bool bKeepAlive, \
 
 		if (in_bytes >= size)
 		{
-			logError("server %s:%u reponse bytes: %d >= " \
+			logError("server %s:%u response bytes: %d >= " \
 				"buff size: %d", pServer->ip_addr, \
 				pServer->port, in_bytes, size);
 			result = ENOSPC;
