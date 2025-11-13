@@ -62,7 +62,7 @@ typedef struct
 {
 	time_t timestamp;
 	char op_type;
-	char filename[128];  //filename with path index prefix which should be trimed
+	char filename[128];  //filename with path index prefix which should be trimmed
 	char true_filename[128]; //pure filename
 	char src_filename[128];  //src filename with path index prefix
 	int filename_len;
