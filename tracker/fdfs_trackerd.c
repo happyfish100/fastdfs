@@ -257,7 +257,7 @@ int main(int argc, char *argv[])
 		log_destroy();
 		return result;
 	}
-	
+
 	if ((result=setup_signal_handlers()) != 0)
 	{
 		logCrit("exit abnormally!\n");
