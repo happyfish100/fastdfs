@@ -723,7 +723,7 @@ int fdfs_parse_multi_ips_ex(char *ip_str, FDFSMultiIP *ip_addrs,
 }
 
 int fdfs_multi_ips_to_string_ex(const FDFSMultiIP *ip_addrs,
-        const char seperator, char *buff, const int buffSize)
+        const char separator, char *buff, const int buffSize)
 {
     int i;
     int ip_len;
@@ -753,7 +753,7 @@ int fdfs_multi_ips_to_string_ex(const FDFSMultiIP *ip_addrs,
             break;
         }
 
-        *p++ = seperator;
+        *p++ = separator;
         memcpy(p, ip_addrs->ips[i].address, ip_len);
         p += ip_len;
     }
