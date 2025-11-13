@@ -37,7 +37,7 @@ int main(int argc, char **argv)
 	proccess_count = atoi(argv[1]);
 	if (proccess_count <= 0)
 	{
-		printf("Invalid proccess count: %d\n", proccess_count);
+		printf("Invalid process count: %d\n", proccess_count);
 		return EINVAL;
 	}
 
