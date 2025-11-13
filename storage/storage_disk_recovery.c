@@ -1141,7 +1141,7 @@ static int do_dispatch_binlog_for_threads(const string_t *base_path)
     StorageBinLogReader reader;
 	StorageBinLogRecord record;
 	int record_length;
-    RecoveryDispatchInfo *dispatchs;
+    RecoveryDispatchInfo *dispatches;
     RecoveryDispatchInfo *disp;
     int64_t total_count;
     int hash_code;
@@ -1150,15 +1150,15 @@ static int do_dispatch_binlog_for_threads(const string_t *base_path)
     int i;
 
     bytes = sizeof(RecoveryDispatchInfo) * g_disk_recovery_threads;
-    dispatchs = (RecoveryDispatchInfo *)malloc(bytes);
-    if (dispatchs == NULL)
+    dispatches = (RecoveryDispatchInfo *)malloc(bytes);
+    if (dispatches == NULL)
     {
         logError("file: "__FILE__", line: %d, "
                 "malloc %d bytes fail",
                 __LINE__, bytes);
         return ENOMEM;
     }
-    memset(dispatchs, 0, bytes);
+    memset(dispatches, 0, bytes);
 
     result = 0;
     for (i=0; i<g_disk_recovery_threads; i++)
@@ -1166,17 +1166,17 @@ static int do_dispatch_binlog_for_threads(const string_t *base_path)
         recovery_get_full_filename_ex(base_path, i,
                 RECOVERY_BINLOG_FILENAME_STR,
                 RECOVERY_BINLOG_FILENAME_LEN,
-                dispatchs[i].binlog_filename);
-        fc_combine_two_strings(dispatchs[i].binlog_filename,
-                "tmp", '.', dispatchs[i].temp_filename);
-        dispatchs[i].fp = fopen(dispatchs[i].temp_filename, "w");
-        if (dispatchs[i].fp == NULL)
+                dispatches[i].binlog_filename);
+        fc_combine_two_strings(dispatches[i].binlog_filename,
+                "tmp", '.', dispatches[i].temp_filename);
+        dispatches[i].fp = fopen(dispatches[i].temp_filename, "w");
+        if (dispatches[i].fp == NULL)
         {
             result = errno != 0 ? errno : EPERM;
             logError("file: "__FILE__", line: %d, "
                     "open file: %s to write fail, "
                     "errno: %d, error info: %s.",
-                    __LINE__, dispatchs[i].temp_filename,
+                    __LINE__, dispatches[i].temp_filename,
                     result, STRERROR(result));
             return result;
         }
@@ -1213,7 +1213,7 @@ static int do_dispatch_binlog_for_threads(const string_t *base_path)
                 hash_code = Time33Hash(record.filename,
                         record.filename_len);
             }
-            disp = dispatchs + ((unsigned int)hash_code) %
+            disp = dispatches + ((unsigned int)hash_code) %
                 g_disk_recovery_threads;
             if ((result=disk_recovery_write_to_binlog(disp->fp,
                             disp->temp_filename, &record)) != 0)
@@ -1236,16 +1236,16 @@ static int do_dispatch_binlog_for_threads(const string_t *base_path)
     log_buff.len = 0;
     for (i=0; i<g_disk_recovery_threads; i++)
     {
-        fclose(dispatchs[i].fp);
-        if (rename(dispatchs[i].temp_filename,
-                    dispatchs[i].binlog_filename) != 0)
+        fclose(dispatches[i].fp);
+        if (rename(dispatches[i].temp_filename,
+                    dispatches[i].binlog_filename) != 0)
         {
             result = errno != 0 ? errno : EPERM;
             logError("file: "__FILE__", line: %d, "
                     "rename file %s to %s fail, "
                     "errno: %d, error info: %s", __LINE__,
-                    dispatchs[i].temp_filename,
-                    dispatchs[i].binlog_filename,
+                    dispatches[i].temp_filename,
+                    dispatches[i].binlog_filename,
                     result, STRERROR(result));
             break;
         }
@@ -1259,16 +1259,16 @@ static int do_dispatch_binlog_for_threads(const string_t *base_path)
             break;
         }
 
-        total_count += dispatchs[i].count;
-        stat(dispatchs[i].binlog_filename, &file_stat);
+        total_count += dispatches[i].count;
+        stat(dispatches[i].binlog_filename, &file_stat);
         log_buff.len += snprintf(log_buff.str + log_buff.len,
                 sizeof(buff) - log_buff.len,
                 ", {thread: #%d, record_count: %"PRId64
                 ", file_size: %"PRId64"}",
-                i, dispatchs[i].count,
+                i, dispatches[i].count,
                 (int64_t)file_stat.st_size);
     }
-    free(dispatchs);
+    free(dispatches);
 
     if (result == 0)
     {
