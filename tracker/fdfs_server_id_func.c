@@ -910,7 +910,7 @@ int fdfs_load_storage_ids_from_file(const char *config_filename, \
 	if (*pStorageIdsFilename == '\0')
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"conf file \"%s\", storage_ids_filename is emtpy!", \
+			"conf file \"%s\", storage_ids_filename is empty!", \
 			__LINE__, config_filename);
 		return EINVAL;
 	}
