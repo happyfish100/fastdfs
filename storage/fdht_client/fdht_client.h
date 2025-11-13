@@ -217,7 +217,7 @@ query stat of server
 param:
 	pGroupArray: group info, can use &g_group_array
 	server_index: index of server, based 0
-	buff: return stat buff, key value pair as key=value, row seperated by \n
+	buff: return stat buff, key value pair as key=value, row separated by \n
 	size: buff size
 return: 0 for success, != 0 for fail (errno)
 */
