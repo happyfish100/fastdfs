@@ -545,7 +545,7 @@ Version 2.03  2010-11-08
 
 Version 2.02  2010-10-28
  * get parameters function from tracker server changed, 
-   add paramter: storage_sync_file_max_delay
+   add parameter: storage_sync_file_max_delay
  * local ip functions move to common/local_ip_func.c
  * when query all storage servers to store, do not increase the current
    write server index
