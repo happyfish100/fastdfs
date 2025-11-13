@@ -68,7 +68,7 @@ extern volatile int g_dist_path_index_high; //current write to high path
 extern volatile int g_dist_path_index_low;  //current write to low path
 extern volatile int g_dist_write_file_count; //current write file count
 
-extern int g_storage_count;  //stoage server count in my group
+extern int g_storage_count;  //storage server count in my group
 extern FDFSStorageServer g_storage_servers[FDFS_MAX_SERVERS_EACH_GROUP];
 extern FDFSStorageServer *g_sorted_storages[FDFS_MAX_SERVERS_EACH_GROUP];
 
