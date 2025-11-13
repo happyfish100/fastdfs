@@ -224,7 +224,7 @@ typedef struct
     } connection;
 } FDFSStorageStat;
 
-/* struct for network transfering */
+/* struct for network transferring */
 typedef struct
 {
     struct {
@@ -379,7 +379,7 @@ typedef struct
 	byte store_server;  //store to which storage server, from conf file
 	byte download_server; //download from which storage server, from conf file
 	byte store_path;  //store to which path, from conf file
-	char store_group[FDFS_GROUP_NAME_MAX_LEN + 8];  //for 8 bytes aliginment
+	char store_group[FDFS_GROUP_NAME_MAX_LEN + 8];  //for 8 bytes alignment
 } FDFSGroups;
 
 typedef struct
