@@ -99,7 +99,7 @@ int main(int argc, char **argv)
 	proccess_index = atoi(argv[1]);
 	if (proccess_index < 0 || proccess_index >= PROCESS_COUNT)
 	{
-		printf("Invalid proccess index: %d\n", proccess_index);
+		printf("Invalid process index: %d\n", proccess_index);
 		return EINVAL;
 	}
 
@@ -214,7 +214,7 @@ int main(int argc, char **argv)
 
 	dfs_destroy();
 
-	printf("proccess %d, time used: %ds\n", proccess_index, (int)(time(NULL) - start_time));
+	printf("process %d, time used: %ds\n", proccess_index, (int)(time(NULL) - start_time));
 	return result;
 }
 
