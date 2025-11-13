@@ -38,13 +38,13 @@ extern "C" {
 		memcpy(p, key_info.szNameSpace, key_info.namespace_len); \
 		p += key_info.namespace_len; \
 	} \
-	*p++ = FDHT_FULL_KEY_SEPERATOR; /*field seperator*/  \
+	*p++ = FDHT_FULL_KEY_SEPERATOR; /*field separator*/  \
 	if (key_info.obj_id_len > 0) \
 	{ \
 		memcpy(p, key_info.szObjectId, key_info.obj_id_len); \
 		p += key_info.obj_id_len; \
 	} \
-	*p++ = FDHT_FULL_KEY_SEPERATOR; /*field seperator*/  \
+	*p++ = FDHT_FULL_KEY_SEPERATOR; /*field separator*/  \
 	memcpy(p, key_info.szKey, key_info.key_len); \
 	p += key_info.key_len; \
 	full_key_len = p - full_key;
