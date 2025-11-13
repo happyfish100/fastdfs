@@ -116,13 +116,13 @@ static inline int fdfs_server_info_to_string(const TrackerServerInfo *pServer,
 }
 
 int fdfs_multi_ips_to_string_ex(const FDFSMultiIP *ip_addrs,
-        const char seperator, char *buff, const int buffSize);
+        const char separator, char *buff, const int buffSize);
 
 static inline int fdfs_multi_ips_to_string(const FDFSMultiIP *ip_addrs,
         char *buff, const int buffSize)
 {
-    const char seperator = ',';
-    return fdfs_multi_ips_to_string_ex(ip_addrs, seperator, buff, buffSize);
+    const char separator = ',';
+    return fdfs_multi_ips_to_string_ex(ip_addrs, separator, buff, buffSize);
 }
 
 int fdfs_parse_multi_ips_ex(char *ip_str, FDFSMultiIP *ip_addrs,
