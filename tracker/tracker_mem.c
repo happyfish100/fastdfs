@@ -1050,7 +1050,7 @@ static int tracker_load_storages_old(FDFSGroups *pGroups,
 		{
 			logError("file: "__FILE__", line: %d, " \
 				"the format of the file \"%s/%s\" is invalid" \
-				", colums: %d != expect colums: " \
+				", columns: %d != expect columns: " \
 				"%d or %d or %d or %d", \
 				__LINE__, data_path, \
 				STORAGE_SERVERS_LIST_FILENAME_OLD_STR, \
@@ -1564,7 +1564,7 @@ static int tracker_load_sync_timestamps(FDFSGroups *pGroups, const char *data_pa
 		{
 			logError("file: "__FILE__", line: %d, " \
 				"the format of the file \"%s/%s\" is invalid" \
-				", colums: %d <= 2", \
+				", columns: %d <= 2", \
 				__LINE__, data_path, \
 				STORAGE_SYNC_TIMESTAMP_FILENAME_STR, cols);
 			result = errno != 0 ? errno : EINVAL;
@@ -1641,7 +1641,7 @@ static int tracker_load_sync_timestamps(FDFSGroups *pGroups, const char *data_pa
 		{
 			logError("file: "__FILE__", line: %d, " \
 				"the format of the file \"%s/%s\" is invalid" \
-				", group_name: %s, colums: %d > %d", \
+				", group_name: %s, columns: %d > %d", \
 				__LINE__, data_path, \
 				STORAGE_SYNC_TIMESTAMP_FILENAME_STR, \
 				group_name, cols, pGroup->storage_count + 2);
@@ -4023,7 +4023,7 @@ static int tracker_mem_add_storage_from_file(FDFSGroups *pGroups,
                 logError("file: "__FILE__", line: %d, "
                         "in the file \"%s/%s\", "
                         "group: %s, item \"%s\" is not found or empty, "
-                        "and storage ip %s not configed in storage_ids.conf",
+                        "and storage ip %s not configured in storage_ids.conf",
                         __LINE__, data_path,
                         STORAGE_SERVERS_LIST_FILENAME_NEW_STR,
                         group_name, STORAGE_ITEM_SERVER_ID_STR, ip_addr);
