@@ -269,7 +269,7 @@ int fdht_connect_server(FDHTServerInfo *pServer)
 /**
 * request body format:
 *       namespace_len:  4 bytes big endian integer
-*       namespace: can be emtpy
+*       namespace: can be empty
 *       obj_id_len:  4 bytes big endian integer
 *       object_id: the object id (can be empty)
 *       key_len:  4 bytes big endian integer
@@ -358,7 +358,7 @@ int fdht_client_set(FDHTServerInfo *pServer, const char keep_alive, \
 	if (in_bytes != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"server %s:%u reponse bytes: %d != 0", \
+			"server %s:%u response bytes: %d != 0", \
 			__LINE__, pServer->ip_addr, \
 			pServer->port, in_bytes);
 		return EINVAL;
@@ -370,7 +370,7 @@ int fdht_client_set(FDHTServerInfo *pServer, const char keep_alive, \
 /**
 * request body format:
 *       namespace_len:  4 bytes big endian integer
-*       namespace: can be emtpy
+*       namespace: can be empty
 *       obj_id_len:  4 bytes big endian integer
 *       object_id: the object id (can be empty)
 *       key_len:  4 bytes big endian integer
@@ -436,7 +436,7 @@ int fdht_client_delete(FDHTServerInfo *pServer, const char keep_alive, \
 	if (in_bytes != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"server %s:%u reponse bytes: %d != 0", \
+			"server %s:%u response bytes: %d != 0", \
 			__LINE__, pServer->ip_addr, \
 			pServer->port, in_bytes);
 		return EINVAL;
@@ -479,7 +479,7 @@ int fdht_client_heart_beat(FDHTServerInfo *pServer)
 	if (in_bytes != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
-			"server %s:%u reponse bytes: %d != 0", \
+			"server %s:%u response bytes: %d != 0", \
 			__LINE__, pServer->ip_addr, \
 			pServer->port, in_bytes);
 		return EINVAL;
