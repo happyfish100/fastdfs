@@ -167,7 +167,7 @@ int fdht_split_ids(const char *szIds, int **ppIds, int *id_count)
 		if (*p != '-')
 		{
 			logError("file: "__FILE__", line: %d, " \
-				"expect \"-\", but char %c(0x%02X) ocurs " \
+				"expect \"-\", but char %c(0x%02X) occurs " \
 				"in group ids: %s, remain string: %s",\
 				__LINE__, *p, *p, szIds, p);
 			result = EINVAL;
@@ -209,7 +209,7 @@ int fdht_split_ids(const char *szIds, int **ppIds, int *id_count)
 		if (*p != ']')
 		{
 			logError("file: "__FILE__", line: %d, " \
-				"expect \"]\", but char %c(0x%02X) ocurs " \
+				"expect \"]\", but char %c(0x%02X) occurs " \
 				"in group ids: %s",\
 				__LINE__, *p, *p, szIds);
 			result = EINVAL;
