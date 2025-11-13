@@ -125,7 +125,7 @@ int fdfs_http_params_load(IniContext *pIniContext, \
 			pIniContext, true);
 
     pParams->support_multi_range = iniGetBoolValue(NULL, \
-			"http.multi_range.enabed", \
+			"http.multi_range.enabled", \
 			pIniContext, true);
 
 	pParams->server_port = iniGetIntValue(NULL, "http.server_port", \
