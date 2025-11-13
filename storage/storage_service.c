@@ -8600,7 +8600,7 @@ static int storage_deal_task(struct fast_task_info *pTask, const int stage)
 			break;
 		default:
 			logError("file: "__FILE__", line: %d, "  \
-				"client ip: %s, unkown cmd: %d", \
+				"client ip: %s, unknown cmd: %d", \
 				__LINE__, pTask->client_ip, \
 				pHeader->cmd);
 			result = EINVAL;
