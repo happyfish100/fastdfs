@@ -984,7 +984,7 @@ static int storage_trunk_compress()
     if (g_current_time - g_sf_global_vars.up_time < 600)
     {
         logWarning("file: "__FILE__", line: %d, "
-                "too little time lapse: %ds afer startup, "
+                "too little time lapse: %ds after startup, "
                 "skip trunk binlog compress", __LINE__,
                 (int)(g_current_time - g_sf_global_vars.up_time));
         return EAGAIN;
