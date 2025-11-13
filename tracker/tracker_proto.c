@@ -311,7 +311,7 @@ const char *get_storage_status_caption(const int status)
 		case FDFS_STORAGE_STATUS_RECOVERY:
 			return "RECOVERY";
 		default:
-			return "UNKOWN";
+			return "UNKNOWN";
 	}
 }
 
@@ -430,7 +430,7 @@ char *fdfs_pack_metadata(const FDFSMetaData *meta_list, const int meta_count, \
 		*p++ = FDFS_RECORD_SEPERATOR;
 	}
 
-	*(--p) = '\0'; //omit the last record seperator
+	*(--p) = '\0'; //omit the last record separator
 	*buff_bytes = p - meta_buff;
 	return meta_buff;
 }
