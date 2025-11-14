@@ -32,7 +32,7 @@ The tracker and storage contain one or more servers. The servers in the tracker
 or storage cluster can be added to or removed from the cluster by any time without
 affecting the online services. The servers in the tracker cluster are peer to peer.
 
-The storarge servers organizing by the file group to obtain high capacity.
+The storage servers organizing by the file group to obtain high capacity.
 The storage system contains one or more groups whose files are independent among
 these groups. The capacity of the whole storage system equals to the sum of all
 groups' capacity. A file group contains one or more storage servers whose files
@@ -42,7 +42,7 @@ group, files already existing in this group are replicated to this new server
 automatically, and when this replication done, system will switch this server
 online to providing storage services.
 
-When the whole storage capacity is insufficiency, you can add one or more
+When the whole storage capacity is insufficient, you can add one or more
 groups to expand the storage capacity. To do this, you need to add one or
 more storage servers.
 

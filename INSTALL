@@ -126,7 +126,7 @@ memo:
      # notice
      # info
      # debug
-   * allow_hosts can ocur more than once, host can be hostname or ip address,
+   * allow_hosts can occur more than once, host can be hostname or ip address,
      "*" means match all ip addresses, can use range like this: 10.0.1.[1-15,20]
       or host[01-08,20-25].domain.com, for example:
         allow_hosts=10.0.1.[1-15,20]
@@ -160,7 +160,7 @@ memo:
     when store_lookup set to 1(specify group), 
     store_group must be set to a specified group name.
   * reserved_storage_space is the reserved storage space for system 
-    or other applications. if the free(available) space of any stoarge
+    or other applications. if the free(available) space of any storage
     server in a group <= reserved_storage_space, no file can be uploaded
     to this group (since V1.1)
     bytes unit can be one of follows:
@@ -209,7 +209,7 @@ memo:
 -------------------------------------------------
 
 memo:
-  * tracker_server can ocur more than once, and tracker_server format is
+  * tracker_server can occur more than once, and tracker_server format is
     "host:port", host can be hostname or ip address.
   * store_path#, # for digital, based 0
   * check_file_duplicate: when set to true, must work with FastDHT server, 

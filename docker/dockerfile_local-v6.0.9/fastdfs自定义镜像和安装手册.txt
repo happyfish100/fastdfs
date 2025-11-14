@@ -34,7 +34,7 @@ https://github.com/ygqygq2/fastdfs-nginx/blob/master/Dockerfile
 + reserved_storage_space storage为系统其他应用留的空间，可以用绝对值（10 G或10240 M）或者百分比（V4开始支持百分比方式），网友说“最小阀值不要设置2%(有坑），设置5%可以”。
   ## 同组中只要有一台服务器达到这个标准了，就不能上传文件了
   ## no unit for byte(B) 不加单位默认是byte，例如2G=2147483648byte，reserved_storage_space = 2147483648byte
-  ## 经实践6.08版本配置百分比可以；绝对值不加单位默认byte可以；绝对值加单位报错（v6.0.9中修复了） ERROR - file: shared_func.c, line: 2449, unkown byte unit:  MB, input string: 10240 MB 
+  ## 经实践6.08版本配置百分比可以；绝对值不加单位默认byte可以；绝对值加单位报错（v6.0.9中修复了） ERROR - file: shared_func.c, line: 2449, unknown byte unit:  MB, input string: 10240 MB 
   ## 预留空间配置为绝对值，数值和单位之间不能有空格。
 
 ...请阅读参数说明，调优其他参数
