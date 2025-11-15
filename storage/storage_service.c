@@ -1208,20 +1208,20 @@ static void storage_upload_file_done_callback(struct fast_task_info *pTask, \
 	}
 
 	if (result == 0)
-	{
-		result = storage_service_upload_file_done(pTask);
-		if (result == 0)
-		{
-		if (pFileContext->create_flag & STORAGE_CREATE_FLAG_FILE)
-		{
-			result = storage_binlog_write(
-				pFileContext->timestamp2log,
-				STORAGE_OP_TYPE_SOURCE_CREATE_FILE,
-				pFileContext->fname2log.str,
-                pFileContext->fname2log.len);
-		}
-		}
-	}
+    {
+        result = storage_service_upload_file_done(pTask);
+        if (result == 0)
+        {
+            if (pFileContext->create_flag & STORAGE_CREATE_FLAG_FILE)
+            {
+                result = storage_binlog_write(
+                        pFileContext->timestamp2log,
+                        STORAGE_OP_TYPE_SOURCE_CREATE_FILE,
+                        pFileContext->fname2log.str,
+                        pFileContext->fname2log.len);
+            }
+        }
+    }
 
 	if (result == 0)
 	{

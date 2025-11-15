@@ -290,10 +290,7 @@ int dio_open_file(StorageFileContext *pFileContext)
         if (result == 0)
         {
             __sync_add_and_fetch(&g_storage_stat.success_file_open_count, 1);
-        }
-
-        if (result != 0)
-        {
+        } else {
             return result;
         }
     }
@@ -352,13 +349,9 @@ int dio_read_file(struct fast_task_info *pTask)
 	}
 
     __sync_add_and_fetch(&g_storage_stat.total_file_read_count, 1);
-	if (result == 0)
-	{
+	if (result == 0) {
         __sync_add_and_fetch(&g_storage_stat.success_file_read_count, 1);
-	}
-
-	if (result != 0)
-	{
+	} else {
 		break;
 	}
 
@@ -455,13 +448,9 @@ int dio_write_file(struct fast_task_info *pTask)
 	}
 
     __sync_add_and_fetch(&g_storage_stat.total_file_write_count, 1);
-	if (result == 0)
-	{
+	if (result == 0) {
         __sync_add_and_fetch(&g_storage_stat.success_file_write_count, 1);
-	}
-
-	if (result != 0)
-	{
+	} else {
 		break;
 	}
 

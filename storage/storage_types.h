@@ -117,11 +117,11 @@ typedef struct
 		StorageSetMetaInfo setmeta;
 	} extra_info;
 
-	int timestamp2log;		//timestamp to log
-	int dio_thread_index;	//dio thread index
-	int delete_flag;     //delete file flag
-	int create_flag;    //create file flag
-	int buff_offset;    //buffer offset after recv to write to file
+	int timestamp2log;      //timestamp to log
+	short dio_thread_index; //dio thread index
+	char delete_flag;       //delete file flag
+	char create_flag;       //create file flag
+	int buff_offset;        //buffer offset after recv to write to file
 	int fd;         //file description no
 	int64_t start;  //the start offset of file
 	int64_t end;    //the end offset of file
@@ -144,7 +144,7 @@ typedef struct
 
 	int64_t request_length;   //request pkg length for access log
 
-	FDFSStorageServer *pSrcStorage;
+	FDFSStorageServer *pSrcStorage; //for binlog sync
 	TaskDealFunc deal_func;  //function pointer to deal this task
 	void *extra_arg;   //store extra arg, such as (BinLogReader *)
 	DisconnectCleanFunc clean_func;  //clean function pointer when finished
