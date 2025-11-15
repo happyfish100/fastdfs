@@ -26,6 +26,7 @@
 #include "fastcommon/shared_func.h"
 #include "fastcommon/pthread_func.h"
 #include "fastcommon/sched_thread.h"
+#include "fastcommon/fc_atomic.h"
 #include "sf/sf_service.h"
 #include "sf/sf_nio.h"
 #include "tracker_types.h"
@@ -41,7 +42,7 @@
 
 static pthread_mutex_t lb_thread_lock;
 
-static int lock_by_client_count = 0;
+static volatile int lock_by_client = 0;
 
 static void tracker_find_max_free_space_group();
 
@@ -53,14 +54,22 @@ static void task_finish_clean_up(struct fast_task_info *pTask)
 
 	pClientInfo = (TrackerClientInfo *)pTask->arg;
 	if (pClientInfo->pGroup != NULL)
-	{
-		if (pClientInfo->pStorage != NULL)
-		{
-			tracker_mem_offline_store_server(pClientInfo->pGroup,
-						pClientInfo->pStorage);
-		}
-	}
-	memset(pTask->arg, 0, sizeof(TrackerClientInfo));
+    {
+        if (pClientInfo->pStorage != NULL)
+        {
+            tracker_mem_offline_store_server(pClientInfo->pGroup,
+                    pClientInfo->pStorage);
+            pClientInfo->pStorage = NULL;
+        }
+
+        pClientInfo->pGroup = NULL;
+    }
+
+    if (pClientInfo->finish_callback != NULL) {
+        pClientInfo->finish_callback(pTask);
+        pClientInfo->finish_callback = NULL;
+    }
+    pClientInfo->chg_count.tracker_leader = 0;
 
     sf_task_finish_clean_up(pTask);
 }
@@ -1749,38 +1758,43 @@ static int tracker_deal_reselect_leader(struct fast_task_info *pTask)
 
 static int tracker_unlock_by_client(struct fast_task_info *pTask)
 {
-	if (lock_by_client_count <= 0 || pTask->finish_callback == NULL)
-	{  //already unlocked
-		return 0;
-	}
+	TrackerClientInfo *pClientInfo;
 
-	pTask->finish_callback = NULL;
-	lock_by_client_count--;
+	pClientInfo = (TrackerClientInfo *)pTask->arg;
+    if (pClientInfo->finish_callback == NULL ||
+            !__sync_bool_compare_and_swap(&lock_by_client, 1, 0))
+    {  //already unlocked
+        return 0;
+    }
 
+	pClientInfo->finish_callback = NULL;
 	tracker_mem_file_unlock();
 
-	logDebug("file: "__FILE__", line: %d, " \
-		"unlock by client: %s, locked count: %d", \
-		__LINE__, pTask->client_ip, lock_by_client_count);
+	logDebug("file: "__FILE__", line: %d, "
+		"unlock by client: %s, locked count: %d",
+		__LINE__, pTask->client_ip, lock_by_client);
 
 	return 0;
 }
 
 static int tracker_lock_by_client(struct fast_task_info *pTask)
 {
-	if (lock_by_client_count > 0)
-	{
-		return EBUSY;
-	}
+	TrackerClientInfo *pClientInfo;
+
+    if (!__sync_bool_compare_and_swap(&lock_by_client, 0, 1))
+    {
+        return EBUSY;
+    }
+
+	pClientInfo = (TrackerClientInfo *)pTask->arg;
+    /* make sure to release lock */
+	pClientInfo->finish_callback = tracker_unlock_by_client;
 
 	tracker_mem_file_lock();  //avoid to read dirty data
 
-	pTask->finish_callback = tracker_unlock_by_client; //make sure to release lock
-	lock_by_client_count++;
-
-	logDebug("file: "__FILE__", line: %d, " \
-		"lock by client: %s, locked count: %d", \
-		__LINE__, pTask->client_ip, lock_by_client_count);
+	logDebug("file: "__FILE__", line: %d, "
+		"lock by client: %s, locked count: %d",
+		__LINE__, pTask->client_ip, lock_by_client);
 
 	return 0;
 }

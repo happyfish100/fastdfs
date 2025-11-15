@@ -16,8 +16,9 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <time.h>
-#include "fdfs_define.h"
+#include "fastcommon/fast_task_queue.h"
 #include "fastcommon/connection_pool.h"
+#include "fdfs_define.h"
 
 #define FDFS_GROUP_NAME_MAX_LEN		16
 #define FDFS_MAX_SERVERS_EACH_GROUP	32
@@ -382,6 +383,8 @@ typedef struct
 	char store_group[FDFS_GROUP_NAME_MAX_LEN + 8];  //for 8 bytes alignment
 } FDFSGroups;
 
+typedef int (*TaskFinishCallback) (struct fast_task_info *task);
+
 typedef struct
 {
 	FDFSGroupInfo *pGroup;
@@ -390,6 +393,7 @@ typedef struct
 		int tracker_leader;  //for notify storage servers
 		int trunk_server;    //for notify other tracker servers
 	} chg_count;
+    TaskFinishCallback finish_callback;
 } TrackerClientInfo;
 
 typedef struct

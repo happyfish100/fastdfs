@@ -1,3 +1,6 @@
+Version 6.15.2  2025-11-15
+ * move finish_callback from fast_task_info to TrackerClientInfo
+ * use libfastcommon V1.83 and libserverframe 1.2.11
 
 Version 6.15.1  2025-11-06
  * query file info support combined flags:
