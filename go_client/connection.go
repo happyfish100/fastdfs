@@ -12,10 +12,10 @@ import (
 // It wraps a net.Conn with additional metadata and thread-safe operations.
 // Each connection tracks its last usage time for idle timeout management.
 type Connection struct {
-	conn       net.Conn   // underlying TCP connection
-	addr       string     // server address in "host:port" format
-	lastUsed   time.Time  // timestamp of last Send/Receive operation
-	mu         sync.Mutex // protects concurrent access to the connection
+	conn     net.Conn   // underlying TCP connection
+	addr     string     // server address in "host:port" format
+	lastUsed time.Time  // timestamp of last Send/Receive operation
+	mu       sync.Mutex // protects concurrent access to the connection
 }
 
 // NewConnection establishes a new TCP connection to a FastDFS server.
@@ -224,22 +224,22 @@ func (c *Connection) Addr() string {
 //   - Thread-safe concurrent access
 //   - Automatic connection health checking
 type ConnectionPool struct {
-	addrs          []string                // list of server addresses
-	maxConns       int                     // max connections per server
-	connectTimeout time.Duration           // timeout for new connections
-	idleTimeout    time.Duration           // max idle time before cleanup
-	pools          map[string]*serverPool  // per-server connection pools
-	mu             sync.RWMutex            // protects pools map and closed flag
-	closed         bool                    // true if pool is closed
+	addrs          []string               // list of server addresses
+	maxConns       int                    // max connections per server
+	connectTimeout time.Duration          // timeout for new connections
+	idleTimeout    time.Duration          // max idle time before cleanup
+	pools          map[string]*serverPool // per-server connection pools
+	mu             sync.RWMutex           // protects pools map and closed flag
+	closed         bool                   // true if pool is closed
 }
 
 // serverPool holds connections for a single server.
 // It's an internal structure used by ConnectionPool.
 type serverPool struct {
-	addr      string          // server address
-	conns     []*Connection   // available connections (LIFO stack)
-	mu        sync.Mutex      // protects conns slice
-	lastClean time.Time       // last time idle connections were cleaned
+	addr      string        // server address
+	conns     []*Connection // available connections (LIFO stack)
+	mu        sync.Mutex    // protects conns slice
+	lastClean time.Time     // last time idle connections were cleaned
 }
 
 // NewConnectionPool creates a new connection pool for the specified servers.
@@ -351,6 +351,7 @@ func (p *ConnectionPool) Get(ctx context.Context, addr string) (*Connection, err
 //   - The pool is not closed
 //   - The pool is not full
 //   - The connection hasn't been idle too long
+//
 // Otherwise, the connection is closed.
 //
 // Parameters:

@@ -89,7 +89,7 @@ const (
 	// MetadataOverwrite completely replaces all existing metadata with new values.
 	// Any existing metadata keys not in the new set will be removed.
 	MetadataOverwrite MetadataFlag = 'O'
-	
+
 	// MetadataMerge merges new metadata with existing metadata.
 	// Existing keys are updated, new keys are added, and unspecified keys are kept.
 	MetadataMerge MetadataFlag = 'M'
@@ -123,16 +123,16 @@ type StorageServer struct {
 // GroupInfo contains information about a storage group.
 // A group is a collection of storage servers that replicate files among themselves.
 type GroupInfo struct {
-	GroupName      string
-	TotalMB        int64
-	FreeMB         int64
-	TrunkFreeMB    int64
-	StorageCount   int
-	StoragePort    int
-	StorageHTTPPort int
-	ActiveCount    int
+	GroupName          string
+	TotalMB            int64
+	FreeMB             int64
+	TrunkFreeMB        int64
+	StorageCount       int
+	StoragePort        int
+	StorageHTTPPort    int
+	ActiveCount        int
 	CurrentWriteServer int
-	StorePathCount int
+	StorePathCount     int
 	SubdirCountPerPath int
 	CurrentTrunkFileID int
 }

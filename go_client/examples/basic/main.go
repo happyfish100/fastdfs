@@ -16,11 +16,11 @@ func main() {
 			"192.168.1.100:22122",
 			"192.168.1.101:22122",
 		},
-		MaxConns:        100,
-		ConnectTimeout:  5 * time.Second,
-		NetworkTimeout:  30 * time.Second,
-		IdleTimeout:     60 * time.Second,
-		RetryCount:      3,
+		MaxConns:       100,
+		ConnectTimeout: 5 * time.Second,
+		NetworkTimeout: 30 * time.Second,
+		IdleTimeout:    60 * time.Second,
+		RetryCount:     3,
 	}
 
 	// Initialize client

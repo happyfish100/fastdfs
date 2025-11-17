@@ -250,13 +250,11 @@ wg.Wait()
 
 ## Examples
 
-See the [examples](examples/) directory for more usage examples:
+See the [examples](examples/) directory for complete usage examples:
 
-- [Basic Upload/Download](examples/basic/main.go)
-- [Batch Operations](examples/batch/main.go)
-- [Appender Files](examples/appender/main.go)
-- [Metadata Management](examples/metadata/main.go)
-- [Error Handling](examples/errors/main.go)
+- [Basic Upload/Download](examples/basic/main.go) - File upload, download, and deletion
+- [Metadata Management](examples/metadata/main.go) - Working with file metadata
+- [Appender Files](examples/appender/main.go) - Appender file operations
 
 ## Testing
 

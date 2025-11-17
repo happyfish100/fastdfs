@@ -78,11 +78,11 @@ func TestClientDefaults(t *testing.T) {
 
 func TestSplitFileID(t *testing.T) {
 	tests := []struct {
-		name           string
-		fileID         string
-		wantGroup      string
-		wantFilename   string
-		wantErr        bool
+		name         string
+		fileID       string
+		wantGroup    string
+		wantFilename string
+		wantErr      bool
 	}{
 		{
 			name:         "valid file ID",
@@ -129,10 +129,10 @@ func TestSplitFileID(t *testing.T) {
 
 func TestJoinFileID(t *testing.T) {
 	tests := []struct {
-		name         string
-		groupName    string
-		filename     string
-		wantFileID   string
+		name       string
+		groupName  string
+		filename   string
+		wantFileID string
 	}{
 		{
 			name:       "normal case",
@@ -194,8 +194,8 @@ func TestEncodeDecodeMetadata(t *testing.T) {
 		{
 			name: "normal metadata",
 			metadata: map[string]string{
-				"author": "John Doe",
-				"date":   "2025-01-15",
+				"author":  "John Doe",
+				"date":    "2025-01-15",
 				"version": "1.0",
 			},
 		},

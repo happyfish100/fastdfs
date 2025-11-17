@@ -1,6 +1,6 @@
 // Package fdfs provides a Go client for FastDFS distributed file system.
 //
-// Copyright (C) 2025 FastDFS Go Client Contributors
+// # Copyright (C) 2025 FastDFS Go Client Contributors
 //
 // FastDFS may be copied only under the terms of the GNU General
 // Public License V3, which may be found in the FastDFS source kit.
@@ -16,11 +16,11 @@ import (
 
 // Client represents a FastDFS client instance.
 type Client struct {
-	config        *ClientConfig
-	trackerPool   *ConnectionPool
-	storagePool   *ConnectionPool
-	mu            sync.RWMutex
-	closed        bool
+	config      *ClientConfig
+	trackerPool *ConnectionPool
+	storagePool *ConnectionPool
+	mu          sync.RWMutex
+	closed      bool
 }
 
 // ClientConfig holds the configuration for FastDFS client.
@@ -75,7 +75,7 @@ func NewClient(config *ClientConfig) (*Client, error) {
 	}
 
 	// Initialize tracker connection pool
-	trackerPool, err := NewConnectionPool(config.TrackerAddrs, config.MaxConns, 
+	trackerPool, err := NewConnectionPool(config.TrackerAddrs, config.MaxConns,
 		config.ConnectTimeout, config.IdleTimeout)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create tracker pool: %w", err)
@@ -156,7 +156,7 @@ func (c *Client) UploadAppenderBuffer(ctx context.Context, data []byte, fileExtN
 //   - metadata: optional metadata
 //
 // Returns the slave file ID on success.
-func (c *Client) UploadSlaveFile(ctx context.Context, masterFileID, prefixName, fileExtName string, 
+func (c *Client) UploadSlaveFile(ctx context.Context, masterFileID, prefixName, fileExtName string,
 	data []byte, metadata map[string]string) (string, error) {
 	if err := c.checkClosed(); err != nil {
 		return "", err
