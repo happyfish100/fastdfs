@@ -106,3 +106,9 @@ logs/
 *.pid
 *.swp
 *.swo
+
+# ideas
+CONTRIBUTION_IDEAS.md
+
+# Allow go_client directory
+!go_client/
