@@ -141,3 +141,82 @@ int delete_file(const char *file_id, char *storage_ip)
 	return result;
 }
 
+int upload_appender_file_by_buff(const char *file_buff, const int file_size,
+	const char *file_ext_name, const FDFSMetaData *meta_list,
+	const int meta_count, char *group_name, char *file_id, char *storage_ip)
+{
+	int result;
+	int store_path_index;
+	ConnectionInfo *pTrackerServer;
+	ConnectionInfo *pStorageServer;
+	ConnectionInfo storageServer;
+
+	pTrackerServer = tracker_get_connection();
+	if (pTrackerServer == NULL)
+	{
+		return errno != 0 ? errno : ECONNREFUSED;
+	}
+
+	*group_name = '\0';
+	if ((result = tracker_query_storage_store(pTrackerServer, &storageServer,
+			group_name, &store_path_index)) != 0)
+	{
+		tracker_close_connection_ex(pTrackerServer, true);
+		return result;
+	}
+
+	if ((pStorageServer = tracker_make_connection(&storageServer, &result))
+			== NULL)
+	{
+		tracker_close_connection(pTrackerServer);
+		return result;
+	}
+
+	strcpy(storage_ip, storageServer.ip_addr);
+	result = storage_upload_appender_by_filebuff1(pTrackerServer, pStorageServer,
+		store_path_index, file_buff, file_size, file_ext_name,
+		meta_list, meta_count, group_name, file_id);
+
+	tracker_close_connection(pTrackerServer);
+	tracker_close_connection(pStorageServer);
+
+	return result;
+}
+
+int append_file_by_buff(const char *append_buff, const int append_size,
+	const char *group_name, const char *appender_file_id, char *storage_ip)
+{
+	int result;
+	ConnectionInfo *pTrackerServer;
+	ConnectionInfo *pStorageServer;
+	ConnectionInfo storageServer;
+
+	pTrackerServer = tracker_get_connection();
+	if (pTrackerServer == NULL)
+	{
+		return errno != 0 ? errno : ECONNREFUSED;
+	}
+
+	if ((result = tracker_query_storage_update1(pTrackerServer,
+		&storageServer, appender_file_id)) != 0)
+	{
+		tracker_close_connection_ex(pTrackerServer, true);
+		return result;
+	}
+
+	if ((pStorageServer = tracker_make_connection(&storageServer, &result))
+			== NULL)
+	{
+		tracker_close_connection(pTrackerServer);
+		return result;
+	}
+
+	strcpy(storage_ip, storageServer.ip_addr);
+	result = storage_append_by_filebuff1(pTrackerServer, pStorageServer,
+		append_buff, append_size, appender_file_id);
+
+	tracker_close_connection(pTrackerServer);
+	tracker_close_connection(pStorageServer);
+
+	return result;
+}
