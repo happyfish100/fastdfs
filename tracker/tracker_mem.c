@@ -4245,8 +4245,9 @@ static int _tracker_mem_add_storage(FDFSGroupInfo *pGroup,
 
 void tracker_calc_running_times(TrackerRunningStatus *pStatus)
 {
-	pStatus->running_time = g_current_time - g_sf_global_vars.up_time;
+#define FDFS_TRIM_TIME(t, i) (t / i) * i
 
+	pStatus->running_time = g_current_time - g_sf_global_vars.up_time;
 	if (g_tracker_last_status.last_check_time == 0)
 	{
 		pStatus->restart_interval = 0;
@@ -4257,15 +4258,13 @@ void tracker_calc_running_times(TrackerRunningStatus *pStatus)
 				g_tracker_last_status.last_check_time;
 	}
 
-#define FDFS_TRIM_TIME(t, i) (t / i) * i
-
-	pStatus->running_time = FDFS_TRIM_TIME(pStatus->running_time, \
+	pStatus->running_time = FDFS_TRIM_TIME(pStatus->running_time,
 					TRACKER_SYNC_STATUS_FILE_INTERVAL);
-	pStatus->restart_interval = FDFS_TRIM_TIME(pStatus->restart_interval, \
+	pStatus->restart_interval = FDFS_TRIM_TIME(pStatus->restart_interval,
 					TRACKER_SYNC_STATUS_FILE_INTERVAL);
 }
 
-static int tracker_mem_get_sys_file_piece(ConnectionInfo *pTrackerServer, \
+static int tracker_mem_get_sys_file_piece(ConnectionInfo *pTrackerServer,
 	const int file_index, int fd, int64_t *offset, int64_t *file_size)
 {
 	char out_buff[sizeof(TrackerHeader) + 1 + FDFS_PROTO_PKG_LEN_SIZE];
@@ -4390,7 +4389,7 @@ static int tracker_mem_get_one_sys_file(ConnectionInfo *pTrackerServer, \
 	file_size = 0;
 	while (1)
 	{
-		result = tracker_mem_get_sys_file_piece(pTrackerServer, \
+		result = tracker_mem_get_sys_file_piece(pTrackerServer,
 			file_index, fd, &offset, &file_size);
 		if (result != 0)
 		{
@@ -4834,7 +4833,6 @@ static int tracker_mem_get_sys_files_from_others(FDFSStorageJoinBody *pJoinBody,
 	memcpy(&g_groups, &newGroups, sizeof(FDFSGroups));
 
 	usleep(100000);
-
  	tracker_mem_destroy_groups(&tempGroups, false);
 	tracker_write_status_to_file(NULL);
 
@@ -4872,9 +4870,9 @@ int tracker_mem_add_group_and_storage(TrackerClientInfo *pClientInfo,
 
 			runningStatus.if_leader = false;
 			tracker_calc_running_times(&runningStatus);
-			result = tracker_mem_get_sys_files_from_others(\
-						pJoinBody, &runningStatus);
-			if (result != 0)
+            result = tracker_mem_get_sys_files_from_others(
+                    pJoinBody, &runningStatus);
+            if (result != 0)
 			{
 				tracker_mem_file_unlock();
 			    logError("file: "__FILE__", line: %d, "
@@ -4890,22 +4888,19 @@ int tracker_mem_add_group_and_storage(TrackerClientInfo *pClientInfo,
 	}
 
 	if ((!get_sys_files_done) && (g_groups.count == 0))
-	{
-		if (g_groups.count == 0)
-		{
-			if ((result=tracker_mem_get_sys_files_from_others( \
-				pJoinBody, NULL)) != 0)
-			{
-				tracker_mem_file_unlock();
-			    logError("file: "__FILE__", line: %d, "
-                        "get sys files from other trackers fail, errno: %d",
-                        __LINE__, result);
-				return EAGAIN;
-			}
+    {
+        if ((result=tracker_mem_get_sys_files_from_others(
+                        pJoinBody, NULL)) != 0)
+        {
+            tracker_mem_file_unlock();
+            logError("file: "__FILE__", line: %d, "
+                    "get sys files from other trackers fail, errno: %d",
+                    __LINE__, result);
+            return EAGAIN;
+        }
 
-			get_sys_files_done = true;
-		}
-	}
+        get_sys_files_done = true;
+    }
 
 	if (g_tracker_servers.servers == NULL)
 	{
@@ -5248,11 +5243,10 @@ int tracker_mem_add_group_and_storage(TrackerClientInfo *pClientInfo,
 	 	pStorageServer->changelog_offset = g_changelog_fsize;
 	}
 
-	logDebug("file: "__FILE__", line: %d, " \
-		"storage server %s::%s join in, remain changelog bytes: " \
-		"%"PRId64, __LINE__, \
-		pClientInfo->pGroup->group_name, ip_addr, \
-	 	g_changelog_fsize - pStorageServer->changelog_offset);
+    logDebug("file: "__FILE__", line: %d, "
+            "storage server %s::%s join in, remain changelog bytes: "
+            "%"PRId64, __LINE__, pClientInfo->pGroup->group_name, ip_addr,
+            g_changelog_fsize - pStorageServer->changelog_offset);
 
 	return 0;
 }
