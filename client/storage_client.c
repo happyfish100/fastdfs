@@ -161,6 +161,90 @@ static inline ConnectionInfo *storage_make_connection(
     }
 }
 
+
+/**
+ * Retry wrapper for storage_make_connection with exponential backoff
+ * Handles port exhaustion (EADDRINUSE) and other transient connection errors
+ * 
+ * @param pStorageServer storage server to connect to
+ * @param err_no pointer to store error code
+ * @param max_retries maximum number of retry attempts
+ * @return ConnectionInfo pointer on success, NULL on failure
+ */
+static ConnectionInfo *storage_make_connection_with_retry(
+        ConnectionInfo *pStorageServer, int *err_no, int max_retries)
+{
+    ConnectionInfo *conn = NULL;
+    int retry_count = 0;
+    int delay_ms = 100;  // Initial delay: 100ms
+    int max_delay_ms = 5000;  // Max delay: 5 seconds
+    char formatted_ip[FORMATTED_IP_SIZE];
+    
+    format_ip_address(pStorageServer->ip_addr, formatted_ip);
+    
+    while (retry_count <= max_retries)
+    {
+        conn = storage_make_connection(pStorageServer, err_no);
+        
+        if (conn != NULL)
+        {
+            if (retry_count > 0)
+            {
+                logInfo("file: "__FILE__", line: %d, "
+                       "successfully connected to storage server %s:%u "
+                       "after %d retries",
+                       __LINE__, formatted_ip, pStorageServer->port, retry_count);
+            }
+            return conn;
+        }
+        
+        // Check if error is retryable
+        if (*err_no != EADDRINUSE && *err_no != EAGAIN && 
+            *err_no != ECONNREFUSED && *err_no != ETIMEDOUT)
+        {
+            // Non-retryable error
+            logError("file: "__FILE__", line: %d, "
+                    "connection to storage server %s:%u failed with "
+                    "non-retryable error: %d, %s",
+                    __LINE__, formatted_ip, pStorageServer->port,
+                    *err_no, STRERROR(*err_no));
+            return NULL;
+        }
+        
+        if (retry_count >= max_retries)
+        {
+            logError("file: "__FILE__", line: %d, "
+                    "connection to storage server %s:%u failed after %d retries, "
+                    "last error: %d, %s",
+                    __LINE__, formatted_ip, pStorageServer->port,
+                    retry_count, *err_no, STRERROR(*err_no));
+            return NULL;
+        }
+        
+        // Log retry attempt
+        logWarning("file: "__FILE__", line: %d, "
+                  "connection to storage server %s:%u failed (error: %d, %s), "
+                  "retry %d/%d after %dms",
+                  __LINE__, formatted_ip, pStorageServer->port,
+                  *err_no, STRERROR(*err_no),
+                  retry_count + 1, max_retries, delay_ms);
+        
+        // Sleep before retry
+        usleep(delay_ms * 1000);
+        
+        // Exponential backoff with cap
+        delay_ms *= 2;
+        if (delay_ms > max_delay_ms)
+        {
+            delay_ms = max_delay_ms;
+        }
+        
+        retry_count++;
+    }
+    
+    return NULL;
+}
+
 static int storage_get_connection(ConnectionInfo *pTrackerServer, \
 		ConnectionInfo **ppStorageServer, const byte cmd, \
 		const char *group_name, const char *filename, \
@@ -194,8 +278,7 @@ static int storage_get_connection(ConnectionInfo *pTrackerServer, \
 			return result;
 		}
 
-		if ((*ppStorageServer=storage_make_connection(pNewStorage,
-			&result)) == NULL)
+		if ((*ppStorageServer=storage_make_connection_with_retry(pNewStorage, &result, 3)) == NULL)
 		{
 			return result;
 		}
@@ -210,8 +293,7 @@ static int storage_get_connection(ConnectionInfo *pTrackerServer, \
 		}
 		else
 		{
-			if ((*ppStorageServer=storage_make_connection(
-				*ppStorageServer, &result)) == NULL)
+			if ((*ppStorageServer=storage_make_connection_with_retry(*ppStorageServer, &result, 3)) == NULL)
 			{
 				return result;
 			}
@@ -259,8 +341,7 @@ static int storage_get_upload_connection(ConnectionInfo *pTrackerServer, \
 			return result;
 		}
 
-		if ((*ppStorageServer=storage_make_connection(pNewStorage,
-			&result)) == NULL)
+		if ((*ppStorageServer=storage_make_connection_with_retry(pNewStorage, &result, 3)) == NULL)
 		{
 			return result;
 		}
@@ -275,8 +356,7 @@ static int storage_get_upload_connection(ConnectionInfo *pTrackerServer, \
 		}
 		else
 		{
-			if ((*ppStorageServer=storage_make_connection(
-				*ppStorageServer, &result)) == NULL)
+			if ((*ppStorageServer=storage_make_connection_with_retry(*ppStorageServer, &result, 3)) == NULL)
 			{
 				return result;
 			}
