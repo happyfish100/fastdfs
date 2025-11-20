@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    FastDFS Java Client - Maven Project Object Model
+    
+    This POM file defines the Maven project structure, dependencies, and build
+    configuration for the FastDFS Java client library.
+    
+    Copyright (C) 2025 FastDFS Java Client Contributors
+    
+    FastDFS may be copied only under the terms of the GNU General
+    Public License V3, which may be found in the FastDFS source kit.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
+                             http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    
+    <!-- Project Information -->
+    <modelVersion>4.0.0</modelVersion>
+    
+    <!-- Group ID - Organization identifier -->
+    <groupId>com.github.happyfish100</groupId>
+    
+    <!-- Artifact ID - Project identifier -->
+    <artifactId>fastdfs-java-client</artifactId>
+    
+    <!-- Version - Current version of the project -->
+    <version>1.0.0</version>
+    
+    <!-- Packaging type - This is a library (JAR) -->
+    <packaging>jar</packaging>
+    
+    <!-- Project Name -->
+    <name>FastDFS Java Client</name>
+    
+    <!-- Project Description -->
+    <description>
+        Official Java client library for FastDFS - A high-performance 
+        distributed file system. This client provides a complete implementation
+        of the FastDFS protocol, allowing Java applications to interact with
+        FastDFS tracker and storage servers.
+    </description>
+    
+    <!-- Project URL -->
+    <url>https://github.com/happyfish100/fastdfs</url>
+    
+    <!-- License Information -->
+    <licenses>
+        <license>
+            <name>GNU General Public License v3.0</name>
+            <url>https://www.gnu.org/licenses/gpl-3.0.html</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+    
+    <!-- Developers -->
+    <developers>
+        <developer>
+            <name>FastDFS Java Client Contributors</name>
+            <email>fastdfs@example.com</email>
+            <organization>FastDFS Project</organization>
+            <organizationUrl>https://github.com/happyfish100/fastdfs</organizationUrl>
+        </developer>
+    </developers>
+    
+    <!-- Source Control Management -->
+    <scm>
+        <connection>scm:git:https://github.com/happyfish100/fastdfs.git</connection>
+        <developerConnection>scm:git:https://github.com/happyfish100/fastdfs.git</developerConnection>
+        <url>https://github.com/happyfish100/fastdfs</url>
+    </scm>
+    
+    <!-- Properties - Project-wide configuration -->
+    <properties>
+        <!-- Java version -->
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        
+        <!-- Maven plugin versions -->
+        <maven.compiler.plugin.version>3.8.1</maven.compiler.plugin.version>
+        <maven.surefire.plugin.version>2.22.2</maven.surefire.plugin.version>
+        <maven.source.plugin.version>3.2.1</maven.source.plugin.version>
+        <maven.javadoc.plugin.version>3.2.0</maven.javadoc.plugin.version>
+    </properties>
+    
+    <!-- Dependencies -->
+    <dependencies>
+        <!-- No external dependencies required - pure Java implementation -->
+        <!-- All functionality is implemented using standard Java libraries -->
+    </dependencies>
+    
+    <!-- Build Configuration -->
+    <build>
+        <!-- Source directory -->
+        <sourceDirectory>src/main/java</sourceDirectory>
+        
+        <!-- Test source directory -->
+        <testSourceDirectory>src/test/java</testSourceDirectory>
+        
+        <!-- Plugins -->
+        <plugins>
+            <!-- Compiler Plugin - Compiles Java source code -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>${maven.compiler.plugin.version}</version>
+                <configuration>
+                    <source>1.8</source>
+                    <target>1.8</target>
+                    <encoding>UTF-8</encoding>
+                </configuration>
+            </plugin>
+            
+            <!-- Surefire Plugin - Runs unit tests -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${maven.surefire.plugin.version}</version>
+                <configuration>
+                    <skipTests>false</skipTests>
+                </configuration>
+            </plugin>
+            
+            <!-- Source Plugin - Creates source JAR -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>${maven.source.plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            
+            <!-- Javadoc Plugin - Generates API documentation -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>${maven.javadoc.plugin.version}</version>
+                <configuration>
+                    <encoding>UTF-8</encoding>
+                    <charset>UTF-8</charset>
+                    <docencoding>UTF-8</docencoding>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+
