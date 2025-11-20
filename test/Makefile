@@ -10,7 +10,7 @@ SHARED_OBJS = common_func.o dfs_func_pc.o
 
 ALL_OBJS = $(SHARED_OBJS)
 
-ALL_PRGS = gen_files test_upload test_download test_delete test_append test_modify test_truncate combine_result
+ALL_PRGS = gen_files test_upload test_download test_delete test_append test_modify test_truncate test_metadata combine_result
 
 all: $(ALL_OBJS) $(ALL_PRGS)
 .o:
