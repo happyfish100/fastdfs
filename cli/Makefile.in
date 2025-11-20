@@ -1,0 +1,31 @@
+.SUFFIXES: .c .o
+
+COMPILE = $(CC) $(CFLAGS)
+INC_PATH = -I../common -I../tracker -I../client -I/usr/include/fastcommon
+LIB_PATH = $(LIBS) -lfastcommon -lserverframe -lfdfsclient
+TARGET_PATH = $(TARGET_PREFIX)/bin
+
+FDFS_CLI_OBJS = ../common/fdfs_global.o ../common/fdfs_http_shared.o \
+                ../common/mime_file_parser.o ../tracker/tracker_proto.o \
+                ../tracker/fdfs_shared_func.o ../tracker/fdfs_server_id_func.o \
+                ../storage/trunk_mgr/trunk_shared.o \
+                ../client/tracker_client.o ../client/client_func.o \
+                ../client/client_global.o ../client/storage_client.o
+
+ALL_PRGS = fdfs_cli
+
+all: $(ALL_PRGS)
+
+fdfs_cli: fdfs_cli.c $(FDFS_CLI_OBJS)
+	$(COMPILE) -o $@ $< $(FDFS_CLI_OBJS) $(LIB_PATH) $(INC_PATH)
+
+.c.o:
+	$(COMPILE) -c -o $@ $< $(INC_PATH)
+
+install:
+	mkdir -p $(TARGET_PATH)
+	cp -f $(ALL_PRGS) $(TARGET_PATH)
+
+clean:
+	rm -f $(ALL_PRGS) *.o
+
