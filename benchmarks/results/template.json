@@ -1,0 +1,104 @@
+{
+  "benchmark": "template",
+  "version": "1.0.0",
+  "fastdfs_version": "6.12.1",
+  "timestamp": "2024-01-15T10:30:00Z",
+  "hostname": "benchmark-server-01",
+  "system_info": {
+    "os": "Linux",
+    "kernel": "5.15.0",
+    "cpu_model": "Intel Xeon E5-2680 v4",
+    "cpu_cores": 28,
+    "memory_gb": 64,
+    "disk_type": "SSD",
+    "network_speed_gbps": 10
+  },
+  "configuration": {
+    "tracker_server": "127.0.0.1:22122",
+    "storage_server": "127.0.0.1:23000",
+    "threads": 10,
+    "file_count": 1000,
+    "file_size": 1048576,
+    "warmup_enabled": true,
+    "warmup_duration": 10
+  },
+  "metrics": {
+    "throughput": {
+      "upload_mbps": 0.0,
+      "download_mbps": 0.0,
+      "total_mbps": 0.0
+    },
+    "iops": {
+      "read": 0,
+      "write": 0,
+      "total": 0
+    },
+    "latency_ms": {
+      "mean": 0.0,
+      "median": 0.0,
+      "p50": 0.0,
+      "p75": 0.0,
+      "p90": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "p999": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+      "stddev": 0.0
+    },
+    "operations": {
+      "total": 0,
+      "successful": 0,
+      "failed": 0,
+      "timeout": 0,
+      "success_rate": 0.0,
+      "error_rate": 0.0,
+      "timeout_rate": 0.0
+    },
+    "duration": {
+      "total_seconds": 0.0,
+      "warmup_seconds": 0.0,
+      "test_seconds": 0.0
+    },
+    "data_transferred": {
+      "total_bytes": 0,
+      "total_mb": 0.0,
+      "total_gb": 0.0
+    }
+  },
+  "resource_utilization": {
+    "cpu": {
+      "mean_percent": 0.0,
+      "max_percent": 0.0,
+      "min_percent": 0.0
+    },
+    "memory": {
+      "mean_mb": 0.0,
+      "max_mb": 0.0,
+      "min_mb": 0.0,
+      "mean_percent": 0.0
+    },
+    "network": {
+      "rx_mbps": 0.0,
+      "tx_mbps": 0.0,
+      "total_mbps": 0.0,
+      "rx_packets": 0,
+      "tx_packets": 0
+    },
+    "disk": {
+      "read_mbps": 0.0,
+      "write_mbps": 0.0,
+      "read_iops": 0,
+      "write_iops": 0,
+      "utilization_percent": 0.0
+    }
+  },
+  "latency_histogram": {
+    "buckets": [1, 5, 10, 20, 50, 100, 200, 500, 1000],
+    "counts": [0, 0, 0, 0, 0, 0, 0, 0, 0]
+  },
+  "per_thread_stats": [],
+  "errors": [],
+  "warnings": [],
+  "notes": ""
+}
