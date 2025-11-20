@@ -14,7 +14,7 @@ ALL_OBJS = $(FAST_SHARED_OBJS)
 
 ALL_PRGS = fdfs_file_verify fdfs_file_migrate fdfs_batch_delete \
            fdfs_storage_stat fdfs_health_check fdfs_backup fdfs_restore \
-           fdfs_dedup fdfs_analyze
+           fdfs_dedup fdfs_analyze fdfs_repair fdfs_recover
 
 all: $(ALL_OBJS) $(ALL_PRGS)
 
@@ -50,6 +50,12 @@ fdfs_dedup: fdfs_dedup.c $(ALL_OBJS)
 	$(COMPILE) -o $@ $<  $(ALL_OBJS) $(TARGET_LIB)
 
 fdfs_analyze: fdfs_analyze.c $(ALL_OBJS)
+	$(COMPILE) -o $@ $<  $(ALL_OBJS) $(TARGET_LIB)
+
+fdfs_repair: fdfs_repair.c $(ALL_OBJS)
+	$(COMPILE) -o $@ $<  $(ALL_OBJS) $(TARGET_LIB)
+
+fdfs_recover: fdfs_recover.c $(ALL_OBJS)
 	$(COMPILE) -o $@ $<  $(ALL_OBJS) $(TARGET_LIB)
 
 install:
