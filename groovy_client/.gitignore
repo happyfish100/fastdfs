@@ -1,0 +1,47 @@
+# Gradle
+.gradle/
+build/
+out/
+*.iml
+*.ipr
+*.iws
+.idea/
+.classpath
+.project
+.settings/
+bin/
+target/
+
+# Groovy
+*.class
+*.log
+*.swp
+*.bak
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# Test results
+test-results/
+*.test
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
