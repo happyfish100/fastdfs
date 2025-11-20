@@ -3,6 +3,8 @@
 #ifndef _DFS_FUNC_H
 #define _DFS_FUNC_H
 
+#include "fastdfs/fdfs_client.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif

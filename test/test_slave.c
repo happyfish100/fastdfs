@@ -13,9 +13,9 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include "fdfs_client.h"
+#include "fastcommon/logger.h"
+#include "fastdfs/fdfs_client.h"
 #include "dfs_func.h"
-#include "logger.h"
 
 #define MASTER_FILE_SIZE 10240
 #define SLAVE_FILE_SIZE 2048

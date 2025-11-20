@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+ #include <sys/mman.h>
 #include "fastcommon/common_define.h"
 #include "fastcommon/logger.h"
 #include "fastdfs/fdfs_client.h"
@@ -274,7 +275,7 @@ static int set_metadata_test(const char *file_id, const char *storage_ip)
 	}
 
 	// Parse file_id to get group_name and filename
-	FDFS_SPLIT_GROUP_NAME_AND_FILENAME(file_id)
+	FDFS_SPLIT_GROUP_NAME_AND_FILENAME(file_id);
 
 	// Set up metadata
 	snprintf(meta_list[0].name, sizeof(meta_list[0].name), "width");
