@@ -13,7 +13,7 @@ FAST_SHARED_OBJS = ../common/fdfs_global.o \
 ALL_OBJS = $(FAST_SHARED_OBJS)
 
 ALL_PRGS = fdfs_file_verify fdfs_file_migrate fdfs_batch_delete \
-           fdfs_storage_stat fdfs_health_check
+           fdfs_storage_stat fdfs_health_check fdfs_backup fdfs_restore
 
 all: $(ALL_OBJS) $(ALL_PRGS)
 
@@ -37,6 +37,12 @@ fdfs_storage_stat: fdfs_storage_stat.c $(ALL_OBJS)
 	$(COMPILE) -o $@ $<  $(ALL_OBJS) $(TARGET_LIB)
 
 fdfs_health_check: fdfs_health_check.c $(ALL_OBJS)
+	$(COMPILE) -o $@ $<  $(ALL_OBJS) $(TARGET_LIB)
+
+fdfs_backup: fdfs_backup.c $(ALL_OBJS)
+	$(COMPILE) -o $@ $<  $(ALL_OBJS) $(TARGET_LIB)
+
+fdfs_restore: fdfs_restore.c $(ALL_OBJS)
 	$(COMPILE) -o $@ $<  $(ALL_OBJS) $(TARGET_LIB)
 
 install:
