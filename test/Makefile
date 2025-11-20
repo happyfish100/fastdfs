@@ -14,7 +14,7 @@ ALL_OBJS = $(SHARED_OBJS)
 #           test_truncate test_slave test_fileinfo test_metadata combine_result
 
 ALL_PRGS = gen_files test_upload test_download test_delete test_append \
-           test_metadata test_concurrent combine_result
+           test_metadata test_concurrent test_range_download combine_result
 
 all: $(ALL_OBJS) $(ALL_PRGS)
 .o:

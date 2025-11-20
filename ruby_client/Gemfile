@@ -1,0 +1,96 @@
+# FastDFS Ruby Client Gemfile
+#
+# This file specifies the gem dependencies for the FastDFS Ruby client.
+# It is used by Bundler to manage dependencies during development.
+#
+# # Copyright (C) 2025 FastDFS Ruby Client Contributors
+#
+# FastDFS may be copied only under the terms of the GNU General
+# Public License V3, which may be found in the FastDFS source kit.
+
+# Source for gems
+# Specify RubyGems as the source
+source 'https://rubygems.org'
+
+# Ruby version requirement
+# Minimum Ruby version required
+ruby '>= 2.7.0'
+
+# Gemspec reference
+# Load dependencies from gemspec
+gemspec
+
+# Development and testing gems
+# These are only needed during development
+
+# Testing framework
+# Minitest for unit testing
+gem 'minitest', '~> 5.0'
+
+# Test reporter
+# Better test output formatting
+gem 'minitest-reporters', '~> 1.0'
+
+# Code coverage
+# Measure test coverage
+gem 'simplecov', '~> 0.21', require: false
+
+# Code quality
+# Linting and style checking
+gem 'rubocop', '~> 1.0', require: false
+
+# Documentation
+# Generate API documentation
+gem 'yard', '~> 0.9', require: false
+
+# Build tool
+# Rake for build tasks
+gem 'rake', '~> 13.0'
+
+# Debugging
+# Interactive debugging
+gem 'pry', '~> 0.14', require: false
+
+# HTTP testing
+# For integration tests
+gem 'webmock', '~> 3.0', require: false
+
+# Environment management
+# Manage different Ruby versions
+gem 'rbenv', '~> 0.4', require: false, platforms: [:ruby]
+
+# Group definitions
+# Organize dependencies by purpose
+
+# Development group
+# Gems needed only for development
+group :development do
+  # Code formatter
+  # Automatic code formatting
+  gem 'rufo', '~> 0.12', require: false
+  
+  # Git hooks
+  # Pre-commit hooks for quality checks
+  gem 'overcommit', '~> 0.57', require: false
+end
+
+# Test group
+# Gems needed only for testing
+group :test do
+  # Test data
+  # Generate fake data for tests
+  gem 'faker', '~> 2.0', require: false
+  
+  # Factories
+  # Create test objects easily
+  gem 'factory_bot', '~> 6.0', require: false
+end
+
+# Documentation group
+# Gems needed only for documentation
+group :docs do
+  # Markdown parser
+  # For processing README and docs
+  gem 'kramdown', '~> 2.0', require: false
+end
+
