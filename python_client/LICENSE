@@ -1,0 +1,10 @@
+GNU GENERAL PUBLIC LICENSE
+Version 3, 29 June 2007
+
+See the full license text in the parent directory:
+../COPYING-3_0.txt
+
+This Python client library for FastDFS is licensed under the
+GNU General Public License v3.0.
+
+Copyright (C) 2025 FastDFS Python Client Contributors

@@ -1,0 +1,9 @@
+include README.md
+include LICENSE
+include requirements.txt
+include requirements-dev.txt
+recursive-include fdfs *.py
+recursive-include tests *.py
+recursive-include examples *.py
+exclude tests/__pycache__
+exclude fdfs/__pycache__
