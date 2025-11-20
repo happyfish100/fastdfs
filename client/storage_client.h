@@ -20,6 +20,23 @@
 #define FDFS_UPLOAD_BY_FILE   	2
 #define FDFS_UPLOAD_BY_CALLBACK 3
 
+#define FDFS_SPLIT_GROUP_NAME_AND_FILENAME(file_id) \
+	char in_file_id[FDFS_GROUP_NAME_MAX_LEN + 128]; \
+	char *group_name; \
+	char *filename; \
+	char *pSeperator; \
+	\
+	fc_safe_strcpy(in_file_id, file_id); \
+	pSeperator = strchr(in_file_id, FDFS_FILE_ID_SEPERATOR); \
+	if (pSeperator == NULL) \
+	{ \
+		return EINVAL; \
+	} \
+	\
+	*pSeperator = '\0'; \
+	group_name = in_file_id; \
+	filename =  pSeperator + 1
+
 #ifdef __cplusplus
 extern "C" {
 #endif

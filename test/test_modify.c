@@ -13,9 +13,9 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include "fdfs_client.h"
+#include "fastcommon/logger.h"
+#include "fastdfs/fdfs_client.h"
 #include "dfs_func.h"
-#include "logger.h"
 
 // Test configuration
 #define TEST_FILE_SIZE 1024
