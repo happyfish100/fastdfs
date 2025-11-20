@@ -1,0 +1,44 @@
+[package]
+name = "fastdfs-client"
+version = "1.0.0"
+edition = "2021"
+rust-version = "1.70"
+authors = ["FastDFS Rust Client Contributors"]
+license = "GPL-3.0"
+description = "Official Rust client for FastDFS distributed file system"
+homepage = "https://github.com/happyfish100/fastdfs"
+repository = "https://github.com/happyfish100/fastdfs"
+documentation = "https://docs.rs/fastdfs-client"
+readme = "README.md"
+keywords = ["fastdfs", "distributed-file-system", "storage", "client"]
+categories = ["filesystem", "network-programming"]
+
+[dependencies]
+tokio = { version = "1.35", features = ["full"] }
+bytes = "1.5"
+thiserror = "1.0"
+
+[dev-dependencies]
+tokio-test = "0.4"
+tempfile = "3.8"
+criterion = "0.5"
+
+[[bench]]
+name = "benchmark"
+harness = false
+
+[lib]
+name = "fastdfs"
+path = "src/lib.rs"
+
+[[example]]
+name = "basic_usage"
+path = "examples/basic_usage.rs"
+
+[[example]]
+name = "metadata_example"
+path = "examples/metadata_example.rs"
+
+[[example]]
+name = "appender_example"
+path = "examples/appender_example.rs"
