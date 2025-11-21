@@ -1,0 +1,416 @@
+/**
+ * FastDFS Groovy Client - Build Configuration
+ * 
+ * This is the Gradle build file for the FastDFS Groovy client library.
+ * It configures the build, dependencies, testing, and publishing.
+ * 
+ * @author FastDFS Groovy Client Contributors
+ * @version 1.0.0
+ */
+
+// ============================================================================
+// Plugins
+// ============================================================================
+
+plugins {
+    // Groovy plugin for Groovy source compilation
+    id 'groovy'
+    
+    // Java plugin for Java interoperability
+    id 'java'
+    
+    // Maven publish plugin for publishing artifacts
+    id 'maven-publish'
+    
+    // Application plugin (optional, for examples)
+    id 'application'
+    
+    // IDE plugins for better IDE support
+    id 'eclipse'
+    id 'idea'
+}
+
+// ============================================================================
+// Project Information
+// ============================================================================
+
+group = 'com.fastdfs'
+version = '1.0.0'
+description = 'FastDFS Groovy Client - Official Groovy client library for FastDFS distributed file system'
+
+// ============================================================================
+// Java/Groovy Compatibility
+// ============================================================================
+
+sourceCompatibility = JavaVersion.VERSION_1_8
+targetCompatibility = JavaVersion.VERSION_1_8
+
+// ============================================================================
+// Repositories
+// ============================================================================
+
+repositories {
+    // Maven Central for dependencies
+    mavenCentral()
+    
+    // JCenter (backup, though being sunset)
+    jcenter()
+    
+    // Local Maven repository
+    mavenLocal()
+}
+
+// ============================================================================
+// Dependencies
+// ============================================================================
+
+dependencies {
+    // Groovy runtime
+    // This provides the Groovy language runtime and standard library
+    implementation 'org.codehaus.groovy:groovy-all:3.0.9'
+    
+    // Apache Commons IO
+    // Used for file operations and I/O utilities
+    implementation 'commons-io:commons-io:2.11.0'
+    
+    // Apache Commons Lang
+    // Used for string utilities and other common operations
+    implementation 'org.apache.commons:commons-lang3:3.12.0'
+    
+    // SLF4J API for logging
+    // Provides logging facade (actual implementation provided by application)
+    implementation 'org.slf4j:slf4j-api:1.7.36'
+    
+    // Logback Classic (logging implementation)
+    // Default logging implementation for SLF4J
+    implementation 'ch.qos.logback:logback-classic:1.2.12'
+    
+    // JUnit 5 for testing
+    // Modern testing framework for Java/Groovy
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.2'
+    testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.9.2'
+    testImplementation 'org.junit.jupiter:junit-jupiter-params:5.9.2'
+    
+    // Spock Framework for testing
+    // BDD-style testing framework for Groovy
+    testImplementation 'org.spockframework:spock-core:2.3-groovy-3.0'
+    testImplementation 'org.spockframework:spock-junit4:2.3-groovy-3.0'
+    
+    // Groovy Test for Groovy testing utilities
+    testImplementation 'org.codehaus.groovy:groovy-test:3.0.9'
+    
+    // Mockito for mocking in tests
+    testImplementation 'org.mockito:mockito-core:5.1.1'
+    testImplementation 'org.mockito:mockito-junit-jupiter:5.1.1'
+    
+    // AssertJ for fluent assertions
+    testImplementation 'org.assertj:assertj-core:3.24.2'
+}
+
+// ============================================================================
+// Source Sets
+// ============================================================================
+
+sourceSets {
+    main {
+        groovy {
+            srcDirs = ['src/main/groovy']
+        }
+        resources {
+            srcDirs = ['src/main/resources']
+        }
+    }
+    
+    test {
+        groovy {
+            srcDirs = ['src/test/groovy']
+        }
+        resources {
+            srcDirs = ['src/test/resources']
+        }
+    }
+    
+    integrationTest {
+        groovy {
+            srcDirs = ['src/integrationTest/groovy']
+        }
+        resources {
+            srcDirs = ['src/integrationTest/resources']
+        }
+        compileClasspath += main.output + test.output
+        runtimeClasspath += main.output + test.output
+    }
+}
+
+// ============================================================================
+// Compilation
+// ============================================================================
+
+compileGroovy {
+    // Groovy compilation options
+    groovyOptions.encoding = 'UTF-8'
+    groovyOptions.optimizationOptions.indy = true
+    groovyOptions.configurationScript = file('groovy-compiler-config.groovy')
+}
+
+compileJava {
+    // Java compilation options
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+    options.encoding = 'UTF-8'
+    options.compilerArgs << '-parameters'
+}
+
+// ============================================================================
+// Testing
+// ============================================================================
+
+test {
+    // Use JUnit 5 platform
+    useJUnitPlatform()
+    
+    // Test output configuration
+    testLogging {
+        events 'passed', 'skipped', 'failed'
+        exceptionFormat 'full'
+        showStandardStreams = true
+    }
+    
+    // Test timeout
+    timeout = Duration.ofMinutes(10)
+    
+    // Memory settings for tests
+    minHeapSize = '128m'
+    maxHeapSize = '512m'
+    
+    // System properties for tests
+    systemProperty 'file.encoding', 'UTF-8'
+    systemProperty 'user.timezone', 'UTC'
+}
+
+// Integration test task
+task integrationTest(type: Test) {
+    description = 'Runs integration tests'
+    group = 'verification'
+    
+    testClassesDirs = sourceSets.integrationTest.output.classesDirs
+    classpath = sourceSets.integrationTest.runtimeClasspath
+    
+    useJUnitPlatform()
+    
+    testLogging {
+        events 'passed', 'skipped', 'failed'
+        exceptionFormat 'full'
+    }
+    
+    // Integration tests require a running FastDFS cluster
+    // Set these properties to configure the test cluster
+    systemProperty 'fdfs.tracker.addrs', System.getProperty('fdfs.tracker.addrs', '127.0.0.1:22122')
+    systemProperty 'fdfs.test.enabled', System.getProperty('fdfs.test.enabled', 'false')
+}
+
+// ============================================================================
+// JAR Configuration
+// ============================================================================
+
+jar {
+    // JAR manifest configuration
+    manifest {
+        attributes(
+            'Implementation-Title': project.name,
+            'Implementation-Version': project.version,
+            'Implementation-Vendor': 'FastDFS Groovy Client Contributors',
+            'Built-By': System.getProperty('user.name'),
+            'Build-Jdk': System.getProperty('java.version'),
+            'Build-Time': new Date().toString(),
+            'Created-By': "Gradle ${gradle.gradleVersion}",
+            'Main-Class': 'com.fastdfs.client.Main'
+        )
+    }
+    
+    // Include all dependencies in JAR (fat JAR)
+    // Uncomment if you want a fat JAR
+    // from {
+    //     configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    // }
+    
+    // Exclude signature files
+    exclude 'META-INF/*.SF'
+    exclude 'META-INF/*.DSA'
+    exclude 'META-INF/*.RSA'
+}
+
+// ============================================================================
+// Sources JAR
+// ============================================================================
+
+task sourcesJar(type: Jar) {
+    description = 'Creates a JAR with source files'
+    group = 'build'
+    
+    archiveClassifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+// ============================================================================
+// Javadoc JAR
+// ============================================================================
+
+task javadocJar(type: Jar) {
+    description = 'Creates a JAR with Javadoc'
+    group = 'build'
+    
+    archiveClassifier = 'javadoc'
+    from javadoc
+}
+
+// ============================================================================
+// Artifacts
+// ============================================================================
+
+artifacts {
+    archives sourcesJar
+    archives javadocJar
+}
+
+// ============================================================================
+// Publishing
+// ============================================================================
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            from components.java
+            
+            artifact sourcesJar
+            artifact javadocJar
+            
+            pom {
+                name = 'FastDFS Groovy Client'
+                description = 'Official Groovy client library for FastDFS distributed file system'
+                url = 'https://github.com/happyfish100/fastdfs'
+                
+                licenses {
+                    license {
+                        name = 'GNU General Public License V3'
+                        url = 'https://www.gnu.org/licenses/gpl-3.0.html'
+                    }
+                }
+                
+                developers {
+                    developer {
+                        id = 'fastdfs-contributors'
+                        name = 'FastDFS Groovy Client Contributors'
+                        email = '384681@qq.com'
+                    }
+                }
+                
+                scm {
+                    connection = 'scm:git:git://github.com/happyfish100/fastdfs.git'
+                    developerConnection = 'scm:git:ssh://github.com:happyfish100/fastdfs.git'
+                    url = 'https://github.com/happyfish100/fastdfs'
+                }
+            }
+        }
+    }
+    
+    repositories {
+        maven {
+            // Configure your repository here
+            // url = 'https://repo.example.com/releases'
+            // credentials {
+            //     username = project.findProperty('repoUsername')
+            //     password = project.findProperty('repoPassword')
+            // }
+        }
+    }
+}
+
+// ============================================================================
+// Code Quality
+// ============================================================================
+
+// Checkstyle (if using)
+// apply plugin: 'checkstyle'
+// checkstyle {
+//     toolVersion = '10.3.1'
+//     configFile = file('config/checkstyle/checkstyle.xml')
+// }
+
+// PMD (if using)
+// apply plugin: 'pmd'
+// pmd {
+//     toolVersion = '6.55.0'
+//     ruleSetFiles = files('config/pmd/ruleset.xml')
+// }
+
+// FindBugs (if using)
+// apply plugin: 'findbugs'
+// findbugs {
+//     toolVersion = '3.0.1'
+// }
+
+// ============================================================================
+// IDE Configuration
+// ============================================================================
+
+eclipse {
+    classpath {
+        downloadSources = true
+        downloadJavadoc = true
+    }
+    
+    project {
+        name = 'fastdfs-groovy-client'
+        comment = 'FastDFS Groovy Client Library'
+    }
+}
+
+idea {
+    module {
+        downloadSources = true
+        downloadJavadoc = true
+    }
+}
+
+// ============================================================================
+// Custom Tasks
+// ============================================================================
+
+// Task to print project information
+task printInfo {
+    description = 'Prints project information'
+    group = 'help'
+    
+    doLast {
+        println "Project: ${project.name}"
+        println "Version: ${project.version}"
+        println "Group: ${project.group}"
+        println "Description: ${project.description}"
+        println "Java Version: ${sourceCompatibility}"
+        println "Groovy Version: ${GroovySystem.version}"
+    }
+}
+
+// Task to clean build artifacts
+task cleanAll {
+    description = 'Cleans all build artifacts'
+    group = 'build'
+    
+    dependsOn clean
+    doLast {
+        delete 'out'
+        delete '.gradle'
+        println "Cleaned all build artifacts"
+    }
+}
+
+// ============================================================================
+// Wrapper
+// ============================================================================
+
+wrapper {
+    gradleVersion = '7.6'
+    distributionType = Wrapper.DistributionType.ALL
+}
+
