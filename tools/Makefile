@@ -14,8 +14,9 @@ ALL_OBJS = $(FAST_SHARED_OBJS)
 
 ALL_PRGS = fdfs_file_verify fdfs_file_migrate fdfs_batch_delete \
            fdfs_storage_stat fdfs_health_check fdfs_backup fdfs_restore \
-           fdfs_dedup fdfs_analyze fdfs_repair fdfs_recover fdfs_sync_check \
-           fdfs_quota fdfs_cluster_mgr
+           fdfs_dedup fdfs_analyze fdfs_repair fdfs_recover fdfs_benchmark \
+           fdfs_sync_check fdfs_quota fdfs_cleanup fdfs_metadata_bulk \
+           fdfs_replication_status fdfs_search fdfs_cluster_mgr
 
 all: $(ALL_OBJS) $(ALL_PRGS)
 
@@ -58,11 +59,26 @@ fdfs_repair: fdfs_repair.c $(ALL_OBJS)
 
 fdfs_recover: fdfs_recover.c $(ALL_OBJS)
 	$(COMPILE) -o $@ $<  $(ALL_OBJS) $(TARGET_LIB)
-  
+
+fdfs_benchmark: fdfs_benchmark.c $(ALL_OBJS)
+	$(COMPILE) -o $@ $<  $(ALL_OBJS) $(TARGET_LIB)
+
 fdfs_sync_check: fdfs_sync_check.c $(ALL_OBJS)
 	$(COMPILE) -o $@ $<  $(ALL_OBJS) $(TARGET_LIB)
   
 fdfs_quota: fdfs_quota.c $(ALL_OBJS)
+	$(COMPILE) -o $@ $<  $(ALL_OBJS) $(TARGET_LIB)
+
+fdfs_cleanup: fdfs_cleanup.c $(ALL_OBJS)
+	$(COMPILE) -o $@ $<  $(ALL_OBJS) $(TARGET_LIB)
+
+fdfs_metadata_bulk: fdfs_metadata_bulk.c $(ALL_OBJS)
+	$(COMPILE) -o $@ $<  $(ALL_OBJS) $(TARGET_LIB)
+
+fdfs_replication_status: fdfs_replication_status.c $(ALL_OBJS)
+	$(COMPILE) -o $@ $<  $(ALL_OBJS) $(TARGET_LIB)
+
+fdfs_search: fdfs_search.c $(ALL_OBJS)
 	$(COMPILE) -o $@ $<  $(ALL_OBJS) $(TARGET_LIB)
 
 fdfs_cluster_mgr: fdfs_cluster_mgr.c $(ALL_OBJS)
