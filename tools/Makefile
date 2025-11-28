@@ -17,7 +17,8 @@ ALL_PRGS = fdfs_file_verify fdfs_file_migrate fdfs_batch_delete \
            fdfs_dedup fdfs_analyze fdfs_repair fdfs_recover fdfs_benchmark \
            fdfs_sync_check fdfs_quota fdfs_cleanup fdfs_metadata_bulk \
            fdfs_replication_status fdfs_search fdfs_cluster_mgr fdfs_replication \
-           fdfs_load_balancer fdfs_capacity_planner fdfs_capacity_report
+           fdfs_load_balancer fdfs_config_validator fdfs_network_diag \
+           fdfs_network_monitor fdfs_capacity_planner fdfs_capacity_report
 
 all: $(ALL_OBJS) $(ALL_PRGS)
 
@@ -96,6 +97,14 @@ fdfs_capacity_planner: fdfs_capacity_planner.c
 
 fdfs_capacity_report: fdfs_capacity_report.c
 	$(CC) $(CFLAGS) -o $@ $< -lm
+fdfs_config_validator: fdfs_config_validator.c
+	$(CC) $(CFLAGS) -o $@ $<
+
+fdfs_network_diag: fdfs_network_diag.c
+	$(CC) $(CFLAGS) -o $@ $<
+
+fdfs_network_monitor: fdfs_network_monitor.c
+	$(CC) $(CFLAGS) -o $@ $<
 
 install:
 	mkdir -p $(DESTDIR)/usr/bin
