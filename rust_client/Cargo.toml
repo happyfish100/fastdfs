@@ -47,3 +47,7 @@ path = "examples/appender_example.rs"
 [[example]]
 name = "concurrent_operations_example"
 path = "examples/concurrent_operations_example.rs"
+
+[[example]]
+name = "batch_operations_example"
+path = "examples/batch_operations_example.rs"
