@@ -17,6 +17,7 @@ categories = ["filesystem", "network-programming"]
 tokio = { version = "1.35", features = ["full"] }
 bytes = "1.5"
 thiserror = "1.0"
+futures = "0.3"
 
 [dev-dependencies]
 tokio-test = "0.4"
@@ -42,3 +43,7 @@ path = "examples/metadata_example.rs"
 [[example]]
 name = "appender_example"
 path = "examples/appender_example.rs"
+
+[[example]]
+name = "connection_pool_example"
+path = "examples/connection_pool_example.rs"
