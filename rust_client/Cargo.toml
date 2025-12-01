@@ -42,3 +42,7 @@ path = "examples/metadata_example.rs"
 [[example]]
 name = "appender_example"
 path = "examples/appender_example.rs"
+
+[[example]]
+name = "slave_file_example"
+path = "examples/slave_file_example.rs"
