@@ -61,5 +61,9 @@ name = "concurrent_operations_example"
 path = "examples/concurrent_operations_example.rs"
 
 [[example]]
+name = "batch_operations_example"
+path = "examples/batch_operations_example.rs"
+
+[[example]]
 name = "error_handling_example"
 path = "examples/error_handling_example.rs"
