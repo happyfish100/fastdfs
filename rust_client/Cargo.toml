@@ -47,3 +47,11 @@ path = "examples/appender_example.rs"
 [[example]]
 name = "connection_pool_example"
 path = "examples/connection_pool_example.rs"
+
+[[example]]
+name = "concurrent_operations_example"
+path = "examples/concurrent_operations_example.rs"
+
+[[example]]
+name = "error_handling_example"
+path = "examples/error_handling_example.rs"
