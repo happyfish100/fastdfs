@@ -67,3 +67,7 @@ path = "examples/batch_operations_example.rs"
 [[example]]
 name = "error_handling_example"
 path = "examples/error_handling_example.rs"
+
+[[example]]
+name = "advanced_metadata_example"
+path = "examples/advanced_metadata_example.rs"
