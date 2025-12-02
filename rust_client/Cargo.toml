@@ -69,6 +69,10 @@ name = "error_handling_example"
 path = "examples/error_handling_example.rs"
 
 [[example]]
+name = "configuration_example"
+path = "examples/configuration_example.rs"
+
+[[example]]
 name = "file_info_example"
 path = "examples/file_info_example.rs"
 
