@@ -45,6 +45,10 @@ name = "appender_example"
 path = "examples/appender_example.rs"
 
 [[example]]
+name = "partial_download_example"
+path = "examples/partial_download_example.rs"
+
+[[example]]
 name = "connection_pool_example"
 path = "examples/connection_pool_example.rs"
 
