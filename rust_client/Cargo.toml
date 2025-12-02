@@ -59,3 +59,7 @@ path = "examples/concurrent_operations_example.rs"
 [[example]]
 name = "error_handling_example"
 path = "examples/error_handling_example.rs"
+
+[[example]]
+name = "cancellation_example"
+path = "examples/cancellation_example.rs"
