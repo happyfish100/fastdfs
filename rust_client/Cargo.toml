@@ -45,6 +45,10 @@ name = "appender_example"
 path = "examples/appender_example.rs"
 
 [[example]]
+name = "slave_file_example"
+path = "examples/slave_file_example.rs"
+
+[[example]]
 name = "partial_download_example"
 path = "examples/partial_download_example.rs"
 
@@ -57,9 +61,25 @@ name = "concurrent_operations_example"
 path = "examples/concurrent_operations_example.rs"
 
 [[example]]
+name = "batch_operations_example"
+path = "examples/batch_operations_example.rs"
+
+[[example]]
 name = "error_handling_example"
 path = "examples/error_handling_example.rs"
 
 [[example]]
 name = "cancellation_example"
 path = "examples/cancellation_example.rs"
+
+[[example]]
+name = "configuration_example"
+path = "examples/configuration_example.rs"
+
+[[example]]
+name = "file_info_example"
+path = "examples/file_info_example.rs"
+
+[[example]]
+name = "advanced_metadata_example"
+path = "examples/advanced_metadata_example.rs"
