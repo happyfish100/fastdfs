@@ -89,5 +89,9 @@ name = "integration_example"
 path = "examples/integration_example.rs"
 
 [[example]]
+name = "performance_example"
+path = "examples/performance_example.rs"
+
+[[example]]
 name = "advanced_metadata_example"
 path = "examples/advanced_metadata_example.rs"
