@@ -12,3 +12,7 @@ target_link_libraries(metadata_example fastdfs-client)
 add_executable(appender_example appender_example.cpp)
 target_link_libraries(appender_example fastdfs-client)
 
+# Batch operations example
+add_executable(batch_operations_example batch_operations_example.cpp)
+target_link_libraries(batch_operations_example fastdfs-client)
+
