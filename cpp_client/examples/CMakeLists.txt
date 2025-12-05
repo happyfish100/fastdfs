@@ -12,7 +12,11 @@ target_link_libraries(metadata_example fastdfs-client)
 add_executable(appender_example appender_example.cpp)
 target_link_libraries(appender_example fastdfs-client)
 
-# Slave file example
-add_executable(slave_file_example slave_file_example.cpp)
-target_link_libraries(slave_file_example fastdfs-client)
+# File info example
+add_executable(file_info_example file_info_example.cpp)
+target_link_libraries(file_info_example fastdfs-client)
+
+# Partial download example
+add_executable(partial_download_example partial_download_example.cpp)
+target_link_libraries(partial_download_example fastdfs-client)
 
