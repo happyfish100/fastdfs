@@ -1,7 +1,6 @@
-fastdfs (6.12.1-1) stable; urgency=medium
+fastdfs (6.15.2-1) stable; urgency=medium
 
-  * adapt to libserverframe 1.2.3
-  * bugfixed: notify_leader_changed support IPv6 correctly
-  * log square quoted IPv6 address
+  * move finish_callback from fast_task_info to TrackerClientInfo
+  * use libfastcommon V1.83 and libserverframe 1.2.11
 
- -- YuQing <384681@qq.com>  Wed, 6 Mar 2024 15:14:27 +0000
+ -- YuQing <384681@qq.com>  Sun, 16 Nov 2025 17:01:55 +0800
