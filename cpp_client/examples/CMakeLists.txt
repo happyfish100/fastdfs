@@ -12,9 +12,14 @@ target_link_libraries(metadata_example fastdfs-client)
 add_executable(appender_example appender_example.cpp)
 target_link_libraries(appender_example fastdfs-client)
 
+# Upload buffer example
+add_executable(upload_buffer_example upload_buffer_example.cpp)
+target_link_libraries(upload_buffer_example fastdfs-client)
+
 # Error handling example
 add_executable(error_handling_example error_handling_example.cpp)
 target_link_libraries(error_handling_example fastdfs-client)
+
 # File info example
 add_executable(file_info_example file_info_example.cpp)
 target_link_libraries(file_info_example fastdfs-client)
