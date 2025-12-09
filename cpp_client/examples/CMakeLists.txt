@@ -28,6 +28,10 @@ target_link_libraries(file_info_example fastdfs-client)
 add_executable(partial_download_example partial_download_example.cpp)
 target_link_libraries(partial_download_example fastdfs-client)
 
+# Cancellation example
+add_executable(cancellation_example cancellation_example.cpp)
+target_link_libraries(cancellation_example fastdfs-client)
+
 # Streaming example
 add_executable(streaming_example streaming_example.cpp)
 target_link_libraries(streaming_example fastdfs-client)
