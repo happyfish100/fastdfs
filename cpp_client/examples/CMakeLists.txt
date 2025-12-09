@@ -28,3 +28,7 @@ target_link_libraries(file_info_example fastdfs-client)
 add_executable(partial_download_example partial_download_example.cpp)
 target_link_libraries(partial_download_example fastdfs-client)
 
+# Advanced metadata example
+add_executable(advanced_metadata_example advanced_metadata_example.cpp)
+target_link_libraries(advanced_metadata_example fastdfs-client)
+
