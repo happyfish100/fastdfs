@@ -32,3 +32,15 @@ target_link_libraries(partial_download_example fastdfs-client)
 add_executable(advanced_metadata_example advanced_metadata_example.cpp)
 target_link_libraries(advanced_metadata_example fastdfs-client)
 
+# Configuration example
+add_executable(configuration_example configuration_example.cpp)
+target_link_libraries(configuration_example fastdfs-client)
+
+# Cancellation example
+add_executable(cancellation_example cancellation_example.cpp)
+target_link_libraries(cancellation_example fastdfs-client)
+
+# Streaming example
+add_executable(streaming_example streaming_example.cpp)
+target_link_libraries(streaming_example fastdfs-client)
+
