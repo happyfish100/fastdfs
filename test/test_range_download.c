@@ -89,7 +89,6 @@ int main(int argc, char **argv)
 	int result;
 	int file_index;
 	int file_type;
-	int file_size;
 	char *conf_filename;
 	char storage_ip[IP_ADDRESS_SIZE];
 	struct timeval tv_start;

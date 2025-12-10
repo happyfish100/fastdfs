@@ -84,7 +84,6 @@ int main(int argc, char **argv)
     struct timeval tv_start;
     struct timeval tv_end;
     int time_used;
-    CaseStat *pCase;
 
     if (argc < 2)
     {
@@ -216,7 +215,7 @@ static int file_exist_test(const char *file_id, bool expect_exist, char *storage
     }
 
     pStorageServer = NULL;
-    if ((result=storage_file_exist1(pTrackerServer, &pStorageServer, file_id)) != 0)
+    if ((result=storage_file_exist1(pTrackerServer, pStorageServer, file_id)) != 0)
     {
         tracker_close_connection_ex(pTrackerServer, true);
         if (pStorageServer != NULL)

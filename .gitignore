@@ -66,6 +66,11 @@ test/gen_files
 test/test_delete
 test/test_download
 test/test_upload
+test/test_append
+test/test_concurrent
+test/test_file_exist
+test/test_metadata
+test/test_range_download
 test/upload/
 test/download/
 test/delete/

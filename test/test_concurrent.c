@@ -231,7 +231,7 @@ static int perform_operation(OperationType op_type, char *file_id, char *storage
 			char append_data[1024];
 			memset(append_data, 'A', sizeof(append_data));
 			// Extract group_name from file_id (macro declares group_name and filename)
-			FDFS_SPLIT_GROUP_NAME_AND_FILENAME(last_file_id)
+			FDFS_SPLIT_GROUP_NAME_AND_FILENAME(last_file_id);
 			*storage_ip = '\0';
 			// append_file_by_buff needs group_name and full file_id
 			result = append_file_by_buff(append_data, sizeof(append_data),
