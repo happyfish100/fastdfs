@@ -24,6 +24,10 @@
 
   FastDFS安装和配置文档参见 [Wiki](https://gitee.com/fastdfs100/fastdfs/wikis/Home)；FastDFS更多更详细的功能和特性介绍，请参阅FastDFS微信公众号的其他文章，搜索公众号：fastdfs。
 
+  PHP扩展：源码目录下的php_client/
+  go SDK：源码目录下的go_client/
+  [Java SDK：](https://gitee.com/fastdfs100/fastdfs-client-java)
+
   FastDFS是轻量级的对象存储解决方案，如果你在数据库、K8s和虚拟机（如KVM）等场景，需要使用通用分布式文件系统，可以了解一下保证数据强一致性且高性能的 [FastCFS](https://gitee.com/fastdfs100/FastCFS)。
 
   我们提供商业技术支持和定制化开发，欢迎微信或邮件洽谈。
