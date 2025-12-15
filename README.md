@@ -52,7 +52,7 @@ the file name.
 Client test code use client library please refer to the directory: client/test.
 
 * PHP extension: php_client subdir under FastDFS source code
-* go SDK: go_client subdir under FastDFS source code
+* [Go SDK: https://github.com/qifengzhang007/fastdfs_client_go](https://github.com/qifengzhang007/fastdfs_client_go)
 * [Java SDK: https://github.com/happyfish100/fastdfs-client-java](https://github.com/happyfish100/fastdfs-client-java)
 
 For more FastDFS related articles, please subscribe the Wechat/Weixin public account
