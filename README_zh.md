@@ -8,7 +8,7 @@
   ![architect](images/architect.png)
 
 
-### FastDFS特点：
+### FastDFS特点
 
 * 分组存储，简单灵活；
 * 对等结构，不存在单点；
@@ -21,12 +21,16 @@
 * 提供了truncate、append和modify接口，支持多线程方式上传和下载文件，支持断点续传；
 * 存储服务器上可以保存文件附加属性。
 
-
   FastDFS安装和配置文档参见 [Wiki](https://gitee.com/fastdfs100/fastdfs/wikis/Home)；FastDFS更多更详细的功能和特性介绍，请参阅FastDFS微信公众号的其他文章，搜索公众号：fastdfs。
 
-* PHP扩展：源码目录下的php_client/
-* [Go SDK: https://gitee.com/daitougege/fastdfs_client_go](https://gitee.com/daitougege/fastdfs_client_go)
+### 客户端SDK
+
+* C语言：源码目录下的 client/，默认安装到 /usr/include/fastdfs/
+* PHP扩展：源码目录下的 php_client/
 * [Java SDK：https://gitee.com/fastdfs100/fastdfs-client-java](https://gitee.com/fastdfs100/fastdfs-client-java)
+* [Go SDK: https://gitee.com/daitougege/fastdfs_client_go](https://gitee.com/daitougege/fastdfs_client_go)
+
+### 其他
 
   FastDFS是轻量级的对象存储解决方案，如果你在数据库、K8s和虚拟机（如KVM）等场景，需要使用通用分布式文件系统，可以了解一下保证数据强一致性且高性能的 [FastCFS](https://gitee.com/fastdfs100/FastCFS)。
 
