@@ -1800,6 +1800,10 @@ static void storage_clear_task(struct fast_task_info *pTask)
 
 int storage_service_init()
 {
+    const bool double_buffers = false;
+    const bool need_shrink_task_buffer = true;
+    const bool explicit_post_recv = false;
+    TaskInitCallback init_callback = NULL;
 	int result;
 
 	last_stat_change_count = g_stat_change_count;
@@ -1810,10 +1814,13 @@ int storage_service_init()
     }
 
     SF_G_EPOLL_EDGE_TRIGGER = true;
-    result = sf_service_init("storage", alloc_thread_extra_data_func,
-            NULL, sock_accept_done_callback, storage_set_body_length,
-            sock_send_done_callback, storage_deal_task, sf_task_finish_clean_up,
-            NULL, 1000, sizeof(TrackerHeader), sizeof(StorageClientInfo));
+    result = sf_service_init_ex2(&g_sf_context, "storage",
+            alloc_thread_extra_data_func, NULL, sock_accept_done_callback,
+            storage_set_body_length, NULL, sock_send_done_callback,
+            storage_deal_task, sf_task_finish_clean_up, NULL, 1000,
+            sizeof(TrackerHeader), 0, sizeof(StorageClientInfo),
+            double_buffers, need_shrink_task_buffer, explicit_post_recv,
+            init_callback, NULL, NULL);
     sf_enable_thread_notify(false);
     free_queue_set_release_callback(&g_sf_context.
             free_queue, storage_clear_task);

@@ -1,3 +1,7 @@
+
+Version 6.15.3  2025-12-23
+ * storage dio queue use fc_queue instead of common_blocked_queue
+
 Version 6.15.2  2025-11-15
  * move finish_callback from fast_task_info to TrackerClientInfo
  * use libfastcommon V1.83 and libserverframe 1.2.11

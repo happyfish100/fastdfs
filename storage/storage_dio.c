@@ -44,6 +44,7 @@ int storage_dio_init()
 	int bytes;
 	int threads_count_per_path;
 	int context_count;
+    int dio_next_offset;
 	struct storage_dio_thread_data *pThreadData;
 	struct storage_dio_thread_data *pDataEnd;
 	struct storage_dio_context *pContext;
@@ -83,6 +84,8 @@ int storage_dio_init()
 	}
 	memset(g_dio_contexts, 0, bytes);
 
+    dio_next_offset = free_queue_task_arg_offset(&g_sf_context.free_queue) +
+        (long)(&((StorageClientInfo *)NULL)->dio_next);
 	g_dio_thread_count = 0;
 	pDataEnd = g_dio_thread_data + g_fdfs_store_paths.count;
 	for (pThreadData=g_dio_thread_data; pThreadData<pDataEnd; pThreadData++)
@@ -97,7 +100,7 @@ int storage_dio_init()
 		for (pContext=pThreadData->contexts; pContext<pContextEnd;
 			pContext++)
 		{
-			if ((result=blocked_queue_init(&(pContext->queue))) != 0)
+			if ((result=fc_queue_init(&(pContext->queue), dio_next_offset)) != 0)
 			{
 				return result;
 			}
@@ -151,28 +154,26 @@ void storage_dio_terminate()
 	pContextEnd = g_dio_contexts + g_dio_thread_count;
 	for (pContext=g_dio_contexts; pContext<pContextEnd; pContext++)
 	{
-		blocked_queue_terminate(&(pContext->queue));
+		fc_queue_terminate(&(pContext->queue));
 	}
 }
 
 int storage_dio_queue_push(struct fast_task_info *pTask)
 {
-    StorageClientInfo *pClientInfo;
 	StorageFileContext *pFileContext;
 	struct storage_dio_context *pContext;
-	int result;
 
-    pClientInfo = (StorageClientInfo *)pTask->arg;
-	pFileContext = &(pClientInfo->file_context);
+	pFileContext = &((StorageClientInfo *)pTask->arg)->file_context;
+    if (!__sync_bool_compare_and_swap(&pFileContext->in_dio_queue, 0, 1))
+    {
+        logError("file: "__FILE__", line: %d, "
+                "task: %p already in dio queue!", __LINE__, pTask);
+        return EALREADY;
+    }
+
 	pContext = g_dio_contexts + pFileContext->dio_thread_index;
     sf_hold_task(pTask);
-	if ((result=blocked_queue_push(&(pContext->queue), pTask)) != 0)
-	{
-		ioevent_add_to_deleted_list(pTask);
-        sf_release_task(pTask);
-		return result;
-	}
-
+	fc_queue_push(&(pContext->queue), pTask);
 	return 0;
 }
 
@@ -275,10 +276,9 @@ int dio_open_file(StorageFileContext *pFileContext)
         if (pFileContext->fd < 0)
         {
             result = errno != 0 ? errno : EACCES;
-            logError("file: "__FILE__", line: %d, " \
-                    "open file: %s fail, " \
-                    "errno: %d, error info: %s", \
-                    __LINE__, pFileContext->filename, \
+            logError("file: "__FILE__", line: %d, "
+                    "open file: %s fail, errno: %d, error info: %s",
+                    __LINE__, pFileContext->filename,
                     result, STRERROR(result));
         }
         else
@@ -731,10 +731,30 @@ void dio_trunk_write_finish_clean_up(struct fast_task_info *pTask)
 	}
 }
 
+static void dio_thread_deal_task(struct fast_task_info *head)
+{
+    struct fast_task_info *pTask;
+    StorageClientInfo *pClientInfo;
+
+    do {
+        pTask = head;
+        pClientInfo = (StorageClientInfo *)pTask->arg;
+        head = pClientInfo->dio_next;
+
+        __sync_bool_compare_and_swap(&pClientInfo->
+                file_context.in_dio_queue, 1, 0);
+        if (!FC_ATOMIC_GET(pTask->canceled))
+        {
+            pClientInfo->deal_func(pTask);
+        }
+        sf_release_task(pTask);
+    } while (head != NULL);
+}
+
 static void *dio_thread_entrance(void* arg)
 {
 	struct storage_dio_context *pContext; 
-	struct fast_task_info *pTask;
+	struct fast_task_info *head;
 
 	pContext = (struct storage_dio_context *)arg; 
 
@@ -748,16 +768,12 @@ static void *dio_thread_entrance(void* arg)
 #endif
 
 	while (SF_G_CONTINUE_FLAG)
-	{
-		while ((pTask=blocked_queue_pop(&(pContext->queue))) != NULL)
+    {
+        while ((head=fc_queue_pop_all(&(pContext->queue))) != NULL)
         {
-            if (!FC_ATOMIC_GET(pTask->canceled))
-            {
-                ((StorageClientInfo *)pTask->arg)->deal_func(pTask);
-            }
-            sf_release_task(pTask);
+            dio_thread_deal_task(head);
         }
-	}
+    }
 
     __sync_sub_and_fetch(&g_dio_thread_count, 1);
 

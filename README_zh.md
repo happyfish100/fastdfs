@@ -25,7 +25,7 @@
 
 ### 客户端SDK
 
-* C语言：源码目录下的 client/，默认安装到 /usr/include/fastdfs/
+* C语言：源码目录下的 client/，头文件默认安装到 /usr/include/fastdfs/
 * PHP扩展：源码目录下的 php_client/
 * [Java SDK：https://gitee.com/fastdfs100/fastdfs-client-java](https://gitee.com/fastdfs100/fastdfs-client-java)
 * [Go SDK: https://gitee.com/daitougege/fastdfs_client_go](https://gitee.com/daitougege/fastdfs_client_go)

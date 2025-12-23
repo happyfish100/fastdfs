@@ -94,7 +94,7 @@ typedef struct
 
 typedef struct
 {
-	char filename[MAX_PATH_SIZE + 128];  	//full filename
+	char filename[MAX_PATH_SIZE + 64];  	//full filename
 
 	/* FDFS logic filename to log not including group name */
     struct {
@@ -106,6 +106,7 @@ typedef struct
 	char sync_flag;     //sync flag log to binlog
 	bool calc_crc32;    //if calculate file content hash code
 	bool calc_file_hash;      //if calculate file content hash code
+    volatile char in_dio_queue;
 	int open_flags;           //open file flags
 	int file_hash_codes[4];   //file hash code
 	int64_t crc32;            //file content crc32 signature
@@ -135,19 +136,20 @@ typedef struct
 
 typedef struct
 {
-	char storage_server_id[FDFS_STORAGE_ID_MAX_SIZE];
+    char storage_server_id[FDFS_STORAGE_ID_MAX_SIZE];
 
-	StorageFileContext file_context;
+    StorageFileContext file_context;
 
-	int64_t total_length;   //pkg total length for req and request
-	int64_t total_offset;   //pkg current offset for req and request
+    int64_t total_length;   //pkg total length for req and request
+    int64_t total_offset;   //pkg current offset for req and request
 
-	int64_t request_length;   //request pkg length for access log
+    int64_t request_length;   //request pkg length for access log
 
-	FDFSStorageServer *pSrcStorage; //for binlog sync
-	TaskDealFunc deal_func;  //function pointer to deal this task
-	void *extra_arg;   //store extra arg, such as (BinLogReader *)
-	DisconnectCleanFunc clean_func;  //clean function pointer when finished
+    FDFSStorageServer *pSrcStorage; //for binlog sync
+    TaskDealFunc deal_func;  //function pointer to deal this task
+    void *extra_arg;   //store extra arg, such as (BinLogReader *)
+    DisconnectCleanFunc clean_func;  //clean function pointer when finished
+    struct fast_task_info *dio_next;
 } StorageClientInfo;
 
 #endif

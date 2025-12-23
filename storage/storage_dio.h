@@ -17,14 +17,14 @@
 #include <pthread.h>
 #include "tracker_types.h"
 #include "fastcommon/fast_task_queue.h"
-#include "fastcommon/fast_blocked_queue.h"
+#include "fastcommon/fc_queue.h"
 
 struct storage_dio_context
 {
     int path_index;
     int thread_index;
     const char *rw;
-	struct fast_blocked_queue queue;
+	struct fc_queue queue;
 };
 
 struct storage_dio_thread_data
