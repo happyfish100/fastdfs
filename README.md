@@ -58,8 +58,8 @@ Client test code use client library please refer to the directory: client/test.
 * [Java SDK: https://github.com/happyfish100/fastdfs-client-java](https://github.com/happyfish100/fastdfs-client-java)
 * [Go SDK: https://github.com/qifengzhang007/fastdfs_client_go](https://github.com/qifengzhang007/fastdfs_client_go)
 
-For more FastDFS related articles, please subscribe the Wechat/Weixin public account
-(Chinese Language): fastdfs
+For [FastDFS installation and configuration documentation](https://github.com/happyfish100/fastdfs/wiki), please refer to [the Wiki](https://github.com/happyfish100/fastdfs/wiki);
+For more FastDFS related articles, please subscribe the Wechat/Weixin public account (Chinese Language): fastdfs
 
 ### See also
 
