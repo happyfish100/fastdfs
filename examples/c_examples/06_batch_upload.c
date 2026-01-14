@@ -60,6 +60,7 @@
 #include <sys/stat.h>
 #include <time.h>
 #include <dirent.h>
+#include <limits.h>
 #include "fdfs_client.h"
 #include "fdfs_global.h"
 #include "tracker_types.h"
@@ -297,6 +298,8 @@ int main(int argc, char *argv[])
     int result;
     char group_name[FDFS_GROUP_NAME_MAX_LEN + 1];
     int store_path_index;
+    char **file_list_dynamic = NULL;
+    int directory_mode = 0;
     UploadResult *results;
     BatchStats stats;
     double batch_start_time, batch_end_time;
@@ -314,22 +317,34 @@ int main(int argc, char *argv[])
     
     /* Check if second argument is a directory */
     if (argc == 3 && is_directory(argv[2])) {
-        /* TODO: Implement directory scanning
-         * For simplicity, this example only handles explicit file lists
-         */
-        fprintf(stderr, "ERROR: Directory scanning not implemented in this example\n");
-        fprintf(stderr, "Please specify individual files to upload\n");
-        return 1;
+        printf("Scanning directory: %s\n", argv[2]);
+        file_count = scan_directory(argv[2], &file_list_dynamic);
+        if (file_count < 0) {
+            fprintf(stderr, "ERROR: Failed to scan directory\n");
+            return 1;
+        }
+        if (file_count == 0) {
+            printf("No files found in directory: %s\n", argv[2]);
+            return 0;
+        }
+        if (file_count > MAX_BATCH_FILES) {
+            fprintf(stderr, "ERROR: Too many files found (max %d)\n", MAX_BATCH_FILES);
+            free_file_list(file_list_dynamic, file_count);
+            return 1;
+        }
+        file_list = file_list_dynamic;
+        directory_mode = 1;
+        printf("Found %d files to upload\n\n", file_count);
+    } else {
+        /* Build file list from arguments */
+        file_count = argc - 2;
+        if (file_count > MAX_BATCH_FILES) {
+            fprintf(stderr, "ERROR: Too many files (max %d)\n", MAX_BATCH_FILES);
+            return 1;
+        }
+        file_list = &argv[2];
+        directory_mode = 0;
     }
-    
-    /* Build file list from arguments */
-    file_count = argc - 2;
-    if (file_count > MAX_BATCH_FILES) {
-        fprintf(stderr, "ERROR: Too many files (max %d)\n", MAX_BATCH_FILES);
-        return 1;
-    }
-    
-    file_list = &argv[2];
     
     /* Validate all files exist and are readable */
     printf("=== FastDFS Batch Upload Example ===\n");
@@ -533,6 +548,12 @@ int main(int argc, char *argv[])
     
     free(results);
     printf("✓ Memory freed\n");
+    
+    /* Cleanup file list if we allocated it for directory scanning */
+    if (directory_mode && file_list_dynamic != NULL) {
+        free_file_list(file_list_dynamic, file_count);
+        printf("✓ Directory file list freed\n");
+    }
     
     printf("\n=== Batch Upload Complete ===\n");
     
