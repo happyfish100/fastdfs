@@ -39,7 +39,7 @@ ALL_OBJS = $(STATIC_OBJS) $(FDFS_SHARED_OBJS)
 ALL_PRGS = fdfs_monitor fdfs_test fdfs_test1 fdfs_crc32 fdfs_upload_file \
            fdfs_download_file fdfs_delete_file fdfs_file_info \
            fdfs_appender_test fdfs_appender_test1 fdfs_append_file \
-           fdfs_upload_appender fdfs_regenerate_filename
+           fdfs_upload_appender fdfs_regenerate_filename fdfs_bulk_import
 
 STATIC_LIBS = libfdfsclient.a
 
