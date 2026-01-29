@@ -18,7 +18,8 @@
 * 提供了nginx扩展模块，可以和nginx无缝衔接；
 * 支持IPv6，支持NAT网络，支持跨机房或混合云部署方式；
 * 支持读写分离，支持跨机房灾备；
-* 提供了truncate、append和modify接口，支持多线程方式上传和下载文件，支持断点续传；
+* 提供了对appender类型文件truncate、append和modify接口；
+* 支持多线程方式上传（仅适用于appender类型文件，通过truncate + modify实现）和下载文件，支持断点续传；
 * 存储服务器上可以保存文件附加属性。
 
   FastDFS安装和配置文档参见 [Wiki](https://gitee.com/fastdfs100/fastdfs/wikis/Home)；FastDFS更多更详细的功能和特性介绍，请参阅FastDFS微信公众号的其他文章，搜索公众号：fastdfs。

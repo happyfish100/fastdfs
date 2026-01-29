@@ -16,8 +16,8 @@ on files such as photo sharing site and video sharing site.
 * provide a nginx extension module that can seamlessly integrate with nginx
 * support IPv6, NAT network and cross data center or hybrid cloud deployment
 * support read-write separation and cross data center disaster backup
-* also provide truncate, append and modify APIs, supports multi-threaded file upload
-  and download, support resume from a broken point
+* provide truncate, append and modify APIs for appender files
+* supports multi-threaded file upload and download, support resume from a broken point
 
 ### Architecture Interpretation
 
