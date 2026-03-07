@@ -1,4 +1,7 @@
 
+Version 6.15.4  2026-03-07
+ * download_file offset and bytes's logic is consistent with the range of HTTP
+
 Version 6.15.3  2025-12-23
  * storage dio queue use fc_queue instead of common_blocked_queue
 

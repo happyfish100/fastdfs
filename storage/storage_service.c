@@ -7346,8 +7346,8 @@ static int storage_server_download_file(struct fast_task_info *pTask)
 	}
 
 	pFileContext->fd = -1;
-	result = trunk_file_stat_ex(store_path_index, \
-		true_filename, filename_len, &stat_buf, \
+	result = trunk_file_stat_ex(store_path_index,
+		true_filename, filename_len, &stat_buf,
 		&trunkInfo, &trunkHeader, &pFileContext->fd);
 	if (IS_TRUNK_FILE_BY_ID(trunkInfo))
 	{
@@ -7378,24 +7378,33 @@ static int storage_server_download_file(struct fast_task_info *pTask)
         __sync_add_and_fetch(&g_storage_stat.success_file_open_count, 1);
 	}
 
+    if (file_offset >= file_bytes)
+    {
+        logError("file: "__FILE__", line: %d, "
+                "invalid file offset: %"PRId64
+                ", exceeds file size: %"PRId64,
+                __LINE__, file_offset, file_bytes);
+        if (pFileContext->fd >= 0)
+        {
+            close(pFileContext->fd);
+        }
+        return EINVAL;
+    }
+
 	if (download_bytes == 0)
 	{
-		download_bytes  = file_bytes - file_offset;
+		download_bytes = file_bytes - file_offset;
 	}
 	else if (download_bytes > file_bytes - file_offset)
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"client ip:%s, invalid download file bytes: " \
-			"%"PRId64" > file remain bytes: " \
-			"%"PRId64,  __LINE__, \
-			pTask->client_ip, download_bytes, \
-			file_bytes - file_offset);
-		if (pFileContext->fd >= 0)
-		{
-			close(pFileContext->fd);
-		}
-		return EINVAL;
-	}
+    {
+        logWarning("file: "__FILE__", line: %d, "
+                "client ip: %s, file offset: %"PRId64", "
+                "invalid download file bytes: %"PRId64" > "
+                "file remain bytes: %"PRId64, __LINE__,
+                pTask->client_ip, file_offset, download_bytes,
+                file_bytes - file_offset);
+        download_bytes = file_bytes - file_offset;
+    }
 
 	if (IS_TRUNK_FILE_BY_ID(trunkInfo))
 	{
@@ -7414,7 +7423,7 @@ static int storage_server_download_file(struct fast_task_info *pTask)
 
 	pFileContext->calc_crc32 = false;
     pFileContext->continue_callback = storage_nio_notify;
-	return storage_read_from_file(pTask, file_offset, download_bytes, \
+	return storage_read_from_file(pTask, file_offset, download_bytes,
 			storage_download_file_done_callback, store_path_index);
 }
 
