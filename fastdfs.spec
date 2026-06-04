@@ -120,6 +120,8 @@ systemctl enable fdfs_storaged
 /usr/bin/fdfs_append_file
 /usr/bin/fdfs_upload_appender
 /usr/bin/fdfs_regenerate_filename
+/usr/bin/fdfs_health_checker
+/usr/bin/fdfs_exporter
 
 %files -n %{FDFSConfig}
 %defattr(-,root,root,-)

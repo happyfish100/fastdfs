@@ -178,6 +178,7 @@ static int perform_health_check(ClusterHealth *cluster_health) {
     int group_count;
     int storage_count;
     int result;
+    int i;
     
     memset(cluster_health, 0, sizeof(ClusterHealth));
     cluster_health->overall_status = HEALTH_OK;
@@ -205,7 +206,7 @@ static int perform_health_check(ClusterHealth *cluster_health) {
     cluster_health->total_groups = group_count;
     
     // Check each group and storage server
-    for (int i = 0; i < group_count; i++) {
+    for (i = 0; i < group_count; i++) {
         FDFSGroupStat *pGroupStat = &group_stats[i];
         int group_healthy = 1;
         
@@ -318,6 +319,7 @@ static void print_health_status(ClusterHealth *cluster_health) {
 int main(int argc, char *argv[]) {
     char *conf_filename;
     int result;
+    int i;
     int daemon_mode = 0;
     
     printf("FastDFS Health Check Service\n");
@@ -335,7 +337,7 @@ int main(int argc, char *argv[]) {
     conf_filename = argv[1];
     
     // Parse options
-    for (int i = 2; i < argc; i++) {
+    for (i = 2; i < argc; i++) {
         if (strcmp(argv[i], "-d") == 0) {
             daemon_mode = 1;
         } else if (strcmp(argv[i], "-i") == 0 && i + 1 < argc) {
@@ -385,7 +387,7 @@ int main(int argc, char *argv[]) {
         }
         
         // Sleep until next check
-        for (int i = 0; i < check_interval && running; i++) {
+        for (i = 0; i < check_interval && running; i++) {
             sleep(1);
         }
     }

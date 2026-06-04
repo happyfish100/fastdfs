@@ -167,15 +167,24 @@ perl -pi -e "s#\\\$\(LIBS\)#$LIBS#g" Makefile
 perl -pi -e "s#\\\$\(TARGET_PREFIX\)#$TARGET_PREFIX#g" Makefile
 cd ..
 
-copy_file()
-{
-    src=$1
-    dest=$2
 
-        if [ ! -f $TARGET_CONF_PATH/tracker.conf ]; then
-          cp -f conf/tracker.conf $TARGET_CONF_PATH/tracker.conf
-        fi
-}
+cd ../monitoring
+cd health_check
+cp Makefile.in Makefile
+perl -pi -e "s#\\\$\(CFLAGS\)#$CFLAGS#g" Makefile
+perl -pi -e "s#\\\$\(LIBS\)#$LIBS#g" Makefile
+perl -pi -e "s#\\\$\(TARGET_PREFIX\)#$TARGET_PREFIX#g" Makefile
+make $1 $2
+cd ..
+
+cd prometheus_exporter
+cp Makefile.in Makefile
+perl -pi -e "s#\\\$\(CFLAGS\)#$CFLAGS#g" Makefile
+perl -pi -e "s#\\\$\(LIBS\)#$LIBS#g" Makefile
+perl -pi -e "s#\\\$\(TARGET_PREFIX\)#$TARGET_PREFIX#g" Makefile
+make $1 $2
+cd ..
+
 
 if [ "$1" = "install" ]; then
   cd ..
