@@ -22,7 +22,7 @@ make
 ## Usage
 
 ```bash
-./health_checker /etc/fdfs/client.conf [options]
+./fdfs_health_checker /etc/fdfs/client.conf [options]
 ```
 
 **Options:**
@@ -32,10 +32,10 @@ make
 **Examples:**
 ```bash
 # Foreground mode with default 30s interval
-./health_checker /etc/fdfs/client.conf
+./fdfs_health_checker /etc/fdfs/client.conf
 
 # Daemon mode with 60s interval
-./health_checker /etc/fdfs/client.conf -d -i 60
+./fdfs_health_checker /etc/fdfs/client.conf -d -i 60
 ```
 
 ## Alert Thresholds
@@ -74,7 +74,7 @@ After=network.target
 [Service]
 Type=simple
 User=fdfs
-ExecStart=/usr/local/bin/health_checker /etc/fdfs/client.conf -d -i 30
+ExecStart=/usr/local/bin/fdfs_health_checker /etc/fdfs/client.conf -d -i 30
 Restart=on-failure
 
 [Install]
