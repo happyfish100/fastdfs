@@ -3,6 +3,8 @@ storage/Makefile
 tracker/Makefile
 client/test/Makefile
 client/Makefile
+monitoring/health_check/Makefile
+monitoring/prometheus_exporter/Makefile
 
 # client/fdfs_link_library.sh.in 
 client/fdfs_link_library.sh
