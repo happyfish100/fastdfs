@@ -1,7 +1,7 @@
 
 COMPILE = $(CC) $(CFLAGS)
 INC_PATH = -I/usr/local/include -I../../client -I../../common -I../../tracker
-LIB_PATH = -L/usr/local/lib -lfdfsclient -lfastcommon -lserverframe
+LIB_PATH = -L/usr/local/lib -L../../client -lfdfsclient -lfastcommon -lserverframe
 TARGET_PATH = $(TARGET_PREFIX)/bin
 
 ALL_PRGS = fdfs_health_checker
