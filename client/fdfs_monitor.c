@@ -287,7 +287,7 @@ static int list_storages(FDFSGroupStat *pGroupStat)
 	int result;
 	int storage_count;
 	int k;
-	int max_last_source_update;
+	time_t max_last_source_update;
     int64_t avail_space;
 	FDFSStorageInfo storage_infos[FDFS_MAX_SERVERS_EACH_GROUP];
 	FDFSStorageInfo *p;

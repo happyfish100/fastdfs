@@ -133,13 +133,15 @@ static int export_group_metrics(char *response, size_t *offset, size_t max_size,
 /**
  * Export storage-level metrics
  */
-static int export_storage_metrics(char *response, size_t *offset, size_t max_size,
-                                 const char *group_name,
-                                 FDFSStorageInfo *pStorage,
-                                 FDFSStorageStat *pStorageStat) {
+static int export_storage_metrics(char *response, size_t *offset,
+        size_t max_size, const char *group_name,
+        FDFSStorageInfo *pStorage, FDFSStorageStat *pStorageStat,
+        time_t max_last_source_update)
+{
     char metric_name[256];
     char labels[512];
     char value[64];
+    long delay_seconds;
     time_t current_time = time(NULL);
     
     // Storage labels
@@ -247,15 +249,42 @@ static int export_storage_metrics(char *response, size_t *offset, size_t max_siz
     snprintf(value, sizeof(value), "%ld", (long)pStorageStat->last_heart_beat_time);
     if (append_metric(response, offset, max_size, metric_name, labels, value,
                      "Last heartbeat timestamp") != 0) return -1;
-    
+
     // Heartbeat delay
     format_metric_name(metric_name, sizeof(metric_name), "storage", "heartbeat_delay_seconds");
     snprintf(value, sizeof(value), "%ld", 
             (long)(current_time - pStorageStat->last_heart_beat_time));
     if (append_metric(response, offset, max_size, metric_name, labels, value,
                      "Seconds since last heartbeat") != 0) return -1;
-    
+
     // === Sync Metrics ===
+
+    format_metric_name(metric_name, sizeof(metric_name),
+            "storage", "last_synced_timestamp");
+    snprintf(value, sizeof(value), "%ld",
+            (long)pStorageStat->last_synced_timestamp);
+    if (append_metric(response, offset, max_size, metric_name, labels, value,
+                     "Last synced timestamp") != 0) return -1;
+
+    // Sync delay seconds
+    format_metric_name(metric_name, sizeof(metric_name),
+            "storage", "synced_delay_seconds");
+    if (max_last_source_update == 0) {
+        delay_seconds = 0;
+    } else {
+        if (pStorageStat->last_synced_timestamp > 0) {
+            delay_seconds = max_last_source_update -
+                pStorageStat->last_synced_timestamp;
+            if (delay_seconds < 0) {
+                delay_seconds = 0;
+            }
+        } else {
+            delay_seconds = -1;  //never synced
+        }
+    }
+    snprintf(value, sizeof(value), "%ld", delay_seconds);
+    if (append_metric(response, offset, max_size, metric_name, labels, value,
+                     "Synced delay seconds") != 0) return -1;
     
     format_metric_name(metric_name, sizeof(metric_name), "storage", "sync_in_bytes_total");
     snprintf(value, sizeof(value), "%"PRId64, pStorageStat->total_sync_in_bytes);
@@ -281,8 +310,10 @@ static int collect_metrics(char *response, size_t max_size) {
     FDFSGroupStat *pGroupStat;
     FDFSGroupStat *pGroupEnd;
     FDFSStorageInfo storage_infos[FDFS_MAX_SERVERS_EACH_GROUP];
+    FDFSStorageInfo *ps;
     FDFSStorageInfo *pStorage;
     FDFSStorageInfo *pStorageEnd;
+    time_t max_last_source_update;
     size_t offset = 0;
     
     // Get tracker connection
@@ -319,9 +350,19 @@ static int collect_metrics(char *response, size_t max_size) {
         // Export storage metrics for each server in group
         pStorageEnd = storage_infos + storage_count;
         for (pStorage = storage_infos; pStorage < pStorageEnd; pStorage++) {
+            max_last_source_update = 0;
+            for (ps = storage_infos; ps < pStorageEnd; ps++) {
+                if (ps != pStorage && ps->stat.last_source_update
+                        > max_last_source_update)
+                {
+                    max_last_source_update = ps->stat.last_source_update;
+                }
+            }
+
             if (export_storage_metrics(response, &offset, max_size,
-                        pGroupStat->group_name, pStorage,
-                        &pStorage->stat) != 0) {
+                        pGroupStat->group_name, pStorage, &pStorage->stat,
+                        max_last_source_update) != 0)
+            {
                 conn_pool_disconnect_server(pTrackerServer);
                 return -1;
             }

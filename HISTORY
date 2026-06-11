@@ -1,3 +1,5 @@
+Version 6.15.5  2026-06-11
+ fdfs_exporter add metrics: last_synced_timestamp and synced_delay_seconds
 
 Version 6.15.4  2026-03-07
  * download_file offset and bytes's logic is consistent with the range of HTTP
