@@ -302,7 +302,8 @@ static int export_storage_metrics(char *response, size_t *offset,
 /**
  * Collect all metrics from FastDFS
  */
-static int collect_metrics(char *response, size_t max_size) {
+static int collect_metrics(char *response, size_t max_size, int *length)
+{
     int result;
     int group_count;
     int storage_count;
@@ -368,7 +369,8 @@ static int collect_metrics(char *response, size_t max_size) {
             }
         }
     }
-    
+
+    *length = offset;
     conn_pool_disconnect_server(pTrackerServer);
     return 0;
 }
@@ -380,6 +382,8 @@ static void handle_request(int client_socket) {
     char request[4096];
     char *response = NULL;
     char http_header[512];
+    int header_length;
+    int body_length = 0;
     int bytes_read;
     int result;
     
@@ -415,23 +419,24 @@ static void handle_request(int client_socket) {
     }
     
     // Collect metrics
-    result = collect_metrics(response, MAX_RESPONSE_SIZE);
+    result = collect_metrics(response, MAX_RESPONSE_SIZE, &body_length);
     if (result != 0) {
         snprintf(response, MAX_RESPONSE_SIZE,
                 "# ERROR: Failed to collect metrics (error code: %d)\n", result);
     }
-    
+
     // Send HTTP response
-    snprintf(http_header, sizeof(http_header),
+    header_length = sprintf(http_header,
             "HTTP/1.1 200 OK\r\n"
-            "Content-Type: text/plain; version=0.0.4\r\n"
-            "Content-Length: %zu\r\n"
-            "\r\n",
-            strlen(response));
-    
-    send(client_socket, http_header, strlen(http_header), 0);
-    send(client_socket, response, strlen(response), 0);
-    
+            "Content-Type: text/plain\r\n"
+            "Content-Length: %d\r\n"
+            "\r\n", body_length);
+
+    send(client_socket, http_header, header_length, 0);
+    if (body_length > 0) {
+        send(client_socket, response, body_length, 0);
+    }
+
     free(response);
     close(client_socket);
 }
