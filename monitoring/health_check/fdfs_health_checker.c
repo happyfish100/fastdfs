@@ -105,6 +105,7 @@ static void send_alert(const char *level, const char *message) {
  * Signal handler
  */
 static void signal_handler(int sig) {
+    printf("\nShutting down health check service...\n");
     running = 0;
 }
 
@@ -329,16 +330,19 @@ int main(int argc, char *argv[]) {
     if (argc < 2) {
         printf("Usage: %s <config_file> [options]\n", argv[0]);
         printf("Options:\n");
-        printf("  -d           Run as daemon\n");
-        printf("  -i <seconds> Check interval (default: %d)\n", DEFAULT_CHECK_INTERVAL);
+        printf("  -d or --daemon Run as daemon\n");
+        printf("  -i <seconds> Check interval (default: %d)\n\n",
+                DEFAULT_CHECK_INTERVAL);
+        printf("For example:\n");
+        printf("  %s /etc/fdfs/client.conf -i 60\n\n", argv[0]);
         return 1;
     }
     
     conf_filename = argv[1];
-    
+
     // Parse options
     for (i = 2; i < argc; i++) {
-        if (strcmp(argv[i], "-d") == 0) {
+        if (strcmp(argv[i], "-d") == 0 || strcmp(argv[i], "--daemon") == 0) {
             daemon_mode = 1;
         } else if (strcmp(argv[i], "-i") == 0 && i + 1 < argc) {
             check_interval = atoi(argv[++i]);
@@ -361,7 +365,7 @@ int main(int argc, char *argv[]) {
     }
     
     printf("FastDFS client initialized successfully\n");
-    printf("Tracker servers: %d\n", g_tracker_group.server_count);
+    printf("Tracker server count: %d\n", g_tracker_group.server_count);
     printf("Check interval: %d seconds\n", check_interval);
     printf("Mode: %s\n\n", daemon_mode ? "daemon" : "foreground");
     
@@ -392,7 +396,7 @@ int main(int argc, char *argv[]) {
         }
     }
     
-    printf("\nShutting down health check service...\n");
+    printf("Health check service exited\n");
     closelog();
     fdfs_client_destroy();
     return 0;

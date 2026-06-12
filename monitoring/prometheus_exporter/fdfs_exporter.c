@@ -442,10 +442,12 @@ static void handle_request(int client_socket)
  * Signal handler
  */
 static void signal_handler(int sig) {
+    printf("\nShutting down prometheus exporter service...\n");
     if (server_socket >= 0) {
         close(server_socket);
     }
     fdfs_client_destroy();
+    printf("Prometheus exporter service exited.\n\n");
     exit(0);
 }
 
@@ -455,28 +457,40 @@ static void signal_handler(int sig) {
 int main(int argc, char *argv[]) {
     char *conf_filename;
     struct sockaddr_in server_addr;
-    int result;
+    int daemon_mode = 0;
     int opt = 1;
+    int i;
+    int result;
     
     printf("FastDFS Prometheus Exporter\n");
     printf("===========================\n\n");
 
     // Parse arguments
     if (argc < 2) {
-        printf("Usage: %s <fdfs_client_config_file> [port]\n", argv[0]);
-        printf("Default port: %d\n", DEFAULT_PORT);
+        printf("Usage: %s <fdfs_client_config_file> [port=%d]\n",
+                argv[0], DEFAULT_PORT);
+        printf("Options:\n");
+        printf("  -d or --daemon Run as daemon\n\n");
+        printf("For example:\n");
+        printf("  %s /etc/fdfs/client.conf --daemon\n\n", argv[0]);
         return 1;
     }
 
     conf_filename = argv[1];
-    if (argc >= 3) {
-        listen_port = atoi(argv[2]);
-        if (listen_port <= 0 || listen_port > 65535) {
-            printf("Invalid port number: %s\n", argv[2]);
-            return 1;
+
+    // Parse options
+    for (i = 2; i < argc; i++) {
+        if (strcmp(argv[i], "-d") == 0 || strcmp(argv[i], "--daemon") == 0) {
+            daemon_mode = 1;
+        } else {
+            listen_port = atoi(argv[i]);
+            if (listen_port <= 0 || listen_port > 65535) {
+                printf("Invalid port number: %s\n", argv[i]);
+                return 1;
+            }
         }
     }
-    
+
     // Initialize FastDFS client
     log_init();
     g_log_context.log_level = LOG_ERR;
@@ -490,6 +504,12 @@ int main(int argc, char *argv[]) {
 
     printf("FastDFS client initialized successfully\n");
     printf("Tracker server count: %d\n", g_tracker_group.server_count);
+    printf("Mode: %s\n", daemon_mode ? "daemon" : "foreground");
+
+    // Daemonize if requested
+    if (daemon_mode) {
+        daemon_init(false);
+    }
 
     // Create socket
     server_socket = socket(AF_INET, SOCK_STREAM, 0);
@@ -536,10 +556,10 @@ int main(int argc, char *argv[]) {
         struct sockaddr_in client_addr;
         socklen_t client_len = sizeof(client_addr);
         int client_socket;
-        
-        client_socket = accept(server_socket, 
-                              (struct sockaddr *)&client_addr, 
-                              &client_len);
+
+        client_socket = accept(server_socket,
+                (struct sockaddr *)&client_addr,
+                &client_len);
         if (client_socket < 0) {
             continue;
         }
