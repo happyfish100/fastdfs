@@ -30,7 +30,6 @@
 #define METRIC_PREFIX "fastdfs_"
 
 // Global variables
-static ConnectionInfo *pTrackerServer = NULL;
 static int listen_port = DEFAULT_PORT;
 static int server_socket = -1;
 
@@ -307,6 +306,7 @@ static int collect_metrics(char *response, size_t max_size, int *length)
     int result;
     int group_count;
     int storage_count;
+    ConnectionInfo *pTrackerServer;
     FDFSGroupStat group_stats[FDFS_MAX_GROUPS];
     FDFSGroupStat *pGroupStat;
     FDFSGroupStat *pGroupEnd;
@@ -378,7 +378,8 @@ static int collect_metrics(char *response, size_t max_size, int *length)
 /**
  * Handle HTTP request
  */
-static void handle_request(int client_socket) {
+static void handle_request(int client_socket)
+{
     char request[4096];
     char *response = NULL;
     char http_header[512];
@@ -390,39 +391,36 @@ static void handle_request(int client_socket) {
     // Read request
     bytes_read = recv(client_socket, request, sizeof(request) - 1, 0);
     if (bytes_read <= 0) {
-        close(client_socket);
         return;
     }
     request[bytes_read] = '\0';
-    
+
     // Check if it's a GET request for /metrics
     if (strncmp(request, "GET /metrics", 12) != 0) {
         const char *not_found = "HTTP/1.1 404 Not Found\r\n"
-                               "Content-Type: text/plain\r\n"
-                               "Content-Length: 9\r\n\r\n"
-                               "Not Found";
+            "Content-Type: text/plain\r\n"
+            "Content-Length: 9\r\n\r\n"
+            "Not Found";
         send(client_socket, not_found, strlen(not_found), 0);
-        close(client_socket);
         return;
     }
-    
+
     // Allocate response buffer
     response = (char *)malloc(MAX_RESPONSE_SIZE);
     if (response == NULL) {
         const char *error = "HTTP/1.1 500 Internal Server Error\r\n"
-                           "Content-Type: text/plain\r\n"
-                           "Content-Length: 21\r\n\r\n"
-                           "Internal Server Error";
+            "Content-Type: text/plain\r\n"
+            "Content-Length: 21\r\n\r\n"
+            "Internal Server Error";
         send(client_socket, error, strlen(error), 0);
-        close(client_socket);
         return;
     }
     
     // Collect metrics
     result = collect_metrics(response, MAX_RESPONSE_SIZE, &body_length);
     if (result != 0) {
-        snprintf(response, MAX_RESPONSE_SIZE,
-                "# ERROR: Failed to collect metrics (error code: %d)\n", result);
+        body_length = sprintf(response, "# ERROR: Failed to collect "
+                "metrics (error code: %d)\n", result);
     }
 
     // Send HTTP response
@@ -438,7 +436,6 @@ static void handle_request(int client_socket) {
     }
 
     free(response);
-    close(client_socket);
 }
 
 /**
@@ -463,14 +460,14 @@ int main(int argc, char *argv[]) {
     
     printf("FastDFS Prometheus Exporter\n");
     printf("===========================\n\n");
-    
+
     // Parse arguments
     if (argc < 2) {
-        printf("Usage: %s <config_file> [port]\n", argv[0]);
+        printf("Usage: %s <fdfs_client_config_file> [port]\n", argv[0]);
         printf("Default port: %d\n", DEFAULT_PORT);
         return 1;
     }
-    
+
     conf_filename = argv[1];
     if (argc >= 3) {
         listen_port = atoi(argv[2]);
@@ -484,16 +481,16 @@ int main(int argc, char *argv[]) {
     log_init();
     g_log_context.log_level = LOG_ERR;
     ignore_signal_pipe();
-    
+
     result = fdfs_client_init(conf_filename);
     if (result != 0) {
         printf("ERROR: Failed to initialize FastDFS client\n");
         return result;
     }
-    
+
     printf("FastDFS client initialized successfully\n");
-    printf("Tracker servers: %d\n", g_tracker_group.server_count);
-    
+    printf("Tracker server count: %d\n", g_tracker_group.server_count);
+
     // Create socket
     server_socket = socket(AF_INET, SOCK_STREAM, 0);
     if (server_socket < 0) {
@@ -501,24 +498,24 @@ int main(int argc, char *argv[]) {
         fdfs_client_destroy();
         return 1;
     }
-    
+
     // Set socket options
     setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
-    
+
     // Bind socket
     memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = INADDR_ANY;
     server_addr.sin_port = htons(listen_port);
-    
     if (bind(server_socket, (struct sockaddr *)&server_addr, 
-            sizeof(server_addr)) < 0) {
+                sizeof(server_addr)) < 0)
+    {
         printf("ERROR: Failed to bind socket to port %d\n", listen_port);
         close(server_socket);
         fdfs_client_destroy();
         return 1;
     }
-    
+
     // Listen
     if (listen(server_socket, 10) < 0) {
         printf("ERROR: Failed to listen on socket\n");
@@ -526,14 +523,14 @@ int main(int argc, char *argv[]) {
         fdfs_client_destroy();
         return 1;
     }
-    
+
     printf("Listening on port %d\n", listen_port);
     printf("Metrics endpoint: http://localhost:%d/metrics\n\n", listen_port);
-    
+
     // Setup signal handlers
     signal(SIGINT, signal_handler);
     signal(SIGTERM, signal_handler);
-    
+
     // Accept connections
     while (1) {
         struct sockaddr_in client_addr;
@@ -546,9 +543,10 @@ int main(int argc, char *argv[]) {
         if (client_socket < 0) {
             continue;
         }
-        
+
         handle_request(client_socket);
+        close(client_socket);
     }
-    
+
     return 0;
 }
