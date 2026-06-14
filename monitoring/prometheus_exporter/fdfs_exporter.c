@@ -32,6 +32,7 @@
 // Global variables
 static int listen_port = DEFAULT_PORT;
 static int server_socket = -1;
+static char *server_response = NULL;
 
 /**
  * Format metric name for Prometheus
@@ -381,7 +382,6 @@ static int collect_metrics(char *response, size_t max_size, int *length)
 static void handle_request(int client_socket)
 {
     char request[4096];
-    char *response = NULL;
     char http_header[512];
     int header_length;
     int body_length = 0;
@@ -405,22 +405,16 @@ static void handle_request(int client_socket)
         return;
     }
 
-    // Allocate response buffer
-    response = (char *)malloc(MAX_RESPONSE_SIZE);
-    if (response == NULL) {
+
+    // Collect metrics
+    result = collect_metrics(server_response, MAX_RESPONSE_SIZE, &body_length);
+    if (result != 0) {
         const char *error = "HTTP/1.1 500 Internal Server Error\r\n"
             "Content-Type: text/plain\r\n"
             "Content-Length: 21\r\n\r\n"
             "Internal Server Error";
         send(client_socket, error, strlen(error), 0);
         return;
-    }
-    
-    // Collect metrics
-    result = collect_metrics(response, MAX_RESPONSE_SIZE, &body_length);
-    if (result != 0) {
-        body_length = sprintf(response, "# ERROR: Failed to collect "
-                "metrics (error code: %d)\n", result);
     }
 
     // Send HTTP response
@@ -429,13 +423,10 @@ static void handle_request(int client_socket)
             "Content-Type: text/plain\r\n"
             "Content-Length: %d\r\n"
             "\r\n", body_length);
-
     send(client_socket, http_header, header_length, 0);
     if (body_length > 0) {
-        send(client_socket, response, body_length, 0);
+        send(client_socket, server_response, body_length, 0);
     }
-
-    free(response);
 }
 
 /**
@@ -542,6 +533,13 @@ int main(int argc, char *argv[]) {
         close(server_socket);
         fdfs_client_destroy();
         return 1;
+    }
+
+    // Allocate response buffer
+    server_response = (char *)malloc(MAX_RESPONSE_SIZE);
+    if (server_response == NULL) {
+        printf("ERROR: malloc %d bytes fail\n", MAX_RESPONSE_SIZE);
+        return ENOMEM;
     }
 
     printf("Listening on port %d\n", listen_port);
