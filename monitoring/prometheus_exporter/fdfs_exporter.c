@@ -87,28 +87,47 @@ static int export_group_metrics(char *response, size_t *offset, size_t max_size,
     char metric_name[256];
     char labels[512];
     char value[64];
-    
+    int64_t avail_space;
+
     // Group label
     snprintf(labels, sizeof(labels), "group=\"%s\"", pGroupStat->group_name);
-    
+
     // Total space
     format_metric_name(metric_name, sizeof(metric_name), "group", "total_mb");
     snprintf(value, sizeof(value), "%"PRId64, pGroupStat->total_mb);
     if (append_metric(response, offset, max_size, metric_name, labels, value,
-                     "Total storage space in MB") != 0) return -1;
-    
+                     "Disk total space in MB") != 0) return -1;
+
     // Free space
     format_metric_name(metric_name, sizeof(metric_name), "group", "free_mb");
     snprintf(value, sizeof(value), "%"PRId64, pGroupStat->free_mb);
     if (append_metric(response, offset, max_size, metric_name, labels, value,
-                     "Free storage space in MB") != 0) return -1;
-    
-    // Trunk free space
-    format_metric_name(metric_name, sizeof(metric_name), "group", "trunk_free_mb");
-    snprintf(value, sizeof(value), "%"PRId64, pGroupStat->trunk_free_mb);
+                     "Disk free space in MB") != 0) return -1;
+
+    // Reserved space
+    format_metric_name(metric_name, sizeof(metric_name), "group", "reserved_mb");
+    snprintf(value, sizeof(value), "%"PRId64, pGroupStat->reserved_mb);
     if (append_metric(response, offset, max_size, metric_name, labels, value,
-                     "Trunk free space in MB") != 0) return -1;
-    
+                     "Disk reserved space in MB") != 0) return -1;
+
+    avail_space = pGroupStat->free_mb - pGroupStat->reserved_mb;
+    if (avail_space < 0) {
+        avail_space = 0;
+    }
+    // Available space
+    format_metric_name(metric_name, sizeof(metric_name), "group", "available_mb");
+    snprintf(value, sizeof(value), "%"PRId64, avail_space);
+    if (append_metric(response, offset, max_size, metric_name, labels, value,
+                     "Disk available space in MB") != 0) return -1;
+
+    // Trunk free space
+    if (pGroupStat->current_trunk_file_id >= 0) { //use trunk file
+        format_metric_name(metric_name, sizeof(metric_name), "group", "trunk_free_mb");
+        snprintf(value, sizeof(value), "%"PRId64, pGroupStat->trunk_free_mb);
+        if (append_metric(response, offset, max_size, metric_name, labels, value,
+                    "Trunk free space in MB") != 0) return -1;
+    }
+
     // Storage server count
     format_metric_name(metric_name, sizeof(metric_name), "group", "storage_count");
     snprintf(value, sizeof(value), "%d", pGroupStat->storage_count);
@@ -142,6 +161,7 @@ static int export_storage_metrics(char *response, size_t *offset,
     char labels[512];
     char value[64];
     long delay_seconds;
+    int64_t avail_space;
     time_t current_time = time(NULL);
     
     // Storage labels
@@ -150,17 +170,31 @@ static int export_storage_metrics(char *response, size_t *offset,
             group_name, pStorage->id, pStorage->ip_addr, pStorage->status);
     
     // === Storage Space Metrics ===
-    
+
     format_metric_name(metric_name, sizeof(metric_name), "storage", "total_mb");
     snprintf(value, sizeof(value), "%"PRId64, pStorage->total_mb);
     if (append_metric(response, offset, max_size, metric_name, labels, value,
-                     "Total storage space in MB") != 0) return -1;
-    
+                     "Disk total space in MB") != 0) return -1;
+
     format_metric_name(metric_name, sizeof(metric_name), "storage", "free_mb");
     snprintf(value, sizeof(value), "%"PRId64, pStorage->free_mb);
     if (append_metric(response, offset, max_size, metric_name, labels, value,
-                     "Free storage space in MB") != 0) return -1;
-    
+                     "Disk free space in MB") != 0) return -1;
+
+    format_metric_name(metric_name, sizeof(metric_name), "storage", "reserved_mb");
+    snprintf(value, sizeof(value), "%"PRId64, pStorage->reserved_mb);
+    if (append_metric(response, offset, max_size, metric_name, labels, value,
+                     "Disk reserved space in MB") != 0) return -1;
+
+    avail_space = pStorage->free_mb - pStorage->reserved_mb;
+    if (avail_space < 0) {
+        avail_space = 0;
+    }
+    format_metric_name(metric_name, sizeof(metric_name), "storage", "available_mb");
+    snprintf(value, sizeof(value), "%"PRId64, avail_space);
+    if (append_metric(response, offset, max_size, metric_name, labels, value,
+                     "Disk available space in MB") != 0) return -1;
+
     // === Upload Metrics ===
     
     format_metric_name(metric_name, sizeof(metric_name), "storage", "upload_total");
