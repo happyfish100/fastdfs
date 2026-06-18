@@ -293,8 +293,7 @@
 #define STORAGE_ITEM_LAST_HEART_BEAT_TIME_LEN  \
     (sizeof(STORAGE_ITEM_LAST_HEART_BEAT_TIME_STR) - 1)
 
-TrackerServerGroup g_tracker_servers = {0, 0, -1, NULL};
-TrackerServerInfo *g_last_tracker_servers = NULL;  //for delay free
+TrackerClusterGroup g_tracker_servers = {0, NULL, NULL, NULL};
 int g_next_leader_index = -1;			   //next leader index
 int g_trunk_server_chg_count = 1;		   //for notify other trackers
 int g_tracker_leader_chg_count = 0;		   //for notify storage servers
@@ -4466,31 +4465,50 @@ static int tracker_mem_cmp_tracker_running_status(const void *p1, const void *p2
 	return pStatus2->restart_interval - pStatus1->restart_interval;
 }
 
+static TrackerClusterServer *tracker_group_get_server(
+        const char *target_ip, const int target_port)
+{
+    TrackerClusterServer **ppServer;
+    TrackerClusterServer **ppEnd;
+
+    ppEnd = g_tracker_servers.servers + g_tracker_servers.server_count;
+    for (ppServer=g_tracker_servers.servers; ppServer<ppEnd; ppServer++)
+    {
+        if (fdfs_server_contain(&(*ppServer)->server, target_ip, target_port))
+        {
+            return *ppServer;
+        }
+    }
+
+    return NULL;
+}
+
 static int find_my_ip_in_tracker_list()
 {
     const char *current_ip;
     const char *previous_ip;
-    TrackerServerInfo *pServer;
+    TrackerClusterServer *pServer;
     char buff[256];
 
     previous_ip = NULL;
     while ((current_ip=get_next_local_ip(previous_ip)) != NULL)
     {
-        pServer = fdfs_tracker_group_get_server(&g_tracker_servers,
-                current_ip, SF_G_INNER_PORT);
+        pServer = tracker_group_get_server(current_ip, SF_G_INNER_PORT);
         if (pServer != NULL)
         {
-            if (pServer->count > 1)
+            g_tracker_servers.myself = pServer;
+            if (pServer->server.count > 1)
             {
                 ConnectionInfo *conn;
                 ConnectionInfo *end;
 
-                end = pServer->connections + pServer->count;
-                for (conn=pServer->connections; conn<end; conn++)
+                end = pServer->server.connections + pServer->server.count;
+                for (conn=pServer->server.connections; conn<end; conn++)
                 {
                     insert_into_local_host_ip(conn->ip_addr);
                 }
             }
+
             return 0;
         }
 
@@ -4505,35 +4523,52 @@ static int find_my_ip_in_tracker_list()
 
 static int tracker_mem_first_add_tracker_servers(FDFSStorageJoinBody *pJoinBody)
 {
-	TrackerServerInfo *pLocalTracker;
-	TrackerServerInfo *pLocalEnd;
-	TrackerServerInfo *servers;
-	int tracker_count;
-	int bytes;
+    TrackerClusterServer **ppLocalTracker;
+    TrackerClusterServer **ppLocalEnd;
+    TrackerServerInfo *pTrackerServer;
+    TrackerClusterServer *pClusterServer;
+    TrackerClusterServer **servers;
+    int tracker_count;
+    int bytes;
 
-	tracker_count = pJoinBody->tracker_count;
-	bytes = sizeof(TrackerServerInfo) * tracker_count;
-	servers = (TrackerServerInfo *)malloc(bytes);
-	if (servers == NULL)
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"malloc %d bytes fail, " \
-			"errno: %d, error info: %s", \
-			__LINE__, bytes, errno, STRERROR(errno));
-		return errno != 0 ? errno : ENOMEM;
-	}
-	memcpy(servers, pJoinBody->tracker_servers, bytes);
+    tracker_count = pJoinBody->tracker_count;
+    bytes = sizeof(TrackerClusterServer *) * tracker_count;
+    servers = (TrackerClusterServer **)malloc(bytes);
+    if (servers == NULL)
+    {
+        logError("file: "__FILE__", line: %d, " \
+                "malloc %d bytes fail, " \
+                "errno: %d, error info: %s", \
+                __LINE__, bytes, errno, STRERROR(errno));
+        return errno != 0 ? errno : ENOMEM;
+    }
 
-	pLocalEnd = servers + tracker_count;
-       	for (pLocalTracker=servers; pLocalTracker<pLocalEnd; \
-		pLocalTracker++)
-	{
-        fdfs_server_sock_reset(pLocalTracker);
-	}
+    ppLocalEnd = servers + tracker_count;
+    for (pTrackerServer=pJoinBody->tracker_servers, ppLocalTracker=servers;
+            ppLocalTracker<ppLocalEnd; pTrackerServer++, ppLocalTracker++)
+    {
+        pClusterServer = (TrackerClusterServer *)
+            malloc(sizeof(TrackerClusterServer));
+        if (pClusterServer == NULL)
+        {
+            logError("file: "__FILE__", line: %d, "
+                    "malloc %d bytes fail, "
+                    "errno: %d, error info: %s",
+                    __LINE__, (int)sizeof(TrackerClusterServer),
+                    errno, STRERROR(errno));
+            return errno != 0 ? errno : ENOMEM;
+        }
 
-	g_tracker_servers.servers = servers;
-	g_tracker_servers.server_count = tracker_count;
-	return find_my_ip_in_tracker_list();
+        pClusterServer->is_active = false;
+        pClusterServer->last_heartbeat_time = 0;
+        pClusterServer->server = *pTrackerServer;
+        fdfs_server_sock_reset(&pClusterServer->server);
+        *ppLocalTracker = pClusterServer;
+    }
+
+    g_tracker_servers.servers = servers;
+    g_tracker_servers.server_count = tracker_count;
+    return find_my_ip_in_tracker_list();
 }
 
 static int tracker_mem_copy_uniq_tracker_servers(
@@ -4566,10 +4601,11 @@ static int tracker_mem_check_add_tracker_servers(FDFSStorageJoinBody *pJoinBody)
 {
 	TrackerServerInfo *pJoinTracker;
 	TrackerServerInfo *pJoinEnd;
-	TrackerServerInfo *pLocalTracker;
-	TrackerServerInfo *pLocalEnd;
-	TrackerServerInfo *pNewServer;
-	TrackerServerInfo *new_servers;
+	TrackerClusterServer **ppLocalTracker;
+	TrackerClusterServer **ppLocalEnd;
+	TrackerClusterServer **ppNewServer;
+	TrackerClusterServer **new_servers;
+    TrackerClusterServer *pClusterServer;
     char ip_str_join[256];
     char ip_str_before[256];
     char ip_str_after[256];
@@ -4577,23 +4613,23 @@ static int tracker_mem_check_add_tracker_servers(FDFSStorageJoinBody *pJoinBody)
 	int bytes;
 
 	add_count = 0;
-	pLocalEnd = g_tracker_servers.servers + g_tracker_servers.server_count;
+	ppLocalEnd = g_tracker_servers.servers + g_tracker_servers.server_count;
 	pJoinEnd = pJoinBody->tracker_servers + pJoinBody->tracker_count;
-        for (pJoinTracker=pJoinBody->tracker_servers;
-                pJoinTracker<pJoinEnd; pJoinTracker++)
-	{
-        	for (pLocalTracker=g_tracker_servers.servers;
-               		pLocalTracker<pLocalEnd; pLocalTracker++)
-		{
-            if (fdfs_server_equal(pJoinTracker, pLocalTracker))
+    for (pJoinTracker=pJoinBody->tracker_servers;
+            pJoinTracker<pJoinEnd; pJoinTracker++)
+    {
+        for (ppLocalTracker=g_tracker_servers.servers;
+                ppLocalTracker<ppLocalEnd; ppLocalTracker++)
+        {
+            if (fdfs_server_equal(pJoinTracker, &(*ppLocalTracker)->server))
             {
-				break;
+                break;
             }
-            if (fdfs_server_contain_ex(pJoinTracker, pLocalTracker))
-			{
+            if (fdfs_server_contain_ex(pJoinTracker, &(*ppLocalTracker)->server))
+            {
                 fdfs_server_info_to_string(pJoinTracker,
                         ip_str_join, sizeof(ip_str_join));
-                fdfs_server_info_to_string(pLocalTracker,
+                fdfs_server_info_to_string(&(*ppLocalTracker)->server,
                         ip_str_before, sizeof(ip_str_before));
 
                 logWarning("file: "__FILE__", line: %d, "
@@ -4601,12 +4637,12 @@ static int tracker_mem_check_add_tracker_servers(FDFSStorageJoinBody *pJoinBody)
                         "join: %s, local: %s", __LINE__,
                         ip_str_join, ip_str_before);
 
-                if (pJoinTracker->count > pLocalTracker->count)
+                if (pJoinTracker->count > (*ppLocalTracker)->server.count)
                 {
                     if (tracker_mem_copy_uniq_tracker_servers(pJoinTracker,
-                            pLocalTracker) == 0)
+                                &(*ppLocalTracker)->server) == 0)
                     {
-                        fdfs_server_info_to_string(pLocalTracker,
+                        fdfs_server_info_to_string(&(*ppLocalTracker)->server,
                                 ip_str_after, sizeof(ip_str_after));
                         logInfo("file: "__FILE__", line: %d, "
                                 "merge tracker server ips, before: %s, "
@@ -4614,27 +4650,19 @@ static int tracker_mem_check_add_tracker_servers(FDFSStorageJoinBody *pJoinBody)
                                 ip_str_before, ip_str_after);
                     }
                 }
-				break;
-			}
-		}
+                break;
+            }
+        }
 
-		if (pLocalTracker == pLocalEnd)
-		{
-			add_count++;
-		}
-	}
+        if (ppLocalTracker == ppLocalEnd)
+        {
+            add_count++;
+        }
+    }
 
 	if (add_count == 0)
 	{
 		return 0;
-	}
-
-	if (g_last_tracker_servers != NULL)
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"last tracker servers does not freed, " \
-			"should try again!", __LINE__);
-		return EAGAIN;
 	}
 
 	if (g_tracker_servers.server_count + add_count > FDFS_MAX_TRACKERS)
@@ -4645,9 +4673,9 @@ static int tracker_mem_check_add_tracker_servers(FDFSStorageJoinBody *pJoinBody)
 		return ENOSPC;
 	}
 
-	bytes = sizeof(TrackerServerInfo) * (g_tracker_servers.server_count
-						 + add_count);
-	new_servers = (TrackerServerInfo *)malloc(bytes);
+	bytes = sizeof(TrackerClusterServer *) *
+        (g_tracker_servers.server_count + add_count);
+	new_servers = (TrackerClusterServer **)malloc(bytes);
 	if (new_servers == NULL)
 	{
 		logError("file: "__FILE__", line: %d, "
@@ -4657,32 +4685,48 @@ static int tracker_mem_check_add_tracker_servers(FDFSStorageJoinBody *pJoinBody)
 		return errno != 0 ? errno : ENOMEM;
 	}
 
-	memcpy(new_servers, g_tracker_servers.servers, sizeof(TrackerServerInfo) *
-				g_tracker_servers.server_count);
-	pNewServer = new_servers + g_tracker_servers.server_count;
+	memcpy(new_servers, g_tracker_servers.servers,
+            sizeof(TrackerClusterServer *) *
+            g_tracker_servers.server_count);
+
+    ppNewServer = new_servers + g_tracker_servers.server_count;
 	for (pJoinTracker=pJoinBody->tracker_servers;
 		pJoinTracker<pJoinEnd; pJoinTracker++)
 	{
-		for (pLocalTracker=new_servers;
-			pLocalTracker<pNewServer; pLocalTracker++)
-		{
-            if (fdfs_server_contain_ex(pJoinTracker, pLocalTracker))
-			{
-				break;
-			}
-		}
+		for (ppLocalTracker=new_servers;
+			ppLocalTracker<ppNewServer; ppLocalTracker++)
+        {
+            if (fdfs_server_contain_ex(pJoinTracker,
+                        &(*ppLocalTracker)->server))
+            {
+                break;
+            }
+        }
 
-		if (pLocalTracker == pNewServer)
-		{
-			memcpy(pNewServer, pJoinTracker,
-				sizeof(TrackerServerInfo));
-            fdfs_server_sock_reset(pNewServer);
-			pNewServer++;
-		}
+		if (ppLocalTracker == ppNewServer)
+        {
+            pClusterServer = (TrackerClusterServer *)
+                malloc(sizeof(TrackerClusterServer));
+            if (pClusterServer == NULL)
+            {
+                logError("file: "__FILE__", line: %d, "
+                        "malloc %d bytes fail, "
+                        "errno: %d, error info: %s",
+                        __LINE__, (int)sizeof(TrackerClusterServer),
+                        errno, STRERROR(errno));
+                return errno != 0 ? errno : ENOMEM;
+            }
+
+            pClusterServer->is_active = false;
+            pClusterServer->last_heartbeat_time = 0;
+            pClusterServer->server = *pJoinTracker;
+            fdfs_server_sock_reset(&pClusterServer->server);
+            *ppNewServer = pClusterServer;
+            ppNewServer++;
+        }
 	}
 
-	add_count = (pNewServer - new_servers) - g_tracker_servers.server_count;
-	g_last_tracker_servers = g_tracker_servers.servers;
+	add_count = (ppNewServer - new_servers) - g_tracker_servers.server_count;
 	g_tracker_servers.servers = new_servers;
 	g_tracker_servers.server_count += add_count;
 

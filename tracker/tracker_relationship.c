@@ -195,8 +195,8 @@ static int relationship_get_tracker_status(TrackerRunningStatus *pStatus)
 
 static int relationship_get_tracker_leader(TrackerRunningStatus *pTrackerStatus)
 {
-	TrackerServerInfo *pTrackerServer;
-	TrackerServerInfo *pTrackerEnd;
+	TrackerClusterServer **ppTrackerServer;
+	TrackerClusterServer **ppTrackerEnd;
 	TrackerRunningStatus *pStatus;
 	TrackerRunningStatus trackerStatus[FDFS_MAX_TRACKERS];
     char formatted_ip[FORMATTED_IP_SIZE];
@@ -208,11 +208,12 @@ static int relationship_get_tracker_leader(TrackerRunningStatus *pTrackerStatus)
 	memset(pTrackerStatus, 0, sizeof(TrackerRunningStatus));
 	pStatus = trackerStatus;
 	result = 0;
-	pTrackerEnd = g_tracker_servers.servers + g_tracker_servers.server_count;
-	for (pTrackerServer=g_tracker_servers.servers;
-		pTrackerServer<pTrackerEnd; pTrackerServer++)
+	ppTrackerEnd = g_tracker_servers.servers + g_tracker_servers.server_count;
+	for (ppTrackerServer=g_tracker_servers.servers;
+		ppTrackerServer<ppTrackerEnd; ppTrackerServer++)
 	{
-		pStatus->pTrackerServer = pTrackerServer;
+		pStatus->pTrackerServer = &(*ppTrackerServer)->server;
+        pStatus->server_index =  ppTrackerServer - g_tracker_servers.servers;
         r = relationship_get_tracker_status(pStatus);
 		if (r == 0)
 		{
@@ -234,7 +235,7 @@ static int relationship_get_tracker_leader(TrackerRunningStatus *pTrackerStatus)
 		return result == 0 ? ENOENT : result;
 	}
 
-	qsort(trackerStatus, count, sizeof(TrackerRunningStatus), \
+	qsort(trackerStatus, count, sizeof(TrackerRunningStatus),
 		relationship_cmp_tracker_status);
 
     if (FC_LOG_BY_LEVEL(LOG_DEBUG)) {
@@ -252,12 +253,12 @@ static int relationship_get_tracker_leader(TrackerRunningStatus *pTrackerStatus)
         }
     }
 
-	memcpy(pTrackerStatus, trackerStatus + (count - 1), \
+	memcpy(pTrackerStatus, trackerStatus + (count - 1),
 			sizeof(TrackerRunningStatus));
 	return 0;
 }
 
-static int do_notify_leader_changed(TrackerServerInfo *pTrackerServer, \
+static int do_notify_leader_changed(TrackerServerInfo *pTrackerServer,
 		ConnectionInfo *pLeader, const char cmd, bool *bConnectFail)
 {
 	char out_buff[sizeof(TrackerHeader) + FDFS_MAX_IP_PORT_SIZE];
@@ -344,7 +345,7 @@ void relationship_set_tracker_leader(const int server_index,
 {
     char formatted_ip[FORMATTED_IP_SIZE];
 
-    g_tracker_servers.leader_index = server_index;
+    g_tracker_servers.leader = g_tracker_servers.servers[server_index];
     g_next_leader_index = -1;
 
     if (leader_self)
@@ -361,35 +362,35 @@ void relationship_set_tracker_leader(const int server_index,
     }
 }
 
-static int relationship_notify_next_leader(TrackerServerInfo *pTrackerServer,
+static int relationship_notify_next_leader(TrackerClusterServer **ppTrackerServer,
         TrackerRunningStatus *pTrackerStatus, bool *bConnectFail)
 {
-    if (pTrackerStatus->pTrackerServer == pTrackerServer)
+    if (pTrackerStatus->pTrackerServer == &(*ppTrackerServer)->server)
     {
-        g_next_leader_index = pTrackerServer - g_tracker_servers.servers;
+        g_next_leader_index = ppTrackerServer - g_tracker_servers.servers;
         return 0;
     }
     else
     {
         ConnectionInfo *pLeader;
         pLeader = pTrackerStatus->pTrackerServer->connections;
-        return do_notify_leader_changed(pTrackerServer, pLeader,
+        return do_notify_leader_changed(&(*ppTrackerServer)->server, pLeader,
                 TRACKER_PROTO_CMD_TRACKER_NOTIFY_NEXT_LEADER, bConnectFail);
     }
 }
 
-static int relationship_commit_next_leader(TrackerServerInfo *pTrackerServer,
+static int relationship_commit_next_leader(TrackerClusterServer **ppTrackerServer,
         TrackerRunningStatus *pTrackerStatus, bool *bConnectFail)
 {
     ConnectionInfo *pLeader;
 
     pLeader = pTrackerStatus->pTrackerServer->connections;
-    if (pTrackerStatus->pTrackerServer == pTrackerServer)
+    if (pTrackerStatus->pTrackerServer == &(*ppTrackerServer)->server)
     {
         int server_index;
         int expect_index;
         server_index = g_next_leader_index;
-        expect_index = pTrackerServer - g_tracker_servers.servers;
+        expect_index = ppTrackerServer - g_tracker_servers.servers;
         if (server_index != expect_index)
         {
             logError("file: "__FILE__", line: %d, "
@@ -404,26 +405,26 @@ static int relationship_commit_next_leader(TrackerServerInfo *pTrackerServer,
     }
     else
     {
-        return do_notify_leader_changed(pTrackerServer, pLeader,
+        return do_notify_leader_changed(&(*ppTrackerServer)->server, pLeader,
                 TRACKER_PROTO_CMD_TRACKER_COMMIT_NEXT_LEADER, bConnectFail);
     }
 }
 
 static int relationship_notify_leader_changed(TrackerRunningStatus *pTrackerStatus)
 {
-	TrackerServerInfo *pTrackerServer;
-	TrackerServerInfo *pTrackerEnd;
+	TrackerClusterServer **ppTrackerServer;
+	TrackerClusterServer **ppTrackerEnd;
 	int result;
 	bool bConnectFail;
 	int success_count;
 
 	result = ENOENT;
-	pTrackerEnd = g_tracker_servers.servers + g_tracker_servers.server_count;
+	ppTrackerEnd = g_tracker_servers.servers + g_tracker_servers.server_count;
 	success_count = 0;
-	for (pTrackerServer=g_tracker_servers.servers;
-		pTrackerServer<pTrackerEnd; pTrackerServer++)
+	for (ppTrackerServer=g_tracker_servers.servers;
+		ppTrackerServer<ppTrackerEnd; ppTrackerServer++)
 	{
-		if ((result=relationship_notify_next_leader(pTrackerServer,
+		if ((result=relationship_notify_next_leader(ppTrackerServer,
 				pTrackerStatus, &bConnectFail)) != 0)
 		{
 			if (!bConnectFail)
@@ -444,10 +445,10 @@ static int relationship_notify_leader_changed(TrackerRunningStatus *pTrackerStat
 
 	result = ENOENT;
 	success_count = 0;
-	for (pTrackerServer=g_tracker_servers.servers;
-		pTrackerServer<pTrackerEnd; pTrackerServer++)
+	for (ppTrackerServer=g_tracker_servers.servers;
+		ppTrackerServer<ppTrackerEnd; ppTrackerServer++)
 	{
-		if ((result=relationship_commit_next_leader(pTrackerServer,
+		if ((result=relationship_commit_next_leader(ppTrackerServer,
 				pTrackerStatus, &bConnectFail)) != 0)
 		{
 			if (!bConnectFail)
@@ -509,22 +510,20 @@ static int relationship_select_leader()
 	{
 		if (trackerStatus.if_leader)
 		{
-			g_tracker_servers.leader_index =
-				trackerStatus.pTrackerServer -
-				g_tracker_servers.servers;
-			if (g_tracker_servers.leader_index < 0 ||
-				g_tracker_servers.leader_index >=
-				g_tracker_servers.server_count)
+			int leader_index = trackerStatus.server_index;
+			if (leader_index < 0 || leader_index >=
+                    g_tracker_servers.server_count)
 			{
                 logError("file: "__FILE__", line: %d, "
                         "invalid tracker leader index: %d",
-                        __LINE__, g_tracker_servers.leader_index);
-				g_tracker_servers.leader_index = -1;
+                        __LINE__, leader_index);
 				return EINVAL;
 			}
+
+            g_tracker_servers.leader = g_tracker_servers.servers[leader_index];
 		}
 
-        if (g_tracker_servers.leader_index >= 0)
+        if (g_tracker_servers.leader != NULL)
         {
             format_ip_address(conn->ip_addr, formatted_ip);
 			logInfo("file: "__FILE__", line: %d, "
@@ -547,8 +546,7 @@ static int relationship_select_leader()
 static int relationship_ping_leader()
 {
 	int result;
-	int leader_index;
-	TrackerServerInfo *pTrackerServer;
+    TrackerClusterServer *leader;
     ConnectionInfo *conn;
 
 	if (g_if_leader_self)
@@ -556,14 +554,13 @@ static int relationship_ping_leader()
 		return 0;  //do not need ping myself
 	}
 
-	leader_index = g_tracker_servers.leader_index;
-	if (leader_index < 0)
+	leader = g_tracker_servers.leader;
+    if (leader == NULL)
 	{
 		return EINVAL;
 	}
 
-	pTrackerServer = g_tracker_servers.servers + leader_index;
-    if ((conn=tracker_connect_server(pTrackerServer, &result)) == NULL)
+    if ((conn=tracker_connect_server(&leader->server, &result)) == NULL)
     {
         return result;
 	}
@@ -593,7 +590,7 @@ static void *relationship_thread_entrance(void* arg)
 	{
 		if (g_tracker_servers.servers != NULL)
 		{
-			if (g_tracker_servers.leader_index < 0)
+			if (g_tracker_servers.leader == NULL)
 			{
 				if (relationship_select_leader() != 0)
 				{
@@ -607,8 +604,6 @@ static void *relationship_thread_entrance(void* arg)
 			}
 			else
 			{
-                int leader_index;
-                leader_index = g_tracker_servers.leader_index;
 				if (relationship_ping_leader() == 0)
 				{
 					fail_count = 0;
@@ -616,20 +611,21 @@ static void *relationship_thread_entrance(void* arg)
 				}
 				else
 				{
+                    TrackerClusterServer *leader;
                     char leader_str[64];
-                    ConnectionInfo *pLeader;
 
-                    if (leader_index < 0)
+                    leader = g_tracker_servers.leader;
+                    if (leader == NULL)
                     {
                         strcpy(leader_str, "unknown leader");
                     }
                     else
                     {
-                        pLeader = g_tracker_servers.servers
-                            [leader_index].connections;
-                        format_ip_address(pLeader->ip_addr, formatted_ip);
+                        ConnectionInfo *conn;
+                        conn = leader->server.connections;
+                        format_ip_address(conn->ip_addr, formatted_ip);
                         sprintf(leader_str, "leader %s:%u",
-                                formatted_ip, pLeader->port);
+                                formatted_ip, conn->port);
                     }
 
                     ++fail_count;
@@ -639,23 +635,13 @@ static void *relationship_thread_entrance(void* arg)
 
                     sleep_seconds *= 2;
 					if (fail_count >= 3)
-					{
-						g_tracker_servers.leader_index = -1;
-						fail_count = 0;
+                    {
+                        g_tracker_servers.leader = NULL;
+                        fail_count = 0;
                         sleep_seconds = 1;
-					}
+                    }
 				}
 			}
-		}
-
-		if (g_last_tracker_servers != NULL)
-		{
-			tracker_mem_file_lock();
-
-			free(g_last_tracker_servers);
-			g_last_tracker_servers = NULL;
-
-			tracker_mem_file_unlock();
 		}
 
 		sleep(sleep_seconds);

@@ -64,6 +64,10 @@ static void task_finish_clean_up(struct fast_task_info *pTask)
 
         pClientInfo->pGroup = NULL;
     }
+    else if (pClientInfo->follower_tracker != NULL)
+    {
+        pClientInfo->follower_tracker = NULL;
+    }
 
     if (pClientInfo->finish_callback != NULL) {
         pClientInfo->finish_callback(pTask);
@@ -148,20 +152,18 @@ static int tracker_check_and_sync(struct fast_task_info *pTask,
         if (pClientInfo->chg_count.tracker_leader !=
                 g_tracker_leader_chg_count)
         {
-            int leader_index;
+            TrackerClusterServer *leader;
 
             *pFlags |= FDFS_CHANGE_FLAG_TRACKER_LEADER;
 
             pDestServer = (FDFSStorageBrief *)p;
             memset(p, 0, sizeof(FDFSStorageBrief));
 
-            leader_index = g_tracker_servers.leader_index;
-            if (leader_index >= 0)
+            leader = g_tracker_servers.leader;
+            if (leader != NULL)
             {
-                TrackerServerInfo *pTServer;
                 ConnectionInfo *conn;
-                pTServer = g_tracker_servers.servers + leader_index;
-                conn = pTServer->connections;
+                conn = leader->server.connections;
                 fc_strlcpy(pDestServer->id, conn->ip_addr,
                         FDFS_STORAGE_ID_MAX_SIZE);
                 memcpy(pDestServer->ip_addr, conn->ip_addr,
@@ -652,6 +654,28 @@ static int tracker_deal_report_trunk_free_space(struct fast_task_info *pTask)
 	return 0;
 }
 
+static int get_tracker_leader_index(const char *leaderIp, const int leaderPort)
+{
+    TrackerClusterServer **ppServer;
+    TrackerClusterServer **ppEnd;
+
+    if (g_tracker_servers.server_count == 0)
+    {
+        return -1;
+    }
+
+    ppEnd = g_tracker_servers.servers + g_tracker_servers.server_count;
+    for (ppServer=g_tracker_servers.servers; ppServer<ppEnd; ppServer++)
+    {
+        if (fdfs_server_contain(&(*ppServer)->server, leaderIp, leaderPort))
+        {
+            return ppServer - g_tracker_servers.servers;
+        }
+    }
+
+    return -1;
+}
+
 static int tracker_deal_notify_next_leader(struct fast_task_info *pTask)
 {
 	char *pIpAndPort;
@@ -688,8 +712,8 @@ static int tracker_deal_notify_next_leader(struct fast_task_info *pTask)
 	pTask->send.ptr->length = sizeof(TrackerHeader);
 	strcpy(leader.ip_addr, ipAndPort[0]);
 	leader.port = atoi(ipAndPort[1]);
-	server_index = fdfs_get_tracker_leader_index_ex(&g_tracker_servers,
-					leader.ip_addr, leader.port);
+	server_index = get_tracker_leader_index(
+            leader.ip_addr, leader.port);
 	if (server_index < 0)
 	{
         format_ip_address(leader.ip_addr, formatted_ip);
@@ -704,7 +728,7 @@ static int tracker_deal_notify_next_leader(struct fast_task_info *pTask)
 		is_local_host_ip(leader.ip_addr)))
 	{
 		g_if_leader_self = false;
-		g_tracker_servers.leader_index = -1;
+		g_tracker_servers.leader = NULL;
 		g_tracker_leader_chg_count++;
 
         format_ip_address(leader.ip_addr, formatted_ip);
@@ -756,8 +780,8 @@ static int tracker_deal_commit_next_leader(struct fast_task_info *pTask)
 	pTask->send.ptr->length = sizeof(TrackerHeader);
 	strcpy(leader.ip_addr, ipAndPort[0]);
 	leader.port = atoi(ipAndPort[1]);
-	server_index = fdfs_get_tracker_leader_index_ex(&g_tracker_servers, \
-					leader.ip_addr, leader.port);
+	server_index = get_tracker_leader_index(
+            leader.ip_addr, leader.port);
 	if (server_index < 0)
 	{
         format_ip_address(leader.ip_addr, formatted_ip);
@@ -783,7 +807,6 @@ static int tracker_deal_commit_next_leader(struct fast_task_info *pTask)
 
 	return 0;
 }
-
 
 static int tracker_deal_server_get_storage_status(struct fast_task_info *pTask)
 {
@@ -1747,7 +1770,7 @@ static int tracker_deal_reselect_leader(struct fast_task_info *pTask)
 	}
 
     g_if_leader_self = false;
-    g_tracker_servers.leader_index = -1;
+    g_tracker_servers.leader = NULL;
     g_tracker_leader_chg_count++;
 
     logWarning("file: "__FILE__", line: %d, " \

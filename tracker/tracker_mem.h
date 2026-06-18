@@ -41,12 +41,24 @@
 
 #define STORAGE_DATA_FIELD_SEPERATOR	   ','
 
+typedef struct tracker_cluster_server {
+    bool is_active;
+    time_t last_heartbeat_time;
+    TrackerServerInfo server;
+} TrackerClusterServer;
+
+typedef struct {
+    int server_count;
+    TrackerClusterServer *myself;
+    TrackerClusterServer *leader;
+    TrackerClusterServer **servers;
+} TrackerClusterGroup;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-extern TrackerServerGroup g_tracker_servers;  //save all tracker servers from storage server
-extern TrackerServerInfo *g_last_tracker_servers;  //for delay free
+extern TrackerClusterGroup g_tracker_servers;  //save all tracker servers from storage server
 extern int g_next_leader_index;			   //next leader index
 extern int g_tracker_leader_chg_count;		   //for notify storage servers
 extern int g_trunk_server_chg_count;		   //for notify other trackers

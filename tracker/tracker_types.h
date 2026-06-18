@@ -387,12 +387,17 @@ typedef int (*TaskFinishCallback) (struct fast_task_info *task);
 
 typedef struct
 {
-	FDFSGroupInfo *pGroup;
-	FDFSStorageDetail *pStorage;
-	union {
-		int tracker_leader;  //for notify storage servers
-		int trunk_server;    //for notify other tracker servers
-	} chg_count;
+    FDFSGroupInfo *pGroup;
+
+    union {
+        FDFSStorageDetail *pStorage;
+        struct tracker_cluster_server *follower_tracker;
+    };
+
+    union {
+        int tracker_leader;  //for notify storage servers
+        int trunk_server;    //for notify other tracker servers
+    } chg_count;
     TaskFinishCallback finish_callback;
 } TrackerClientInfo;
 
@@ -458,10 +463,11 @@ typedef struct {
 } FDFSStorageReservedSpace;
 
 typedef struct {
-	TrackerServerInfo *pTrackerServer;
-	int running_time;     //running seconds, more means higher weight
-	int restart_interval; //restart interval, less mean higher weight
-	bool if_leader;       //if leader
+    TrackerServerInfo *pTrackerServer;
+    int server_index;
+    int running_time;     //running seconds, more means higher weight
+    int restart_interval; //restart interval, less mean higher weight
+    bool if_leader;       //if leader
 } TrackerRunningStatus;
 
 typedef struct {
