@@ -48,6 +48,7 @@
 #define TRACKER_PROTO_CMD_TRACKER_NOTIFY_NEXT_LEADER     66  //notify next leader to other trackers
 #define TRACKER_PROTO_CMD_TRACKER_COMMIT_NEXT_LEADER     67  //commit next leader to other trackers
 #define TRACKER_PROTO_CMD_TRACKER_NOTIFY_RESELECT_LEADER 68  //storage notify reselect leader when split-brain
+#define TRACKER_PROTO_CMD_TRACKER_JOIN_LEADER            58  //tracker join leader
 
 #define TRACKER_PROTO_CMD_SERVER_LIST_ONE_GROUP			90
 #define TRACKER_PROTO_CMD_SERVER_LIST_ALL_GROUPS		91
@@ -159,6 +160,13 @@ typedef struct
     unsigned char my_status;   //storage server status
     char src_id[FDFS_STORAGE_ID_MAX_SIZE];  //src storage id
 } TrackerStorageJoinBodyResp;
+
+typedef struct
+{
+    char up_time[FDFS_PROTO_PKG_LEN_SIZE];  //tracker service started timestamp
+    char version[FDFS_VERSION_SIZE];        //tracker version
+    char server_port[FDFS_PROTO_PKG_LEN_SIZE];
+} TrackerJoinLeaderBody;
 
 typedef struct
 {

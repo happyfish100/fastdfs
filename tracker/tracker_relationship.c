@@ -31,6 +31,56 @@
 #include "tracker_relationship.h"
 
 bool g_if_leader_self = false;  //if I am leader
+static ConnectionInfo *conn_for_ping = NULL;
+
+static int fdfs_join_leader(ConnectionInfo *pTrackerServer)
+{
+	TrackerHeader *pHeader;
+    TrackerJoinLeaderBody *req;
+	int result;
+	int64_t in_bytes;
+	char out_buff[sizeof(TrackerHeader) +
+        sizeof(TrackerJoinLeaderBody)];
+    char formatted_ip[FORMATTED_IP_SIZE];
+    char in_buff[1];
+	char *pInBuff;
+
+    pHeader = (TrackerHeader *)out_buff;
+    req = (TrackerJoinLeaderBody *)(pHeader + 1);
+	memset(pHeader, 0, sizeof(TrackerHeader));
+    long2buff(g_sf_global_vars.up_time, req->up_time);
+    long2buff(SF_G_INNER_PORT, req->server_port);
+    snprintf(req->version, sizeof(req->version), "%d.%d.%d",
+            g_fdfs_version.major, g_fdfs_version.minor,
+            g_fdfs_version.patch);
+	pHeader->cmd = TRACKER_PROTO_CMD_TRACKER_JOIN_LEADER;
+    long2buff(sizeof(TrackerJoinLeaderBody), pHeader->pkg_len);
+	result = tcpsenddata_nb(pTrackerServer->sock, out_buff,
+			sizeof(out_buff), SF_G_NETWORK_TIMEOUT);
+	if(result != 0)
+	{
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+		logError("file: "__FILE__", line: %d, "
+			"tracker server %s:%u, send data fail, errno: %d, "
+			"error info: %s", __LINE__, formatted_ip,
+			pTrackerServer->port, result, STRERROR(result));
+		return result;
+	}
+
+    pInBuff = in_buff;
+    if ((result=fdfs_recv_response(pTrackerServer,
+                    &pInBuff, 0, &in_bytes)) != 0)
+    {
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+        logError("file: "__FILE__", line: %d, "
+                "tracker server %s:%u, fdfs_recv_response fail, "
+                "errno: %d, error info: %s", __LINE__, formatted_ip,
+                pTrackerServer->port, result, STRERROR(result));
+        return result;
+    }
+
+    return 0;
+}
 
 static int fdfs_ping_leader(ConnectionInfo *pTrackerServer)
 {
@@ -547,7 +597,6 @@ static int relationship_ping_leader()
 {
 	int result;
     TrackerClusterServer *leader;
-    ConnectionInfo *conn;
 
 	if (g_if_leader_self)
 	{
@@ -560,13 +609,27 @@ static int relationship_ping_leader()
 		return EINVAL;
 	}
 
-    if ((conn=tracker_connect_server(&leader->server, &result)) == NULL)
-    {
-        return result;
-	}
 
-	result = fdfs_ping_leader(conn);
-    tracker_close_connection_ex(conn, result != 0);
+    if (conn_for_ping == NULL) {
+        if ((conn_for_ping=tracker_connect_server(&leader->
+                        server, &result)) == NULL)
+        {
+            return result;
+        }
+        if ((result=fdfs_join_leader(conn_for_ping)) != 0)
+        {
+            tracker_close_connection_ex(conn_for_ping, true);
+            conn_for_ping = NULL;
+            return result;
+        }
+    }
+
+    result = fdfs_ping_leader(conn_for_ping);
+    if (result != 0)
+    {
+        tracker_close_connection_ex(conn_for_ping, true);
+        conn_for_ping = NULL;
+    }
 	return result;
 }
 

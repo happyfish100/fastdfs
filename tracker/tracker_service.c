@@ -64,9 +64,9 @@ static void task_finish_clean_up(struct fast_task_info *pTask)
 
         pClientInfo->pGroup = NULL;
     }
-    else if (pClientInfo->follower_tracker != NULL)
+    else if (pClientInfo->peer_tracker != NULL)
     {
-        pClientInfo->follower_tracker = NULL;
+        pClientInfo->peer_tracker = NULL;
     }
 
     if (pClientInfo->finish_callback != NULL) {
@@ -654,7 +654,7 @@ static int tracker_deal_report_trunk_free_space(struct fast_task_info *pTask)
 	return 0;
 }
 
-static int get_tracker_leader_index(const char *leaderIp, const int leaderPort)
+static int get_tracker_server_index(const char *ip_addr, const int port)
 {
     TrackerClusterServer **ppServer;
     TrackerClusterServer **ppEnd;
@@ -667,7 +667,7 @@ static int get_tracker_leader_index(const char *leaderIp, const int leaderPort)
     ppEnd = g_tracker_servers.servers + g_tracker_servers.server_count;
     for (ppServer=g_tracker_servers.servers; ppServer<ppEnd; ppServer++)
     {
-        if (fdfs_server_contain(&(*ppServer)->server, leaderIp, leaderPort))
+        if (fdfs_server_contain(&(*ppServer)->server, ip_addr, port))
         {
             return ppServer - g_tracker_servers.servers;
         }
@@ -712,7 +712,7 @@ static int tracker_deal_notify_next_leader(struct fast_task_info *pTask)
 	pTask->send.ptr->length = sizeof(TrackerHeader);
 	strcpy(leader.ip_addr, ipAndPort[0]);
 	leader.port = atoi(ipAndPort[1]);
-	server_index = get_tracker_leader_index(
+	server_index = get_tracker_server_index(
             leader.ip_addr, leader.port);
 	if (server_index < 0)
 	{
@@ -780,7 +780,7 @@ static int tracker_deal_commit_next_leader(struct fast_task_info *pTask)
 	pTask->send.ptr->length = sizeof(TrackerHeader);
 	strcpy(leader.ip_addr, ipAndPort[0]);
 	leader.port = atoi(ipAndPort[1]);
-	server_index = get_tracker_leader_index(
+	server_index = get_tracker_server_index(
             leader.ip_addr, leader.port);
 	if (server_index < 0)
 	{
@@ -1669,6 +1669,72 @@ static int tracker_deal_active_test(struct fast_task_info *pTask)
 	return 0;
 }
 
+static int tracker_deal_join_leader(struct fast_task_info *pTask)
+{
+	TrackerClientInfo *pClientInfo;
+    TrackerJoinLeaderBody *req;
+    time_t up_time;
+    int server_port;
+    int server_index;
+
+	pClientInfo = (TrackerClientInfo *)pTask->arg;
+	if (pTask->recv.ptr->length != sizeof(TrackerHeader) +
+            sizeof(TrackerJoinLeaderBody))
+    {
+        logError("file: "__FILE__", line: %d, "
+                "cmd=%d, client ip: %s, package size "
+                PKG_LEN_PRINTF_FORMAT" is not correct, "
+                "expect body length %d", __LINE__,
+                TRACKER_PROTO_CMD_TRACKER_JOIN_LEADER,
+                pTask->client_ip, pTask->send.ptr->length -
+                (int)sizeof(TrackerHeader),
+                (int)sizeof(TrackerJoinLeaderBody));
+        pTask->send.ptr->length = sizeof(TrackerHeader);
+        return EINVAL;
+    }
+
+	if (!g_if_leader_self)
+	{
+		logError("file: "__FILE__", line: %d, "
+			"cmd=%d, client ip: %s, i am not the leader!",
+			__LINE__, TRACKER_PROTO_CMD_TRACKER_JOIN_LEADER,
+			pTask->client_ip);
+		pTask->send.ptr->length = sizeof(TrackerHeader);
+		return EOPNOTSUPP;
+	}
+
+    if (pClientInfo->peer_tracker != NULL)
+    {
+        logError("file: "__FILE__", line: %d, "
+                "tracker ip: %s already joined!",
+                __LINE__, pTask->client_ip);
+        pTask->send.ptr->length = sizeof(TrackerHeader);
+        return EEXIST;
+    }
+
+    req = (TrackerJoinLeaderBody *)(pTask->recv.ptr->data +
+            sizeof(TrackerHeader));
+    up_time = buff2long(req->up_time);
+    server_port = buff2long(req->server_port);
+    req->version[FDFS_VERSION_SIZE - 1] = '\0';
+    server_index = get_tracker_server_index(pTask->client_ip, server_port);
+    if (server_index < 0)
+    {
+        logError("file: "__FILE__", line: %d, "
+                "tracker %s:%u not exist!", __LINE__,
+                pTask->client_ip, server_port);
+        pTask->send.ptr->length = sizeof(TrackerHeader);
+        return ENOENT;
+    }
+
+    pClientInfo->peer_tracker = g_tracker_servers.servers[server_index];
+    pClientInfo->peer_tracker->up_time = up_time;
+    memcpy(pClientInfo->peer_tracker->version,
+            req->version, FDFS_VERSION_SIZE);
+    pTask->send.ptr->length = sizeof(TrackerHeader);
+    return 0;
+}
+
 static int tracker_deal_ping_leader(struct fast_task_info *pTask)
 {
 	FDFSGroupInfo **ppGroup;
@@ -1702,10 +1768,20 @@ static int tracker_deal_ping_leader(struct fast_task_info *pTask)
 		return EOPNOTSUPP;
 	}
 
+    if (pClientInfo->peer_tracker == NULL)
+    {
+        logError("file: "__FILE__", line: %d, "
+                "tracker ip: %s NOT joined, please join leader first!",
+                __LINE__, pTask->client_ip);
+        pTask->send.ptr->length = sizeof(TrackerHeader);
+        return EINVAL;
+    }
+
     trunk_server_chg_count = g_trunk_server_chg_count;
 	if (pClientInfo->chg_count.trunk_server == trunk_server_chg_count)
 	{
 		pTask->send.ptr->length = sizeof(TrackerHeader);
+        pClientInfo->peer_tracker->last_heartbeat_time = g_current_time;
 		return 0;
 	}
 
@@ -1741,6 +1817,7 @@ static int tracker_deal_ping_leader(struct fast_task_info *pTask)
 
 	pTask->send.ptr->length = p - pTask->send.ptr->data;
 	pClientInfo->chg_count.trunk_server = trunk_server_chg_count;
+    pClientInfo->peer_tracker->last_heartbeat_time = g_current_time;
 	return 0;
 }
 
@@ -3971,6 +4048,9 @@ static int tracker_deal_task(struct fast_task_info *pTask, const int stage)
 		case TRACKER_PROTO_CMD_STORAGE_REPORT_TRUNK_FREE:
 			TRACKER_CHECK_LOGINED(pTask)
 			result = tracker_deal_report_trunk_free_space(pTask);
+			break;
+		case TRACKER_PROTO_CMD_TRACKER_JOIN_LEADER:
+			result = tracker_deal_join_leader(pTask);
 			break;
 		case TRACKER_PROTO_CMD_TRACKER_PING_LEADER:
 			result = tracker_deal_ping_leader(pTask);

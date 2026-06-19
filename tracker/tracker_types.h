@@ -391,7 +391,7 @@ typedef struct
 
     union {
         FDFSStorageDetail *pStorage;
-        struct tracker_cluster_server *follower_tracker;
+        struct tracker_cluster_server *peer_tracker;
     };
 
     union {

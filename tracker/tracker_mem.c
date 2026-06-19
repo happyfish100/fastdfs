@@ -4509,6 +4509,10 @@ static int find_my_ip_in_tracker_list()
                 }
             }
 
+            pServer->up_time = g_sf_global_vars.up_time;
+            snprintf(pServer->version, sizeof(pServer->version), "%d.%d.%d",
+                    g_fdfs_version.major, g_fdfs_version.minor,
+                    g_fdfs_version.patch);
             return 0;
         }
 
@@ -4519,6 +4523,16 @@ static int find_my_ip_in_tracker_list()
             "my ip NOT in tracker server list. %s",
             __LINE__, local_host_ip_addrs_to_string(buff, sizeof(buff)));
     return ENOENT;
+}
+
+static void init_tracker_cluster_server(TrackerClusterServer *pClusterServer,
+        const TrackerServerInfo *pTrackerServer)
+{
+    pClusterServer->up_time = 0;
+    pClusterServer->version[0] = '\0';
+    pClusterServer->last_heartbeat_time = 0;
+    pClusterServer->server = *pTrackerServer;
+    fdfs_server_sock_reset(&pClusterServer->server);
 }
 
 static int tracker_mem_first_add_tracker_servers(FDFSStorageJoinBody *pJoinBody)
@@ -4559,10 +4573,7 @@ static int tracker_mem_first_add_tracker_servers(FDFSStorageJoinBody *pJoinBody)
             return errno != 0 ? errno : ENOMEM;
         }
 
-        pClusterServer->is_active = false;
-        pClusterServer->last_heartbeat_time = 0;
-        pClusterServer->server = *pTrackerServer;
-        fdfs_server_sock_reset(&pClusterServer->server);
+        init_tracker_cluster_server(pClusterServer, pTrackerServer);
         *ppLocalTracker = pClusterServer;
     }
 
@@ -4717,10 +4728,7 @@ static int tracker_mem_check_add_tracker_servers(FDFSStorageJoinBody *pJoinBody)
                 return errno != 0 ? errno : ENOMEM;
             }
 
-            pClusterServer->is_active = false;
-            pClusterServer->last_heartbeat_time = 0;
-            pClusterServer->server = *pJoinTracker;
-            fdfs_server_sock_reset(&pClusterServer->server);
+            init_tracker_cluster_server(pClusterServer, pJoinTracker);
             *ppNewServer = pClusterServer;
             ppNewServer++;
         }

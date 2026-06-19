@@ -42,8 +42,9 @@
 #define STORAGE_DATA_FIELD_SEPERATOR	   ','
 
 typedef struct tracker_cluster_server {
-    bool is_active;
-    time_t last_heartbeat_time;
+    time_t up_time;
+    char version[FDFS_VERSION_SIZE];
+    volatile time_t last_heartbeat_time;
     TrackerServerInfo server;
 } TrackerClusterServer;
 
