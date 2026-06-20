@@ -1737,6 +1737,7 @@ static int tracker_deal_join_leader(struct fast_task_info *pTask)
 
 static int tracker_deal_ping_leader(struct fast_task_info *pTask)
 {
+    TrackerPingLeaderBody *req;
 	FDFSGroupInfo **ppGroup;
 	FDFSGroupInfo **ppEnd;
 	int body_len;
@@ -1745,18 +1746,20 @@ static int tracker_deal_ping_leader(struct fast_task_info *pTask)
 	TrackerClientInfo *pClientInfo;
 
 	pClientInfo = (TrackerClientInfo *)pTask->arg;
-	if (pTask->recv.ptr->length - sizeof(TrackerHeader) != 0)
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"cmd=%d, client ip: %s, package size " \
-			PKG_LEN_PRINTF_FORMAT" is not correct, " \
-			"expect length 0", __LINE__, \
-			TRACKER_PROTO_CMD_TRACKER_PING_LEADER, \
-			pTask->client_ip, \
-			pTask->send.ptr->length - (int)sizeof(TrackerHeader));
-		pTask->send.ptr->length = sizeof(TrackerHeader);
-		return EINVAL;
-	}
+	if (pTask->recv.ptr->length != sizeof(TrackerHeader) +
+            sizeof(TrackerPingLeaderBody))
+    {
+        logError("file: "__FILE__", line: %d, "
+                "cmd=%d, client ip: %s, package size "
+                PKG_LEN_PRINTF_FORMAT" is not correct, "
+                "expect length %d", __LINE__,
+                TRACKER_PROTO_CMD_TRACKER_PING_LEADER,
+                pTask->client_ip, pTask->send.ptr->length -
+                (int)sizeof(TrackerHeader),
+                (int)sizeof(TrackerPingLeaderBody));
+        pTask->send.ptr->length = sizeof(TrackerHeader);
+        return EINVAL;
+    }
 
 	if (!g_if_leader_self)
 	{
@@ -1776,6 +1779,15 @@ static int tracker_deal_ping_leader(struct fast_task_info *pTask)
         pTask->send.ptr->length = sizeof(TrackerHeader);
         return EINVAL;
     }
+
+    req = (TrackerPingLeaderBody *)(pTask->recv.ptr->data +
+            sizeof(TrackerHeader));
+    pClientInfo->peer_tracker->connection.alloc_count =
+        buff2int(req->connection.sz_alloc_count);
+    pClientInfo->peer_tracker->connection.current_count =
+        buff2int(req->connection.sz_current_count);
+    pClientInfo->peer_tracker->connection.max_count =
+        buff2int(req->connection.sz_max_count);
 
     trunk_server_chg_count = g_trunk_server_chg_count;
 	if (pClientInfo->chg_count.trunk_server == trunk_server_chg_count)

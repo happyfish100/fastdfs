@@ -170,6 +170,15 @@ typedef struct
 
 typedef struct
 {
+    struct {
+        char sz_alloc_count[4];
+        char sz_current_count[4];
+        char sz_max_count[4];
+    } connection;
+} TrackerPingLeaderBody;
+
+typedef struct
+{
 	char group_name[FDFS_GROUP_NAME_MAX_LEN + 1];
 	char sz_total_mb[FDFS_PROTO_PKG_LEN_SIZE]; //total disk storage in MB
 	char sz_free_mb[FDFS_PROTO_PKG_LEN_SIZE];  //free disk storage in MB

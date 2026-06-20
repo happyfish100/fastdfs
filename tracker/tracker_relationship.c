@@ -84,12 +84,14 @@ static int fdfs_join_leader(ConnectionInfo *pTrackerServer)
 
 static int fdfs_ping_leader(ConnectionInfo *pTrackerServer)
 {
-	TrackerHeader header;
+	TrackerHeader *pHeader;
+    TrackerPingLeaderBody *req;
 	int result;
 	int success_count;
 	int64_t in_bytes;
-	char in_buff[(FDFS_GROUP_NAME_MAX_LEN + FDFS_STORAGE_ID_MAX_SIZE) * \
-			FDFS_MAX_GROUPS];
+    char out_buff[sizeof(TrackerHeader) + sizeof(TrackerPingLeaderBody)];
+	char in_buff[(FDFS_GROUP_NAME_MAX_LEN +
+            FDFS_STORAGE_ID_MAX_SIZE) * FDFS_MAX_GROUPS];
     char formatted_ip[FORMATTED_IP_SIZE];
 	char *pInBuff;
 	char *p;
@@ -98,10 +100,17 @@ static int fdfs_ping_leader(ConnectionInfo *pTrackerServer)
 	char group_name[FDFS_GROUP_NAME_MAX_LEN + 1];
 	char trunk_server_id[FDFS_STORAGE_ID_MAX_SIZE];
 
-	memset(&header, 0, sizeof(header));
-	header.cmd = TRACKER_PROTO_CMD_TRACKER_PING_LEADER;
-	result = tcpsenddata_nb(pTrackerServer->sock, &header,
-			sizeof(header), SF_G_NETWORK_TIMEOUT);
+    pHeader = (TrackerHeader *)out_buff;
+    req = (TrackerPingLeaderBody *)(pHeader + 1);
+	memset(pHeader, 0, sizeof(TrackerHeader));
+	pHeader->cmd = TRACKER_PROTO_CMD_TRACKER_PING_LEADER;
+    long2buff(sizeof(TrackerPingLeaderBody), pHeader->pkg_len);
+    int2buff(free_queue_alloc_connections(&g_sf_context.free_queue),
+            req->connection.sz_alloc_count);
+    int2buff(SF_G_CONN_CURRENT_COUNT, req->connection.sz_current_count);
+    int2buff(SF_G_CONN_MAX_COUNT, req->connection.sz_max_count);
+	result = tcpsenddata_nb(pTrackerServer->sock, out_buff,
+			sizeof(out_buff), SF_G_NETWORK_TIMEOUT);
 	if(result != 0)
 	{
         format_ip_address(pTrackerServer->ip_addr, formatted_ip);
@@ -599,9 +608,15 @@ static int relationship_ping_leader()
     TrackerClusterServer *leader;
 
 	if (g_if_leader_self)
-	{
-		return 0;  //do not need ping myself
-	}
+    {
+        g_tracker_servers.myself->connection.alloc_count =
+            free_queue_alloc_connections(&g_sf_context.free_queue);
+        g_tracker_servers.myself->connection.current_count =
+            SF_G_CONN_CURRENT_COUNT;
+        g_tracker_servers.myself->connection.max_count =
+            SF_G_CONN_MAX_COUNT;
+        return 0;  //do not need ping myself
+    }
 
 	leader = g_tracker_servers.leader;
     if (leader == NULL)

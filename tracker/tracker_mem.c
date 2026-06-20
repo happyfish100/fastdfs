@@ -4528,9 +4528,7 @@ static int find_my_ip_in_tracker_list()
 static void init_tracker_cluster_server(TrackerClusterServer *pClusterServer,
         const TrackerServerInfo *pTrackerServer)
 {
-    pClusterServer->up_time = 0;
-    pClusterServer->version[0] = '\0';
-    pClusterServer->last_heartbeat_time = 0;
+    memset(pClusterServer, 0, sizeof(*pClusterServer));
     pClusterServer->server = *pTrackerServer;
     fdfs_server_sock_reset(&pClusterServer->server);
 }
