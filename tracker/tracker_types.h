@@ -124,6 +124,11 @@
 #define FDFS_MULTI_IP_INDEX_OUTER   	1   //outer ip index
 #define FDFS_MULTI_IP_MAX_COUNT      	2
 
+#define FDFS_CLIENT_DEFAULT_CONFIG_FILENAME  "/etc/fdfs/client.conf"
+
+#define FDFS_TRACKER_STAT_FILTER_BY_IS_ACTIVE  1
+#define FDFS_TRACKER_STAT_FILTER_BY_IS_LEADER  2
+
 typedef enum {
     fdfs_rw_none = 0,
     fdfs_rw_readonly = R_OK,

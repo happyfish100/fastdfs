@@ -55,6 +55,8 @@
 #define TRACKER_PROTO_CMD_SERVER_LIST_STORAGE			92
 #define TRACKER_PROTO_CMD_SERVER_DELETE_STORAGE			93
 #define TRACKER_PROTO_CMD_SERVER_SET_TRUNK_SERVER		94
+#define TRACKER_PROTO_CMD_SERVER_GET_LEADER	            95
+#define TRACKER_PROTO_CMD_SERVER_LIST_TRACKER	   	    96
 #define TRACKER_PROTO_CMD_SERVICE_QUERY_STORE_WITHOUT_GROUP_ONE	101
 #define TRACKER_PROTO_CMD_SERVICE_QUERY_FETCH_ONE		102
 #define TRACKER_PROTO_CMD_SERVICE_QUERY_UPDATE  		103
@@ -124,6 +126,11 @@
 			+ IPV4_ADDRESS_SIZE - 1 + FDFS_PROTO_PKG_LEN_SIZE + 1)
 #define TRACKER_QUERY_STORAGE_STORE_IPV6_BODY_LEN	(FDFS_GROUP_NAME_MAX_LEN \
 			+ IPV6_ADDRESS_SIZE - 1 + FDFS_PROTO_PKG_LEN_SIZE + 1)
+
+#define TRACKER_GET_LEADER_IPV4_BODY_LEN  (IPV4_ADDRESS_SIZE - 1 + \
+        FDFS_PROTO_PKG_LEN_SIZE)
+#define TRACKER_GET_LEADER_IPV6_BODY_LEN  (IPV6_ADDRESS_SIZE - 1 + \
+        FDFS_PROTO_PKG_LEN_SIZE)
 
 #define STORAGE_TRUNK_ALLOC_CONFIRM_REQ_BODY_LEN  (FDFS_GROUP_NAME_MAX_LEN \
 			+ sizeof(FDFSTrunkInfoBuff))
@@ -219,6 +226,34 @@ typedef struct \
 
 TRACKER_STORAGE_STAT_STRUCT(IPv4, IPV4_ADDRESS_SIZE);
 TRACKER_STORAGE_STAT_STRUCT(IPv6, IPV6_ADDRESS_SIZE);
+
+typedef struct
+{
+    char filter_by;
+    char is_active;
+    char is_leader;
+} TrackerStatFilter;
+
+typedef struct
+{
+    unsigned char count;
+} TrackerClusterStatRespHeader;
+
+typedef struct
+{
+    char is_leader;
+    char is_active;
+
+    struct {
+        char sz_alloc_count[4];
+        char sz_current_count[4];
+        char sz_max_count[4];
+    } connection;
+
+    char version[FDFS_VERSION_SIZE];
+    char up_time[8];
+    char last_heartbeat_time[8];
+} TrackerClusterStatRespBodyPart;
 
 typedef struct
 {

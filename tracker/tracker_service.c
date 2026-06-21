@@ -2552,6 +2552,134 @@ static int tracker_deal_server_list_group_storages(struct fast_task_info *pTask)
     return 0;
 }
 
+static int tracker_deal_server_get_leader(struct fast_task_info *pTask)
+{
+    TrackerClusterServer *leader;
+    char *p;
+
+	if (pTask->recv.ptr->length != sizeof(TrackerHeader))
+    {
+        logError("file: "__FILE__", line: %d, "
+                "cmd=%d, client ip: %s, package size "
+                PKG_LEN_PRINTF_FORMAT" is not correct, "
+                "expect length 0", __LINE__,
+                TRACKER_PROTO_CMD_SERVER_GET_LEADER,
+                pTask->client_ip, pTask->recv.ptr->length -
+                (int)sizeof(TrackerHeader));
+        pTask->send.ptr->length = sizeof(TrackerHeader);
+        return EINVAL;
+    }
+
+    leader = g_tracker_servers.leader;
+    if (leader == NULL)
+    {
+        logWarning("file: "__FILE__", line: %d, "
+                "cmd=%d, client ip: %s, no leader!",
+                __LINE__, TRACKER_PROTO_CMD_SERVER_GET_LEADER,
+                pTask->client_ip);
+        pTask->send.ptr->length = sizeof(TrackerHeader);
+        return ENOENT;
+    }
+
+    p = pTask->send.ptr->data + sizeof(TrackerHeader);
+    memset(p, 0, g_response_ip_addr_size);
+    strcpy(p, leader->server.connections[0].ip_addr);
+    p += g_response_ip_addr_size - 1;
+    long2buff(leader->server.connections[0].port, p);
+    p += FDFS_PROTO_PKG_LEN_SIZE;
+
+    pTask->send.ptr->length = p - pTask->send.ptr->data;
+    return 0;
+}
+
+static int tracker_deal_server_list_tracker(struct fast_task_info *pTask)
+{
+    TrackerStatFilter filter;
+    TrackerClusterStatRespHeader *stat_header;
+    TrackerClusterStatRespBodyPart *body_part;
+    TrackerClusterServer **ppServer;
+    TrackerClusterServer **ppEnd;
+
+	if (pTask->recv.ptr->length != sizeof(TrackerHeader) +
+            sizeof(TrackerStatFilter))
+    {
+        logError("file: "__FILE__", line: %d, "
+                "cmd=%d, client ip: %s, package size "
+                PKG_LEN_PRINTF_FORMAT" is not correct, "
+                "expect length %d", __LINE__,
+                TRACKER_PROTO_CMD_SERVER_LIST_TRACKER,
+                pTask->client_ip, pTask->recv.ptr->length -
+                (int)sizeof(TrackerHeader),
+                (int)sizeof(TrackerStatFilter));
+        pTask->send.ptr->length = sizeof(TrackerHeader);
+        return EINVAL;
+    }
+
+	if (!g_if_leader_self)
+    {
+        logError("file: "__FILE__", line: %d, "
+                "cmd=%d, client ip: %s, i am not the leader!",
+                __LINE__, TRACKER_PROTO_CMD_SERVER_LIST_TRACKER,
+                pTask->client_ip);
+        pTask->send.ptr->length = sizeof(TrackerHeader);
+        return EOPNOTSUPP;
+    }
+
+    filter = *((TrackerStatFilter *)(pTask->recv.ptr->data +
+                sizeof(TrackerHeader)));
+    stat_header = (TrackerClusterStatRespHeader *)(
+            pTask->send.ptr->data + sizeof(TrackerHeader));
+    stat_header->count = g_tracker_servers.server_count;
+    body_part = (TrackerClusterStatRespBodyPart *)(stat_header + 1);
+    ppEnd = g_tracker_servers.servers + g_tracker_servers.server_count;
+    for (ppServer=g_tracker_servers.servers; ppServer<ppEnd;
+            ppServer++)
+    {
+        if (*ppServer == g_tracker_servers.leader)
+        {
+            body_part->is_leader = 1;
+            body_part->is_active = 1;
+        }
+        else
+        {
+            body_part->is_leader = 0;
+            body_part->is_active = (g_current_time - (*ppServer)->
+                    last_heartbeat_time <= 3 ? 1 : 0);
+        }
+
+        if ((filter.filter_by & FDFS_TRACKER_STAT_FILTER_BY_IS_LEADER))
+        {
+            if (body_part->is_leader != filter.is_leader)
+            {
+                continue;
+            }
+        }
+        if ((filter.filter_by & FDFS_TRACKER_STAT_FILTER_BY_IS_ACTIVE))
+        {
+            if (body_part->is_active != filter.is_active)
+            {
+                continue;
+            }
+        }
+
+        int2buff((*ppServer)->connection.alloc_count,
+                body_part->connection.sz_alloc_count);
+        int2buff((*ppServer)->connection.current_count,
+                body_part->connection.sz_current_count);
+        int2buff((*ppServer)->connection.max_count,
+                body_part->connection.sz_max_count);
+        memcpy(body_part->version, (*ppServer)->version,
+                FDFS_VERSION_SIZE);
+        long2buff((*ppServer)->up_time, body_part->up_time);
+        long2buff((*ppServer)->last_heartbeat_time,
+                body_part->last_heartbeat_time);
+        body_part++;
+    }
+
+    pTask->send.ptr->length = (char *)body_part - pTask->send.ptr->data;
+    return 0;
+}
+
 /**
 pkg format:
 Header
@@ -3999,6 +4127,12 @@ static int tracker_deal_task(struct fast_task_info *pTask, const int stage)
 			break;
 		case TRACKER_PROTO_CMD_SERVER_LIST_STORAGE:
 			result = tracker_deal_server_list_group_storages(pTask);
+			break;
+        case TRACKER_PROTO_CMD_SERVER_GET_LEADER:
+			result = tracker_deal_server_get_leader(pTask);
+			break;
+        case TRACKER_PROTO_CMD_SERVER_LIST_TRACKER:
+			result = tracker_deal_server_list_tracker(pTask);
 			break;
 		case TRACKER_PROTO_CMD_STORAGE_SYNC_SRC_REQ:
 			result = tracker_deal_storage_sync_src_req(pTask);

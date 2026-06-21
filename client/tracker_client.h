@@ -39,6 +39,21 @@ typedef struct
     FDFSStorageStat stat;
 } FDFSStorageInfo;
 
+typedef struct
+{
+    bool is_leader;
+    bool is_active;
+
+    struct {
+        int alloc_count;
+        int current_count;
+        int max_count;
+    } connection;
+
+    char version[FDFS_VERSION_SIZE];
+    time_t up_time;
+    time_t last_heartbeat_time;
+} FDFSTrackerInfo;
 
 #define CHECK_CONNECTION(pTrackerServer, conn, result, new_connection) \
 	do { \
@@ -152,15 +167,48 @@ int tracker_list_groups(ConnectionInfo *pTrackerServer, \
 *	storage_count: return storage count
 * return: 0 success, !=0 fail, return the error code
 **/
-int tracker_list_servers(ConnectionInfo *pTrackerServer, \
-		const char *szGroupName, const char *szStorageId, \
-		FDFSStorageInfo *storage_infos, const int max_storages, \
+int tracker_list_servers(ConnectionInfo *pTrackerServer,
+		const char *szGroupName, const char *szStorageId,
+		FDFSStorageInfo *storage_infos, const int max_storages,
 		int *storage_count);
+
+#define tracker_list_storages(pTrackerServer, szGroupName, szStorageId,\
+        storage_infos, max_storages, storage_count) \
+        tracker_list_servers(pTrackerServer, szGroupName, szStorageId, \
+        storage_infos, max_storages, storage_count)
+
+/**
+* get tracker leader
+* params:
+*	pTrackerServer: tracker server
+*   leader_ip: return the leader's first ip address
+*   leader_port: return the port
+* return: 0 success, !=0 fail, return the error code
+**/
+int tracker_get_leader(ConnectionInfo *pTrackerServer,
+        char *leader_ip, int *leader_port);
+
+
+/**
+* list all tracker servers from tracker leader
+* params:
+*	pTrackerServer: tracker server
+*	filter: the filter
+*	tracker_infos: return tracker info array
+*	max_trackers: max tracker count(tracker array capacity)
+*	tracker_count: return tracker count
+* return: 0 success, !=0 fail, return the error code
+**/
+int tracker_list_trackers(ConnectionInfo *pTrackerServer,
+        const TrackerStatFilter *filter, FDFSTrackerInfo *tracker_infos,
+        const int max_trackers, int *tracker_count);
 
 #define tracker_query_storage_store(pTrackerServer, pStorageServer, \
 		group_name, store_path_index) \
 	 tracker_query_storage_store_without_group(pTrackerServer, \
 		pStorageServer, group_name, store_path_index)
+
+
 /**
 * query storage server to upload file
 * params:

@@ -44,7 +44,7 @@
 typedef struct tracker_cluster_server {
     time_t up_time;
     char version[FDFS_VERSION_SIZE];
-    volatile time_t last_heartbeat_time;
+    time_t last_heartbeat_time;
     struct {
         int alloc_count;
         int current_count;

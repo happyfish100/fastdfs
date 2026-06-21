@@ -505,7 +505,7 @@ int tracker_list_servers(ConnectionInfo *pTrackerServer,
 	return 0;
 }
 
-int tracker_list_one_group(ConnectionInfo *pTrackerServer, \
+int tracker_list_one_group(ConnectionInfo *pTrackerServer,
 		const char *group_name, FDFSGroupStat *pDest)
 {
 	TrackerHeader *pHeader;
@@ -693,6 +693,241 @@ int tracker_list_groups(ConnectionInfo *pTrackerServer,
 	}
 
 	return 0;
+}
+
+int tracker_get_leader(ConnectionInfo *pTrackerServer,
+        char *leader_ip, int *leader_port)
+{
+	char out_buff[sizeof(TrackerHeader)];
+	char in_buff[TRACKER_GET_LEADER_IPV6_BODY_LEN + 1];
+    char formatted_ip[FORMATTED_IP_SIZE];
+	bool new_connection;
+	TrackerHeader *pHeader;
+	ConnectionInfo *conn;
+	char *pInBuff;
+	int64_t in_bytes;
+    int ip_len;
+	int result;
+
+	CHECK_CONNECTION(pTrackerServer, conn, result, new_connection);
+
+	memset(out_buff, 0, sizeof(out_buff));
+	pHeader = (TrackerHeader *)out_buff;
+	pHeader->cmd = TRACKER_PROTO_CMD_SERVER_GET_LEADER;
+	if ((result=tcpsenddata_nb(conn->sock, out_buff, sizeof(out_buff),
+                    SF_G_NETWORK_TIMEOUT)) != 0)
+    {
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+        logError("file: "__FILE__", line: %d, "
+                "send data to tracker server %s:%u fail, errno: %d, "
+                "error info: %s", __LINE__, formatted_ip,
+                pTrackerServer->port, result, STRERROR(result));
+    }
+	else
+	{
+		pInBuff = in_buff;
+		result = fdfs_recv_response(conn, &pInBuff,
+					sizeof(in_buff), &in_bytes);
+        if (result != 0)
+        {
+            logError("file: "__FILE__", line: %d, "
+                    "fdfs_recv_response fail, result: %d",
+                    __LINE__, result);
+        }
+        else if (in_bytes < sizeof(TrackerClusterStatRespHeader))
+        {
+            logError("file: "__FILE__", line: %d, "
+                    "response body length %"PRId64" is too short",
+                    __LINE__, in_bytes);
+            result = EINVAL;
+        }
+	}
+
+	if (new_connection)
+	{
+		tracker_close_connection_ex(conn, result != 0);
+	}
+
+	if (result != 0)
+    {
+        return result;
+    }
+
+	if (in_bytes == TRACKER_GET_LEADER_IPV4_BODY_LEN)
+	{
+        ip_len = IPV4_ADDRESS_SIZE - 1;
+    }
+    else if (in_bytes == TRACKER_GET_LEADER_IPV6_BODY_LEN)
+    {
+        ip_len = IPV6_ADDRESS_SIZE - 1;
+    }
+    else
+    {
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+		logError("file: "__FILE__", line: %d, "
+			"tracker server %s:%u response data length: %"PRId64" "
+            "is invalid, expect length: %d or %d", __LINE__,
+            formatted_ip, pTrackerServer->port, in_bytes,
+            TRACKER_GET_LEADER_IPV4_BODY_LEN,
+            TRACKER_GET_LEADER_IPV6_BODY_LEN);
+		return EINVAL;
+	}
+
+    memcpy(leader_ip, in_buff, ip_len);
+    leader_ip[ip_len] = '\0';
+    *leader_port = (int)buff2long(in_buff + ip_len);
+    return 0;
+}
+
+static int list_trackers(ConnectionInfo *pTrackerServer,
+        const TrackerStatFilter *filter, FDFSTrackerInfo *tracker_infos,
+        const int max_trackers, int *tracker_count)
+{
+	char out_buff[sizeof(TrackerHeader) + sizeof(TrackerStatFilter)];
+	char in_buff[sizeof(TrackerClusterStatRespBodyPart) * FDFS_MAX_TRACKERS];
+    char formatted_ip[FORMATTED_IP_SIZE];
+	bool new_connection;
+	TrackerHeader *pHeader;
+    TrackerStatFilter *req;
+	ConnectionInfo *conn;
+	char *pInBuff;
+    TrackerClusterStatRespHeader *stat_header;
+    TrackerClusterStatRespBodyPart *pSrc;
+    TrackerClusterStatRespBodyPart *pEnd;
+	FDFSTrackerInfo *pDest;
+	int64_t in_bytes;
+    int expect_bytes;
+	int result;
+
+	CHECK_CONNECTION(pTrackerServer, conn, result, new_connection);
+
+	memset(out_buff, 0, sizeof(out_buff));
+	pHeader = (TrackerHeader *)out_buff;
+    req = (TrackerStatFilter *)(pHeader + 1);
+	pHeader->cmd = TRACKER_PROTO_CMD_SERVER_LIST_TRACKER;
+    long2buff(sizeof(out_buff) - sizeof(TrackerHeader), pHeader->pkg_len);
+    req->filter_by = filter->filter_by;
+    req->is_leader = (filter->is_leader ? 1 : 0);
+    req->is_active = (filter->is_active ? 1 : 0);
+	if ((result=tcpsenddata_nb(conn->sock, out_buff, sizeof(out_buff),
+                    SF_G_NETWORK_TIMEOUT)) != 0)
+    {
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+        logError("file: "__FILE__", line: %d, "
+                "send data to tracker server %s:%u fail, errno: %d, "
+                "error info: %s", __LINE__, formatted_ip,
+                pTrackerServer->port, result, STRERROR(result));
+    }
+	else
+	{
+		pInBuff = in_buff;
+		result = fdfs_recv_response(conn, &pInBuff,
+					sizeof(in_buff), &in_bytes);
+        if (result != 0)
+        {
+            logError("file: "__FILE__", line: %d, "
+                    "fdfs_recv_response fail, result: %d",
+                    __LINE__, result);
+        }
+        else if (in_bytes < sizeof(TrackerClusterStatRespHeader))
+        {
+            logError("file: "__FILE__", line: %d, "
+                    "response body length %"PRId64" is too short",
+                    __LINE__, in_bytes);
+            result = EINVAL;
+        }
+	}
+
+	if (new_connection)
+	{
+		tracker_close_connection_ex(conn, result != 0);
+	}
+
+	if (result != 0)
+    {
+        *tracker_count = 0;
+        return result;
+    }
+
+    stat_header = (TrackerClusterStatRespHeader *)in_buff;
+    expect_bytes = sizeof(*stat_header) + stat_header->count *
+        sizeof(TrackerClusterStatRespBodyPart);
+	if (in_bytes != expect_bytes)
+    {
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+        logError("file: "__FILE__", line: %d, "
+                "tracker server %s:%u response data length: %"PRId64
+                " is invalid, expected: %d", __LINE__, formatted_ip,
+                pTrackerServer->port, in_bytes, expect_bytes);
+        *tracker_count = 0;
+        return EINVAL;
+    }
+
+    *tracker_count = stat_header->count;
+    if (*tracker_count > max_trackers)
+    {
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+        logError("file: "__FILE__", line: %d, "
+                "tracker server %s:%u insufficient space, "
+                "tracker count: %d, exceeds max count: %d",
+                __LINE__, formatted_ip, pTrackerServer->port,
+                *tracker_count, max_trackers);
+        *tracker_count = 0;
+        return ENOSPC;
+    }
+
+	pDest = tracker_infos;
+    pSrc = (TrackerClusterStatRespBodyPart *)(stat_header + 1);
+    pEnd = pSrc + (*tracker_count);
+    for (; pSrc<pEnd; pSrc++, pDest++)
+    {
+        pDest->is_leader = pSrc->is_leader;
+        pDest->is_active = pSrc->is_active;
+        pDest->connection.alloc_count = buff2int(
+                pSrc->connection.sz_alloc_count);
+        pDest->connection.current_count = buff2int(
+                pSrc->connection.sz_current_count);
+        pDest->connection.max_count = buff2int(
+                pSrc->connection.sz_max_count);
+        pDest->up_time = buff2long(pSrc->up_time);
+        pDest->last_heartbeat_time = buff2long(pSrc->last_heartbeat_time);
+        memcpy(pDest->version, pSrc->version, FDFS_VERSION_SIZE);
+        pDest->version[FDFS_VERSION_SIZE - 1] = '\0';
+    }
+
+	return 0;
+}
+
+int tracker_list_trackers(ConnectionInfo *pTrackerServer,
+        const TrackerStatFilter *filter, FDFSTrackerInfo *tracker_infos,
+        const int max_trackers, int *tracker_count)
+{
+	int result;
+    int leader_port;
+    char leader_ip[IP_ADDRESS_SIZE];
+	ConnectionInfo holder;
+	ConnectionInfo *conn;
+
+    if ((result=tracker_get_leader(pTrackerServer,
+                    leader_ip, &leader_port)) != 0)
+    {
+        return result;
+    }
+
+    if (FC_CONNECTION_SERVER_EQUAL(*pTrackerServer,
+                leader_ip, leader_port))
+    {
+        conn = pTrackerServer;
+    }
+    else
+    {
+        memset(&holder, 0, sizeof(holder));
+        conn_pool_set_server_info(&holder, leader_ip, leader_port);
+        conn = &holder;
+    }
+
+    return list_trackers(conn, filter, tracker_infos,
+            max_trackers, tracker_count);
 }
 
 int tracker_do_query_storage(ConnectionInfo *pTrackerServer,
