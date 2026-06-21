@@ -7,7 +7,7 @@
 %define CommitVersion %(echo $COMMIT_VERSION)
 
 Name: %{FastDFS}
-Version: 6.15.4
+Version: 6.15.5
 Release: 1%{?dist}
 Summary: FastDFS server and client
 License: GPL
@@ -122,6 +122,7 @@ systemctl enable fdfs_storaged
 /usr/bin/fdfs_regenerate_filename
 /usr/bin/fdfs_health_checker
 /usr/bin/fdfs_exporter
+/usr/bin/fdfs_tracker_stat
 
 %files -n %{FDFSConfig}
 %defattr(-,root,root,-)

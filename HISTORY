@@ -2,6 +2,7 @@ Version 6.15.5  2026-06-21
  * fdfs_exporter add metrics: last_synced_timestamp and synced_delay_seconds
  * add protocol TRACKER_JOIN_LEADER for handshake from follower to leader
  * add protocol SERVER_LIST_TRACKER for tracker monitoring
+ * add monitor tool: fdfs_tracker_stat
 
 Version 6.15.4  2026-03-07
  * download_file offset and bytes's logic is consistent with the range of HTTP

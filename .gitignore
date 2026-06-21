@@ -52,6 +52,7 @@ client/fdfs_test1
 client/fdfs_upload_appender
 client/fdfs_upload_file
 client/fdfs_regenerate_filename
+client/fdfs_tracker_stat
 client/test/fdfs_monitor
 client/test/fdfs_test
 client/test/fdfs_test1

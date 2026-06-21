@@ -241,6 +241,7 @@ typedef struct
 
 typedef struct
 {
+    char host[FDFS_MAX_IP_PORT_SIZE];
     char is_leader;
     char is_active;
 

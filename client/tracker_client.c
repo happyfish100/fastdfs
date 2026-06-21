@@ -881,6 +881,8 @@ static int list_trackers(ConnectionInfo *pTrackerServer,
     pEnd = pSrc + (*tracker_count);
     for (; pSrc<pEnd; pSrc++, pDest++)
     {
+        memcpy(pDest->host, pSrc->host, FDFS_MAX_IP_PORT_SIZE);
+        pDest->host[FDFS_MAX_IP_PORT_SIZE - 1] = '\0';
         pDest->is_leader = pSrc->is_leader;
         pDest->is_active = pSrc->is_active;
         pDest->connection.alloc_count = buff2int(

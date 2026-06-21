@@ -13,3 +13,4 @@ usr/bin/fdfs_upload_appender
 usr/bin/fdfs_regenerate_filename
 usr/bin/fdfs_health_checker
 usr/bin/fdfs_exporter
+usr/bin/fdfs_tracker_stat

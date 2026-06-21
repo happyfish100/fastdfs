@@ -2596,6 +2596,7 @@ static int tracker_deal_server_list_tracker(struct fast_task_info *pTask)
 {
     TrackerStatFilter filter;
     TrackerClusterStatRespHeader *stat_header;
+    TrackerClusterStatRespBodyPart *body_start;
     TrackerClusterStatRespBodyPart *body_part;
     TrackerClusterServer **ppServer;
     TrackerClusterServer **ppEnd;
@@ -2629,11 +2630,10 @@ static int tracker_deal_server_list_tracker(struct fast_task_info *pTask)
                 sizeof(TrackerHeader)));
     stat_header = (TrackerClusterStatRespHeader *)(
             pTask->send.ptr->data + sizeof(TrackerHeader));
-    stat_header->count = g_tracker_servers.server_count;
-    body_part = (TrackerClusterStatRespBodyPart *)(stat_header + 1);
+    body_start = (TrackerClusterStatRespBodyPart *)(stat_header + 1);
     ppEnd = g_tracker_servers.servers + g_tracker_servers.server_count;
-    for (ppServer=g_tracker_servers.servers; ppServer<ppEnd;
-            ppServer++)
+    for (ppServer=g_tracker_servers.servers, body_part=body_start;
+            ppServer<ppEnd; ppServer++)
     {
         if (*ppServer == g_tracker_servers.leader)
         {
@@ -2662,6 +2662,8 @@ static int tracker_deal_server_list_tracker(struct fast_task_info *pTask)
             }
         }
 
+        format_ip_port((*ppServer)->server.connections[0].ip_addr,
+                (*ppServer)->server.connections[0].port, body_part->host);
         int2buff((*ppServer)->connection.alloc_count,
                 body_part->connection.sz_alloc_count);
         int2buff((*ppServer)->connection.current_count,
@@ -2676,6 +2678,7 @@ static int tracker_deal_server_list_tracker(struct fast_task_info *pTask)
         body_part++;
     }
 
+    stat_header->count = body_part - body_start;
     pTask->send.ptr->length = (char *)body_part - pTask->send.ptr->data;
     return 0;
 }
