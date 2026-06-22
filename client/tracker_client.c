@@ -696,17 +696,17 @@ int tracker_list_groups(ConnectionInfo *pTrackerServer,
 }
 
 int tracker_get_leader(ConnectionInfo *pTrackerServer,
-        char *leader_ip, int *leader_port)
+        char *leader_ip, const int ip_size, int *leader_port)
 {
 	char out_buff[sizeof(TrackerHeader)];
-	char in_buff[TRACKER_GET_LEADER_IPV6_BODY_LEN + 1];
+	char in_buff[IPV6_ADDRESS_SIZE + 8];
     char formatted_ip[FORMATTED_IP_SIZE];
 	bool new_connection;
 	TrackerHeader *pHeader;
 	ConnectionInfo *conn;
 	char *pInBuff;
+    char *parts[2];
 	int64_t in_bytes;
-    int ip_len;
 	int result;
 
 	CHECK_CONNECTION(pTrackerServer, conn, result, new_connection);
@@ -727,7 +727,7 @@ int tracker_get_leader(ConnectionInfo *pTrackerServer,
 	{
 		pInBuff = in_buff;
 		result = fdfs_recv_response(conn, &pInBuff,
-					sizeof(in_buff), &in_bytes);
+					sizeof(in_buff) - 1, &in_bytes);
         if (result != 0)
         {
             logError("file: "__FILE__", line: %d, "
@@ -753,29 +753,29 @@ int tracker_get_leader(ConnectionInfo *pTrackerServer,
         return result;
     }
 
-	if (in_bytes == TRACKER_GET_LEADER_IPV4_BODY_LEN)
-	{
-        ip_len = IPV4_ADDRESS_SIZE - 1;
-    }
-    else if (in_bytes == TRACKER_GET_LEADER_IPV6_BODY_LEN)
-    {
-        ip_len = IPV6_ADDRESS_SIZE - 1;
-    }
-    else
+	if (in_bytes <= 8)
     {
         format_ip_address(pTrackerServer->ip_addr, formatted_ip);
-		logError("file: "__FILE__", line: %d, "
-			"tracker server %s:%u response data length: %"PRId64" "
-            "is invalid, expect length: %d or %d", __LINE__,
-            formatted_ip, pTrackerServer->port, in_bytes,
-            TRACKER_GET_LEADER_IPV4_BODY_LEN,
-            TRACKER_GET_LEADER_IPV6_BODY_LEN);
-		return EINVAL;
-	}
+        logError("file: "__FILE__", line: %d, "
+                "tracker server %s:%u response data length: "
+                "%"PRId64" is too small", __LINE__, formatted_ip,
+                pTrackerServer->port, in_bytes);
+        return EINVAL;
+    }
 
-    memcpy(leader_ip, in_buff, ip_len);
-    leader_ip[ip_len] = '\0';
-    *leader_port = (int)buff2long(in_buff + ip_len);
+    in_buff[in_bytes] = '\0';
+    if (parseAddress(in_buff, parts) != 2)
+    {
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+        logError("file: "__FILE__", line: %d, "
+                "tracker server %s:%u response ip and port "
+                "is invalid", __LINE__, formatted_ip,
+                pTrackerServer->port);
+        return EINVAL;
+    }
+
+    fc_strlcpy(leader_ip, parts[0], ip_size);
+    *leader_port = atoi(parts[1]);
     return 0;
 }
 
@@ -910,8 +910,8 @@ int tracker_list_trackers(ConnectionInfo *pTrackerServer,
 	ConnectionInfo holder;
 	ConnectionInfo *conn;
 
-    if ((result=tracker_get_leader(pTrackerServer,
-                    leader_ip, &leader_port)) != 0)
+    if ((result=tracker_get_leader(pTrackerServer, leader_ip,
+                    sizeof(leader_ip), &leader_port)) != 0)
     {
         return result;
     }

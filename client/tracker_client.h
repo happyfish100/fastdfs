@@ -183,11 +183,12 @@ int tracker_list_servers(ConnectionInfo *pTrackerServer,
 * params:
 *	pTrackerServer: tracker server
 *   leader_ip: return the leader's first ip address
+*   ip_size: the max size of leader_ip
 *   leader_port: return the port
 * return: 0 success, !=0 fail, return the error code
 **/
 int tracker_get_leader(ConnectionInfo *pTrackerServer,
-        char *leader_ip, int *leader_port);
+        char *leader_ip, const int ip_size, int *leader_port);
 
 
 /**

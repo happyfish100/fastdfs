@@ -2555,7 +2555,10 @@ static int tracker_deal_server_list_group_storages(struct fast_task_info *pTask)
 static int tracker_deal_server_get_leader(struct fast_task_info *pTask)
 {
     TrackerClusterServer *leader;
-    char *p;
+    ConnectionInfo *conn;
+    ConnectionInfo *end;
+    int ip_type;
+    char *resp_body;
 
 	if (pTask->recv.ptr->length != sizeof(TrackerHeader))
     {
@@ -2581,14 +2584,31 @@ static int tracker_deal_server_get_leader(struct fast_task_info *pTask)
         return ENOENT;
     }
 
-    p = pTask->send.ptr->data + sizeof(TrackerHeader);
-    memset(p, 0, g_response_ip_addr_size);
-    strcpy(p, leader->server.connections[0].ip_addr);
-    p += g_response_ip_addr_size - 1;
-    long2buff(leader->server.connections[0].port, p);
-    p += FDFS_PROTO_PKG_LEN_SIZE;
+    if (leader->server.count == 1)
+    {
+        conn = leader->server.connections;
+    }
+    else
+    {
+        ip_type = fdfs_get_ip_type(pTask->client_ip);
+        end = leader->server.connections + leader->server.count;
+        for (conn=leader->server.connections; conn<end; conn++)
+        {
+            if (fdfs_get_ip_type(conn->ip_addr) == ip_type)
+            {
+                break;
+            }
+        }
 
-    pTask->send.ptr->length = p - pTask->send.ptr->data;
+        if (conn == end)
+        {
+            conn = leader->server.connections;
+        }
+    }
+
+    resp_body = pTask->send.ptr->data + sizeof(TrackerHeader);
+    format_ip_port(conn->ip_addr, conn->port, resp_body);
+    pTask->send.ptr->length = sizeof(TrackerHeader) + strlen(resp_body);
     return 0;
 }
 

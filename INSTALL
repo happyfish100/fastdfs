@@ -67,6 +67,7 @@ such as:
 # step 7. (optional) run monitor program
 # such as:
 /usr/bin/fdfs_monitor /etc/fdfs/client.conf
+/usr/bin/fdfs_tracker_stat
 
 
 # step 8. (optional) run the test program

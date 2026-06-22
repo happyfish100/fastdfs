@@ -40,24 +40,33 @@ static void output(const FDFSTrackerInfo *tracker_infos,
     const FDFSTrackerInfo *tracker;
     const FDFSTrackerInfo *end;
     char up_time_buff[32];
+    char last_hb_time_buff[32];
 
+    printf("\n");
     end = tracker_infos + tracker_count;
     for (tracker=tracker_infos; tracker<end; tracker++)
     {
+        printf("%s, is_leader: %d, is_active: %d, connections "
+                "{alloc: %d, current: %d, max: %d}\n", tracker->host,
+                tracker->is_leader, tracker->is_active,
+                tracker->connection.alloc_count,
+                tracker->connection.current_count,
+                tracker->connection.max_count);
         if (show_detail)
         {
-            printf("%d. %s, version: %s, up_time: %s, is_leader: %d, "
-                    "is_active: %d\n", (int)(tracker - tracker_infos) + 1,
-                    tracker->host, tracker->version, formatDatetime(
-                        tracker->up_time, "%Y-%m-%d %H:%M:%S",
-                        up_time_buff, sizeof(up_time_buff)),
-                    tracker->is_leader, tracker->is_active);
-        }
-        else
-        {
-            printf("%d. %s, is_leader: %d, is_active: %d\n",
-                    (int)(tracker - tracker_infos) + 1, tracker->host,
-                    tracker->is_leader, tracker->is_active);
+            printf("  version: %s, up_time: %s", tracker->version,
+                    formatDatetime(tracker->up_time, "%Y-%m-%d %H:%M:%S",
+                        up_time_buff, sizeof(up_time_buff)));
+            if (tracker->is_leader)
+            {
+                printf("\n\n");
+            }
+            else
+            {
+                printf(", last_heartbeat_time: %s\n\n", formatDatetime(
+                            tracker->last_heartbeat_time, "%Y-%m-%d %H:%M:%S",
+                            last_hb_time_buff, sizeof(last_hb_time_buff)));
+            }
         }
     }
 
