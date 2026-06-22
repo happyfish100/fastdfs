@@ -33,6 +33,8 @@
 static int listen_port = DEFAULT_PORT;
 static int server_socket = -1;
 static char *server_response = NULL;
+static ConnectionInfo *pTrackerServer = NULL;
+static TrackerStatFilter filter = {0, 0, 0};
 
 /**
  * Format metric name for Prometheus
@@ -45,25 +47,29 @@ static void format_metric_name(char *buffer, size_t size,
 /**
  * Append metric to response buffer
  */
-static int append_metric(char *response, size_t *offset, size_t max_size,
+static int append_metric_ex(char *response, size_t *offset, size_t max_size,
                         const char *name, const char *labels,
-                        const char *value, const char *help) {
+                        const char *value, const char *help,
+                        const bool add_comment)
+{
     int written = 0;
-    
-    // Add HELP comment
-    if (help != NULL) {
+
+    if (add_comment) {
+        // Add HELP comment
+        if (help != NULL) {
+            written = snprintf(response + *offset, max_size - *offset,
+                    "# HELP %s %s\n", name, help);
+            if (written < 0 || *offset + written >= max_size) return -1;
+            *offset += written;
+        }
+
+        // Add TYPE comment
         written = snprintf(response + *offset, max_size - *offset,
-                          "# HELP %s %s\n", name, help);
+                "# TYPE %s gauge\n", name);
         if (written < 0 || *offset + written >= max_size) return -1;
         *offset += written;
     }
-    
-    // Add TYPE comment
-    written = snprintf(response + *offset, max_size - *offset,
-                      "# TYPE %s gauge\n", name);
-    if (written < 0 || *offset + written >= max_size) return -1;
-    *offset += written;
-    
+
     // Add metric value
     if (labels != NULL && strlen(labels) > 0) {
         written = snprintf(response + *offset, max_size - *offset,
@@ -72,18 +78,66 @@ static int append_metric(char *response, size_t *offset, size_t max_size,
         written = snprintf(response + *offset, max_size - *offset,
                           "%s %s\n", name, value);
     }
-    
+
     if (written < 0 || *offset + written >= max_size) return -1;
     *offset += written;
-    
+
+    return 0;
+}
+
+static inline int append_metric(char *response, size_t *offset,
+        size_t max_size, const char *name, const char *labels,
+        const char *value, const char *help)
+{
+    const bool add_comment = true;
+    return append_metric_ex(response, offset, max_size, name,
+            labels, value, help, add_comment);
+}
+
+/**
+ * Export storage-level metrics
+ */
+static int export_tracker_metrics(char *response, size_t *offset,
+        size_t max_size, const FDFSTrackerInfo *pTracker,
+        const bool add_comment)
+{
+    char metric_name[256];
+    char labels[512];
+    char value[64];
+
+    // Tracker labels
+    snprintf(labels, sizeof(labels), "host=\"%s\"", pTracker->host);
+
+    format_metric_name(metric_name, sizeof(metric_name), "tracker", "is_leader");
+    snprintf(value, sizeof(value), "%d", pTracker->is_leader);
+    if (append_metric_ex(response, offset, max_size, metric_name, labels, value,
+                     "Is leader", add_comment) != 0) return -1;
+
+    format_metric_name(metric_name, sizeof(metric_name), "tracker", "is_active");
+    snprintf(value, sizeof(value), "%d", pTracker->is_active);
+    if (append_metric_ex(response, offset, max_size, metric_name, labels, value,
+                     "Is active", add_comment) != 0) return -1;
+
+    // === Connection Metrics ===
+    format_metric_name(metric_name, sizeof(metric_name), "tracker", "connections_current");
+    snprintf(value, sizeof(value), "%d", pTracker->connection.current_count);
+    if (append_metric_ex(response, offset, max_size, metric_name, labels, value,
+                     "Current connection count", add_comment) != 0) return -1;
+
+    format_metric_name(metric_name, sizeof(metric_name), "tracker", "connections_max");
+    snprintf(value, sizeof(value), "%d", pTracker->connection.max_count);
+    if (append_metric_ex(response, offset, max_size, metric_name, labels, value,
+                     "Maximum connection count", add_comment) != 0) return -1;
+
     return 0;
 }
 
 /**
  * Export group-level metrics
  */
-static int export_group_metrics(char *response, size_t *offset, size_t max_size,
-                               FDFSGroupStat *pGroupStat) {
+static int export_group_metrics(char *response, size_t *offset,
+        size_t max_size, FDFSGroupStat *pGroupStat)
+{
     char metric_name[256];
     char labels[512];
     char value[64];
@@ -154,8 +208,10 @@ static int export_group_metrics(char *response, size_t *offset, size_t max_size,
  */
 static int export_storage_metrics(char *response, size_t *offset,
         size_t max_size, const char *group_name,
-        FDFSStorageInfo *pStorage, FDFSStorageStat *pStorageStat,
-        time_t max_last_source_update)
+        const FDFSStorageInfo *pStorage,
+        const FDFSStorageStat *pStorageStat,
+        const time_t max_last_source_update,
+        const bool add_comment)
 {
     char metric_name[256];
     char labels[512];
@@ -163,28 +219,28 @@ static int export_storage_metrics(char *response, size_t *offset,
     long delay_seconds;
     int64_t avail_space;
     time_t current_time = time(NULL);
-    
+
     // Storage labels
     snprintf(labels, sizeof(labels), 
             "group=\"%s\",storage_id=\"%s\",ip=\"%s\",status=\"%d\"",
             group_name, pStorage->id, pStorage->ip_addr, pStorage->status);
-    
+
     // === Storage Space Metrics ===
 
     format_metric_name(metric_name, sizeof(metric_name), "storage", "total_mb");
     snprintf(value, sizeof(value), "%"PRId64, pStorage->total_mb);
-    if (append_metric(response, offset, max_size, metric_name, labels, value,
-                     "Disk total space in MB") != 0) return -1;
+    if (append_metric_ex(response, offset, max_size, metric_name, labels, value,
+                     "Disk total space in MB", add_comment) != 0) return -1;
 
     format_metric_name(metric_name, sizeof(metric_name), "storage", "free_mb");
     snprintf(value, sizeof(value), "%"PRId64, pStorage->free_mb);
-    if (append_metric(response, offset, max_size, metric_name, labels, value,
-                     "Disk free space in MB") != 0) return -1;
+    if (append_metric_ex(response, offset, max_size, metric_name, labels, value,
+                     "Disk free space in MB", add_comment) != 0) return -1;
 
     format_metric_name(metric_name, sizeof(metric_name), "storage", "reserved_mb");
     snprintf(value, sizeof(value), "%"PRId64, pStorage->reserved_mb);
-    if (append_metric(response, offset, max_size, metric_name, labels, value,
-                     "Disk reserved space in MB") != 0) return -1;
+    if (append_metric_ex(response, offset, max_size, metric_name, labels, value,
+                     "Disk reserved space in MB", add_comment) != 0) return -1;
 
     avail_space = pStorage->free_mb - pStorage->reserved_mb;
     if (avail_space < 0) {
@@ -192,104 +248,104 @@ static int export_storage_metrics(char *response, size_t *offset,
     }
     format_metric_name(metric_name, sizeof(metric_name), "storage", "available_mb");
     snprintf(value, sizeof(value), "%"PRId64, avail_space);
-    if (append_metric(response, offset, max_size, metric_name, labels, value,
-                     "Disk available space in MB") != 0) return -1;
+    if (append_metric_ex(response, offset, max_size, metric_name, labels, value,
+                     "Disk available space in MB", add_comment) != 0) return -1;
 
     // === Upload Metrics ===
     
     format_metric_name(metric_name, sizeof(metric_name), "storage", "upload_total");
     snprintf(value, sizeof(value), "%"PRId64, pStorageStat->total_upload_count);
-    if (append_metric(response, offset, max_size, metric_name, labels, value,
-                     "Total upload operations") != 0) return -1;
+    if (append_metric_ex(response, offset, max_size, metric_name, labels, value,
+                     "Total upload operations", add_comment) != 0) return -1;
     
     format_metric_name(metric_name, sizeof(metric_name), "storage", "upload_success");
     snprintf(value, sizeof(value), "%"PRId64, pStorageStat->success_upload_count);
-    if (append_metric(response, offset, max_size, metric_name, labels, value,
-                     "Successful upload operations") != 0) return -1;
+    if (append_metric_ex(response, offset, max_size, metric_name, labels, value,
+                     "Successful upload operations", add_comment) != 0) return -1;
     
     format_metric_name(metric_name, sizeof(metric_name), "storage", "upload_bytes_total");
     snprintf(value, sizeof(value), "%"PRId64, pStorageStat->total_upload_bytes);
-    if (append_metric(response, offset, max_size, metric_name, labels, value,
-                     "Total uploaded bytes") != 0) return -1;
+    if (append_metric_ex(response, offset, max_size, metric_name, labels, value,
+                     "Total uploaded bytes", add_comment) != 0) return -1;
     
     // === Download Metrics ===
     
     format_metric_name(metric_name, sizeof(metric_name), "storage", "download_total");
     snprintf(value, sizeof(value), "%"PRId64, pStorageStat->total_download_count);
-    if (append_metric(response, offset, max_size, metric_name, labels, value,
-                     "Total download operations") != 0) return -1;
+    if (append_metric_ex(response, offset, max_size, metric_name, labels, value,
+                     "Total download operations", add_comment) != 0) return -1;
     
     format_metric_name(metric_name, sizeof(metric_name), "storage", "download_success");
     snprintf(value, sizeof(value), "%"PRId64, pStorageStat->success_download_count);
-    if (append_metric(response, offset, max_size, metric_name, labels, value,
-                     "Successful download operations") != 0) return -1;
+    if (append_metric_ex(response, offset, max_size, metric_name, labels, value,
+                     "Successful download operations", add_comment) != 0) return -1;
     
     format_metric_name(metric_name, sizeof(metric_name), "storage", "download_bytes_total");
     snprintf(value, sizeof(value), "%"PRId64, pStorageStat->total_download_bytes);
-    if (append_metric(response, offset, max_size, metric_name, labels, value,
-                     "Total downloaded bytes") != 0) return -1;
+    if (append_metric_ex(response, offset, max_size, metric_name, labels, value,
+                     "Total downloaded bytes", add_comment) != 0) return -1;
     
     // === Delete Metrics ===
     
     format_metric_name(metric_name, sizeof(metric_name), "storage", "delete_total");
     snprintf(value, sizeof(value), "%"PRId64, pStorageStat->total_delete_count);
-    if (append_metric(response, offset, max_size, metric_name, labels, value,
-                     "Total delete operations") != 0) return -1;
+    if (append_metric_ex(response, offset, max_size, metric_name, labels, value,
+                     "Total delete operations", add_comment) != 0) return -1;
     
     format_metric_name(metric_name, sizeof(metric_name), "storage", "delete_success");
     snprintf(value, sizeof(value), "%"PRId64, pStorageStat->success_delete_count);
-    if (append_metric(response, offset, max_size, metric_name, labels, value,
-                     "Successful delete operations") != 0) return -1;
+    if (append_metric_ex(response, offset, max_size, metric_name, labels, value,
+                     "Successful delete operations", add_comment) != 0) return -1;
     
     // === Append Metrics ===
     
     format_metric_name(metric_name, sizeof(metric_name), "storage", "append_total");
     snprintf(value, sizeof(value), "%"PRId64, pStorageStat->total_append_count);
-    if (append_metric(response, offset, max_size, metric_name, labels, value,
-                     "Total append operations") != 0) return -1;
+    if (append_metric_ex(response, offset, max_size, metric_name, labels, value,
+                     "Total append operations", add_comment) != 0) return -1;
     
     format_metric_name(metric_name, sizeof(metric_name), "storage", "append_success");
     snprintf(value, sizeof(value), "%"PRId64, pStorageStat->success_append_count);
-    if (append_metric(response, offset, max_size, metric_name, labels, value,
-                     "Successful append operations") != 0) return -1;
+    if (append_metric_ex(response, offset, max_size, metric_name, labels, value,
+                     "Successful append operations", add_comment) != 0) return -1;
     
     // === Modify Metrics ===
     
     format_metric_name(metric_name, sizeof(metric_name), "storage", "modify_total");
     snprintf(value, sizeof(value), "%"PRId64, pStorageStat->total_modify_count);
-    if (append_metric(response, offset, max_size, metric_name, labels, value,
-                     "Total modify operations") != 0) return -1;
+    if (append_metric_ex(response, offset, max_size, metric_name, labels, value,
+                     "Total modify operations", add_comment) != 0) return -1;
     
     format_metric_name(metric_name, sizeof(metric_name), "storage", "modify_success");
     snprintf(value, sizeof(value), "%"PRId64, pStorageStat->success_modify_count);
-    if (append_metric(response, offset, max_size, metric_name, labels, value,
-                     "Successful modify operations") != 0) return -1;
+    if (append_metric_ex(response, offset, max_size, metric_name, labels, value,
+                     "Successful modify operations", add_comment) != 0) return -1;
     
     // === Connection Metrics ===
     
     format_metric_name(metric_name, sizeof(metric_name), "storage", "connections_current");
     snprintf(value, sizeof(value), "%d", pStorageStat->connection.current_count);
-    if (append_metric(response, offset, max_size, metric_name, labels, value,
-                     "Current connection count") != 0) return -1;
+    if (append_metric_ex(response, offset, max_size, metric_name, labels, value,
+                     "Current connection count", add_comment) != 0) return -1;
     
     format_metric_name(metric_name, sizeof(metric_name), "storage", "connections_max");
     snprintf(value, sizeof(value), "%d", pStorageStat->connection.max_count);
-    if (append_metric(response, offset, max_size, metric_name, labels, value,
-                     "Maximum connection count") != 0) return -1;
+    if (append_metric_ex(response, offset, max_size, metric_name, labels, value,
+                     "Maximum connection count", add_comment) != 0) return -1;
     
     // === Heartbeat Metrics ===
     
     format_metric_name(metric_name, sizeof(metric_name), "storage", "last_heartbeat");
     snprintf(value, sizeof(value), "%ld", (long)pStorageStat->last_heart_beat_time);
-    if (append_metric(response, offset, max_size, metric_name, labels, value,
-                     "Last heartbeat timestamp") != 0) return -1;
+    if (append_metric_ex(response, offset, max_size, metric_name, labels, value,
+                     "Last heartbeat timestamp", add_comment) != 0) return -1;
 
     // Heartbeat delay
     format_metric_name(metric_name, sizeof(metric_name), "storage", "heartbeat_delay_seconds");
     snprintf(value, sizeof(value), "%ld", 
             (long)(current_time - pStorageStat->last_heart_beat_time));
-    if (append_metric(response, offset, max_size, metric_name, labels, value,
-                     "Seconds since last heartbeat") != 0) return -1;
+    if (append_metric_ex(response, offset, max_size, metric_name, labels, value,
+                     "Seconds since last heartbeat", add_comment) != 0) return -1;
 
     // === Sync Metrics ===
 
@@ -297,8 +353,8 @@ static int export_storage_metrics(char *response, size_t *offset,
             "storage", "last_synced_timestamp");
     snprintf(value, sizeof(value), "%ld",
             (long)pStorageStat->last_synced_timestamp);
-    if (append_metric(response, offset, max_size, metric_name, labels, value,
-                     "Last synced timestamp") != 0) return -1;
+    if (append_metric_ex(response, offset, max_size, metric_name, labels, value,
+                     "Last synced timestamp", add_comment) != 0) return -1;
 
     // Sync delay seconds
     format_metric_name(metric_name, sizeof(metric_name),
@@ -317,19 +373,46 @@ static int export_storage_metrics(char *response, size_t *offset,
         }
     }
     snprintf(value, sizeof(value), "%ld", delay_seconds);
-    if (append_metric(response, offset, max_size, metric_name, labels, value,
-                     "Synced delay seconds") != 0) return -1;
+    if (append_metric_ex(response, offset, max_size, metric_name, labels, value,
+                     "Synced delay seconds", add_comment) != 0) return -1;
     
     format_metric_name(metric_name, sizeof(metric_name), "storage", "sync_in_bytes_total");
     snprintf(value, sizeof(value), "%"PRId64, pStorageStat->total_sync_in_bytes);
-    if (append_metric(response, offset, max_size, metric_name, labels, value,
-                     "Total sync in bytes") != 0) return -1;
+    if (append_metric_ex(response, offset, max_size, metric_name, labels, value,
+                     "Total sync in bytes", add_comment) != 0) return -1;
     
     format_metric_name(metric_name, sizeof(metric_name), "storage", "sync_out_bytes_total");
     snprintf(value, sizeof(value), "%"PRId64, pStorageStat->total_sync_out_bytes);
-    if (append_metric(response, offset, max_size, metric_name, labels, value,
-                     "Total sync out bytes") != 0) return -1;
+    if (append_metric_ex(response, offset, max_size, metric_name, labels, value,
+                     "Total sync out bytes", add_comment) != 0) return -1;
     
+    return 0;
+}
+
+static int collect_tracker_metrics(char *response, size_t *offset, size_t max_size)
+{
+    FDFSTrackerInfo tracker_infos[FDFS_MAX_TRACKERS];
+    FDFSTrackerInfo *tracker;
+    FDFSTrackerInfo *end;
+    int tracker_count;
+    int result;
+
+    if ((result=tracker_list_trackers(pTrackerServer, &filter, tracker_infos,
+                    FDFS_MAX_TRACKERS, &tracker_count)) != 0)
+    {
+        return result;
+    }
+
+    end = tracker_infos + tracker_count;
+    for (tracker=tracker_infos; tracker<end; tracker++)
+    {
+        if ((result=export_tracker_metrics(response, offset, max_size,
+                        tracker, tracker == tracker_infos)) != 0)
+        {
+            return result;
+        }
+    }
+
     return 0;
 }
 
@@ -341,7 +424,6 @@ static int collect_metrics(char *response, size_t max_size, int *length)
     int result;
     int group_count;
     int storage_count;
-    ConnectionInfo *pTrackerServer;
     FDFSGroupStat group_stats[FDFS_MAX_GROUPS];
     FDFSGroupStat *pGroupStat;
     FDFSGroupStat *pGroupEnd;
@@ -357,7 +439,12 @@ static int collect_metrics(char *response, size_t max_size, int *length)
     if (pTrackerServer == NULL) {
         return errno != 0 ? errno : ECONNREFUSED;
     }
-    
+
+    if ((result=collect_tracker_metrics(response, &offset, max_size)) != 0) {
+        conn_pool_disconnect_server(pTrackerServer);
+        return result;
+    }
+
     // List all groups
     result = tracker_list_groups(pTrackerServer, group_stats,
                                  FDFS_MAX_GROUPS, &group_count);
@@ -397,7 +484,7 @@ static int collect_metrics(char *response, size_t max_size, int *length)
 
             if (export_storage_metrics(response, &offset, max_size,
                         pGroupStat->group_name, pStorage, &pStorage->stat,
-                        max_last_source_update) != 0)
+                        max_last_source_update, pStorage == storage_infos) != 0)
             {
                 conn_pool_disconnect_server(pTrackerServer);
                 return -1;
