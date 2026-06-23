@@ -407,50 +407,15 @@ static int list_storages(FDFSGroupStat *pGroupStat)
 				strcpy(szSyncedDelaySeconds, "(never synced)");
 			}
 			else
-			{
-			int delay_seconds;
-			int remain_seconds;
-			int day;
-			int hour;
-			int minute;
-			int second;
-			char szDelayTime[64];
-			
-			delay_seconds = (int)(max_last_source_update -
-				pStorageStat->last_synced_timestamp);
-            if (delay_seconds < 0)
             {
-                delay_seconds = 0;
+                int64_t delay_seconds;
+                char szDelayTime[128];
+                delay_seconds = max_last_source_update -
+                    pStorageStat->last_synced_timestamp;
+                sprintf(szSyncedDelaySeconds, "(%s delay)",
+                        seconds_to_human_str(delay_seconds,
+                            szDelayTime));
             }
-			day = delay_seconds / (24 * 3600);
-			remain_seconds = delay_seconds % (24 * 3600);
-			hour = remain_seconds / 3600;
-			remain_seconds %= 3600;
-			minute = remain_seconds / 60;
-			second = remain_seconds % 60;
-
-			if (day != 0)
-			{
-				sprintf(szDelayTime, "%d days " \
-					"%02dh:%02dm:%02ds", \
-					day, hour, minute, second);
-			}
-			else if (hour != 0)
-			{
-				sprintf(szDelayTime, "%02dh:%02dm:%02ds", \
-					hour, minute, second);
-			}
-			else if (minute != 0)
-			{
-				sprintf(szDelayTime, "%02dm:%02ds", minute, second);
-			}
-			else
-			{
-				sprintf(szDelayTime, "%ds", second);
-			}
-
-			sprintf(szSyncedDelaySeconds, "(%s delay)", szDelayTime);
-			}
 		}
 
 		//getHostnameByIp(pStorage->ip_addr, szHostname, sizeof(szHostname));
