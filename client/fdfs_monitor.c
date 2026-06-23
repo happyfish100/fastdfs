@@ -29,11 +29,15 @@ static int list_all_groups(const char *group_name);
 
 static void usage(char *argv[])
 {
-	printf("Usage: %s <config_file> [-h <tracker_server>] "
-            "[list|delete|set_trunk_server <group_name> [storage_id]]\n"
-            "\tthe tracker server format: host[:port], "
-            "the tracker default port is %d\n\n",
-            argv[0], FDFS_TRACKER_SERVER_DEF_PORT);
+    printf("\nUsage:\n"
+            "  %s <client_cfg_file> [-h <tracker_server>]\n"
+            "  [list|delete|set_trunk_server <group_name> [storage_id]]\n\n"
+            "Note:\n"
+            "  the tracker server format: host[:port], "
+            "the tracker default port is %d\n"
+            "  %s without parameter equals: %s %s\n\n",
+            argv[0], FDFS_TRACKER_SERVER_DEF_PORT, argv[0],
+            argv[0], FDFS_CLIENT_DEFAULT_CONFIG_FILENAME);
 }
 
 int main(int argc, char *argv[])
@@ -46,15 +50,23 @@ int main(int argc, char *argv[])
 	int arg_index;
 	int result;
 
-	if (argc < 2)
-	{
-		usage(argv);
-		return 1;
-	}
-
 	tracker_server = NULL;
-	conf_filename = argv[1];
-	arg_index = 2;
+	if (argc == 1)
+    {
+        conf_filename = FDFS_CLIENT_DEFAULT_CONFIG_FILENAME;
+        arg_index = 1;
+    }
+    else
+    {
+        if (argc == 2 && strcmp(argv[1], "-h") == 0)
+        {
+            usage(argv);
+            return 0;
+        }
+
+        conf_filename = argv[1];
+        arg_index = 2;
+    }
 
 	if (arg_index >= argc)
 	{
