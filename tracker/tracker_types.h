@@ -305,7 +305,7 @@ typedef struct StructFDFSStorageDetail
     FDFSReadWriteMode rw_mode;  //since v6.13
 	char id[FDFS_STORAGE_ID_MAX_SIZE];
     FDFSMultiIP ip_addrs;
-	char version[FDFS_VERSION_SIZE];
+	char version[FDFS_VERSION_SIZE + 1];
 
 	struct StructFDFSStorageDetail *psync_src_server;
 	int64_t *path_total_mbs; //total disk storage in MB
@@ -427,7 +427,7 @@ typedef struct
     int upload_priority;
     int join_time; //storage join timestamp (create timestamp)
     int up_time;   //storage service started timestamp
-    char version[FDFS_VERSION_SIZE];   //storage version
+    char version[FDFS_VERSION_SIZE + 1];   //storage version
     char group_name[FDFS_GROUP_NAME_MAX_LEN + 1];
     char storage_id[FDFS_STORAGE_ID_MAX_SIZE];
     char init_flag;

@@ -43,6 +43,7 @@ static int fdfs_join_leader(ConnectionInfo *pTrackerServer)
         sizeof(TrackerJoinLeaderBody)];
     char formatted_ip[FORMATTED_IP_SIZE];
     char in_buff[1];
+    char version_buff[64];
 	char *pInBuff;
 
     pHeader = (TrackerHeader *)out_buff;
@@ -50,9 +51,14 @@ static int fdfs_join_leader(ConnectionInfo *pTrackerServer)
 	memset(pHeader, 0, sizeof(TrackerHeader));
     long2buff(g_sf_global_vars.up_time, req->up_time);
     long2buff(SF_G_INNER_PORT, req->server_port);
-    snprintf(req->version, sizeof(req->version), "%d.%d.%d",
-            g_fdfs_version.major, g_fdfs_version.minor,
-            g_fdfs_version.patch);
+    if (snprintf(req->version, sizeof(req->version), "%d.%d.%d",
+                g_fdfs_version.major, g_fdfs_version.minor,
+                g_fdfs_version.patch) >= sizeof(req->version))
+    {
+        sprintf(version_buff, "%d.%d.%d", g_fdfs_version.major,
+                g_fdfs_version.minor, g_fdfs_version.patch);
+        memcpy(req->version, version_buff, FDFS_VERSION_SIZE);
+    }
 	pHeader->cmd = TRACKER_PROTO_CMD_TRACKER_JOIN_LEADER;
     long2buff(sizeof(TrackerJoinLeaderBody), pHeader->pkg_len);
 	result = tcpsenddata_nb(pTrackerServer->sock, out_buff,

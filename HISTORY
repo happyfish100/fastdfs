@@ -1,3 +1,6 @@
+Version 6.15.6  2026-06-25
+ * expand version's buffer size of tracker and storage server
+
 Version 6.15.5  2026-06-23
  * fdfs_exporter add metrics: last_synced_timestamp and synced_delay_seconds
  * add protocol TRACKER_JOIN_LEADER for handshake from follower to leader

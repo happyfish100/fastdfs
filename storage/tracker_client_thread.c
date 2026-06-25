@@ -2004,6 +2004,7 @@ int tracker_report_join(ConnectionInfo *pTrackerServer,
 	char out_buff[sizeof(TrackerHeader) + sizeof(TrackerStorageJoinBody) +
 			FDFS_MAX_TRACKERS * FDFS_MAX_MULTI_IP_PORT_SIZE];
     char formatted_ip[FORMATTED_IP_SIZE];
+    char version_buff[64];
 	TrackerHeader *pHeader;
 	TrackerStorageJoinBody *pReqBody;
 	TrackerStorageJoinBodyResp respBody;
@@ -2025,8 +2026,14 @@ int tracker_report_join(ConnectionInfo *pTrackerServer,
 	memset(out_buff, 0, sizeof(out_buff));
 	pHeader->cmd = TRACKER_PROTO_CMD_STORAGE_JOIN;
 	strcpy(pReqBody->group_name, g_group_name);
-	snprintf(pReqBody->version, sizeof(pReqBody->version), "%d.%d.%d",
-		g_fdfs_version.major, g_fdfs_version.minor, g_fdfs_version.patch);
+    if (snprintf(pReqBody->version, sizeof(pReqBody->version), "%d.%d.%d",
+                g_fdfs_version.major, g_fdfs_version.minor,
+                g_fdfs_version.patch) >= sizeof(pReqBody->version))
+    {
+        sprintf(version_buff, "%d.%d.%d", g_fdfs_version.major,
+                g_fdfs_version.minor, g_fdfs_version.patch);
+        memcpy(pReqBody->version, version_buff, FDFS_VERSION_SIZE);
+    }
 	long2buff(SF_G_INNER_PORT, pReqBody->storage_port);
 	long2buff(g_fdfs_store_paths.count, pReqBody->store_path_count);
 	long2buff(g_subdir_count_per_path, pReqBody->subdir_count_per_path);

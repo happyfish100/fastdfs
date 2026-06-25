@@ -25,7 +25,7 @@ typedef struct
     char id[FDFS_STORAGE_ID_MAX_SIZE];
     char ip_addr[IP_ADDRESS_SIZE];
     char src_id[FDFS_STORAGE_ID_MAX_SIZE];  //src storage id
-    char version[FDFS_VERSION_SIZE];
+    char version[FDFS_VERSION_SIZE + 1];
     int64_t total_mb;    //disk total space in MB
     int64_t free_mb;     //disk free space in MB
     int64_t reserved_mb; //disk available space in MB, since v6.13.1
@@ -51,7 +51,7 @@ typedef struct
         int max_count;
     } connection;
 
-    char version[FDFS_VERSION_SIZE];
+    char version[FDFS_VERSION_SIZE + 1];
     time_t up_time;
     time_t last_heartbeat_time;
 } FDFSTrackerInfo;

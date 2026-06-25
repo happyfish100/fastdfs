@@ -1451,8 +1451,8 @@ static int tracker_deal_storage_join(struct fast_task_info *pTask)
 	joinBody.join_time = (time_t)buff2long(pBody->join_time);
 	joinBody.up_time = (time_t)buff2long(pBody->up_time);
 
-	*(pBody->version + (sizeof(pBody->version) - 1)) = '\0';
-	strcpy(joinBody.version, pBody->version);
+	memcpy(joinBody.version, pBody->version, FDFS_VERSION_SIZE);
+	*(joinBody.version + FDFS_VERSION_SIZE) = '\0';
 	joinBody.init_flag = pBody->init_flag;
 	joinBody.status = pBody->status;
 	memcpy(joinBody.storage_id, pBody->storage_id, FDFS_STORAGE_ID_MAX_SIZE);
@@ -1716,7 +1716,6 @@ static int tracker_deal_join_leader(struct fast_task_info *pTask)
             sizeof(TrackerHeader));
     up_time = buff2long(req->up_time);
     server_port = buff2long(req->server_port);
-    req->version[FDFS_VERSION_SIZE - 1] = '\0';
     server_index = get_tracker_server_index(pTask->client_ip, server_port);
     if (server_index < 0)
     {
@@ -1731,6 +1730,7 @@ static int tracker_deal_join_leader(struct fast_task_info *pTask)
     pClientInfo->peer_tracker->up_time = up_time;
     memcpy(pClientInfo->peer_tracker->version,
             req->version, FDFS_VERSION_SIZE);
+    pClientInfo->peer_tracker->version[FDFS_VERSION_SIZE] = '\0';
     pTask->send.ptr->length = sizeof(TrackerHeader);
     return 0;
 }
@@ -2306,7 +2306,6 @@ static inline int64_t calc_reserved_space(int64_t total_mb)
     }
 }
 
-
 #define ENCODE_STORAGE_FIELDS(ppServer, pDest) \
     pDest->status = (*ppServer)->status;   \
     pDest->rw_mode = (*ppServer)->rw_mode; \
@@ -2317,7 +2316,7 @@ static inline int64_t calc_reserved_space(int64_t total_mb)
     { \
         strcpy(pDest->src_id, (*ppServer)->psync_src_server->id); \
     } \
-    strcpy(pDest->version, (*ppServer)->version); \
+    memcpy(pDest->version, (*ppServer)->version, FDFS_VERSION_SIZE); \
     long2buff((*ppServer)->join_time, pDest->sz_join_time); \
     long2buff((*ppServer)->up_time, pDest->sz_up_time);   \
     long2buff((*ppServer)->total_mb, pDest->sz_total_mb); \

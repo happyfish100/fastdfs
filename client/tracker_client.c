@@ -345,7 +345,8 @@ static void decode_storage_stat(FDFSStorageStatBuff *pStatBuff,
     memcpy(pDest->ip_addr, pSrc->ip_addr, ip_size - 1); \
     memcpy(pDest->src_id, pSrc->src_id,    \
             FDFS_STORAGE_ID_MAX_SIZE - 1); \
-    strcpy(pDest->version, pSrc->version); \
+    memcpy(pDest->version, pSrc->version, FDFS_VERSION_SIZE); \
+    pDest->version[FDFS_VERSION_SIZE] = '\0'; \
     pDest->join_time = buff2long(pSrc->sz_join_time); \
     pDest->up_time = buff2long(pSrc->sz_up_time);     \
     pDest->total_mb = buff2long(pSrc->sz_total_mb);   \
@@ -894,7 +895,7 @@ static int list_trackers(ConnectionInfo *pTrackerServer,
         pDest->up_time = buff2long(pSrc->up_time);
         pDest->last_heartbeat_time = buff2long(pSrc->last_heartbeat_time);
         memcpy(pDest->version, pSrc->version, FDFS_VERSION_SIZE);
-        pDest->version[FDFS_VERSION_SIZE - 1] = '\0';
+        pDest->version[FDFS_VERSION_SIZE] = '\0';
     }
 
 	return 0;
