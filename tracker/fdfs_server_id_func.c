@@ -49,18 +49,26 @@ bool fdfs_is_server_id_valid(const char *id)
 	return (strcmp(buff, id) == 0);
 }
 
-static int fdfs_cmp_group_name_and_ip(const void *p1, const void *p2)
+static int fdfs_cmp_group_name_and_ip_port(const void *p1, const void *p2)
 {
-	int result;
-	result = strcmp(((FDFSStorageIdMap *)p1)->group_name,
-		((FDFSStorageIdMap *)p2)->group_name);
-	if (result != 0)
-	{
-		return result;
-	}
+    int result;
 
-	return strcmp(((FDFSStorageIdMap *)p1)->ip_addr,
-		((FDFSStorageIdMap *)p2)->ip_addr);
+    result = strcmp(((FDFSStorageIdMap *)p1)->group_name,
+            ((FDFSStorageIdMap *)p2)->group_name);
+    if (result != 0)
+    {
+        return result;
+    }
+
+    result = strcmp(((FDFSStorageIdMap *)p1)->ip_addr,
+            ((FDFSStorageIdMap *)p2)->ip_addr);
+    if (result != 0)
+    {
+        return result;
+    }
+
+    return ((FDFSStorageIdMap *)p1)->port -
+        ((FDFSStorageIdMap *)p2)->port;
 }
 
 static int fdfs_cmp_server_id(const void *p1, const void *p2)
@@ -83,19 +91,19 @@ static int fdfs_cmp_ip_and_port(const void *p1, const void *p2)
         ((FDFSStorageIdMap *)p2)->port;
 }
 
-FDFSStorageIdInfo *fdfs_get_storage_id_by_ip(const char *group_name,
-		const char *pIpAddr)
+FDFSStorageIdInfo *fdfs_get_storage_id_by_group_and_ip_port(
+        const char *group_name, const char *ip_addr, const int port)
 {
 	FDFSStorageIdMap target;
 	FDFSStorageIdMap *pFound;
 
 	target.group_name =  group_name;
-	target.ip_addr = pIpAddr;
-	target.port = 0;
+	target.ip_addr = ip_addr;
+	target.port = port;
     target.idInfo = NULL;
 	pFound = (FDFSStorageIdMap *)bsearch(&target,
             g_storage_ids_by_ip.maps, g_storage_ids_by_ip.count,
-            sizeof(FDFSStorageIdMap), fdfs_cmp_group_name_and_ip);
+            sizeof(FDFSStorageIdMap), fdfs_cmp_group_name_and_ip_port);
 	if (pFound == NULL)
 	{
 		return NULL;
@@ -257,30 +265,23 @@ static int fdfs_check_ip_port()
     return 0;
 }
 
-FDFSStorageIdInfo *fdfs_get_storage_id_by_ip_port(const char *pIpAddr,
-        const int port)
+FDFSStorageIdInfo *fdfs_get_storage_id_by_ip_port(
+        const char *pIpAddr, const int port)
 {
-	FDFSStorageIdMap target;
-	FDFSStorageIdMap *pFound;
-    int ports[2];
-    int i;
+    FDFSStorageIdMap target;
+    FDFSStorageIdMap *pFound;
 
-	target.ip_addr = pIpAddr;
-	target.group_name = NULL;
+    target.ip_addr = pIpAddr;
+    target.port = port;
+    target.group_name = NULL;
     target.idInfo = NULL;
-    ports[0] = port;
-    ports[1] = 0;
-    for (i=0; i<2; i++)
+    pFound = (FDFSStorageIdMap *)bsearch(&target,
+            g_storage_ids_by_ip_port.maps,
+            g_storage_ids_by_ip_port.count,
+            sizeof(FDFSStorageIdMap), fdfs_cmp_ip_and_port);
+    if (pFound != NULL)
     {
-        target.port = ports[i];
-        pFound = (FDFSStorageIdMap *)bsearch(&target,
-                g_storage_ids_by_ip_port.maps,
-                g_storage_ids_by_ip_port.count,
-                sizeof(FDFSStorageIdMap), fdfs_cmp_ip_and_port);
-        if (pFound != NULL)
-        {
-            return pFound->idInfo;
-        }
+        return pFound->idInfo;
     }
 
     return NULL;
@@ -546,7 +547,7 @@ int fdfs_load_storage_ids(char *content, const char *pStorageIdsFilename)
                 }
                 else
                 {
-                    pStorageIdInfo->port = 0;
+                    pStorageIdInfo->port = FDFS_STORAGE_SERVER_DEF_PORT;
                 }
             }
             else
@@ -559,7 +560,7 @@ int fdfs_load_storage_ids(char *content, const char *pStorageIdsFilename)
                 }
                 else
                 {
-                    pStorageIdInfo->port = 0;
+                    pStorageIdInfo->port = FDFS_STORAGE_SERVER_DEF_PORT;
                 }
             }
 
@@ -646,7 +647,7 @@ int fdfs_load_storage_ids(char *content, const char *pStorageIdsFilename)
     }
 
     if ((result=fdfs_init_ip_array(&g_storage_ids_by_ip,
-                    fdfs_cmp_group_name_and_ip)) != 0)
+                    fdfs_cmp_group_name_and_ip_port)) != 0)
     {
         return result;
     }

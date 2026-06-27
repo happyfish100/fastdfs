@@ -142,7 +142,7 @@ typedef struct
 
 typedef struct
 {
-	char group_name[FDFS_GROUP_NAME_MAX_LEN+1];
+	char group_name[FDFS_GROUP_NAME_MAX_LEN + 1];
 	char storage_port[FDFS_PROTO_PKG_LEN_SIZE];
 	char store_path_count[FDFS_PROTO_PKG_LEN_SIZE];
 	char subdir_count_per_path[FDFS_PROTO_PKG_LEN_SIZE];
@@ -279,6 +279,12 @@ typedef struct
     char start_index[4];
     char allow_empty;
 } FDFSFetchStorageIdsBody;
+
+typedef struct
+{
+    char group_name[FDFS_GROUP_NAME_MAX_LEN + 1];
+    char port[4];
+} FDFSGetMyIPReqBody;
 
 #ifdef __cplusplus
 extern "C" {

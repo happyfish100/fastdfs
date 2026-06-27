@@ -109,7 +109,7 @@ int storage_sync_connect_storage_server_ex(const char *module_name,
             }
 
             if ((conn_results[i]=connectserverbyip_nb(conn->sock,
-                            conn->ip_addr, SF_G_INNER_PORT,
+                            conn->ip_addr, conn->port,
                             SF_G_CONNECT_TIMEOUT)) == 0)
             {
                 char szFailPrompt[64];
@@ -125,7 +125,7 @@ int storage_sync_connect_storage_server_ex(const char *module_name,
                 logInfo("file: "__FILE__", line: %d, %s%s "
                         "successfully connect to storage server "
                         "%s:%u%s", __LINE__, module_name, thread_prompt,
-                        formatted_ip, SF_G_INNER_PORT, szFailPrompt);
+                        formatted_ip, conn->port, szFailPrompt);
                 return 0;
             }
 
@@ -137,7 +137,7 @@ int storage_sync_connect_storage_server_ex(const char *module_name,
                         "connect to storage server %s:%u fail, "
                         "errno: %d, error info: %s", __LINE__,
                         module_name, thread_prompt, formatted_ip,
-                        SF_G_INNER_PORT, conn_results[i],
+                        conn->port, conn_results[i],
                         STRERROR(conn_results[i]));
                 previousCodes[i] = conn_results[i];
             }
@@ -167,7 +167,7 @@ int storage_sync_connect_storage_server_ex(const char *module_name,
                         "connect to storage server %s:%u fail, "
                         "try count: %d, errno: %d, error info: %s",
                         __LINE__, module_name, thread_prompt,
-                        formatted_ip, SF_G_INNER_PORT, avg_fails,
+                        formatted_ip, conn->port, avg_fails,
                         conn_results[i], STRERROR(conn_results[i]));
             }
         }

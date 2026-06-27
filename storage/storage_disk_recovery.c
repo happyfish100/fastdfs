@@ -247,7 +247,8 @@ static int recovery_get_src_storage_server(ConnectionInfo *pSrcStorage)
 	{
 		result = tracker_get_storage_max_status(&g_tracker_group,
                 g_group_name, g_tracker_client_ip.ips[0].address,
-                g_my_server_id_str, &saved_storage_status);
+                SF_G_INNER_PORT, g_my_server_id_str,
+                &saved_storage_status);
 		if (result == ENOENT)
 		{
 			logWarning("file: "__FILE__", line: %d, " \

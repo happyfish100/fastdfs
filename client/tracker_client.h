@@ -371,12 +371,13 @@ int tracker_set_trunk_server(TrackerServerGroup *pTrackerGroup, \
 *	pTrackerServer: tracker server
 *	group_name: the group name which the storage server belongs to
 *	ip_addr: the ip addr of the storage server
+*   port: the port of the storage server
 *	pDestBuff: return the storage server brief info
 * return: 0 success, !=0 fail, return the error code
 **/
-int tracker_get_storage_status(ConnectionInfo *pTrackerServer, \
-		const char *group_name, const char *ip_addr, \
-		FDFSStorageBrief *pDestBuff);
+int tracker_get_storage_status(ConnectionInfo *pTrackerServer,
+		const char *group_name, const char *ip_addr,
+        const int port, FDFSStorageBrief *pDestBuff);
 
 
 /**
@@ -385,12 +386,13 @@ int tracker_get_storage_status(ConnectionInfo *pTrackerServer, \
 *	pTrackerServer: tracker server
 *	group_name: the group name which the storage server belongs to
 *	ip_addr: the ip addr of the storage server
+*   port: the port of the storage server
 *	storage_id: return the storage server id
 * return: 0 success, !=0 fail, return the error code
 **/
-int tracker_get_storage_id(ConnectionInfo *pTrackerServer, \
-		const char *group_name, const char *ip_addr, \
-		char *storage_id);
+int tracker_get_storage_id(ConnectionInfo *pTrackerServer,
+		const char *group_name, const char *ip_addr,
+        const int port, char *storage_id);
 
 /**
 * get storage server highest level status from all tracker servers
@@ -398,12 +400,13 @@ int tracker_get_storage_id(ConnectionInfo *pTrackerServer, \
 *	pTrackerGroup: the tracker group
 *	group_name: the group name which the storage server belongs to
 *	ip_addr: the ip addr of the storage server
+*   port: the port of the storage server
 *	storage_id: return the storage server id
 *	status: return the highest level status
 * return: 0 success, !=0 fail, return the error code
 **/
-int tracker_get_storage_max_status(TrackerServerGroup *pTrackerGroup, \
-		const char *group_name, const char *ip_addr, \
+int tracker_get_storage_max_status(TrackerServerGroup *pTrackerGroup,
+		const char *group_name, const char *ip_addr, const int port,
 		char *storage_id, int *status);
 
 #ifdef __cplusplus

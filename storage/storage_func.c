@@ -374,8 +374,8 @@ static int get_my_server_id_by_local_ip()
 
     ip_addr = get_first_local_ip();
     while (ip_addr != NULL) {
-        if ((idInfo=fdfs_get_storage_id_by_ip(g_group_name,
-                        ip_addr)) != NULL)
+        if ((idInfo=fdfs_get_storage_id_by_group_and_ip_port(g_group_name,
+                        ip_addr, SF_G_INNER_PORT)) != NULL)
         {
             fc_safe_strcpy(g_my_server_id_str, idInfo->id);
             return 0;
@@ -449,7 +449,7 @@ static int tracker_get_my_server_id(const char *conf_filename,
 
             result = tracker_get_storage_id(pTrackerServer,
                     g_group_name, g_tracker_client_ip.ips[0].address,
-                    g_my_server_id_str);
+                    SF_G_INNER_PORT, g_my_server_id_str);
             tracker_close_connection_ex(pTrackerServer, result != 0);
             if (result != 0)
             {
@@ -2524,9 +2524,10 @@ bool storage_id_is_myself(const char *storage_id)
 }
 
 static int storage_get_my_ip_from_tracker(ConnectionInfo *conn,
-        char *ip_addrs, const int buff_size)
+        char *ip_addr, const int buff_size)
 {
-	char out_buff[sizeof(TrackerHeader) + FDFS_GROUP_NAME_MAX_LEN];
+    FDFSGetMyIPReqBody *req;
+	char out_buff[sizeof(TrackerHeader) + sizeof(FDFSGetMyIPReqBody)];
     char formatted_ip[FORMATTED_IP_SIZE];
 	TrackerHeader *pHeader;
 	int result;
@@ -2534,10 +2535,11 @@ static int storage_get_my_ip_from_tracker(ConnectionInfo *conn,
 
 	memset(out_buff, 0, sizeof(out_buff));
 	pHeader = (TrackerHeader *)out_buff;
-
-	long2buff(FDFS_GROUP_NAME_MAX_LEN, pHeader->pkg_len);
+    req = (FDFSGetMyIPReqBody *)(pHeader + 1);
+	long2buff(sizeof(FDFSGetMyIPReqBody), pHeader->pkg_len);
 	pHeader->cmd = TRACKER_PROTO_CMD_STORAGE_GET_MY_IP;
-	strcpy(out_buff + sizeof(TrackerHeader), g_group_name);
+	strcpy(req->group_name, g_group_name);
+    int2buff(SF_G_INNER_PORT, req->port);
 	if((result=tcpsenddata_nb(conn->sock, out_buff,
 		sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
@@ -2549,7 +2551,7 @@ static int storage_get_my_ip_from_tracker(ConnectionInfo *conn,
 		return result;
 	}
 
-    if ((result=fdfs_recv_response(conn, &ip_addrs,
+    if ((result=fdfs_recv_response(conn, &ip_addr,
                     buff_size - 1, &in_bytes)) != 0)
     {
         format_ip_address(conn->ip_addr, formatted_ip);
@@ -2560,7 +2562,7 @@ static int storage_get_my_ip_from_tracker(ConnectionInfo *conn,
 		return result;
     }
 
-    *(ip_addrs + in_bytes) = '\0';
+    *(ip_addr + in_bytes) = '\0';
     return 0;
 }
 

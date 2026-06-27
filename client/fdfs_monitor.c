@@ -461,6 +461,7 @@ static int list_storages(FDFSGroupStat *pGroupStat)
 		printf( "\tStorage %d:\n"
 			"\t\tid = %s\n"
 			"\t\tip_addr = %s%s  %s\n"
+			"\t\tport = %d\n"
             "\t\tread write mode = %s\n"
 			"\t\tversion = %s\n"
 			"\t\tjoin time = %s\n"
@@ -472,7 +473,6 @@ static int list_storages(FDFSGroupStat *pGroupStat)
 			"\t\tupload priority = %d\n"
 			"\t\tstore_path_count = %d\n"
 			"\t\tsubdir_count_per_path = %d\n"
-			"\t\tstorage_port = %d\n"
 			"\t\tcurrent_write_path = %d\n"
 			"\t\tsource storage id = %s\n"
 			"\t\tif_trunk_server = %d\n"
@@ -524,6 +524,7 @@ static int list_storages(FDFSGroupStat *pGroupStat)
 			++k, pStorage->id, pStorage->ip_addr,
 			szHostnamePrompt, get_storage_status_caption(
 			    pStorage->status),
+			pStorage->storage_port,
             get_storage_rw_caption(pStorage->rw_mode),
 			pStorage->version,
 			formatDatetime(pStorage->join_time,
@@ -536,7 +537,6 @@ static int list_storages(FDFSGroupStat *pGroupStat)
 			pStorage->upload_priority,
 			pStorage->store_path_count,
 			pStorage->subdir_count_per_path,
-			pStorage->storage_port,
 			pStorage->current_write_path,
 			pStorage->src_id,
 			pStorage->if_trunk_server,

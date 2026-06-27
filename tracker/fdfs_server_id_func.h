@@ -101,8 +101,8 @@ int fdfs_load_storage_ids(char *content, const char *pStorageIdsFilename);
 
 FDFSStorageIdInfo *fdfs_get_storage_by_id(const char *id);
 
-FDFSStorageIdInfo *fdfs_get_storage_id_by_ip(const char *group_name,
-		const char *pIpAddr);
+FDFSStorageIdInfo *fdfs_get_storage_id_by_group_and_ip_port(
+        const char *group_name, const char *ip_addr, const int port);
 
 FDFSStorageIdInfo *fdfs_get_storage_id_by_ip_port(const char *pIpAddr,
         const int port);

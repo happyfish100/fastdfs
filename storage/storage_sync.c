@@ -3471,7 +3471,7 @@ static void storage_sync_thread_exit(const FDFSStorageBrief *pStorage)
         format_ip_address(pStorage->ip_addr, formatted_ip);
         logDebug("file: "__FILE__", line: %d, "
                 "sync thread to storage server %s:%u exit",
-                __LINE__, formatted_ip, SF_G_INNER_PORT);
+                __LINE__, formatted_ip, buff2int(pStorage->port));
     }
 }
 
@@ -3494,7 +3494,7 @@ static int init_task_array(StorageDispatchContext *dispatch_ctx,
         task->thread_index = task - tasks;
         task->dispatch_ctx = dispatch_ctx;
         conn_pool_set_server_info(&task->storage_server,
-                pStorage->ip_addr, SF_G_INNER_PORT);
+                pStorage->ip_addr, buff2int(pStorage->port));
     }
 
     dispatch_ctx->task_array.count = 0;
@@ -3543,6 +3543,26 @@ static void dispatch_ctx_close(StorageDispatchContext *dispatch_ctx)
     }
 
     storage_reader_destroy(dispatch_ctx->pReader);
+}
+
+static bool storage_is_myself(const FDFSStorageBrief *pStorage)
+{
+    if (strcmp(pStorage->id, g_my_server_id_str) == 0)
+    {
+        return true;
+    }
+    else
+    {
+        if (g_use_storage_id)
+        {
+            return (buff2int(pStorage->port) == SF_G_INNER_PORT &&
+                    is_local_host_ip(pStorage->ip_addr));
+        }
+        else
+        {
+            return is_local_host_ip(pStorage->ip_addr);
+        }
+    }
 }
 
 static void* storage_sync_thread_entrance(void* arg)
@@ -3688,9 +3708,8 @@ static void* storage_sync_thread_entrance(void* arg)
             pStorage->ip_addr, local_ip_addr);
 		*/
 
-        if (strcmp(pStorage->id, g_my_server_id_str) == 0 ||
-                is_local_host_ip(pStorage->ip_addr))
-        {  //can't self sync to self
+        if (storage_is_myself(pStorage))  //can't self sync to self
+        {
 			logError("file: "__FILE__", line: %d, "
 				"ip_addr %s belong to the local host, "
 				"sync thread exit.", __LINE__, pStorage->ip_addr);
@@ -3883,14 +3902,13 @@ int storage_sync_thread_start(const FDFSStorageBrief *pStorage)
 		return 0;
 	}
 
-	if (strcmp(pStorage->id, g_my_server_id_str) == 0 ||
-		is_local_host_ip(pStorage->ip_addr)) //can't self sync to self
-	{
-		logWarning("file: "__FILE__", line: %d, "
-			"storage id: %s is myself, can't start sync thread!",
-			__LINE__, pStorage->id);
-		return 0;
-	}
+    if (storage_is_myself(pStorage)) //can't self sync to self
+    {
+        logWarning("file: "__FILE__", line: %d, "
+                "storage id: %s is myself, can't start sync thread!",
+                __LINE__, pStorage->id);
+        return 0;
+    }
 
 	if ((result=init_pthread_attr(&pattr, SF_G_THREAD_STACK_SIZE)) != 0)
 	{

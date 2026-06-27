@@ -423,8 +423,8 @@ static void *tracker_report_thread_entrance(void *arg)
 				int my_status;
 				if (tracker_get_storage_max_status(
 					&g_tracker_group, g_group_name,
-					tracker_client_ip, my_server_id,
-					&my_status) == 0)
+					tracker_client_ip, SF_G_INNER_PORT,
+                    my_server_id, &my_status) == 0)
 				{
 					tracker_sync_dest_query(conn);
 					if (my_status < FDFS_STORAGE_STATUS_OFFLINE
@@ -1204,14 +1204,16 @@ static void set_trunk_server(const char *ip_addr, const int port)
     if (g_use_storage_id)
     {
         FDFSStorageIdInfo *idInfo;
-        idInfo = fdfs_get_storage_id_by_ip(
-                g_group_name, ip_addr);
+        idInfo = fdfs_get_storage_id_by_group_and_ip_port(
+                g_group_name, ip_addr, port);
         if (idInfo == NULL)
         {
+            char formatted_ip[FORMATTED_IP_SIZE];
+            format_ip_address(ip_addr, formatted_ip);
             logWarning("file: "__FILE__", line: %d, "
-                    "storage server ip: %s not exist "
+                    "storage server %s:%u not exist "
                     "in storage_ids.conf from tracker server",
-                    __LINE__, ip_addr);
+                    __LINE__, formatted_ip, port);
 
             fdfs_set_server_info(&g_trunk_server,
                     ip_addr, port);

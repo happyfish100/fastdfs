@@ -53,8 +53,8 @@ static int storage_convert_src_server_id()
 			continue;
 		}
 
-		result = tracker_get_storage_id(pTrackerConn,
-			g_group_name, g_sync_src_id, g_sync_src_id);
+		result = tracker_get_storage_id(pTrackerConn, g_group_name,
+                g_sync_src_id, SF_G_INNER_PORT, g_sync_src_id);
 		tracker_close_connection_ex(pTrackerConn,
 			result != 0 && result != ENOENT);
 		if (result == 0)

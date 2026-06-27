@@ -90,8 +90,8 @@ FDFSGroupInfo *tracker_mem_get_group_ex(FDFSGroups *pGroups, \
 
 FDFSStorageDetail *tracker_mem_get_storage(FDFSGroupInfo *pGroup, \
 				const char *id);
-FDFSStorageDetail *tracker_mem_get_storage_by_ip(FDFSGroupInfo *pGroup, \
-				const char *ip_addr);
+FDFSStorageDetail *tracker_mem_get_storage_by_ip_port(FDFSGroupInfo *pGroup,
+				const char *ip_addr, const int port);
 
 const FDFSStorageDetail *tracker_mem_set_trunk_server(
 	FDFSGroupInfo *pGroup, const char *pStroageId, int *result);
