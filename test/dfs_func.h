@@ -31,7 +31,8 @@ void dfs_destroy();
 * param storage_ip return the storage server ip address (max length 15)
 * return 0 if success, none zero for error
 */
-int upload_file(const char *file_buff, const int file_size, char *file_id, char *storage_ip);
+int upload_file(const char *file_buff, const int file_size,
+        char *file_id, char *storage_ip, int *port);
 
 /*
 * download file from the storage server
@@ -40,7 +41,8 @@ int upload_file(const char *file_buff, const int file_size, char *file_id, char 
 * param storage_ip return the storage server ip address (max length 15)
 * return 0 if success, none zero for error
 */
-int download_file(const char *file_id, int *file_size, char *storage_ip);
+int download_file(const char *file_id, int *file_size,
+        char *storage_ip, int *port);
 
 /*
 * delete file from the storage server
@@ -48,7 +50,7 @@ int download_file(const char *file_id, int *file_size, char *storage_ip);
 * param storage_ip return the storage server ip address (max length 15)
 * return 0 if success, none zero for error
 */
-int delete_file(const char *file_id, char *storage_ip);
+int delete_file(const char *file_id, char *storage_ip, int *port);
 
 /*
 * upload appender file to the storage server
@@ -64,7 +66,8 @@ int delete_file(const char *file_id, char *storage_ip);
 */
 int upload_appender_file_by_buff(const char *file_buff, const int file_size,
 	const char *file_ext_name, const FDFSMetaData *meta_list,
-	const int meta_count, char *group_name, char *file_id, char *storage_ip);
+	const int meta_count, char *group_name, char *file_id,
+    char *storage_ip, int *port);
 
 /*
 * append file content to appender file
@@ -76,7 +79,8 @@ int upload_appender_file_by_buff(const char *file_buff, const int file_size,
 * return 0 if success, none zero for error
 */
 int append_file_by_buff(const char *append_buff, const int append_size,
-	const char *group_name, const char *appender_file_id, char *storage_ip);
+	const char *group_name, const char *appender_file_id,
+    char *storage_ip, int *port);
 
 #ifdef __cplusplus
 }

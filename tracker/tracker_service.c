@@ -2810,7 +2810,7 @@ static int tracker_deal_service_query_fetch_update(
 	fdfs_check_reserved_space_path(total_mb, free_mb, avg_mb, \
 				&g_storage_reserved_space)
 
-static int tracker_deal_service_query_storage( \
+static int tracker_deal_service_query_storage(
 		struct fast_task_info *pTask, char cmd)
 {
 	int expect_pkg_len;
@@ -2919,8 +2919,7 @@ static int tracker_deal_service_query_storage( \
 		if (pStoreGroup == NULL)
 		{
 			FDFSGroupInfo **ppGroupEnd;
-			ppGroupEnd = g_groups.sorted_groups +
-				     g_groups.count;
+			ppGroupEnd = g_groups.sorted_groups + g_groups.count;
 			for (ppGroup=ppFoundGroup+1;
 					ppGroup<ppGroupEnd; ppGroup++)
 			{

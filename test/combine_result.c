@@ -98,7 +98,7 @@ int main(int argc, char **argv)
 
 	if (combine_stat_by(STAT_FILENAME_BY_STORAGE_IP, stats, FILE_TYPE_COUNT, &entry_count) == 0)
 	{
-		printf("ip_addr  total_count success_count time_used(s) avg(ms) QPS success_ratio\n");
+		printf("host total_count success_count time_used(s) avg(ms) QPS success_ratio\n");
 		print_stat_by(stats, entry_count);
 		printf("\n");
 	}

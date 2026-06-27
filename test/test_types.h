@@ -19,6 +19,7 @@
 
 typedef struct {
 	char ip_addr[IP_ADDRESS_SIZE];
+    int port;
 	int total_count;
 	int success_count;
 	int64_t time_used;

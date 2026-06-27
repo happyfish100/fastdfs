@@ -97,8 +97,8 @@ static int downloadFileCallback(void *arg, const int64_t file_size,
 	return 0;
 }
 
-int upload_file(const char *file_buff, const int file_size, char *file_id, 
-		char *storage_ip)
+int upload_file(const char *file_buff, const int file_size,
+        char *file_id, char *storage_ip, int *port)
 {
 	int result;
 	int store_path_index;
@@ -121,13 +121,15 @@ int upload_file(const char *file_buff, const int file_size, char *file_id,
 	}
 
 	strcpy(storage_ip, storageServer.ip_addr);
+    *port = storageServer.port;
 	result = storage_upload_by_filebuff1(pTrackerServer, pStorageServer, 
 		store_path_index, file_buff, file_size, NULL, NULL, 0, "", file_id);
 
 	return result;
 }
 
-int download_file(const char *file_id, int *file_size, char *storage_ip)
+int download_file(const char *file_id, int *file_size,
+        char *storage_ip, int *port)
 {
 	int result;
 	ConnectionInfo storageServer;
@@ -147,6 +149,7 @@ int download_file(const char *file_id, int *file_size, char *storage_ip)
 	}
 
 	strcpy(storage_ip, storageServer.ip_addr);
+    *port = storageServer.port;
 	result = storage_download_file_ex1(pTrackerServer, pStorageServer, 
 			file_id, 0, 0, downloadFileCallback, NULL, &file_bytes);
 	*file_size = file_bytes;
@@ -154,7 +157,7 @@ int download_file(const char *file_id, int *file_size, char *storage_ip)
 	return result;
 }
 
-int delete_file(const char *file_id, char *storage_ip)
+int delete_file(const char *file_id, char *storage_ip, int *port)
 {
 	int result;
 	ConnectionInfo storageServer;
@@ -173,6 +176,7 @@ int delete_file(const char *file_id, char *storage_ip)
 	}
 
 	strcpy(storage_ip, storageServer.ip_addr);
+    *port = storageServer.port;
 	result = storage_delete_file1(pTrackerServer, pStorageServer, file_id);
 
 	return result;
@@ -180,7 +184,8 @@ int delete_file(const char *file_id, char *storage_ip)
 
 int upload_appender_file_by_buff(const char *file_buff, const int file_size,
 	const char *file_ext_name, const FDFSMetaData *meta_list,
-	const int meta_count, char *group_name, char *file_id, char *storage_ip)
+	const int meta_count, char *group_name, char *file_id,
+    char *storage_ip, int *port)
 {
 	int result;
 	int store_path_index;
@@ -203,6 +208,7 @@ int upload_appender_file_by_buff(const char *file_buff, const int file_size,
 	}
 
 	strcpy(storage_ip, storageServer.ip_addr);
+    *port = storageServer.port;
 	result = storage_upload_appender_by_filebuff1(pTrackerServer, pStorageServer,
 		store_path_index, file_buff, file_size, file_ext_name,
 		meta_list, meta_count, group_name, file_id);
@@ -214,7 +220,8 @@ int upload_appender_file_by_buff(const char *file_buff, const int file_size,
 }
 
 int append_file_by_buff(const char *append_buff, const int append_size,
-	const char *group_name, const char *appender_file_id, char *storage_ip)
+	const char *group_name, const char *appender_file_id,
+    char *storage_ip, int *port)
 {
 	int result;
 	ConnectionInfo *pStorageServer;
@@ -235,6 +242,7 @@ int append_file_by_buff(const char *append_buff, const int append_size,
 	}
 
 	strcpy(storage_ip, storageServer.ip_addr);
+    *port = storageServer.port;
 	result = storage_append_by_filebuff1(pTrackerServer, pStorageServer,
 		append_buff, append_size, appender_file_id);
 

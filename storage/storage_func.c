@@ -1839,8 +1839,8 @@ int storage_func_init(const char *filename)
     SFContextIniConfig config;
 	int result;
 	int64_t fsync_after_written_bytes;
-    char sz_global_config[512];
-    char sz_service_config[128];
+    char sz_global_config[1024];
+    char sz_service_config[256];
     char access_log_config[256];
 
 	if ((result=iniLoadFromFile(filename, &iniContext)) != 0)

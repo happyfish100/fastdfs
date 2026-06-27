@@ -46,7 +46,7 @@ static FILE *fpLog = NULL;
 static int proccess_index;
 static int load_file_contents();
 static int test_init();
-static int perform_operation(OperationType op_type, char *file_id, char *storage_ip);
+static int perform_operation(OperationType op_type, char *file_id, char *storage_ip, int *port);
 static void save_stats();
 
 int main(int argc, char **argv)
@@ -55,6 +55,7 @@ int main(int argc, char **argv)
 	char *conf_filename;
 	char file_id[128];
 	char storage_ip[IP_ADDRESS_SIZE];
+    int port;
 	int i;
 	OperationType op_type;
 
@@ -118,7 +119,7 @@ int main(int argc, char **argv)
 		op_type = (OperationType)(rand() % OP_COUNT);
 		op_count[op_type]++;
 
-		result = perform_operation(op_type, file_id, storage_ip);
+		result = perform_operation(op_type, file_id, storage_ip, &port);
 		total_count++;
 
 		if (result == 0)
@@ -143,7 +144,7 @@ int main(int argc, char **argv)
 	return result;
 }
 
-static int perform_operation(OperationType op_type, char *file_id, char *storage_ip)
+static int perform_operation(OperationType op_type, char *file_id, char *storage_ip, int *port)
 {
 	int result = 0;
 	char appender_file_id[128];
@@ -156,7 +157,7 @@ static int perform_operation(OperationType op_type, char *file_id, char *storage
 	case OP_UPLOAD:
 		*file_id = '\0';
 		*storage_ip = '\0';
-		result = upload_file(test_file.file_buff, test_file.bytes, file_id, storage_ip);
+		result = upload_file(test_file.file_buff, test_file.bytes, file_id, storage_ip, port);
 		if (result == 0)
 		{
 			strcpy(last_file_id, file_id);
@@ -170,7 +171,7 @@ static int perform_operation(OperationType op_type, char *file_id, char *storage
 			// Upload first if no file available
 			*file_id = '\0';
 			*storage_ip = '\0';
-			result = upload_file(test_file.file_buff, test_file.bytes, file_id, storage_ip);
+			result = upload_file(test_file.file_buff, test_file.bytes, file_id, storage_ip, port);
 			if (result == 0)
 			{
 				strcpy(last_file_id, file_id);
@@ -181,7 +182,7 @@ static int perform_operation(OperationType op_type, char *file_id, char *storage
 		{
 			int file_size;
 			*storage_ip = '\0';
-			result = download_file(last_file_id, &file_size, storage_ip);
+			result = download_file(last_file_id, &file_size, storage_ip, port);
 		}
 		break;
 
@@ -191,7 +192,7 @@ static int perform_operation(OperationType op_type, char *file_id, char *storage
 			// Upload first if no file available
 			*file_id = '\0';
 			*storage_ip = '\0';
-			result = upload_file(test_file.file_buff, test_file.bytes, file_id, storage_ip);
+			result = upload_file(test_file.file_buff, test_file.bytes, file_id, storage_ip, port);
 			if (result == 0)
 			{
 				strcpy(last_file_id, file_id);
@@ -201,7 +202,7 @@ static int perform_operation(OperationType op_type, char *file_id, char *storage
 		else
 		{
 			*storage_ip = '\0';
-			result = delete_file(last_file_id, storage_ip);
+			result = delete_file(last_file_id, storage_ip, port);
 			if (result == 0)
 			{
 				has_file = 0;
@@ -218,7 +219,7 @@ static int perform_operation(OperationType op_type, char *file_id, char *storage
 			*appender_file_id = '\0';
 			*storage_ip = '\0';
 			result = upload_appender_file_by_buff(test_file.file_buff, test_file.bytes,
-				"txt", NULL, 0, group_name, appender_file_id, storage_ip);
+				"txt", NULL, 0, group_name, appender_file_id, storage_ip, port);
 			if (result == 0)
 			{
 				strcpy(last_file_id, appender_file_id);
@@ -235,7 +236,7 @@ static int perform_operation(OperationType op_type, char *file_id, char *storage
 			*storage_ip = '\0';
 			// append_file_by_buff needs group_name and full file_id
 			result = append_file_by_buff(append_data, sizeof(append_data),
-				group_name, last_file_id, storage_ip);
+				group_name, last_file_id, storage_ip, port);
 		}
 		break;
 

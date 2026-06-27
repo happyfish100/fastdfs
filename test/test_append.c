@@ -67,7 +67,8 @@ static int test_init();
 static int save_stats_by_overall();
 static int save_stats_by_append_type();
 static int save_stats_by_storage_ip();
-static int add_to_storage_stat(const char *storage_ip, const int result, const int time_used);
+static int add_to_storage_stat(const char *storage_ip, const int port,
+        const int result, const int time_used);
 
 int main(int argc, char **argv)
 {
@@ -78,6 +79,7 @@ int main(int argc, char **argv)
 	char *conf_filename;
 	char storage_ip[IP_ADDRESS_SIZE];
 	int count_sums[FILE_TYPE_COUNT];
+    int port;
 	int i;
 	struct timeval tv_start;
 	struct timeval tv_end;
@@ -180,7 +182,8 @@ int main(int argc, char **argv)
 		*storage_ip = '\0';
 
 		result = append_file_by_buff(appends[append_index].append_buff, 
-			appends[append_index].bytes, base_group_name, base_file_id, storage_ip);
+			appends[append_index].bytes, base_group_name, base_file_id,
+            storage_ip, &port);
 
 		gettimeofday(&tv_end, NULL);
 		time_used = TIME_SUB_MS(tv_end, tv_start);
@@ -201,7 +204,7 @@ int main(int argc, char **argv)
 
 		if (*storage_ip != '\0')
 		{
-			add_to_storage_stat(storage_ip, result, time_used);
+			add_to_storage_stat(storage_ip, port, result, time_used);
 		}
 
 		if (total_count % 10000 == 0)
@@ -232,6 +235,7 @@ static int create_base_appender_file()
 	int result;
 	char initial_content[1024];
 	char storage_ip[IP_ADDRESS_SIZE];
+    int port;
 
 	// Generate initial content
 	memset(initial_content, 'A', sizeof(initial_content));
@@ -241,7 +245,7 @@ static int create_base_appender_file()
 
 	// Upload as appender file
 	result = upload_appender_file_by_buff(initial_content, sizeof(initial_content),
-		"txt", NULL, 0, base_group_name, base_file_id, storage_ip);
+		"txt", NULL, 0, base_group_name, base_file_id, storage_ip, &port);
 
 	if (result != 0)
 	{
@@ -322,8 +326,8 @@ static int save_stats_by_storage_ip()
 	fprintf(fp, "#ip_addr total_count success_count time_used(ms)\n");
 	for (k = 0; k < storage_count; k++)
 	{
-		fprintf(fp, "%s %d %d %"PRId64"\n", \
-			storages[k].ip_addr, storages[k].total_count, \
+		fprintf(fp, "%s:%u %d %d %"PRId64"\n",
+			storages[k].ip_addr, storages[k].port, storages[k].total_count,
 			storages[k].success_count, storages[k].time_used);
 	}
 
@@ -351,7 +355,8 @@ static int save_stats_by_overall()
 	return 0;
 }
 
-static int add_to_storage_stat(const char *storage_ip, const int result, const int time_used)
+static int add_to_storage_stat(const char *storage_ip, const int port,
+        const int result, const int time_used)
 {
 	StorageStat *pStorage;
 	StorageStat *pEnd;
@@ -359,7 +364,8 @@ static int add_to_storage_stat(const char *storage_ip, const int result, const i
 	pEnd = storages + storage_count;
 	for (pStorage = storages; pStorage < pEnd; pStorage++)
 	{
-		if (strcmp(storage_ip, pStorage->ip_addr) == 0)
+		if (strcmp(storage_ip, pStorage->ip_addr) == 0 &&
+                port == pStorage->port)
 		{
 			break;
 		}
@@ -374,6 +380,7 @@ static int add_to_storage_stat(const char *storage_ip, const int result, const i
 		}
 
 		strcpy(pStorage->ip_addr, storage_ip);
+        pStorage->port = port;
 		storage_count++;
 	}
 

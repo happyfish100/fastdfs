@@ -152,8 +152,8 @@ int tracker_load_from_conf_file(const char *filename)
 	int64_t slot_min_size;
 	int64_t slot_max_size;
 	char reserved_space_str[32];
-    char sz_global_config[512];
-    char sz_service_config[128];
+    char sz_global_config[1024];
+    char sz_service_config[256];
 
 	memset(&g_groups, 0, sizeof(FDFSGroups));
 	memset(&iniContext, 0, sizeof(IniContext));
