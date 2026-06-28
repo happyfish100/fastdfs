@@ -4760,7 +4760,7 @@ static int tracker_mem_check_add_tracker_servers(FDFSStorageJoinBody *pJoinBody)
 	return find_my_ip_in_tracker_list();
 }
 
-static int tracker_mem_get_tracker_server(FDFSStorageJoinBody *pJoinBody, \
+static int tracker_mem_get_tracker_server(FDFSStorageJoinBody *pJoinBody,
 		TrackerRunningStatus *pTrackerStatus)
 {
 	TrackerServerInfo *pTrackerServer;
@@ -5058,7 +5058,12 @@ int tracker_mem_add_group_and_storage(TrackerClientInfo *pClientInfo,
 	}
     else if (pClientInfo->pGroup->storage_port < 0)
     {
-        if (!g_use_storage_id)
+        if (g_use_storage_id && g_id_type_in_filename ==
+                FDFS_ID_TYPE_SERVER_ID)
+        {
+            //allow different ports in the same group
+        }
+        else
         {
             pClientInfo->pGroup->storage_port = pJoinBody->storage_port;
             if ((result=tracker_save_groups()) != 0)
@@ -5072,7 +5077,8 @@ int tracker_mem_add_group_and_storage(TrackerClientInfo *pClientInfo,
 		if (pClientInfo->pGroup->storage_port !=
                 pJoinBody->storage_port)
         {
-            if (g_use_storage_id)
+            if (g_use_storage_id && g_id_type_in_filename ==
+                    FDFS_ID_TYPE_SERVER_ID)
             {
                 if (pClientInfo->pGroup->storage_port >= 0)
                 {
