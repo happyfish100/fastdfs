@@ -1,5 +1,5 @@
 
-# 推荐的FastDFS部署方案
+# FastDFS部署建议
 * 使用V4引入的storage server ID特性
 * 如果以小文件为主（比如文件平均大小小于200K）且单个存储目录的文件数总量将超过一千万，推荐启用合并存储特性
 * 不要做RAID，直接挂载单盘，每个硬盘一个mount point作为FastDFS的一个store path
