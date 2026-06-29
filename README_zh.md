@@ -25,6 +25,7 @@
   FastDFS安装和配置文档参见 [Wiki](https://gitee.com/fastdfs100/fastdfs/wikis/Home)；FastDFS更多更详细的功能和特性介绍，请参阅FastDFS微信公众号的其他文章，搜索公众号：fastdfs。
 
   [FastDFS重大版本一览](docs/version-history-zh_CN.md)
+  [FastDFS部署及配置建议](docs/recommended-deployment-plan_CN.md)
 
 ### 客户端SDK
 
