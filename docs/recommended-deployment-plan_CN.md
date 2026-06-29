@@ -11,13 +11,15 @@
 * 配置文件：tracker.conf
 * use_storage_id：是否启用storage server ID特性，默认值为false，需设置为true
 * id_type_in_filename：storage server生成的文件ID中包含的是server ID还是IP地址，使用默认配置的id即可
+* 在文件storage_ids.conf中配置所有storage server实例的ID、组名、IP及端口
 * 说明：使用storage server ID可以避免服务器IP变更带来的问题，可以在任意时间点开启本特性，请放心启动
-* 特别提示：如果需要在一台服务器上部署同组的多个storage实例，必须启用storage server ID特性并且把id_type_in_filename配置为id
+* 特别提示：如果需要在一台服务器上部署同组的多个storage实例或者使用IPv6，必须启用storage server ID特性并且把id_type_in_filename配置为id
 
 ## 使用小文件合并存储特性
 * 配置文件：tracker.conf
 * use_trunk_file：是否启用合并存储特性，默认值为false，需设置为true
 * trunk_file_size：trunk文件大小，默认值为64MB，通常采用默认值即可
+* slot_max_size：只有当上传文件的size小于这个参数值时，才会合并存储到trunk文件中，否则单独存放到一个文件中。默认值为16MB，建议设置为1MB
 * 友情提示：可以在任意时间点开启小文件合并存储特性，一旦开启合并存储后请不要关闭此特性（即回退为不启用），否则在删除旧文件时会有问题
 
 ## 最大并发连接数设置
