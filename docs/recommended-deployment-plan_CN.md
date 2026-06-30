@@ -6,12 +6,15 @@
 * 不要做RAID，直接挂载单盘，每个硬盘一个mount point作为FastDFS的一个store path
 * 文件上传和删除等操作：使用FastDFS client API，官方提供了C、PHP extension和Java的client API
 * 文件下载采用HTTP方式：使用nginx扩展模块fastdfs-nginx-module
+* 一组storage部署两台服务器实现互备，强烈建议同组storage软硬件配置完全一致，尤其磁盘大小要一样
+* 通常情况下部署两台tracker server实现互备即可，其负载较低，可以和storage或其他服务混合部署
+* V6.16开始同组的storage端口号可以不相同，之前的版本端口必须保持一致（若不一致该组不可用）
 
 ## 使用storage server ID特性
 * 配置文件：tracker.conf
 * use_storage_id：是否启用storage server ID特性，默认值为false，需设置为true
 * id_type_in_filename：storage server生成的文件ID中包含的是server ID还是IP地址，使用默认配置的id即可
-* 在文件storage_ids.conf中配置所有storage server实例的ID、组名、IP及端口
+* 在文件storage_ids.conf中配置所有storage server实例的ID、组名、IP及端口（可以省略端口号，缺省值为23000）
 * 说明：使用storage server ID可以避免服务器IP变更带来的问题，可以在任意时间点开启本特性，请放心启动
 * 特别提示：如果需要在一台服务器上部署同组的多个storage实例或者使用IPv6，必须启用storage server ID特性并且把id_type_in_filename配置为id
 
@@ -36,6 +39,12 @@
 
     fdfs_tracker_stat输出片段示例： connections {alloc: 256, current: 2, max: 23}
 ```
+
+## 预留磁盘空间参数
+* 配置文件：tracker.conf
+* 参数名：reserved_storage_space
+* 缺省值：1GB
+* 说明：可以配置绝对值或百分比，建议配置为百分比，比如设置为10%。当所有组均出现磁盘剩余空间小于本参数时，上传文件将失败。此时可以降低本参数值作为应急方案，同时抓紧进行集群扩容。
 
 ## 网络线程数设置
 * 配置文件：tracker.conf 和 storage.conf
