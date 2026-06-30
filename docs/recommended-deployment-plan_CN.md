@@ -4,11 +4,11 @@
 * 使用V4引入的storage server ID特性
 * 如果以小文件为主（比如文件平均size小于200K）且单个存储目录的文件数总量将超过一千万，推荐启用合并存储特性
 * 不要做RAID，直接挂载单盘，每个硬盘一个mount point作为FastDFS的一个store path
-* 文件上传和删除等操作：使用FastDFS client API，官方提供了C、PHP extension和Java的client API
-* 文件下载采用HTTP方式：使用nginx扩展模块fastdfs-nginx-module
-* 一组storage部署两台服务器实现互备，强烈建议同组storage软硬件配置完全一致，尤其磁盘大小要一样
 * 通常情况下部署两台tracker server实现互备即可，其负载较低，可以和storage或其他服务混合部署
+* 一组storage部署两台服务器实现互备，强烈建议同组storage软硬件配置完全一致，尤其磁盘大小要一样
 * V6.16开始同组的storage端口号可以不相同，之前的版本端口必须保持一致（若不一致该组不可用）
+* 文件上传和删除等操作：使用FastDFS client API，官方提供了C、PHP extension和Java的client API
+* 文件下载采用HTTP方式：使用nginx扩展模块 [fastdfs-nginx-module](https://gitee.com/fastdfs100/fastdfs-nginx-module)
 
 ## 使用storage server ID特性
 * 配置文件：tracker.conf
@@ -29,7 +29,7 @@
 * 配置文件：tracker.conf 和 storage.conf
 * 参数名：max_connections
 * 缺省值：256
-* 说明： FastDFS网络通信buffer采用内存池，该内存池使用增量(按需)分配方式，强烈建议配置得大一些，线上环境至少配置为10240，避免tracker或storage服务的并发连接数超过max_connections
+* 说明： FastDFS网络通信buffer采用内存池，该内存池使用增量(按需)分配方式，强烈建议配置得大一些，线上环境至少配置为10240，避免tracker或storage服务的并发连接数超过max_connections。改大本参数需确保操作系统允许打开的最大文件数大于max_connections，否则fdfs_trackerd / fdfs_storaged将启动失败。
 * 特别提示：
 ```
   用fdfs_monitor和fdfs_tracker_stat看到连接统计中的三个指标：

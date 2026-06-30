@@ -132,6 +132,8 @@ extern int g_upload_priority;
 
 extern int g_response_ip_addr_size;
 
+extern int g_time_used_precision;
+
 #if defined(DEBUG_FLAG) && defined(OS_LINUX)
 extern char g_exe_name[256];
 #endif

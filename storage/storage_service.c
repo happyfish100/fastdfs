@@ -293,24 +293,35 @@ static void storage_log_access_log(struct fast_task_info *pTask, \
     char buff[1024];
     char *p;
 	struct timeval tv_end;
-	int time_used_ms;
+	int64_t time_used;
     int ip_len;
 
 	pClientInfo = (StorageClientInfo *)pTask->arg;
 	gettimeofday(&tv_end, NULL);
-	time_used_ms = (tv_end.tv_sec - pClientInfo->file_context.
-			tv_deal_start.tv_sec) * 1000
-		  + (tv_end.tv_usec - pClientInfo->file_context.
-			tv_deal_start.tv_usec) / 1000;
+
+    if (g_time_used_precision == LOG_TIME_PRECISION_USECOND)
+    {
+        time_used = (tv_end.tv_sec - pClientInfo->file_context.
+                tv_deal_start.tv_sec) * 1000 * 1000
+            + (tv_end.tv_usec - pClientInfo->file_context.
+                    tv_deal_start.tv_usec);
+    }
+    else
+    {
+        time_used = (tv_end.tv_sec - pClientInfo->file_context.
+                tv_deal_start.tv_sec) * 1000
+            + (tv_end.tv_usec - pClientInfo->file_context.
+                    tv_deal_start.tv_usec) / 1000;
+    }
 
     ip_len = strlen(pTask->client_ip);
     if (ip_len + action_len + pClientInfo->file_context.
             fname2log.len + 64 >= sizeof(buff))
     {
         logAccess(&g_access_log_context.log_ctx, &(pClientInfo->file_context.
-                    tv_deal_start), "%s %s %s %d %d %"PRId64" "
+                    tv_deal_start), "%s %s %s %d %"PRId64" %"PRId64" "
                 "%"PRId64, pTask->client_ip, action_str,
-                pClientInfo->file_context.fname2log.str, status, time_used_ms,
+                pClientInfo->file_context.fname2log.str, status, time_used,
                 pClientInfo->request_length, pClientInfo->total_length);
     }
     else
@@ -328,7 +339,7 @@ static void storage_log_access_log(struct fast_task_info *pTask, \
         *p++ = ' ';
         p += fc_itoa(status, p);
         *p++ = ' ';
-        p += fc_itoa(time_used_ms, p);
+        p += fc_itoa(time_used, p);
         *p++ = ' ';
         p += fc_itoa(pClientInfo->request_length, p);
         *p++ = ' ';
