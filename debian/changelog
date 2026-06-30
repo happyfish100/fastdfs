@@ -1,4 +1,4 @@
-fastdfs (6.15.4-1) stable; urgency=medium
- * download_file offset and bytes's logic is consistent with the range of HTTP
+fastdfs (6.16.0-1) stable; urgency=medium
+ * one storage group supports multi storage instances in one server
 
- -- YuQing <384681@qq.com>  Sun, 16 Nov 2025 17:01:55 +0800
+ -- YuQing <384681@qq.com>  Sat, 27 Jun 2026 10:48:48 +0800

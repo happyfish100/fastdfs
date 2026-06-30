@@ -2,7 +2,7 @@
 # FastDFS部署建议
 * 使用FastDFS最新版本V6.16，旧版本可以平滑升级
 * 使用V4引入的storage server ID特性
-* 如果以小文件为主（比如文件平均大小小于200K）且单个存储目录的文件数总量将超过一千万，推荐启用合并存储特性
+* 如果以小文件为主（比如文件平均size小于200K）且单个存储目录的文件数总量将超过一千万，推荐启用合并存储特性
 * 不要做RAID，直接挂载单盘，每个硬盘一个mount point作为FastDFS的一个store path
 * 文件上传和删除等操作：使用FastDFS client API，官方提供了C、PHP extension和Java的client API
 * 文件下载采用HTTP方式：使用nginx扩展模块fastdfs-nginx-module
@@ -29,9 +29,9 @@
 * 说明： FastDFS网络通信buffer采用内存池，该内存池使用增量(按需)分配方式，强烈建议配置得大一些，线上环境至少配置为10240，避免tracker或storage服务的并发连接数超过max_connections
 * 特别提示：
 ```
-  用fdfs_monitor和fdfs_tracker_stat看到连接统计中的三个指标含义：
+  用fdfs_monitor和fdfs_tracker_stat看到连接统计中的三个指标：
     alloc_count 内存池预分配的buffer数
-    current_count 当前连接数（正在使用buffer数）
+    current_count 当前连接数（正在使用的buffer数）
     max_count 曾经达到过的最大连接数，max_count小于等于alloc_count，二者数值相差不会超过一次预分配的buffer数（比如64或256）
 
     fdfs_tracker_stat输出片段示例： connections {alloc: 256, current: 2, max: 23}
