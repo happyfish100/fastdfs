@@ -37,7 +37,7 @@
     current_count 当前连接数（正在使用的buffer数）
     max_count 曾经达到过的最大连接数，max_count小于等于alloc_count，二者数值相差不会超过一次预分配的buffer数（比如64或256）
 
-    fdfs_tracker_stat输出片段示例： connections {alloc: 256, current: 2, max: 23}
+    fdfs_tracker_stat 从V6.15.5开始支持，输出片段示例： connections {alloc: 256, current: 2, max: 23}
 ```
 
 ## 预留磁盘空间参数
@@ -66,8 +66,8 @@
 * sync_binlog_buff_interval：将binlog buffer写入磁盘的时间间隔（单位为秒），取值大于0，缺省值为60，建议配置为1
 * sync_wait_msec：如果没有需要同步的文件，对binlog进行轮询的时间间隔，取值大于0，缺省值为100ms
 * sync_interval：同步完一个文件后，休眠的毫秒数，缺省值为0
-* sync_min_threads：缺省值为1，通常采用这个默认值即可
-* sync_max_threads：缺省值为auto表示为store_path_count的两倍
+* sync_min_threads：V6.15开始支持，缺省值为1，通常采用这个默认值即可
+* sync_max_threads：V6.15开始支持，缺省值为auto，表示为store_path_count的两倍
 * 为了缩短文件同步时间，可以将前面3个参数适当调小；适当加大sync_max_threads来增加同步文件的线程数
 
 ## 存储目录数设置
@@ -88,8 +88,8 @@
 
 * V6.14及后续版本
 ```
- section：[access-log] 采用全局配置和section配置相结合的方式
+ section：[access-log] 采用全局配置和本section配置相结合的方式
  enabled：缺省值为false，需要显式设置为true
  time_used_precision：V6.16开始支持，缺省值为ms（毫秒），可以配置为us（微秒）
- 说明：其他参数参见 log_file_ 打头的全局配置项
+ 说明：其他参数参见 log_file_ 打头的全局配置项，[access-log]下可以重新设置
 ```
