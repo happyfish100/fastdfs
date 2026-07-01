@@ -1750,7 +1750,7 @@ void storage_set_access_log_header(struct log_context *pContext)
     "status time_used_us req_len resp_len"
 #define STORAGE_ACCESS_HEADER_LEN2 (sizeof(STORAGE_ACCESS_HEADER_STR2) - 1)
 
-    if (g_time_used_precision == LOG_TIME_PRECISION_MSECOND)
+    if (g_access_log_time_precision == LOG_TIME_PRECISION_MSECOND)
     {
         log_header(pContext, STORAGE_ACCESS_HEADER_STR1, STORAGE_ACCESS_HEADER_LEN1);
     }
@@ -1845,7 +1845,7 @@ int storage_func_init(const char *filename)
 	char *pFsyncAfterWrittenBytes;
 	char *pIfAliasPrefix;
     char *server_id_in_conf;
-    char *time_used_precision;
+    char *time_precision;
 	IniContext iniContext;
     IniFullContext ini_full_ctx;
     SFContextIniConfig config;
@@ -2306,31 +2306,31 @@ int storage_func_init(const char *filename)
                 break;
             }
 
-			time_used_precision = iniGetStrValue("access-log",
-				"time_used_precision", &iniContext);
-			if (time_used_precision == NULL || *time_used_precision == '\0')
+			time_precision = iniGetStrValue("access-log",
+				"time_precision", &iniContext);
+			if (time_precision == NULL || *time_precision == '\0')
             {
-                g_time_used_precision = LOG_TIME_PRECISION_MSECOND;
+                g_access_log_time_precision = LOG_TIME_PRECISION_MSECOND;
             }
-            else if (strcmp(time_used_precision, "ms") == 0 ||
-                    strcmp(time_used_precision, "millisecond") == 0)
+            else if (strcmp(time_precision, "ms") == 0 ||
+                    strcmp(time_precision, "millisecond") == 0)
             {
-                g_time_used_precision = LOG_TIME_PRECISION_MSECOND;
+                g_access_log_time_precision = LOG_TIME_PRECISION_MSECOND;
             }
-            else if (strcmp(time_used_precision, "us") == 0 ||
-                    strcmp(time_used_precision, "microsecond") == 0)
+            else if (strcmp(time_precision, "us") == 0 ||
+                    strcmp(time_precision, "microsecond") == 0)
             {
-                g_time_used_precision = LOG_TIME_PRECISION_USECOND;
+                g_access_log_time_precision = LOG_TIME_PRECISION_USECOND;
             }
             else
             {
                 logWarning("file: "__FILE__", line: %d, "
-                        "unkown time_used_precision: %s, set to ms",
-                        __LINE__, time_used_precision);
-                g_time_used_precision = LOG_TIME_PRECISION_MSECOND;
+                        "unkown time_precision: %s, set to ms",
+                        __LINE__, time_precision);
+                g_access_log_time_precision = LOG_TIME_PRECISION_MSECOND;
             }
             log_set_time_precision(&g_access_log_context.log_ctx,
-                    g_time_used_precision);
+                    g_access_log_time_precision);
             log_set_cache_ex(&g_access_log_context.log_ctx, true);
             result = log_set_prefix_ex(&g_access_log_context.log_ctx,
                     SF_G_BASE_PATH_STR, "storage_access");

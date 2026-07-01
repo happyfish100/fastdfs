@@ -299,7 +299,7 @@ static void storage_log_access_log(struct fast_task_info *pTask, \
 	pClientInfo = (StorageClientInfo *)pTask->arg;
 	gettimeofday(&tv_end, NULL);
 
-    if (g_time_used_precision == LOG_TIME_PRECISION_USECOND)
+    if (g_access_log_time_precision == LOG_TIME_PRECISION_USECOND)
     {
         time_used = (tv_end.tv_sec - pClientInfo->file_context.
                 tv_deal_start.tv_sec) * 1000 * 1000

@@ -90,6 +90,6 @@
 ```
  section：[access-log] 采用全局配置和本section配置相结合的方式
  enabled：缺省值为false，需要显式设置为true
- time_used_precision：V6.16开始支持，缺省值为ms（毫秒），可以配置为us（微秒）
+ time_precision：V6.16开始支持，缺省值为ms（毫秒），可以配置为us（微秒）
  说明：其他参数参见 log_file_ 打头的全局配置项，[access-log]下可以重新设置
 ```
