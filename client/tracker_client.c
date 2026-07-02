@@ -780,7 +780,7 @@ int tracker_get_leader(ConnectionInfo *pTrackerServer,
     return 0;
 }
 
-static int list_trackers(ConnectionInfo *pTrackerServer,
+static int do_tracker_cluster_stat(ConnectionInfo *pTrackerServer,
         const TrackerStatFilter *filter, FDFSTrackerInfo *tracker_infos,
         const int max_trackers, int *tracker_count)
 {
@@ -805,7 +805,7 @@ static int list_trackers(ConnectionInfo *pTrackerServer,
 	memset(out_buff, 0, sizeof(out_buff));
 	pHeader = (TrackerHeader *)out_buff;
     req = (TrackerStatFilter *)(pHeader + 1);
-	pHeader->cmd = TRACKER_PROTO_CMD_SERVER_LIST_TRACKER;
+	pHeader->cmd = TRACKER_PROTO_CMD_SERVER_TRACKER_CLUSTER_STAT;
     long2buff(sizeof(out_buff) - sizeof(TrackerHeader), pHeader->pkg_len);
     req->filter_by = filter->filter_by;
     req->is_leader = (filter->is_leader ? 1 : 0);
@@ -901,7 +901,7 @@ static int list_trackers(ConnectionInfo *pTrackerServer,
 	return 0;
 }
 
-int tracker_list_trackers(ConnectionInfo *pTrackerServer,
+int tracker_cluster_stat(ConnectionInfo *pTrackerServer,
         const TrackerStatFilter *filter, FDFSTrackerInfo *tracker_infos,
         const int max_trackers, int *tracker_count)
 {
@@ -929,7 +929,7 @@ int tracker_list_trackers(ConnectionInfo *pTrackerServer,
         conn = &holder;
     }
 
-    return list_trackers(conn, filter, tracker_infos,
+    return do_tracker_cluster_stat(conn, filter, tracker_infos,
             max_trackers, tracker_count);
 }
 

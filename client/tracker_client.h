@@ -201,7 +201,7 @@ int tracker_get_leader(ConnectionInfo *pTrackerServer,
 *	tracker_count: return tracker count
 * return: 0 success, !=0 fail, return the error code
 **/
-int tracker_list_trackers(ConnectionInfo *pTrackerServer,
+int tracker_cluster_stat(ConnectionInfo *pTrackerServer,
         const TrackerStatFilter *filter, FDFSTrackerInfo *tracker_infos,
         const int max_trackers, int *tracker_count);
 

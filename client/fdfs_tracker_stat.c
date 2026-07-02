@@ -127,7 +127,7 @@ int main(int argc, char *argv[])
 		return errno != 0 ? errno : ECONNREFUSED;
 	}
 
-    if ((result=tracker_list_trackers(pTrackerServer, &filter, tracker_infos,
+    if ((result=tracker_cluster_stat(pTrackerServer, &filter, tracker_infos,
                     FDFS_MAX_TRACKERS, &tracker_count)) == 0)
     {
         if (tracker_count > 0)

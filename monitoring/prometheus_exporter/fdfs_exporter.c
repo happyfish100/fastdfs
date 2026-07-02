@@ -397,7 +397,7 @@ static int collect_tracker_metrics(char *response, size_t *offset, size_t max_si
     int tracker_count;
     int result;
 
-    if ((result=tracker_list_trackers(pTrackerServer, &filter, tracker_infos,
+    if ((result=tracker_cluster_stat(pTrackerServer, &filter, tracker_infos,
                     FDFS_MAX_TRACKERS, &tracker_count)) != 0)
     {
         return result;

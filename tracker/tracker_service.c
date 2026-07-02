@@ -2612,7 +2612,7 @@ static int tracker_deal_server_get_leader(struct fast_task_info *pTask)
     return 0;
 }
 
-static int tracker_deal_server_list_tracker(struct fast_task_info *pTask)
+static int tracker_deal_server_tracker_cluster_stat(struct fast_task_info *pTask)
 {
     TrackerStatFilter filter;
     TrackerClusterStatRespHeader *stat_header;
@@ -2628,7 +2628,7 @@ static int tracker_deal_server_list_tracker(struct fast_task_info *pTask)
                 "cmd=%d, client ip: %s, package size "
                 PKG_LEN_PRINTF_FORMAT" is not correct, "
                 "expect length %d", __LINE__,
-                TRACKER_PROTO_CMD_SERVER_LIST_TRACKER,
+                TRACKER_PROTO_CMD_SERVER_TRACKER_CLUSTER_STAT,
                 pTask->client_ip, pTask->recv.ptr->length -
                 (int)sizeof(TrackerHeader),
                 (int)sizeof(TrackerStatFilter));
@@ -2640,7 +2640,7 @@ static int tracker_deal_server_list_tracker(struct fast_task_info *pTask)
     {
         logError("file: "__FILE__", line: %d, "
                 "cmd=%d, client ip: %s, i am not the leader!",
-                __LINE__, TRACKER_PROTO_CMD_SERVER_LIST_TRACKER,
+                __LINE__, TRACKER_PROTO_CMD_SERVER_TRACKER_CLUSTER_STAT,
                 pTask->client_ip);
         pTask->send.ptr->length = sizeof(TrackerHeader);
         return EOPNOTSUPP;
@@ -4144,8 +4144,8 @@ static int tracker_deal_task(struct fast_task_info *pTask, const int stage)
         case TRACKER_PROTO_CMD_SERVER_GET_LEADER:
 			result = tracker_deal_server_get_leader(pTask);
 			break;
-        case TRACKER_PROTO_CMD_SERVER_LIST_TRACKER:
-			result = tracker_deal_server_list_tracker(pTask);
+        case TRACKER_PROTO_CMD_SERVER_TRACKER_CLUSTER_STAT:
+			result = tracker_deal_server_tracker_cluster_stat(pTask);
 			break;
 		case TRACKER_PROTO_CMD_STORAGE_SYNC_SRC_REQ:
 			result = tracker_deal_storage_sync_src_req(pTask);
