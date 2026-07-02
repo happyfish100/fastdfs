@@ -162,7 +162,7 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	printf("server_count=%d, server_index=%d\n",
+    printf("tracker server count=%d, current server index=%d\n",
             g_tracker_group.server_count, g_tracker_group.server_index);
 
 	pTrackerServer = tracker_get_connection();
@@ -186,32 +186,24 @@ int main(int argc, char *argv[])
 
 	if (strcmp(op_type, "list") == 0)
 	{
-		if (group_name == NULL)
-		{
-			result = list_all_groups(NULL);
-		}
-		else
-		{
-			result = list_all_groups(group_name);
-		}
+        result = list_all_groups(group_name);
 	}
 	else if (strcmp(op_type, "delete") == 0)
 	{
 		if (arg_index >= argc)
-		{
-		if ((result=tracker_delete_group(&g_tracker_group, \
-				group_name)) == 0)
-		{
-			printf("delete group: %s success\n", \
-				group_name);
-		}
-		else
-		{
-			printf("delete group: %s fail, " \
-				"error no: %d, error info: %s\n", \
-				group_name, result, STRERROR(result));
-		}
-		}
+        {
+            if ((result=tracker_delete_group(&g_tracker_group,
+                            group_name)) == 0)
+            {
+                printf("delete group: %s success\n", group_name);
+            }
+            else
+            {
+                printf("delete group: %s fail, "
+                        "error no: %d, error info: %s\n",
+                        group_name, result, STRERROR(result));
+            }
+        }
         else
         {
 		char *storage_id;
@@ -306,6 +298,7 @@ static int list_storages(FDFSGroupStat *pGroupStat)
 	FDFSStorageInfo *pStorage;
 	FDFSStorageInfo *pStorageEnd;
 	FDFSStorageStat *pStorageStat;
+    char formatted_ip[FORMATTED_IP_SIZE];
 	char szJoinTime[32];
 	char szUpTime[32];
 	char szLastHeartBeatTime[32];
@@ -313,8 +306,6 @@ static int list_storages(FDFSGroupStat *pGroupStat)
 	char szSyncUpdTime[32];
 	char szSyncedTimestamp[32];
 	char szSyncedDelaySeconds[128];
-	char szHostname[128];
-	char szHostnamePrompt[128+8];
     char szDiskTotalSpace[32];
     char szDiskFreeSpace[32];
     char szDiskReservedSpace[32];
@@ -430,17 +421,6 @@ static int list_storages(FDFSGroupStat *pGroupStat)
             }
 		}
 
-		//getHostnameByIp(pStorage->ip_addr, szHostname, sizeof(szHostname));
-        *szHostname = '\0';
-		if (*szHostname != '\0')
-		{
-			sprintf(szHostnamePrompt, " (%s)", szHostname);
-		}
-		else
-		{
-			*szHostnamePrompt = '\0';
-		}
-
 		if (pStorage->up_time != 0)
 		{
 			formatDatetime(pStorage->up_time, \
@@ -457,11 +437,11 @@ static int list_storages(FDFSGroupStat *pGroupStat)
         {
             avail_space = 0;
         }
+        format_ip_address(pStorage->ip_addr, formatted_ip);
 
 		printf( "\tStorage %d:\n"
 			"\t\tid = %s\n"
-			"\t\tip_addr = %s%s  %s\n"
-			"\t\tport = %d\n"
+			"\t\thost = %s:%u  %s\n"
             "\t\tread write mode = %s\n"
 			"\t\tversion = %s\n"
 			"\t\tjoin time = %s\n"
@@ -521,10 +501,8 @@ static int list_storages(FDFSGroupStat *pGroupStat)
 			"\t\tlast_source_update = %s\n"
 			"\t\tlast_sync_update = %s\n"
 			"\t\tlast_synced_timestamp = %s %s\n",
-			++k, pStorage->id, pStorage->ip_addr,
-			szHostnamePrompt, get_storage_status_caption(
-			    pStorage->status),
-			pStorage->storage_port,
+			++k, pStorage->id, formatted_ip, pStorage->storage_port,
+			get_storage_status_caption(pStorage->status),
             get_storage_rw_caption(pStorage->rw_mode),
 			pStorage->version,
 			formatDatetime(pStorage->join_time,
