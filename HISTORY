@@ -1,9 +1,10 @@
-Version 6.16.0  2026-06-30
+Version 6.16.0  2026-07-01
  * one storage group supports multi storage instances in one server
    Note: MUST set use_storage_id to true in tracker.conf and configure
    storage_ids.conf to enable this feature
  * expand version's buffer size of tracker and storage server
  * storage access log supports log time_used in microsecond
+ * use libfastcommon V1.86 and libserverframe 1.2.14
 
 Version 6.15.5  2026-06-23
  * fdfs_exporter add metrics: last_synced_timestamp and synced_delay_seconds

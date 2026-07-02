@@ -7,7 +7,7 @@
 * 通常情况下部署两台tracker server实现互备即可，其负载较低，可以和storage或其他服务混合部署
 * 一组storage部署两台服务器实现互备，强烈建议同组storage软硬件配置完全一致，尤其磁盘大小要一样
 * V6.16开始同组的storage端口号可以不相同，之前的版本端口必须保持一致（若不一致该组不可用）
-* 文件上传和删除等操作：使用FastDFS client API，官方提供了C、PHP extension和Java的client API
+* 文件上传和删除等操作：使用FastDFS client API，官方提供了C、PHP extension和Java client API
 * 文件下载采用HTTP方式：使用nginx扩展模块 [fastdfs-nginx-module](https://gitee.com/fastdfs100/fastdfs-nginx-module)
 
 ## 使用storage server ID特性
@@ -91,5 +91,5 @@
  section：[access-log] 采用全局配置和本section配置相结合的方式
  enabled：缺省值为false，需要显式设置为true
  time_precision：V6.16开始支持，缺省值为ms（毫秒），可以配置为us（微秒）
- 说明：其他参数参见 log_file_ 打头的全局配置项，[access-log]下可以重新设置
+ 说明：其他参数参见 log_file_ 打头的全局配置项，比如log_file_rotate_everyday，log_file_keep_days 等配置项，[access-log]下可以重新设置
 ```
