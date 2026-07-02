@@ -34,11 +34,11 @@ static void usage(char *argv[])
             argv[0], FDFS_CLIENT_DEFAULT_CONFIG_FILENAME);
 }
 
-static void output(const FDFSTrackerInfo *tracker_infos,
+static void output(const FDFSTrackerStat *tracker_infos,
         const int tracker_count)
 {
-    const FDFSTrackerInfo *tracker;
-    const FDFSTrackerInfo *end;
+    const FDFSTrackerStat *tracker;
+    const FDFSTrackerStat *end;
     char up_time_buff[32];
     char last_hb_time_buff[32];
 
@@ -70,14 +70,14 @@ static void output(const FDFSTrackerInfo *tracker_infos,
         }
     }
 
-    printf("\ntracker server count: %d\n", tracker_count);
+    printf("\ntracker server count: %d\n\n", tracker_count);
 }
 
 int main(int argc, char *argv[])
 {
 	char *config_filename = FDFS_CLIENT_DEFAULT_CONFIG_FILENAME;
     TrackerStatFilter filter;
-    FDFSTrackerInfo tracker_infos[FDFS_MAX_TRACKERS];
+    FDFSTrackerStat tracker_infos[FDFS_MAX_TRACKERS];
     int tracker_count;
     int ch;
 	int result;

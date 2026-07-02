@@ -54,7 +54,26 @@ typedef struct
     char version[FDFS_VERSION_SIZE + 1];
     time_t up_time;
     time_t last_heartbeat_time;
-} FDFSTrackerInfo;
+} FDFSTrackerStat;
+
+typedef struct
+{
+    char id[FDFS_STORAGE_ID_MAX_SIZE];
+    char host[FDFS_MAX_IP_PORT_SIZE];
+    bool is_trunk_server;
+    char status;
+
+    struct {
+        int alloc_count;
+        int current_count;
+        int max_count;
+    } connection;
+
+    char version[FDFS_VERSION_SIZE + 1];
+    time_t up_time;
+    time_t last_heartbeat_time;
+} FDFSStorageClusterStat;
+
 
 #define CHECK_CONNECTION(pTrackerServer, conn, result, new_connection) \
 	do { \
@@ -202,8 +221,23 @@ int tracker_get_leader(ConnectionInfo *pTrackerServer,
 * return: 0 success, !=0 fail, return the error code
 **/
 int tracker_cluster_stat(ConnectionInfo *pTrackerServer,
-        const TrackerStatFilter *filter, FDFSTrackerInfo *tracker_infos,
+        const TrackerStatFilter *filter, FDFSTrackerStat *tracker_infos,
         const int max_trackers, int *tracker_count);
+
+/**
+* list all storage servers from tracker server
+* params:
+*	pTrackerServer: tracker server
+*	filter: the filter
+*	storage_infos: return storage info array
+*	max_storages: max storage count(storage array capacity)
+*	storage_count: return storage count
+* return: 0 success, !=0 fail, return the error code
+**/
+int storage_cluster_stat(ConnectionInfo *pTrackerServer,
+        const StorageStatFilter *filter, bool *use_storage_id,
+        bool *use_trunk_file, FDFSStorageClusterStat *storage_infos,
+        const int max_storages, int *storage_count);
 
 #define tracker_query_storage_store(pTrackerServer, pStorageServer, \
 		group_name, store_path_index) \

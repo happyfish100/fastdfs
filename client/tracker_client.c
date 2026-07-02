@@ -781,7 +781,7 @@ int tracker_get_leader(ConnectionInfo *pTrackerServer,
 }
 
 static int do_tracker_cluster_stat(ConnectionInfo *pTrackerServer,
-        const TrackerStatFilter *filter, FDFSTrackerInfo *tracker_infos,
+        const TrackerStatFilter *filter, FDFSTrackerStat *tracker_infos,
         const int max_trackers, int *tracker_count)
 {
 	char out_buff[sizeof(TrackerHeader) + sizeof(TrackerStatFilter)];
@@ -795,7 +795,7 @@ static int do_tracker_cluster_stat(ConnectionInfo *pTrackerServer,
     TrackerClusterStatRespHeader *stat_header;
     TrackerClusterStatRespBodyPart *pSrc;
     TrackerClusterStatRespBodyPart *pEnd;
-	FDFSTrackerInfo *pDest;
+	FDFSTrackerStat *pDest;
 	int64_t in_bytes;
     int expect_bytes;
 	int result;
@@ -902,7 +902,7 @@ static int do_tracker_cluster_stat(ConnectionInfo *pTrackerServer,
 }
 
 int tracker_cluster_stat(ConnectionInfo *pTrackerServer,
-        const TrackerStatFilter *filter, FDFSTrackerInfo *tracker_infos,
+        const TrackerStatFilter *filter, FDFSTrackerStat *tracker_infos,
         const int max_trackers, int *tracker_count)
 {
 	int result;
@@ -931,6 +931,138 @@ int tracker_cluster_stat(ConnectionInfo *pTrackerServer,
 
     return do_tracker_cluster_stat(conn, filter, tracker_infos,
             max_trackers, tracker_count);
+}
+
+int storage_cluster_stat(ConnectionInfo *pTrackerServer,
+        const StorageStatFilter *filter, bool *use_storage_id,
+        bool *use_trunk_file, FDFSStorageClusterStat *storage_infos,
+        const int max_storages, int *storage_count)
+{
+	char out_buff[sizeof(TrackerHeader) + sizeof(StorageStatFilter)];
+	char *in_buff;
+    char formatted_ip[FORMATTED_IP_SIZE];
+	bool new_connection;
+	TrackerHeader *pHeader;
+    StorageStatFilter *req;
+	ConnectionInfo *conn;
+    StorageClusterStatRespHeader *stat_header;
+    StorageClusterStatRespBodyPart *pSrc;
+    StorageClusterStatRespBodyPart *pEnd;
+	FDFSStorageClusterStat *pDest;
+	int64_t in_bytes;
+    int expect_bytes;
+	int result;
+
+	CHECK_CONNECTION(pTrackerServer, conn, result, new_connection);
+
+    in_buff = NULL;
+	memset(out_buff, 0, sizeof(out_buff));
+	pHeader = (TrackerHeader *)out_buff;
+    req = (StorageStatFilter *)(pHeader + 1);
+	pHeader->cmd = TRACKER_PROTO_CMD_SERVER_STORAGE_CLUSTER_STAT;
+    long2buff(sizeof(out_buff) - sizeof(TrackerHeader), pHeader->pkg_len);
+    req->filter_by = filter->filter_by;
+    req->op_type = filter->op_type;
+    req->is_trunk_server = (filter->is_trunk_server ? 1 : 0);
+    req->status = filter->status;
+	if ((result=tcpsenddata_nb(conn->sock, out_buff, sizeof(out_buff),
+                    SF_G_NETWORK_TIMEOUT)) != 0)
+    {
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+        logError("file: "__FILE__", line: %d, "
+                "send data to tracker server %s:%u fail, errno: %d, "
+                "error info: %s", __LINE__, formatted_ip,
+                pTrackerServer->port, result, STRERROR(result));
+    }
+	else
+    {
+        result = fdfs_recv_response(conn, &in_buff, 0, &in_bytes);
+        if (result != 0)
+        {
+            logError("file: "__FILE__", line: %d, "
+                    "fdfs_recv_response fail, result: %d",
+                    __LINE__, result);
+        }
+        else if (in_bytes < sizeof(StorageClusterStatRespHeader))
+        {
+            logError("file: "__FILE__", line: %d, "
+                    "response body length %"PRId64" is too short",
+                    __LINE__, in_bytes);
+            result = EINVAL;
+        }
+    }
+
+	if (new_connection)
+	{
+		tracker_close_connection_ex(conn, result != 0);
+	}
+
+	if (result != 0)
+    {
+        if (in_buff != NULL)
+        {
+            free(in_buff);
+        }
+        *storage_count = 0;
+        return result;
+    }
+
+    stat_header = (StorageClusterStatRespHeader *)in_buff;
+    *storage_count = buff2int(stat_header->count);
+    *use_storage_id = stat_header->use_storage_id;
+    *use_trunk_file = stat_header->use_trunk_file;
+    expect_bytes = sizeof(*stat_header) + (*storage_count) *
+        sizeof(StorageClusterStatRespBodyPart);
+	if (in_bytes != expect_bytes)
+    {
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+        logError("file: "__FILE__", line: %d, "
+                "tracker server %s:%u response data length: %"PRId64
+                " is invalid, expected: %d", __LINE__, formatted_ip,
+                pTrackerServer->port, in_bytes, expect_bytes);
+        *storage_count = 0;
+        free(in_buff);
+        return EINVAL;
+    }
+
+    if (*storage_count > max_storages)
+    {
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+        logError("file: "__FILE__", line: %d, "
+                "tracker server %s:%u insufficient space, "
+                "tracker count: %d, exceeds max count: %d",
+                __LINE__, formatted_ip, pTrackerServer->port,
+                *storage_count, max_storages);
+        *storage_count = 0;
+        free(in_buff);
+        return ENOSPC;
+    }
+
+	pDest = storage_infos;
+    pSrc = (StorageClusterStatRespBodyPart *)(stat_header + 1);
+    pEnd = pSrc + (*storage_count);
+    for (; pSrc<pEnd; pSrc++, pDest++)
+    {
+        memcpy(pDest->id, pSrc->id, FDFS_STORAGE_ID_MAX_SIZE);
+        pDest->id[FDFS_STORAGE_ID_MAX_SIZE - 1] = '\0';
+        memcpy(pDest->host, pSrc->host, FDFS_MAX_IP_PORT_SIZE);
+        pDest->host[FDFS_MAX_IP_PORT_SIZE - 1] = '\0';
+        pDest->is_trunk_server = pSrc->is_trunk_server;
+        pDest->status = pSrc->status;
+        pDest->connection.alloc_count = buff2int(
+                pSrc->connection.sz_alloc_count);
+        pDest->connection.current_count = buff2int(
+                pSrc->connection.sz_current_count);
+        pDest->connection.max_count = buff2int(
+                pSrc->connection.sz_max_count);
+        pDest->up_time = buff2long(pSrc->up_time);
+        pDest->last_heartbeat_time = buff2long(pSrc->last_heartbeat_time);
+        memcpy(pDest->version, pSrc->version, FDFS_VERSION_SIZE);
+        pDest->version[FDFS_VERSION_SIZE] = '\0';
+    }
+    free(in_buff);
+
+	return 0;
 }
 
 int tracker_do_query_storage(ConnectionInfo *pTrackerServer,

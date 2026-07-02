@@ -20,10 +20,10 @@
 #include "fastcommon/connection_pool.h"
 #include "fdfs_define.h"
 
-#define FDFS_GROUP_NAME_MAX_LEN		16
-#define FDFS_MAX_SERVERS_EACH_GROUP	32
-#define FDFS_MAX_GROUPS		       512
-#define FDFS_MAX_TRACKERS		16
+#define FDFS_GROUP_NAME_MAX_LEN     16
+#define FDFS_MAX_SERVERS_EACH_GROUP 32
+#define FDFS_MAX_GROUPS            512
+#define FDFS_MAX_TRACKERS           16
 
 #define FDFS_MAX_META_NAME_LEN		 64
 #define FDFS_MAX_META_VALUE_LEN		256
@@ -128,6 +128,9 @@
 
 #define FDFS_TRACKER_STAT_FILTER_BY_IS_ACTIVE  1
 #define FDFS_TRACKER_STAT_FILTER_BY_IS_LEADER  2
+
+#define FDFS_STORAGE_STAT_FILTER_BY_IS_TRUNK_SERVER  1
+#define FDFS_STORAGE_STAT_FILTER_BY_STATUS           2
 
 typedef enum {
     fdfs_rw_none = 0,

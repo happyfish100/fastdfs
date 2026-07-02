@@ -57,6 +57,8 @@
 #define TRACKER_PROTO_CMD_SERVER_SET_TRUNK_SERVER		94
 #define TRACKER_PROTO_CMD_SERVER_GET_LEADER	            95
 #define TRACKER_PROTO_CMD_SERVER_TRACKER_CLUSTER_STAT	96
+#define TRACKER_PROTO_CMD_SERVER_STORAGE_CLUSTER_STAT	97
+#define TRACKER_PROTO_CMD_SERVER_STORAGE_VOLUMN_STAT  	98
 #define TRACKER_PROTO_CMD_SERVICE_QUERY_STORE_WITHOUT_GROUP_ONE	101
 #define TRACKER_PROTO_CMD_SERVICE_QUERY_FETCH_ONE		102
 #define TRACKER_PROTO_CMD_SERVICE_QUERY_UPDATE  		103
@@ -250,6 +252,39 @@ typedef struct
     char up_time[8];
     char last_heartbeat_time[8];
 } TrackerClusterStatRespBodyPart;
+
+typedef struct
+{
+    char filter_by;
+    char op_type;
+    char status;
+    char is_trunk_server;
+} StorageStatFilter;
+
+typedef struct
+{
+    char use_storage_id;
+    char use_trunk_file;
+    char count[4];
+} StorageClusterStatRespHeader;
+
+typedef struct
+{
+    char id[FDFS_STORAGE_ID_MAX_SIZE];
+    char host[FDFS_MAX_IP_PORT_SIZE];
+    char is_trunk_server;
+    char status;
+
+    struct {
+        char sz_alloc_count[4];
+        char sz_current_count[4];
+        char sz_max_count[4];
+    } connection;
+
+    char version[FDFS_VERSION_SIZE];
+    char up_time[8];
+    char last_heartbeat_time[8];
+} StorageClusterStatRespBodyPart;
 
 typedef struct
 {

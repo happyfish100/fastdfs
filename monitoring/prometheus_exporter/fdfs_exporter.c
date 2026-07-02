@@ -98,7 +98,7 @@ static inline int append_metric(char *response, size_t *offset,
  * Export storage-level metrics
  */
 static int export_tracker_metrics(char *response, size_t *offset,
-        size_t max_size, const FDFSTrackerInfo *pTracker,
+        size_t max_size, const FDFSTrackerStat *pTracker,
         const bool add_comment)
 {
     char metric_name[256];
@@ -391,9 +391,9 @@ static int export_storage_metrics(char *response, size_t *offset,
 
 static int collect_tracker_metrics(char *response, size_t *offset, size_t max_size)
 {
-    FDFSTrackerInfo tracker_infos[FDFS_MAX_TRACKERS];
-    FDFSTrackerInfo *tracker;
-    FDFSTrackerInfo *end;
+    FDFSTrackerStat tracker_infos[FDFS_MAX_TRACKERS];
+    FDFSTrackerStat *tracker;
+    FDFSTrackerStat *end;
     int tracker_count;
     int result;
 

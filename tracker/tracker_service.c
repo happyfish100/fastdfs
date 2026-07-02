@@ -2703,6 +2703,146 @@ static int tracker_deal_server_tracker_cluster_stat(struct fast_task_info *pTask
     return 0;
 }
 
+static int tracker_deal_server_storage_cluster_stat(struct fast_task_info *task)
+{
+    StorageStatFilter filter;
+    StorageClusterStatRespHeader *stat_header;
+    StorageClusterStatRespBodyPart *body_start;
+    StorageClusterStatRespBodyPart *body_part;
+	FDFSGroupInfo **ppGroup;
+	FDFSGroupInfo **ppGroupEnd;
+	FDFSStorageDetail **ppServer;
+	FDFSStorageDetail **ppServerEnd;
+    int total_storage_count;
+    int max_resp_len;
+    int result;
+
+	if (task->recv.ptr->length != sizeof(TrackerHeader) +
+            sizeof(StorageStatFilter))
+    {
+        logError("file: "__FILE__", line: %d, "
+                "cmd=%d, client ip: %s, package size "
+                PKG_LEN_PRINTF_FORMAT" is not correct, "
+                "expect length %d", __LINE__,
+                TRACKER_PROTO_CMD_SERVER_STORAGE_CLUSTER_STAT,
+                task->client_ip, task->recv.ptr->length -
+                (int)sizeof(TrackerHeader),
+                (int)sizeof(StorageStatFilter));
+        task->send.ptr->length = sizeof(TrackerHeader);
+        return EINVAL;
+    }
+
+    total_storage_count = 0;
+	ppGroupEnd = g_groups.sorted_groups + g_groups.count;
+	for (ppGroup=g_groups.sorted_groups; ppGroup<ppGroupEnd; ppGroup++)
+    {
+        total_storage_count += (*ppGroup)->storage_count;
+    }
+
+    max_resp_len = sizeof(TrackerHeader) + sizeof(*stat_header) +
+        sizeof(*body_start) * total_storage_count;
+	if (SF_CTX->net_buffer_cfg.max_buff_size < max_resp_len)
+    {
+        logError("file: "__FILE__", line: %d, "
+                "cmd=%d, client ip: %s, task buffer size: %d is too small"
+                " < %d", __LINE__, TRACKER_PROTO_CMD_SERVER_STORAGE_CLUSTER_STAT,
+                task->client_ip, SF_CTX->net_buffer_cfg.max_buff_size, max_resp_len);
+        task->send.ptr->length = sizeof(TrackerHeader);
+        return EINVAL;
+    }
+    if (task->send.ptr->size < max_resp_len)
+    {
+        if ((result=sf_set_task_send_buffer_size(task, max_resp_len)) != 0)
+        {
+            return result;
+        }
+    }
+
+    filter = *((StorageStatFilter *)(task->recv.ptr->data +
+                sizeof(TrackerHeader)));
+    stat_header = (StorageClusterStatRespHeader *)(
+            task->send.ptr->data + sizeof(TrackerHeader));
+    body_start = (StorageClusterStatRespBodyPart *)(stat_header + 1);
+    body_part = body_start;
+	for (ppGroup=g_groups.sorted_groups; ppGroup<ppGroupEnd; ppGroup++)
+    {
+        ppServerEnd = (*ppGroup)->sorted_servers + (*ppGroup)->storage_count;
+        for (ppServer=(*ppGroup)->sorted_servers;
+                ppServer<ppServerEnd; ppServer++)
+        {
+            if (g_if_use_trunk_file)
+            {
+                if ((*ppGroup)->pTrunkServer == *ppServer)
+                {
+                    body_part->is_trunk_server = 1;
+                }
+                else
+                {
+                    body_part->is_trunk_server = 0;
+                }
+
+                if ((filter.filter_by & FDFS_STORAGE_STAT_FILTER_BY_IS_TRUNK_SERVER))
+                {
+                    if (body_part->is_trunk_server != filter.is_trunk_server)
+                    {
+                        continue;
+                    }
+                }
+            }
+            else
+            {
+                body_part->is_trunk_server = 0;
+            }
+
+            if ((filter.filter_by & FDFS_STORAGE_STAT_FILTER_BY_STATUS))
+            {
+                if (filter.op_type == '=')
+                {
+                    if ((*ppServer)->status != filter.status)
+                    {
+                        continue;
+                    }
+                }
+                else if (filter.op_type == '!')
+                {
+                    if ((*ppServer)->status == filter.status)
+                    {
+                        continue;
+                    }
+                }
+                else
+                {
+                    continue;
+                }
+            }
+
+            strcpy(body_part->id, (*ppServer)->id);
+            body_part->status = (*ppServer)->status;
+            format_ip_port(fdfs_get_ipaddr_by_peer_ip(&(*ppServer)->ip_addrs,
+                        task->client_ip), (*ppServer)->storage_port,
+                    body_part->host);
+            int2buff((*ppServer)->stat.connection.alloc_count,
+                    body_part->connection.sz_alloc_count);
+            int2buff((*ppServer)->stat.connection.current_count,
+                    body_part->connection.sz_current_count);
+            int2buff((*ppServer)->stat.connection.max_count,
+                    body_part->connection.sz_max_count);
+            memcpy(body_part->version, (*ppServer)->version,
+                    FDFS_VERSION_SIZE);
+            long2buff((*ppServer)->up_time, body_part->up_time);
+            long2buff((*ppServer)->stat.last_heart_beat_time,
+                    body_part->last_heartbeat_time);
+            body_part++;
+        }
+    }
+
+    stat_header->use_storage_id = (g_use_storage_id ? 1 : 0);
+    stat_header->use_trunk_file = (g_if_use_trunk_file ? 1: 0);
+    int2buff(body_part - body_start, stat_header->count);
+    task->send.ptr->length = (char *)body_part - task->send.ptr->data;
+    return 0;
+}
+
 /**
 pkg format:
 Header
@@ -3453,8 +3593,7 @@ static int tracker_deal_storage_sync_dest_req(struct fast_task_info *pTask)
 	for (ppServer=pClientInfo->pGroup->all_servers; \
 			ppServer<ppServerEnd; ppServer++)
 	{
-		if (strcmp((*ppServer)->id, \
-				pClientInfo->pStorage->id) == 0)
+		if (strcmp((*ppServer)->id, pClientInfo->pStorage->id) == 0)
 		{
 			continue;
 		}
@@ -4146,6 +4285,9 @@ static int tracker_deal_task(struct fast_task_info *pTask, const int stage)
 			break;
         case TRACKER_PROTO_CMD_SERVER_TRACKER_CLUSTER_STAT:
 			result = tracker_deal_server_tracker_cluster_stat(pTask);
+			break;
+        case TRACKER_PROTO_CMD_SERVER_STORAGE_CLUSTER_STAT:
+			result = tracker_deal_server_storage_cluster_stat(pTask);
 			break;
 		case TRACKER_PROTO_CMD_STORAGE_SYNC_SRC_REQ:
 			result = tracker_deal_storage_sync_src_req(pTask);

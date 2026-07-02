@@ -123,6 +123,7 @@ systemctl enable fdfs_storaged
 /usr/bin/fdfs_health_checker
 /usr/bin/fdfs_exporter
 /usr/bin/fdfs_tracker_stat
+/usr/bin/fdfs_storage_stat
 
 %files -n %{FDFSConfig}
 %defattr(-,root,root,-)
