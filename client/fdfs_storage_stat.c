@@ -32,11 +32,13 @@ static void usage(char *argv[])
     fprintf(stderr, "Usage: %s [-c config_filename=%s]\n"
             "\t[-A] list ACTIVE storages\n"
             "\t[-N] list None ACTIVE storages\n"
-            "\t[-d] show detail / more info\n\n"
-            "\nwhen use_trunk_file is true, including options:\n"
+            "\t[-d] show detail / more info\n"
+            "\nWhen use_trunk_file is true, including options:\n"
             "\t[-T] list trunk servers / storages\n"
-            "\t[-t] list None trunk servers / storages\n\n",
-            argv[0], FDFS_CLIENT_DEFAULT_CONFIG_FILENAME);
+            "\t[-t] list None trunk servers / storages\n\n"
+            "For example:\n" "\t%s -A\n" "\t%s -N\n\n",
+            argv[0], FDFS_CLIENT_DEFAULT_CONFIG_FILENAME,
+            argv[0], argv[0]);
 }
 
 static void output(const FDFSStorageClusterStat *storage_infos,

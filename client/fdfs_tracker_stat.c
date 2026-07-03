@@ -30,8 +30,10 @@ static void usage(char *argv[])
             "\t[-N] list None ACTIVE trackers\n"
             "\t[-L] list leader tracker\n"
             "\t[-F] list follower trackers\n"
-            "\t[-d] show detail / more info\n\n",
-            argv[0], FDFS_CLIENT_DEFAULT_CONFIG_FILENAME);
+            "\t[-d] show detail / more info\n\n"
+            "For example:\n" "\t%s -A\n" "\t%s -N\n\n",
+            argv[0], FDFS_CLIENT_DEFAULT_CONFIG_FILENAME,
+            argv[0], argv[0]);
 }
 
 static void output(const FDFSTrackerStat *tracker_infos,

@@ -28,13 +28,16 @@ static void usage(char *argv[])
     fprintf(stderr, "Usage: %s [-c config_filename=%s]\n"
             "\t[-A] list space available groups / volumns\n"
             "\t[-N] list None space available groups / volumns\n"
-            "\t[-D] list disk available groups / volumns\n"
-            "\t[-d] list None disk available groups / volumns\n\n"
-            "\nwhen use_trunk_file is true, including options:\n"
-            "\t[-T] list trunk available groups / volumns\n"
-            "\t[-t] list None trunk available groups / volumns\n\n"
-            "Note: space available when disk available or trunk available\n\n",
-            argv[0], FDFS_CLIENT_DEFAULT_CONFIG_FILENAME);
+            "\t[-D] list disk space available groups / volumns\n"
+            "\t[-d] list None disk space available groups / volumns\n"
+            "\nWhen use_trunk_file is true, including options:\n"
+            "\t[-T] list trunk space available groups / volumns\n"
+            "\t[-t] list None trunk space available groups / volumns\n\n"
+            "Note: space available when disk space available "
+            "or trunk space available\n\n"
+            "For example:\n" "\t%s -A\n" "\t%s -N\n\n",
+            argv[0], FDFS_CLIENT_DEFAULT_CONFIG_FILENAME,
+            argv[0], argv[0]);
 }
 
 static void group_output(const FDFSStorageVolumnStat *group)

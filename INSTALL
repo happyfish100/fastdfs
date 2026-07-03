@@ -66,8 +66,13 @@ such as:
 
 # step 7. (optional) run monitor program
 # such as:
-/usr/bin/fdfs_monitor /etc/fdfs/client.conf
+/usr/bin/fdfs_monitor
 /usr/bin/fdfs_tracker_stat
+/usr/bin/fdfs_storage_stat
+/usr/bin/fdfs_volumn_stat
+
+for more detail, use option -h, such as:
+/usr/bin/fdfs_monitor -h
 
 
 # step 8. (optional) run the test program
