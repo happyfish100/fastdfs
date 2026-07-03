@@ -40,6 +40,16 @@
 
 #define PKG_LEN_PRINTF_FORMAT  "%d"
 
+#define tracker_check_reserved_space(pGroup) \
+	fdfs_check_reserved_space(pGroup, &g_storage_reserved_space)
+
+#define tracker_check_reserved_space_trunk(pGroup) \
+	fdfs_check_reserved_space_trunk(pGroup, &g_storage_reserved_space)
+
+#define tracker_check_reserved_space_path(total_mb, free_mb, avg_mb) \
+	fdfs_check_reserved_space_path(total_mb, free_mb, avg_mb, \
+				&g_storage_reserved_space)
+
 static pthread_mutex_t lb_thread_lock;
 
 static volatile int lock_by_client = 0;
@@ -2843,6 +2853,136 @@ static int tracker_deal_server_storage_cluster_stat(struct fast_task_info *task)
     return 0;
 }
 
+static int tracker_deal_server_storage_volumn_stat(struct fast_task_info *task)
+{
+    VolumnStatFilter filter;
+    char is_space_available;
+    StorageVolumnStatRespHeader *stat_header;
+    StorageVolumnStatRespBodyPart *body_start;
+    StorageVolumnStatRespBodyPart *body_part;
+	FDFSGroupInfo **ppGroup;
+	FDFSGroupInfo **ppGroupEnd;
+    int64_t disk_reserved_mb;
+    int64_t disk_avail_mb;
+    int max_resp_len;
+    int result;
+
+	if (task->recv.ptr->length != sizeof(TrackerHeader) +
+            sizeof(VolumnStatFilter))
+    {
+        logError("file: "__FILE__", line: %d, "
+                "cmd=%d, client ip: %s, package size "
+                PKG_LEN_PRINTF_FORMAT" is not correct, "
+                "expect length %d", __LINE__,
+                TRACKER_PROTO_CMD_SERVER_STORAGE_CLUSTER_STAT,
+                task->client_ip, task->recv.ptr->length -
+                (int)sizeof(TrackerHeader),
+                (int)sizeof(VolumnStatFilter));
+        task->send.ptr->length = sizeof(TrackerHeader);
+        return EINVAL;
+    }
+
+    max_resp_len = sizeof(TrackerHeader) + sizeof(*stat_header) +
+        sizeof(*body_start) * g_groups.count;
+	if (SF_CTX->net_buffer_cfg.max_buff_size < max_resp_len)
+    {
+        logError("file: "__FILE__", line: %d, "
+                "cmd=%d, client ip: %s, task buffer size: %d is too small"
+                " < %d", __LINE__, TRACKER_PROTO_CMD_SERVER_STORAGE_CLUSTER_STAT,
+                task->client_ip, SF_CTX->net_buffer_cfg.max_buff_size, max_resp_len);
+        task->send.ptr->length = sizeof(TrackerHeader);
+        return EINVAL;
+    }
+    if (task->send.ptr->size < max_resp_len)
+    {
+        if ((result=sf_set_task_send_buffer_size(task, max_resp_len)) != 0)
+        {
+            return result;
+        }
+    }
+
+    filter = *((VolumnStatFilter *)(task->recv.ptr->data +
+                sizeof(TrackerHeader)));
+    stat_header = (StorageVolumnStatRespHeader *)(
+            task->send.ptr->data + sizeof(TrackerHeader));
+    body_start = (StorageVolumnStatRespBodyPart *)(stat_header + 1);
+    body_part = body_start;
+	ppGroupEnd = g_groups.sorted_groups + g_groups.count;
+
+	for (ppGroup=g_groups.sorted_groups; ppGroup<ppGroupEnd; ppGroup++)
+    {
+        body_part->is_disk_available = tracker_check_reserved_space(
+                *ppGroup) ? 1 : 0;
+        if ((filter.filter_by & FDFS_VOLUMN_STAT_FILTER_BY_IS_DISK_AVAILABLE))
+        {
+            if (body_part->is_disk_available != filter.is_disk_available)
+            {
+                continue;
+            }
+        }
+
+        if (g_if_use_trunk_file)
+        {
+            body_part->is_trunk_available = tracker_check_reserved_space_trunk(
+                    *ppGroup) ? 1 : 0;
+            if ((filter.filter_by & FDFS_VOLUMN_STAT_FILTER_BY_IS_TRUNK_AVAILABLE))
+            {
+                if (body_part->is_trunk_available != filter.is_trunk_available)
+                {
+                    continue;
+                }
+            }
+        }
+        else
+        {
+            body_part->is_trunk_available = 0;
+        }
+
+        if ((filter.filter_by & FDFS_VOLUMN_STAT_FILTER_BY_IS_SPACE_AVAILABLE))
+        {
+            is_space_available = ((body_part->is_disk_available ||
+                        body_part->is_trunk_available) ? 1 : 0);
+            if (is_space_available != filter.is_space_available)
+            {
+                continue;
+            }
+        }
+
+        disk_reserved_mb = calc_reserved_space((*ppGroup)->total_mb);
+        strcpy(body_part->group_name, (*ppGroup)->group_name);
+        long2buff((*ppGroup)->total_mb, body_part->sz_total_mb);
+        long2buff((*ppGroup)->free_mb, body_part->sz_free_mb);
+        long2buff(disk_reserved_mb, body_part->sz_reserved_mb);
+        if (body_part->is_disk_available)
+        {
+            disk_avail_mb = (*ppGroup)->free_mb - disk_reserved_mb;
+            if (disk_avail_mb < 0)
+            {
+                disk_avail_mb = 0;
+            }
+            long2buff(disk_avail_mb, body_part->sz_avail_mb);
+        }
+        else
+        {
+            long2buff(0, body_part->sz_avail_mb);
+        }
+        if (body_part->is_trunk_available)
+        {
+            long2buff((*ppGroup)->trunk_free_mb, body_part->sz_trunk_free_mb);
+        }
+        else
+        {
+            long2buff(0, body_part->sz_trunk_free_mb);
+        }
+        body_part++;
+    }
+
+    stat_header->use_trunk_file = (g_if_use_trunk_file ? 1: 0);
+    int2buff(body_part - body_start, stat_header->count);
+    task->send.ptr->length = (char *)body_part - task->send.ptr->data;
+    return 0;
+}
+
 /**
 pkg format:
 Header
@@ -2939,16 +3079,6 @@ static int tracker_deal_service_query_fetch_update(
 
 	return 0;
 }
-
-#define tracker_check_reserved_space(pGroup) \
-	fdfs_check_reserved_space(pGroup, &g_storage_reserved_space)
-
-#define tracker_check_reserved_space_trunk(pGroup) \
-	fdfs_check_reserved_space_trunk(pGroup, &g_storage_reserved_space)
-
-#define tracker_check_reserved_space_path(total_mb, free_mb, avg_mb) \
-	fdfs_check_reserved_space_path(total_mb, free_mb, avg_mb, \
-				&g_storage_reserved_space)
 
 static int tracker_deal_service_query_storage(
 		struct fast_task_info *pTask, char cmd)
@@ -3060,44 +3190,43 @@ static int tracker_deal_service_query_storage(
 		{
 			FDFSGroupInfo **ppGroupEnd;
 			ppGroupEnd = g_groups.sorted_groups + g_groups.count;
-			for (ppGroup=ppFoundGroup+1;
-					ppGroup<ppGroupEnd; ppGroup++)
-			{
-				if ((*ppGroup)->writable_storages.count <= 0)
-				{
-					continue;
-				}
+			for (ppGroup=ppFoundGroup+1; ppGroup<ppGroupEnd; ppGroup++)
+            {
+                if ((*ppGroup)->writable_storages.count <= 0)
+                {
+                    continue;
+                }
 
-				bHaveActiveServer = true;
-				if (tracker_check_reserved_space(*ppGroup))
-				{
-					pStoreGroup = *ppGroup;
-					g_groups.current_write_group =
-					       ppGroup - g_groups.sorted_groups;
-					break;
-				}
-			}
+                bHaveActiveServer = true;
+                if (tracker_check_reserved_space(*ppGroup))
+                {
+                    pStoreGroup = *ppGroup;
+                    g_groups.current_write_group =
+                        ppGroup - g_groups.sorted_groups;
+                    break;
+                }
+            }
 
 			if (pStoreGroup == NULL)
-			{
-				for (ppGroup=g_groups.sorted_groups;
-						ppGroup<ppFoundGroup; ppGroup++)
-				{
-					if ((*ppGroup)->writable_storages.count <= 0)
-					{
-						continue;
-					}
+            {
+                for (ppGroup=g_groups.sorted_groups;
+                        ppGroup<ppFoundGroup; ppGroup++)
+                {
+                    if ((*ppGroup)->writable_storages.count <= 0)
+                    {
+                        continue;
+                    }
 
-					bHaveActiveServer = true;
-					if (tracker_check_reserved_space(*ppGroup))
-					{
-						pStoreGroup = *ppGroup;
-						g_groups.current_write_group =
-						 ppGroup - g_groups.sorted_groups;
-						break;
-					}
-				}
-			}
+                    bHaveActiveServer = true;
+                    if (tracker_check_reserved_space(*ppGroup))
+                    {
+                        pStoreGroup = *ppGroup;
+                        g_groups.current_write_group =
+                            ppGroup - g_groups.sorted_groups;
+                        break;
+                    }
+                }
+            }
 
 			if (pStoreGroup == NULL)
 			{
@@ -4288,6 +4417,9 @@ static int tracker_deal_task(struct fast_task_info *pTask, const int stage)
 			break;
         case TRACKER_PROTO_CMD_SERVER_STORAGE_CLUSTER_STAT:
 			result = tracker_deal_server_storage_cluster_stat(pTask);
+			break;
+        case TRACKER_PROTO_CMD_SERVER_STORAGE_VOLUMN_STAT:
+			result = tracker_deal_server_storage_volumn_stat(pTask);
 			break;
 		case TRACKER_PROTO_CMD_STORAGE_SYNC_SRC_REQ:
 			result = tracker_deal_storage_sync_src_req(pTask);

@@ -7,7 +7,7 @@
 CC = gcc
 CFLAGS = -Wall -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE -I../../common -I../../client -I../../tracker
 LDFLAGS = -L../../client -L../../common -L../../tracker
-LIBS = -lfdfsclient -lfastcommon -lpthread -lm
+LIBS = -lfdfsclient -lfastcommon -lserverframe -lpthread -lm
 
 # Output directory
 BUILD_DIR = .

@@ -74,6 +74,18 @@ typedef struct
     time_t last_heartbeat_time;
 } FDFSStorageClusterStat;
 
+typedef struct
+{
+    char group_name[FDFS_GROUP_NAME_MAX_LEN + 1];
+    int64_t total_mb;      //total disk storage in MB
+    int64_t free_mb;       //free disk storage in MB
+    int64_t reserved_mb;   //disk reserved space in MB
+    int64_t avail_mb;      //disk available space in MB
+    int64_t trunk_free_mb; //trunk free space in MB
+    char is_disk_available;
+    char is_trunk_available;
+} FDFSStorageVolumnStat;
+
 
 #define CHECK_CONNECTION(pTrackerServer, conn, result, new_connection) \
 	do { \
@@ -238,6 +250,21 @@ int storage_cluster_stat(ConnectionInfo *pTrackerServer,
         const StorageStatFilter *filter, bool *use_storage_id,
         bool *use_trunk_file, FDFSStorageClusterStat *storage_infos,
         const int max_storages, int *storage_count);
+
+/**
+* list all storage volumns from tracker server
+* params:
+*	pTrackerServer: tracker server
+*	filter: the filter
+*	group_infos: return group info array
+*	max_groups: max group count(group array capacity)
+*	group_count: return group count
+* return: 0 success, !=0 fail, return the error code
+**/
+int storage_volumn_stat(ConnectionInfo *pTrackerServer,
+        const VolumnStatFilter *filter, bool *use_trunk_file,
+        FDFSStorageVolumnStat *group_infos, const int max_groups,
+        int *group_count);
 
 #define tracker_query_storage_store(pTrackerServer, pStorageServer, \
 		group_name, store_path_index) \

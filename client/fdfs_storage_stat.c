@@ -20,7 +20,7 @@
 #include "fdfs_global.h"
 #include "fdfs_client.h"
 
-#define FDFS_MAX_STORAGES  1024
+#define FDFS_MAX_STORAGES  (2 * FDFS_MAX_GROUPS)
 
 static ConnectionInfo *pTrackerServer;
 static bool show_detail = false;
@@ -35,7 +35,7 @@ static void usage(char *argv[])
             "\t[-d] show detail / more info\n\n"
             "\nwhen use_trunk_file is true, including options:\n"
             "\t[-T] list trunk servers / storages\n"
-            "\t[-F] list None trunk servers / storages\n\n",
+            "\t[-t] list None trunk servers / storages\n\n",
             argv[0], FDFS_CLIENT_DEFAULT_CONFIG_FILENAME);
 }
 
@@ -90,7 +90,7 @@ int main(int argc, char *argv[])
 	int result;
 
     memset(&filter, 0, sizeof(filter));
-    while ((ch=getopt(argc, argv, "hc:ANTFd")) != -1) {
+    while ((ch=getopt(argc, argv, "hc:ANTtd")) != -1) {
         switch (ch) {
             case 'h':
                 usage(argv);
@@ -105,7 +105,7 @@ int main(int argc, char *argv[])
                 filter.op_type = (ch == 'A' ? '=' : '!');
                 break;
             case 'T':
-            case 'F':
+            case 't':
                 filter.filter_by |= FDFS_STORAGE_STAT_FILTER_BY_IS_TRUNK_SERVER;
                 filter.is_trunk_server = (ch == 'T' ? 1 : 0);
                 break;

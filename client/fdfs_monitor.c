@@ -20,9 +20,6 @@
 #include "fdfs_global.h"
 #include "fdfs_client.h"
 
-#define MB_TO_HUMAN_STR(mb, buff) bytes_to_human_str( \
-        (int64_t)mb * FC_BYTES_ONE_MB, buff)
-
 static ConnectionInfo *pTrackerServer;
 
 static int list_all_groups(const char *group_name);
@@ -331,14 +328,14 @@ static int list_storages(FDFSGroupStat *pGroupStat)
             "disk reserved space  = %7s\n"
             "disk available space = %7s\n",
             pGroupStat->group_name,
-            MB_TO_HUMAN_STR(pGroupStat->total_mb, szDiskTotalSpace),
-            MB_TO_HUMAN_STR(pGroupStat->free_mb, szDiskFreeSpace),
-            MB_TO_HUMAN_STR(pGroupStat->reserved_mb, szDiskReservedSpace),
-            MB_TO_HUMAN_STR(avail_space, szDiskAvailSpace));
+            FDFS_MB_TO_HUMAN_STR(pGroupStat->total_mb, szDiskTotalSpace),
+            FDFS_MB_TO_HUMAN_STR(pGroupStat->free_mb, szDiskFreeSpace),
+            FDFS_MB_TO_HUMAN_STR(pGroupStat->reserved_mb, szDiskReservedSpace),
+            FDFS_MB_TO_HUMAN_STR(avail_space, szDiskAvailSpace));
 
     if (pGroupStat->current_trunk_file_id >= 0) //use trunk file
     {
-        printf("trunk free space = %7s\n", MB_TO_HUMAN_STR(
+        printf("trunk free space = %7s\n", FDFS_MB_TO_HUMAN_STR(
                     pGroupStat->trunk_free_mb, szTrunkSpace));
     }
 
@@ -508,10 +505,10 @@ static int list_storages(FDFSGroupStat *pGroupStat)
 			formatDatetime(pStorage->join_time,
 				"%Y-%m-%d %H:%M:%S",
 				szJoinTime, sizeof(szJoinTime)), szUpTime,
-            MB_TO_HUMAN_STR(pStorage->total_mb, szDiskTotalSpace),
-            MB_TO_HUMAN_STR(pStorage->free_mb, szDiskFreeSpace),
-            MB_TO_HUMAN_STR(pStorage->reserved_mb, szDiskReservedSpace),
-            MB_TO_HUMAN_STR(avail_space, szDiskAvailSpace),
+            FDFS_MB_TO_HUMAN_STR(pStorage->total_mb, szDiskTotalSpace),
+            FDFS_MB_TO_HUMAN_STR(pStorage->free_mb, szDiskFreeSpace),
+            FDFS_MB_TO_HUMAN_STR(pStorage->reserved_mb, szDiskReservedSpace),
+            FDFS_MB_TO_HUMAN_STR(avail_space, szDiskAvailSpace),
 			pStorage->upload_priority,
 			pStorage->store_path_count,
 			pStorage->subdir_count_per_path,

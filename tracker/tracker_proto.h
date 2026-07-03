@@ -288,6 +288,32 @@ typedef struct
 
 typedef struct
 {
+    char filter_by;
+    char is_disk_available;
+    char is_trunk_available;
+    char is_space_available;
+} VolumnStatFilter;
+
+typedef struct
+{
+    char use_trunk_file;
+    char count[4];
+} StorageVolumnStatRespHeader;
+
+typedef struct
+{
+    char group_name[FDFS_GROUP_NAME_MAX_LEN + 1];
+    char sz_total_mb[FDFS_PROTO_PKG_LEN_SIZE]; //total disk storage in MB
+    char sz_free_mb[FDFS_PROTO_PKG_LEN_SIZE];  //free disk storage in MB
+    char sz_reserved_mb[FDFS_PROTO_PKG_LEN_SIZE]; //disk reserved space in MB
+    char sz_avail_mb[FDFS_PROTO_PKG_LEN_SIZE];    //disk available space in MB
+    char sz_trunk_free_mb[FDFS_PROTO_PKG_LEN_SIZE]; //trunk free space in MB
+    char is_disk_available;
+    char is_trunk_available;
+} StorageVolumnStatRespBodyPart;
+
+typedef struct
+{
 	char src_id[FDFS_STORAGE_ID_MAX_SIZE];   //src storage id
 	char until_timestamp[FDFS_PROTO_PKG_LEN_SIZE];
 } TrackerStorageSyncReqBody;
