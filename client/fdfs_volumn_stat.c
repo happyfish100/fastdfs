@@ -40,6 +40,9 @@ static void usage(char *argv[])
 static void group_output(const FDFSStorageVolumnStat *group)
 {
     int64_t total_avail_space;
+    int64_t total_mb;
+    double space_util;
+    double avail_ratio;
     char szDiskTotalSpace[32];
     char szDiskFreeSpace[32];
     char szDiskReservedSpace[32];
@@ -54,17 +57,40 @@ static void group_output(const FDFSStorageVolumnStat *group)
         printf(", trunk_available: %d", group->is_trunk_available);
     }
 
-    printf(", disk space {total: %s, free: %s, reserved: %s, avail: %s}",
+    total_mb = group->total_mb - group->reserved_mb;
+    if (total_mb > 0)
+    {
+        space_util = (double)(total_mb - group->avail_mb) /
+            (double)total_mb * 100.00;
+    }
+    else
+    {
+        space_util = 0.00;
+    }
+    printf(", disk space {total: %s, free: %s, reserved: %s, "
+            "avail: %s, util: %.2f%%}",
             FDFS_MB_TO_HUMAN_STR(group->total_mb, szDiskTotalSpace),
             FDFS_MB_TO_HUMAN_STR(group->free_mb, szDiskFreeSpace),
             FDFS_MB_TO_HUMAN_STR(group->reserved_mb, szDiskReservedSpace),
-            FDFS_MB_TO_HUMAN_STR(group->avail_mb, szDiskAvailSpace));
+            FDFS_MB_TO_HUMAN_STR(group->avail_mb, szDiskAvailSpace),
+            space_util);
     if (use_trunk_file)
     {
         total_avail_space = group->avail_mb + group->trunk_free_mb;
-        printf(", trunk free space: %s, total available space: %s\n\n",
+        if (total_mb > 0)
+        {
+            avail_ratio = (double)total_avail_space /
+                (double)total_mb * 100.00;
+        }
+        else
+        {
+            avail_ratio = 0.00;
+        }
+        printf(", trunk free space: %s, total available {space: %s, "
+                "ratio: %.2f%%}\n\n",
                 FDFS_MB_TO_HUMAN_STR(group->trunk_free_mb, szTrunkSpace),
-                FDFS_MB_TO_HUMAN_STR(total_avail_space, szTotalAvailSpace));
+                FDFS_MB_TO_HUMAN_STR(total_avail_space, szTotalAvailSpace),
+                avail_ratio);
     }
     else
     {
