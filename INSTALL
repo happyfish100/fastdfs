@@ -11,7 +11,7 @@ Chinese language: http://www.fastken.com/
 # command lines as:
 
    git clone https://github.com/happyfish100/libfastcommon.git
-   cd libfastcommon; git checkout V1.0.85
+   cd libfastcommon; git checkout V1.0.86
    ./make.sh clean && ./make.sh && ./make.sh install
 
 
@@ -21,7 +21,7 @@ Chinese language: http://www.fastken.com/
 # command lines as:
 
    git clone https://github.com/happyfish100/libserverframe.git
-   cd libserverframe; git checkout V1.2.13
+   cd libserverframe; git checkout V1.2.14
    ./make.sh clean && ./make.sh && ./make.sh install
 
 # step 3. download fastdfs source codes and install it, 
@@ -30,7 +30,7 @@ Chinese language: http://www.fastken.com/
 # command lines as:
 
    git clone https://github.com/happyfish100/fastdfs.git
-   cd fastdfs; git checkout V6.15.5
+   cd fastdfs; git checkout V6.16.0
    ./make.sh clean && ./make.sh && ./make.sh install
 
 
@@ -64,7 +64,7 @@ such as:
 /sbin/service fdfs_trackerd restart
 /sbin/service fdfs_storaged restart
 
-# step 7. (optional) run monitor program
+# step 7. (optional) run monitor programs
 # such as:
 /usr/bin/fdfs_monitor
 /usr/bin/fdfs_tracker_stat
@@ -75,7 +75,7 @@ for more detail, use option -h, such as:
 /usr/bin/fdfs_monitor -h
 
 
-# step 8. (optional) run the test program
+# step 8. (optional) run the test programs
 # such as:
 /usr/bin/fdfs_test <client_conf_filename> <operation>
 /usr/bin/fdfs_test1 <client_conf_filename> <operation>

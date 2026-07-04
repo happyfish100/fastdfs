@@ -27,7 +27,7 @@ static void usage(char *argv[])
 {
     fprintf(stderr, "Usage: %s [-c config_filename=%s]\n"
             "\t[-A] list space available groups / volumns\n"
-            "\t[-N] list None space available groups / volumns\n"
+            "\t[-N | -F] list None space available groups / volumns\n"
             "\t[-D] list disk space available groups / volumns\n"
             "\t[-d] list None disk space available groups / volumns\n"
             "\nWhen use_trunk_file is true, including options:\n"
@@ -170,7 +170,7 @@ int main(int argc, char *argv[])
 	int result;
 
     memset(&filter, 0, sizeof(filter));
-    while ((ch=getopt(argc, argv, "hc:ANDdTt")) != -1) {
+    while ((ch=getopt(argc, argv, "hc:ANFDdTt")) != -1) {
         switch (ch) {
             case 'h':
                 usage(argv);
@@ -180,6 +180,7 @@ int main(int argc, char *argv[])
                 break;
             case 'A':
             case 'N':
+            case 'F':
                 filter.filter_by |= FDFS_VOLUMN_STAT_FILTER_BY_IS_SPACE_AVAILABLE;
                 filter.is_space_available = (ch == 'A' ? 1 : 0);
                 break;
