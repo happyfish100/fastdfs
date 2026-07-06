@@ -1,3 +1,7 @@
+
+Version 6.16.1  2026-07-06
+ * adjust global variables‘s order for cache line optimization
+
 Version 6.16.0  2026-07-03
  * one storage group supports multi storage instances in one server
    Note: MUST set use_storage_id to true in tracker.conf and configure

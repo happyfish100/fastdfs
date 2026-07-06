@@ -64,10 +64,6 @@ extern int g_file_distribute_path_mode;
 extern int g_file_distribute_rotate_count;
 extern int g_fsync_after_written_bytes;
 
-extern volatile int g_dist_path_index_high; //current write to high path
-extern volatile int g_dist_path_index_low;  //current write to low path
-extern volatile int g_dist_write_file_count; //current write file count
-
 extern int g_storage_count;  //storage server count in my group
 extern FDFSStorageServer g_storage_servers[FDFS_MAX_SERVERS_EACH_GROUP];
 extern FDFSStorageServer *g_sorted_storages[FDFS_MAX_SERVERS_EACH_GROUP];
@@ -89,6 +85,10 @@ extern int g_sync_stat_file_interval;   //sync storage stat info to disk interva
 extern FDFSStorageStat g_storage_stat;
 extern int g_stat_change_count;
 extern int g_sync_change_count; //sync src timestamp change counter
+
+extern volatile int g_dist_path_index_high;  //current write to high path
+extern volatile int g_dist_path_index_low;   //current write to low path
+extern volatile int g_dist_write_file_count; //current write file count
 
 extern int g_storage_join_time;  //my join timestamp
 extern int g_sync_until_timestamp;
