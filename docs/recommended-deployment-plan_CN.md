@@ -32,12 +32,12 @@
 * 说明： FastDFS网络通信buffer采用内存池，该内存池使用增量(按需)分配方式，强烈建议配置得大一些，线上环境至少配置为10240，避免tracker或storage服务的并发连接数超过max_connections。改大本参数需确保操作系统允许打开的最大文件数大于max_connections，否则fdfs_trackerd / fdfs_storaged将启动失败。
 * 特别提示：
 ```
-  用fdfs_monitor和fdfs_tracker_stat看到连接统计中的三个指标：
+  用fdfs_monitor、fdfs_tracker_stat和fdfs_storage_stat看到连接统计中的三个指标：
     alloc_count 内存池预分配的buffer数
     current_count 当前连接数（正在使用的buffer数）
     max_count 曾经达到过的最大连接数，max_count小于等于alloc_count，二者数值相差不会超过一次预分配的buffer数（比如64或256）
 
-    fdfs_tracker_stat 从V6.15.5开始支持，输出片段示例： connections {alloc: 256, current: 2, max: 23}
+    fdfs_tracker_stat 从V6.15.5开始支持，fdfs_storage_stat 从V6.16开始支持，输出片段示例： connections {alloc: 256, current: 2, max: 23}
 ```
 
 ## 预留磁盘空间参数
