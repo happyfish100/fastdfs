@@ -35,7 +35,7 @@
   用fdfs_monitor、fdfs_tracker_stat和fdfs_storage_stat看到连接统计中的三个指标：
     alloc_count 内存池预分配的buffer数
     current_count 当前连接数（正在使用的buffer数）
-    max_count 曾经达到过的最大连接数，max_count小于等于alloc_count，二者数值相差不会超过一次预分配的buffer数（比如64或256）
+    max_count 曾经达到过的最大连接数，max_count小于等于alloc_count，二者数值相差不会超过一次预分配的buffer数（比如storage server为64，tracker server为256）
 
     fdfs_tracker_stat 从V6.15.5开始支持，fdfs_storage_stat 从V6.16开始支持，输出片段示例： connections {alloc: 256, current: 2, max: 23}
 ```
@@ -93,3 +93,9 @@
  time_precision：V6.16开始支持，缺省值为ms（毫秒），可以配置为us（微秒）
  说明：其他参数参见 log_file_ 打头的全局配置项，比如log_file_rotate_everyday，log_file_keep_days 等配置项，[access-log]下可以重新设置
 ```
+
+## 是否使用io_uring设置
+* 配置文件：tracker.conf 和 storage.conf
+* 参数名： use_io_uring
+* 缺省值：false
+* 说明：使用io_uring的性能会比epoll稍高一些，Linux内核版本 >= 6.2 才可以使用本特性。如何在编译时启用io_uring参见libfastcommon项目下的INSTALL文件
