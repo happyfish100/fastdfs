@@ -119,6 +119,11 @@ static int export_tracker_metrics(char *response, size_t *offset,
                      "Is active", add_comment) != 0) return -1;
 
     // === Connection Metrics ===
+    format_metric_name(metric_name, sizeof(metric_name), "tracker", "connections_alloc");
+    snprintf(value, sizeof(value), "%d", pTracker->connection.alloc_count);
+    if (append_metric_ex(response, offset, max_size, metric_name, labels, value,
+                     "Alloc connection count", add_comment) != 0) return -1;
+
     format_metric_name(metric_name, sizeof(metric_name), "tracker", "connections_current");
     snprintf(value, sizeof(value), "%d", pTracker->connection.current_count);
     if (append_metric_ex(response, offset, max_size, metric_name, labels, value,
@@ -320,8 +325,13 @@ static int export_storage_metrics(char *response, size_t *offset,
     snprintf(value, sizeof(value), "%"PRId64, pStorageStat->success_modify_count);
     if (append_metric_ex(response, offset, max_size, metric_name, labels, value,
                      "Successful modify operations", add_comment) != 0) return -1;
-    
+
     // === Connection Metrics ===
+
+    format_metric_name(metric_name, sizeof(metric_name), "storage", "connections_alloc");
+    snprintf(value, sizeof(value), "%d", pStorageStat->connection.alloc_count);
+    if (append_metric_ex(response, offset, max_size, metric_name, labels, value,
+                     "Alloc connection count", add_comment) != 0) return -1;
     
     format_metric_name(metric_name, sizeof(metric_name), "storage", "connections_current");
     snprintf(value, sizeof(value), "%d", pStorageStat->connection.current_count);
