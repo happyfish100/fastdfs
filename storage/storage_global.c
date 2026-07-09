@@ -95,10 +95,6 @@ int g_upload_priority = FDFS_DEFAULT_UPLOAD_PRIORITY;
 int g_response_ip_addr_size = IPV6_ADDRESS_SIZE;
 int g_access_log_time_precision = LOG_TIME_PRECISION_MSECOND;
 
-#if defined(DEBUG_FLAG) && defined(OS_LINUX)
-char g_exe_name[256] = {0};
-#endif
-
 struct storage_dio_thread_data *g_dio_thread_data = NULL;
 
 FDFSStorageIdInfo *g_my_storage_id_info = NULL;

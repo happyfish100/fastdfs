@@ -134,10 +134,6 @@ extern int g_response_ip_addr_size;
 
 extern int g_access_log_time_precision;
 
-#if defined(DEBUG_FLAG) && defined(OS_LINUX)
-extern char g_exe_name[256];
-#endif
-
 extern struct storage_dio_thread_data *g_dio_thread_data;  //disk io thread data
 
 extern FDFSStorageIdInfo *g_my_storage_id_info;

@@ -8,17 +8,16 @@
 
 #include "tracker_global.h"
 
-int g_check_active_interval = CHECK_ACTIVE_DEF_INTERVAL;
-
 FDFSGroups g_groups;
 int g_storage_stat_chg_count = 0;
 int g_storage_sync_time_chg_count = 0; //sync timestamp
-FDFSStorageReservedSpace g_storage_reserved_space = { \
+FDFSStorageReservedSpace g_storage_reserved_space = {
 		TRACKER_STORAGE_RESERVED_SPACE_FLAG_MB};
 
 int g_allow_ip_count = 0;
 in_addr_64_t *g_allow_ip_addrs = NULL;
 
+int g_check_active_interval = CHECK_ACTIVE_DEF_INTERVAL;
 bool g_storage_ip_changed_auto_adjust = true;
 bool g_use_storage_id = false;  //if use storage ID instead of IP address
 bool g_trust_storage_server_id = true;
@@ -46,10 +45,5 @@ int g_trunk_binlog_max_backups = 0;
 int g_trunk_alloc_alignment_size = 0;
 int64_t g_trunk_create_file_space_threshold = 0;
 
-TrackerStatus g_tracker_last_status = {0, 0};
-
 int g_response_ip_addr_size = IPV6_ADDRESS_SIZE;
-
-#if defined(DEBUG_FLAG) && defined(OS_LINUX)
-char g_exe_name[256] = {0};
-#endif
+TrackerStatus g_tracker_last_status = {0, 0};

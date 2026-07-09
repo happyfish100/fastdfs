@@ -120,9 +120,6 @@ static int fdfs_dump_global_vars(char *buff, const int buffSize)
 		"g_use_connection_pool=%d\n"
 		"g_connection_pool_max_idle_time=%d\n"
 		"connection_pool_conn_count=%d\n"
-	#if defined(DEBUG_FLAG) && defined(OS_LINUX)
-		"g_exe_name=%s\n"
-	#endif
 		, SF_G_CONNECT_TIMEOUT
 		, SF_G_NETWORK_TIMEOUT
 		, SF_G_BASE_PATH_STR
@@ -204,11 +201,7 @@ static int fdfs_dump_global_vars(char *buff, const int buffSize)
 		, g_use_connection_pool
 		, g_connection_pool_max_idle_time
 		, g_use_connection_pool ? conn_pool_get_connection_count(
-                &g_connection_pool) : 0
-	#if defined(DEBUG_FLAG) && defined(OS_LINUX)
-		, g_exe_name
-	#endif
-	);
+                &g_connection_pool) : 0);
 
 	total_len += snprintf(buff + total_len, buffSize - total_len,
 			"\ng_fdfs_store_paths.count=%d\n", g_fdfs_store_paths.count);

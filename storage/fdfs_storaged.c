@@ -138,16 +138,6 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 
-#if defined(DEBUG_FLAG) && defined(OS_LINUX)
-	if (getExeAbsoluteFilename(argv[0], g_exe_name, \
-		sizeof(g_exe_name)) == NULL)
-	{
-		logCrit("exit abnormally!\n");
-		log_destroy();
-		return errno != 0 ? errno : ENOENT;
-	}
-#endif
-
     if (daemon_mode) {
         daemon_init(false);
     }
