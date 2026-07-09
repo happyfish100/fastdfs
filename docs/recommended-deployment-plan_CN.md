@@ -94,8 +94,8 @@
  说明：其他参数参见 log_file_ 打头的全局配置项，比如log_file_rotate_everyday，log_file_keep_days 等配置项，[access-log]下可以重新设置
 ```
 
-## 是否使用io_uring设置
+## 使用io_uring设置
 * 配置文件：tracker.conf 和 storage.conf
 * 参数名： use_io_uring
 * 缺省值：false
-* 说明：使用io_uring的性能会比epoll稍高一些，Linux内核版本 >= 6.2 才可以使用本特性。如何在编译时启用io_uring参见libfastcommon项目下的INSTALL文件
+* 说明：网络IO使用io_uring的性能会比epoll稍高一些，Linux内核版本 >= 6.2 才可以使用本特性。如何在编译时启用io_uring参见libfastcommon项目下的INSTALL文件

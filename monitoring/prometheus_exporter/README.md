@@ -18,7 +18,7 @@ Prometheus exporter for FastDFS that exposes metrics for monitoring storage capa
 make
 ```
 
-**Prerequisites:** FastDFS client library, FastCommon library, GCC
+**Prerequisites:** FastDFS client library, libfastcommon, libserverframe, gcc
 
 ## Usage
 
