@@ -575,7 +575,7 @@ static void usage(char *argv[])
 {
     printf("\nUsage: %s [options]\n\n", argv[0]);
     printf("Options:\n");
-    printf("  --"OPTION_NAME_BIND_ADDR" or -b: bind local ip address, "
+    printf("  --"OPTION_NAME_BIND_ADDR" or -B: bind local ip address, "
             "such as 127.0.0.1\n");
     printf("  --"OPTION_NAME_FDFS_CLIENT_CFG" or -f: specify FDFS client "
             "config file, default is %s\n", FDFS_CLIENT_DEFAULT_CONFIG_FILENAME);
@@ -598,16 +598,16 @@ int main(int argc, char *argv[]) {
     int ch;
     int result;
     const struct option longopts[] = {
-        {OPTION_NAME_BIND_ADDR,       required_argument, NULL, 'b'},
+        {OPTION_NAME_BIND_ADDR,       required_argument, NULL, 'B'},
         {OPTION_NAME_FDFS_CLIENT_CFG, required_argument, NULL, 'f'},
         {OPTION_NAME_DAEMON,          no_argument,       NULL, 'd'},
         {OPTION_NAME_PORT,            required_argument, NULL, 'P'},
         {NULL, 0, NULL, 0}
     };
 
-    while ((ch = getopt_long(argc, argv, "b:df:hP:", longopts, NULL)) != -1) {
+    while ((ch = getopt_long(argc, argv, "B:df:hP:", longopts, NULL)) != -1) {
         switch (ch) {
-            case 'b':
+            case 'B':
                 bind_addr = optarg;
                 break;
             case 'd':
