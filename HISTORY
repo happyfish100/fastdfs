@@ -1,6 +1,7 @@
 
-Version 6.16.1  2026-07-06
+Version 6.16.1  2026-07-11
  * adjust global variables‘s order for cache line optimization
+ * fdfs_exporter.c support extra options such as --bind_addr
 
 Version 6.16.0  2026-07-03
  * one storage group supports multi storage instances in one server

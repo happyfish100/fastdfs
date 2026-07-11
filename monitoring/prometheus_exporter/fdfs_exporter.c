@@ -8,17 +8,9 @@
  * License: GPL V3
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
 #include <signal.h>
 #include <unistd.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <time.h>
+#include <getopt.h>
 #include "fastcommon/logger.h"
 #include "fastcommon/sockopt.h"
 #include "client_global.h"
@@ -573,52 +565,82 @@ static void signal_handler(int sig) {
     exit(0);
 }
 
+#define OPTION_NAME_BIND_ADDR       "bind_addr"
+#define OPTION_NAME_FDFS_CLIENT_CFG "fdfs_client_cfg"
+#define OPTION_NAME_DAEMON          "daemon"
+#define OPTION_NAME_HELP            "help"
+#define OPTION_NAME_PORT            "port"
+
+static void usage(char *argv[])
+{
+    printf("\nUsage: %s [options]\n\n", argv[0]);
+    printf("Options:\n");
+    printf("  --"OPTION_NAME_BIND_ADDR" or -b: bind local ip address, "
+            "such as 127.0.0.1\n");
+    printf("  --"OPTION_NAME_FDFS_CLIENT_CFG" or -f: specify FDFS client "
+            "config file, default is %s\n", FDFS_CLIENT_DEFAULT_CONFIG_FILENAME);
+    printf("  --"OPTION_NAME_DAEMON" or -d: run as daemon\n");
+    printf("  --"OPTION_NAME_HELP" or -h: show help\n");
+    printf("  --"OPTION_NAME_PORT" or -P: specify listen port, "
+            "default is %d\n\n", DEFAULT_PORT);
+    printf("For example:\n");
+    printf("  %s -f /etc/fdfs/client.conf -d\n", argv[0]);
+    printf("  %s --bind_addr 127.0.0.1 --daemon\n\n", argv[0]);
+}
+
 /**
  * Main function
  */
 int main(int argc, char *argv[]) {
-    char *conf_filename;
-    struct sockaddr_in server_addr;
+    char *fdfs_client_config = FDFS_CLIENT_DEFAULT_CONFIG_FILENAME;
+    char *bind_addr = NULL;
     int daemon_mode = 0;
-    int opt = 1;
-    int i;
+    int ch;
     int result;
-    
-    printf("FastDFS Prometheus Exporter\n");
-    printf("===========================\n\n");
+    const struct option longopts[] = {
+        {OPTION_NAME_BIND_ADDR,       required_argument, NULL, 'b'},
+        {OPTION_NAME_FDFS_CLIENT_CFG, required_argument, NULL, 'f'},
+        {OPTION_NAME_DAEMON,          no_argument,       NULL, 'd'},
+        {OPTION_NAME_PORT,            required_argument, NULL, 'P'},
+        {NULL, 0, NULL, 0}
+    };
 
-    // Parse arguments
-    if (argc < 2) {
-        printf("Usage: %s <fdfs_client_config_file> [port=%d]\n",
-                argv[0], DEFAULT_PORT);
-        printf("Options:\n");
-        printf("  -d or --daemon Run as daemon\n\n");
-        printf("For example:\n");
-        printf("  %s /etc/fdfs/client.conf --daemon\n\n", argv[0]);
-        return 1;
-    }
-
-    conf_filename = argv[1];
-
-    // Parse options
-    for (i = 2; i < argc; i++) {
-        if (strcmp(argv[i], "-d") == 0 || strcmp(argv[i], "--daemon") == 0) {
-            daemon_mode = 1;
-        } else {
-            listen_port = atoi(argv[i]);
-            if (listen_port <= 0 || listen_port > 65535) {
-                printf("Invalid port number: %s\n", argv[i]);
+    while ((ch = getopt_long(argc, argv, "b:df:hP:", longopts, NULL)) != -1) {
+        switch (ch) {
+            case 'b':
+                bind_addr = optarg;
+                break;
+            case 'd':
+                daemon_mode = 1;
+                break;
+            case 'f':
+                fdfs_client_config = optarg;
+                break;
+            case 'h':
+                usage(argv);
+                return 0;
+            case 'P':
+                listen_port = atoi(optarg);
+                if (listen_port <= 0 || listen_port > 65535) {
+                    printf("Invalid port number: %s\n", optarg);
+                    return 1;
+                }
+                break;
+            default:
+                usage(argv);
                 return 1;
-            }
         }
     }
+
+    printf("FastDFS Prometheus Exporter\n");
+    printf("===========================\n\n");
 
     // Initialize FastDFS client
     log_init();
     g_log_context.log_level = LOG_ERR;
     ignore_signal_pipe();
 
-    result = fdfs_client_init(conf_filename);
+    result = fdfs_client_init(fdfs_client_config);
     if (result != 0) {
         printf("ERROR: Failed to initialize FastDFS client\n");
         return result;
@@ -633,35 +655,8 @@ int main(int argc, char *argv[]) {
         daemon_init(false);
     }
 
-    // Create socket
-    server_socket = socket(AF_INET, SOCK_STREAM, 0);
+    server_socket = socketServer(bind_addr, listen_port, &result);
     if (server_socket < 0) {
-        printf("ERROR: Failed to create socket\n");
-        fdfs_client_destroy();
-        return 1;
-    }
-
-    // Set socket options
-    setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
-
-    // Bind socket
-    memset(&server_addr, 0, sizeof(server_addr));
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_addr.s_addr = INADDR_ANY;
-    server_addr.sin_port = htons(listen_port);
-    if (bind(server_socket, (struct sockaddr *)&server_addr, 
-                sizeof(server_addr)) < 0)
-    {
-        printf("ERROR: Failed to bind socket to port %d\n", listen_port);
-        close(server_socket);
-        fdfs_client_destroy();
-        return 1;
-    }
-
-    // Listen
-    if (listen(server_socket, 10) < 0) {
-        printf("ERROR: Failed to listen on socket\n");
-        close(server_socket);
         fdfs_client_destroy();
         return 1;
     }
@@ -673,8 +668,13 @@ int main(int argc, char *argv[]) {
         return ENOMEM;
     }
 
-    printf("Listening on port %d\n", listen_port);
-    printf("Metrics endpoint: http://localhost:%d/metrics\n\n", listen_port);
+    if (bind_addr == NULL || *bind_addr == '\0') {
+        printf("Listening on port %d\n", listen_port);
+        printf("Metrics endpoint: http://localhost:%d/metrics\n\n", listen_port);
+    } else {
+        printf("Listening on %s:%d\n", bind_addr, listen_port);
+        printf("Metrics endpoint: http://%s:%d/metrics\n\n", bind_addr, listen_port);
+    }
 
     // Setup signal handlers
     signal(SIGINT, signal_handler);
