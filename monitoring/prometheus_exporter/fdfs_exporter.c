@@ -21,7 +21,18 @@
 #define MAX_RESPONSE_SIZE (1024 * 1024)  // 1MB
 #define METRIC_PREFIX "fastdfs_"
 
+typedef enum {
+    auth_method_none,
+    auth_method_basic
+} AuthMethod;
+
 // Global variables
+static char *config_filename = NULL;
+static char *fdfs_client_config = FDFS_CLIENT_DEFAULT_CONFIG_FILENAME;
+static char *bind_addr = NULL;
+static AuthMethod auth_method = auth_method_none;
+static string_t authorization_basic = {NULL, 0};
+static int daemon_mode = 0;
 static int listen_port = DEFAULT_PORT;
 static int server_socket = -1;
 static char *server_response = NULL;
@@ -499,6 +510,49 @@ static int collect_metrics(char *response, size_t max_size, int *length)
     return 0;
 }
 
+static bool check_authorization(char *request)
+{
+#define HTTP_AUTHORIZATION_TAG_STR  "Authorization:"
+#define HTTP_AUTHORIZATION_TAG_LEN  (sizeof(HTTP_AUTHORIZATION_TAG_STR) - 1)
+
+    string_t auth;
+    char *line;
+    char *lend;
+
+    line = request;
+    while (1) {
+        lend = strstr(line, "\r\n");
+        if (lend == NULL) {
+            return false;
+        }
+
+        line = lend + 2;
+        if (strncasecmp(line, HTTP_AUTHORIZATION_TAG_STR,
+                    HTTP_AUTHORIZATION_TAG_LEN) == 0)
+        {
+            break;
+        }
+    }
+
+    auth.str = line + HTTP_AUTHORIZATION_TAG_LEN;
+    lend = strstr(auth.str, "\r\n");
+    if (lend == NULL) {
+        return false;
+    }
+
+    while (auth.str < lend && (*auth.str == ' ' || *auth.str == '\t')) {
+        auth.str++;
+    }
+
+    if (strncasecmp(auth.str, "Basic ", 6) != 0)
+    {
+        return false;
+    }
+    auth.str += 6;
+    auth.len = lend - auth.str;
+    return fc_string_equals(&authorization_basic, &auth);
+}
+
 /**
  * Handle HTTP request
  */
@@ -528,6 +582,16 @@ static void handle_request(int client_socket)
         return;
     }
 
+    if (auth_method == auth_method_basic) {
+        if (!check_authorization(request)) {
+            const char *unauthorized = "HTTP/1.1 401 Unauthorized\r\n"
+                "Content-Type: text/plain\r\n"
+                "Content-Length: 12\r\n\r\n"
+                "Unauthorized";
+            send(client_socket, unauthorized, strlen(unauthorized), 0);
+            return;
+        }
+    }
 
     // Collect metrics
     result = collect_metrics(server_response, MAX_RESPONSE_SIZE, &body_length);
@@ -566,8 +630,9 @@ static void signal_handler(int sig) {
 }
 
 #define OPTION_NAME_BIND_ADDR       "bind_addr"
-#define OPTION_NAME_FDFS_CLIENT_CFG "fdfs_client_cfg"
+#define OPTION_NAME_CONFIG_FILE     "config_file"
 #define OPTION_NAME_DAEMON          "daemon"
+#define OPTION_NAME_FDFS_CLIENT_CFG "fdfs_client_cfg"
 #define OPTION_NAME_HELP            "help"
 #define OPTION_NAME_PORT            "port"
 
@@ -577,8 +642,11 @@ static void usage(char *argv[])
     printf("Options:\n");
     printf("  --"OPTION_NAME_BIND_ADDR" or -B: bind local ip address, "
             "such as 127.0.0.1\n");
-    printf("  --"OPTION_NAME_FDFS_CLIENT_CFG" or -f: specify FDFS client "
-            "config file, default is %s\n", FDFS_CLIENT_DEFAULT_CONFIG_FILENAME);
+    printf("  --"OPTION_NAME_CONFIG_FILE" or -c: specify exporter "
+            "config filename\n");
+    printf("  --"OPTION_NAME_FDFS_CLIENT_CFG" or -f: specify FastDFS "
+            "client config filename, default is %s\n",
+            FDFS_CLIENT_DEFAULT_CONFIG_FILENAME);
     printf("  --"OPTION_NAME_DAEMON" or -d: run as daemon\n");
     printf("  --"OPTION_NAME_HELP" or -h: show help\n");
     printf("  --"OPTION_NAME_PORT" or -P: specify listen port, "
@@ -588,32 +656,185 @@ static void usage(char *argv[])
     printf("  %s --bind_addr 127.0.0.1 --daemon\n\n", argv[0]);
 }
 
-/**
- * Main function
- */
-int main(int argc, char *argv[]) {
-    char *fdfs_client_config = FDFS_CLIENT_DEFAULT_CONFIG_FILENAME;
-    char *bind_addr = NULL;
-    int daemon_mode = 0;
+const struct option longopts[] = {
+    {OPTION_NAME_BIND_ADDR,       required_argument, NULL, 'B'},
+    {OPTION_NAME_CONFIG_FILE,     required_argument, NULL, 'c'},
+    {OPTION_NAME_FDFS_CLIENT_CFG, required_argument, NULL, 'f'},
+    {OPTION_NAME_DAEMON,          no_argument,       NULL, 'd'},
+    {OPTION_NAME_PORT,            required_argument, NULL, 'P'},
+    {NULL, 0, NULL, 0}
+};
+
+#define OPT_STRING  "B:c:df:hP:"
+
+static int load_from_config_file()
+{
+    IniContext ini_context;
+    struct base64_context base64_ctx;
+    char *addr;
+    char *client_cfg;
+    char *method;
+    char *username;
+    char *password;
+    char buff[128];
+    int len;
+    int bytes;
+    int result;
+
+    if ((result=iniLoadFromFile(config_filename, &ini_context)) != 0) {
+        logError("file: "__FILE__", line: %d, "
+                "load conf file \"%s\" fail, ret code: %d",
+                __LINE__, config_filename, result);
+        return result;
+    }
+
+    do {
+        addr = iniGetStrValue(NULL, "bind_addr", &ini_context);
+        if (addr != NULL && *addr != '\0') {
+            if ((bind_addr=fc_strdup(addr)) == NULL) {
+                result = ENOMEM;
+                break;
+            }
+        }
+
+        listen_port = iniGetIntValue(NULL, "port", &ini_context, DEFAULT_PORT);
+        if (listen_port <= 0 || listen_port > 65535) {
+            logError("file: "__FILE__", line: %d, "
+                    "invalid port number: %d",
+                    __LINE__, listen_port);
+            result = EINVAL;
+            break;
+        }
+        daemon_mode = iniGetBoolValue(NULL, "daemon", &ini_context, false);
+
+        client_cfg = iniGetStrValue(NULL, "fdfs_client_cfg", &ini_context);
+        if (client_cfg != NULL) {
+            if (*client_cfg == '\0') {
+                logError("file: "__FILE__", line: %d, "
+                        "empty FDFS client config filename!", __LINE__);
+                result = EINVAL;
+                break;
+            }
+
+            if ((fdfs_client_config=fc_strdup(client_cfg)) == NULL) {
+                result = ENOMEM;
+                break;
+            }
+        }
+
+        method = iniGetStrValue("auth", "method", &ini_context);
+        if (method == NULL || *method == '\0' ||
+                strcasecmp(method, "none") == 0)
+        {
+            break;
+        }
+        if (strcasecmp(method, "basic") != 0) {
+            logError("file: "__FILE__", line: %d, "
+                    "unkown auth method: %s!",
+                    __LINE__, method);
+            result = EINVAL;
+            break;
+        }
+
+        auth_method = auth_method_basic;
+        username = iniGetStrValue("auth", "username", &ini_context);
+        if (username == NULL || *username == '\0') {
+            logError("file: "__FILE__", line: %d, "
+                    "username not exist or username is empty !",
+                    __LINE__);
+            result = EINVAL;
+            break;
+        }
+
+        password = iniGetStrValue("auth", "password", &ini_context);
+        if (password == NULL || *password == '\0') {
+            logError("file: "__FILE__", line: %d, "
+                    "password not exist or password is empty !",
+                    __LINE__);
+            result = EINVAL;
+            break;
+        }
+
+        len = snprintf(buff, sizeof(buff), "%s:%s", username, password);
+        if (len >= sizeof(buff)) {
+            logError("file: "__FILE__", line: %d, "
+                    "username and password are too long, exceed %d!",
+                    __LINE__, (int)sizeof(buff));
+            result = EOVERFLOW;
+            break;
+        }
+
+        bytes = (len + 2) / 3 * 4;
+        if ((authorization_basic.str=fc_malloc(bytes + 1)) == NULL) {
+            result = ENOMEM;
+            break;
+        }
+
+        base64_init(&base64_ctx, 0);
+        base64_encode(&base64_ctx, buff, len, authorization_basic.str,
+                &authorization_basic.len);
+    } while (0);
+
+    iniFreeContext(&ini_context);
+    return result;
+}
+
+static int check_load_from_cfg_file(int argc, char *argv[])
+{
+    int ch;
+
+    while ((ch=getopt_long(argc, argv, OPT_STRING, longopts, NULL)) != -1) {
+        if (ch == 'c') {
+            config_filename = optarg;
+            break;
+        }
+        if (ch == ':' || ch == '?') {
+            usage(argv);
+            return EINVAL;
+        }
+    }
+
+    if (config_filename == NULL) {
+        return 0;
+    }
+    if (*config_filename == '\0') {
+        printf("ERROR: empty config filename!\n");
+        return EINVAL;
+    }
+
+    return load_from_config_file();
+}
+
+int main(int argc, char *argv[])
+{
     int ch;
     int result;
-    const struct option longopts[] = {
-        {OPTION_NAME_BIND_ADDR,       required_argument, NULL, 'B'},
-        {OPTION_NAME_FDFS_CLIENT_CFG, required_argument, NULL, 'f'},
-        {OPTION_NAME_DAEMON,          no_argument,       NULL, 'd'},
-        {OPTION_NAME_PORT,            required_argument, NULL, 'P'},
-        {NULL, 0, NULL, 0}
-    };
 
-    while ((ch = getopt_long(argc, argv, "B:df:hP:", longopts, NULL)) != -1) {
+    log_init();
+    g_log_context.log_level = LOG_ERR;
+    if ((result=check_load_from_cfg_file(argc, argv)) != 0) {
+        return result;
+    }
+
+    //Reset for calling getopt_long again
+    optind = 1;
+    while ((ch=getopt_long(argc, argv, OPT_STRING, longopts, NULL)) != -1) {
         switch (ch) {
             case 'B':
+                if (bind_addr != NULL) {
+                    free(bind_addr);
+                }
                 bind_addr = optarg;
                 break;
             case 'd':
                 daemon_mode = 1;
                 break;
+            case 'c':
+                break;
             case 'f':
+                if (fdfs_client_config != NULL) {
+                    free(fdfs_client_config);
+                }
                 fdfs_client_config = optarg;
                 break;
             case 'h':
@@ -622,22 +843,18 @@ int main(int argc, char *argv[]) {
             case 'P':
                 listen_port = atoi(optarg);
                 if (listen_port <= 0 || listen_port > 65535) {
-                    printf("Invalid port number: %s\n", optarg);
-                    return 1;
+                    printf("invalid port number: %s\n", optarg);
+                    return EINVAL;
                 }
                 break;
             default:
                 usage(argv);
-                return 1;
+                return EINVAL;
         }
     }
 
     printf("FastDFS Prometheus Exporter\n");
     printf("===========================\n\n");
-
-    // Initialize FastDFS client
-    log_init();
-    g_log_context.log_level = LOG_ERR;
     ignore_signal_pipe();
 
     result = fdfs_client_init(fdfs_client_config);
@@ -649,6 +866,8 @@ int main(int argc, char *argv[]) {
     printf("FastDFS client initialized successfully\n");
     printf("Tracker server count: %d\n", g_tracker_group.server_count);
     printf("Mode: %s\n", daemon_mode ? "daemon" : "foreground");
+    printf("Auth method: %s\n", (auth_method == auth_method_basic ?
+                "basic" : "none"));
 
     // Daemonize if requested
     if (daemon_mode) {
