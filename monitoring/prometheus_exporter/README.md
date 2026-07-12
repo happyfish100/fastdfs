@@ -23,15 +23,16 @@ make
 ## Usage
 
 ```bash
-./fdfs_exporter /etc/fdfs/client.conf [port]
+./fdfs_exporter -h
 ```
 
 - Default port: `9898`
 - Metrics endpoint: `http://localhost:9898/metrics`
 
-**Example:**
+**Examples:**
 ```bash
-./fdfs_exporter /etc/fdfs/client.conf 9898
+./fdfs_exporter -f /etc/fdfs/client.conf -P 9898
+./fdfs_exporter -c exporter.conf
 ```
 
 ## Prometheus Configuration
