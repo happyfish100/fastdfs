@@ -605,7 +605,7 @@ static void handle_request(int client_socket)
     }
 
     // Send HTTP response
-    header_length = sprintf(http_header,
+    header_length = snprintf(http_header, sizeof(http_header),
             "HTTP/1.1 200 OK\r\n"
             "Content-Type: text/plain\r\n"
             "Content-Length: %d\r\n"
