@@ -1,4 +1,4 @@
-fastdfs (6.16.0-1) stable; urgency=medium
- * one storage group supports multi storage instances in one server
+fastdfs (6.16.1-1) stable; urgency=medium
+ * fdfs_exporter.c supports basic authorization
 
- -- YuQing <384681@qq.com>  Sat, 27 Jun 2026 10:48:48 +0800
+ -- YuQing <384681@qq.com>  Sun, Jul 12 2026 17:29:25 +0800
