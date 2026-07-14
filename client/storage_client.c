@@ -423,8 +423,8 @@ int storage_get_metadata(ConnectionInfo *pTrackerServer, \
 		&file_buff, 0, &in_bytes)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, "
-                "fdfs_recv_response fail, result: %d",
-                __LINE__, result);
+                "fdfs_recv_response fail, errno: %d, error info: %s",
+                __LINE__, result, STRERROR(result));
 		break;
 	}
 
@@ -528,8 +528,8 @@ int storage_query_file_info_ex(ConnectionInfo *pTrackerServer,
 		&pInBuff, sizeof(in_buff), &in_bytes)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, "
-                "fdfs_recv_response fail, result: %d",
-                __LINE__, result);
+                "fdfs_recv_response fail, errno: %d, error info: %s",
+                __LINE__, result, STRERROR(result));
 		break;
 	}
 
@@ -663,8 +663,8 @@ int storage_delete_file(ConnectionInfo *pTrackerServer, \
 		&pBuff, 0, &in_bytes)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, "
-                "fdfs_recv_response fail, result: %d",
-                __LINE__, result);
+                "fdfs_recv_response fail, errno: %d, error info: %s",
+                __LINE__, result, STRERROR(result));
 		break;
 	}
 
@@ -753,12 +753,11 @@ int storage_do_download_file_ex(ConnectionInfo *pTrackerServer, \
 
 	if (download_type == FDFS_DOWNLOAD_TO_FILE)
 	{
-		if ((result=fdfs_recv_header(pStorageServer, \
-			&in_bytes)) != 0)
+		if ((result=fdfs_recv_header(pStorageServer, &in_bytes)) != 0)
 		{
             logError("file: "__FILE__", line: %d, "
-                    "fdfs_recv_header fail, result: %d",
-                    __LINE__, result);
+                    "fdfs_recv_header fail, errno: %d, error info: %s",
+                    __LINE__, result, STRERROR(result));
 			break;
 		}
 
@@ -777,8 +776,8 @@ int storage_do_download_file_ex(ConnectionInfo *pTrackerServer, \
 			file_buff, 0, &in_bytes)) != 0)
 		{
             logError("file: "__FILE__", line: %d, "
-                    "fdfs_recv_response fail, result: %d",
-                    __LINE__, result);
+                    "fdfs_recv_response fail, errno: %d, error info: %s",
+                    __LINE__, result, STRERROR(result));
 			break;
 		}
 	}
@@ -793,8 +792,8 @@ int storage_do_download_file_ex(ConnectionInfo *pTrackerServer, \
 			&in_bytes)) != 0)
 		{
             logError("file: "__FILE__", line: %d, "
-                    "fdfs_recv_header fail, result: %d",
-                    __LINE__, result);
+                    "fdfs_recv_header fail, errno: %d, error info: %s",
+                    __LINE__, result, STRERROR(result));
 			break;
 		}
 
@@ -825,12 +824,13 @@ int storage_do_download_file_ex(ConnectionInfo *pTrackerServer, \
 
 			result = callback(arg, in_bytes, buff, recv_bytes);
 			if (result != 0)
-			{
-				logError("file: "__FILE__", line: %d, " \
-					"call callback function fail, " \
-					"error code: %d", __LINE__, result);
-				break;
-			}
+            {
+                logError("file: "__FILE__", line: %d, "
+                        "call callback function fail, "
+                        "error code: %d, error info: %s",
+                        __LINE__, result, STRERROR(result));
+                break;
+            }
 
 			remain_bytes -= recv_bytes;
 		}
@@ -1149,8 +1149,8 @@ int storage_do_upload_file(ConnectionInfo *pTrackerServer, \
 		&pInBuff, sizeof(in_buff), &in_bytes)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, "
-                "fdfs_recv_response fail, result: %d",
-                __LINE__, result);
+                "fdfs_recv_response fail, errno: %d, error info: %s",
+                __LINE__, result, STRERROR(result));
 		break;
 	}
 
@@ -1409,8 +1409,8 @@ int storage_set_metadata(ConnectionInfo *pTrackerServer, \
     if (result != 0)
     {
 		logError("file: "__FILE__", line: %d, "
-                "fdfs_recv_response fail, result: %d",
-                __LINE__, result);
+                "fdfs_recv_response fail, errno: %d, error info: %s",
+                __LINE__, result, STRERROR(result));
     }
 	} while (0);
 
@@ -1611,8 +1611,8 @@ int storage_client_create_link(ConnectionInfo *pTrackerServer, \
 		&pInBuff, sizeof(in_buff), &in_bytes)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, "
-                "fdfs_recv_response fail, result: %d",
-                __LINE__, result);
+                "fdfs_recv_response fail, errno: %d, error info: %s",
+                __LINE__, result, STRERROR(result));
 		break;
 	}
 
@@ -1936,8 +1936,8 @@ int storage_do_append_file(ConnectionInfo *pTrackerServer, \
 	if ((result=fdfs_recv_header(pStorageServer, &in_bytes)) != 0)
 	{
         logError("file: "__FILE__", line: %d, "
-                "fdfs_recv_header fail, result: %d",
-                __LINE__, result);
+                "fdfs_recv_header fail, errno: %d, error info: %s",
+                __LINE__, result, STRERROR(result));
 		break;
 	}
 
@@ -2068,8 +2068,8 @@ int storage_do_modify_file(ConnectionInfo *pTrackerServer, \
 	if ((result=fdfs_recv_header(pStorageServer, &in_bytes)) != 0)
 	{
         logError("file: "__FILE__", line: %d, "
-                "fdfs_recv_header fail, result: %d",
-                __LINE__, result);
+                "fdfs_recv_header fail, errno: %d, error info: %s",
+                __LINE__, result, STRERROR(result));
 		break;
 	}
 
@@ -2502,8 +2502,8 @@ int storage_truncate_file(ConnectionInfo *pTrackerServer, \
 	if ((result=fdfs_recv_header(pStorageServer, &in_bytes)) != 0)
 	{
         logError("file: "__FILE__", line: %d, "
-                "fdfs_recv_header fail, result: %d",
-                __LINE__, result);
+                "fdfs_recv_header fail, errno: %d, error info: %s",
+                __LINE__, result, STRERROR(result));
 		break;
 	}
 
@@ -2581,8 +2581,8 @@ int storage_regenerate_appender_filename(ConnectionInfo *pTrackerServer,
 		&pInBuff, sizeof(in_buff), &in_bytes)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, "
-                "fdfs_recv_response fail, result: %d",
-                __LINE__, result);
+                "fdfs_recv_response fail, errno: %d, error info: %s",
+                __LINE__, result, STRERROR(result));
 		break;
 	}
 

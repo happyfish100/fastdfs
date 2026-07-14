@@ -432,8 +432,8 @@ int tracker_list_servers(ConnectionInfo *pTrackerServer,
         if (result != 0)
         {
             logError("file: "__FILE__", line: %d, "
-                    "fdfs_recv_response fail, result: %d",
-                    __LINE__, result);
+                    "fdfs_recv_response fail, errno: %d, error info: %s",
+                    __LINE__, result, STRERROR(result));
         }
 	}
 
@@ -543,8 +543,8 @@ int tracker_list_one_group(ConnectionInfo *pTrackerServer,
         if (result != 0)
         {
             logError("file: "__FILE__", line: %d, "
-                    "fdfs_recv_response fail, result: %d",
-                    __LINE__, result);
+                    "fdfs_recv_response fail, errno: %d, error info: %s",
+                    __LINE__, result, STRERROR(result));
         }
 	}
 
@@ -624,8 +624,8 @@ int tracker_list_groups(ConnectionInfo *pTrackerServer,
         if (result != 0)
         {
             logError("file: "__FILE__", line: %d, "
-                    "fdfs_recv_response fail, result: %d",
-                    __LINE__, result);
+                    "fdfs_recv_response fail, errno: %d, error info: %s",
+                    __LINE__, result, STRERROR(result));
         }
 	}
 
@@ -732,8 +732,8 @@ int tracker_get_leader(ConnectionInfo *pTrackerServer,
         if (result != 0)
         {
             logError("file: "__FILE__", line: %d, "
-                    "fdfs_recv_response fail, result: %d",
-                    __LINE__, result);
+                    "fdfs_recv_response fail, errno: %d, error info: %s",
+                    __LINE__, result, STRERROR(result));
         }
         else if (in_bytes < sizeof(TrackerClusterStatRespHeader))
         {
@@ -827,8 +827,8 @@ static int do_tracker_cluster_stat(ConnectionInfo *pTrackerServer,
         if (result != 0)
         {
             logError("file: "__FILE__", line: %d, "
-                    "fdfs_recv_response fail, result: %d",
-                    __LINE__, result);
+                    "fdfs_recv_response fail, errno: %d, error info: %s",
+                    __LINE__, result, STRERROR(result));
         }
         else if (in_bytes < sizeof(TrackerClusterStatRespHeader))
         {
@@ -980,8 +980,8 @@ int storage_cluster_stat(ConnectionInfo *pTrackerServer,
         if (result != 0)
         {
             logError("file: "__FILE__", line: %d, "
-                    "fdfs_recv_response fail, result: %d",
-                    __LINE__, result);
+                    "fdfs_recv_response fail, errno: %d, error info: %s",
+                    __LINE__, result, STRERROR(result));
         }
         else if (in_bytes < sizeof(StorageClusterStatRespHeader))
         {
@@ -1111,8 +1111,8 @@ int storage_volumn_stat(ConnectionInfo *pTrackerServer,
         if (result != 0)
         {
             logError("file: "__FILE__", line: %d, "
-                    "fdfs_recv_response fail, result: %d",
-                    __LINE__, result);
+                    "fdfs_recv_response fail, errno: %d, error info: %s",
+                    __LINE__, result, STRERROR(result));
         }
         else if (in_bytes < sizeof(StorageVolumnStatRespHeader))
         {
@@ -1234,8 +1234,8 @@ int tracker_do_query_storage(ConnectionInfo *pTrackerServer,
         if (result != 0)
         {
             logError("file: "__FILE__", line: %d, "
-                    "fdfs_recv_response fail, result: %d",
-                    __LINE__, result);
+                    "fdfs_recv_response fail, errno: %d, error info: %s",
+                    __LINE__, result, STRERROR(result));
         }
 	}
 
@@ -1327,8 +1327,8 @@ int tracker_query_storage_list(ConnectionInfo *pTrackerServer,
         if (result != 0)
         {
             logError("file: "__FILE__", line: %d, "
-                    "fdfs_recv_response fail, result: %d",
-                    __LINE__, result);
+                    "fdfs_recv_response fail, errno: %d, error info: %s",
+                    __LINE__, result, STRERROR(result));
         }
 	}
 
@@ -1433,8 +1433,8 @@ int tracker_query_storage_store_without_group(ConnectionInfo *pTrackerServer,
         if (result != 0)
         {
             logError("file: "__FILE__", line: %d, "
-                    "fdfs_recv_response fail, result: %d",
-                    __LINE__, result);
+                    "fdfs_recv_response fail, errno: %d, error info: %s",
+                    __LINE__, result, STRERROR(result));
         }
 	}
 
@@ -1526,8 +1526,8 @@ int tracker_query_storage_store_with_group(ConnectionInfo *pTrackerServer, \
         if (result != 0)
         {
             logError("file: "__FILE__", line: %d, "
-                    "fdfs_recv_response fail, result: %d",
-                    __LINE__, result);
+                    "fdfs_recv_response fail, errno: %d, error info: %s",
+                    __LINE__, result, STRERROR(result));
         }
 	}
 
@@ -1631,8 +1631,8 @@ int tracker_query_storage_store_list_with_group(
         if (result != 0)
         {
             logError("file: "__FILE__", line: %d, "
-                    "fdfs_recv_response fail, result: %d",
-                    __LINE__, result);
+                    "fdfs_recv_response fail, errno: %d, error info: %s",
+                    __LINE__, result, STRERROR(result));
         }
 	}
 
@@ -1807,8 +1807,8 @@ int tracker_delete_storage(TrackerServerGroup *pTrackerGroup, \
             if (result != 0)
             {
                 logError("file: "__FILE__", line: %d, "
-                        "fdfs_recv_response fail, result: %d",
-                        __LINE__, result);
+                        "fdfs_recv_response fail, errno: %d, error info: %s",
+                        __LINE__, result, STRERROR(result));
             }
         }
 
@@ -1887,8 +1887,8 @@ int tracker_delete_group(TrackerServerGroup *pTrackerGroup, \
 		if (result != 0)
 		{
             logError("file: "__FILE__", line: %d, "
-                    "fdfs_recv_response fail, result: %d",
-                    __LINE__, result);
+                    "fdfs_recv_response fail, errno: %d, error info: %s",
+                    __LINE__, result, STRERROR(result));
             break;
 		}
 	}
@@ -1987,8 +1987,8 @@ int tracker_set_trunk_server(TrackerServerGroup *pTrackerGroup, \
 		else
 		{
             logError("file: "__FILE__", line: %d, "
-                    "fdfs_recv_response fail, result: %d",
-                    __LINE__, result);
+                    "fdfs_recv_response fail, errno: %d, error info: %s",
+                    __LINE__, result, STRERROR(result));
 			return result;
 		}
 	}
@@ -2040,8 +2040,8 @@ int tracker_get_storage_status(ConnectionInfo *pTrackerServer,
 		if (result != 0)
 		{
             logError("file: "__FILE__", line: %d, "
-                    "fdfs_recv_response fail, result: %d",
-                    __LINE__, result);
+                    "fdfs_recv_response fail, errno: %d, error info: %s",
+                    __LINE__, result, STRERROR(result));
 		}
 	}
 
@@ -2115,8 +2115,8 @@ int tracker_get_storage_id(ConnectionInfo *pTrackerServer,
 		if (result != 0)
 		{
             logError("file: "__FILE__", line: %d, "
-                    "fdfs_recv_response fail, result: %d",
-                    __LINE__, result);
+                    "fdfs_recv_response fail, errno: %d, error info: %s",
+                    __LINE__, result, STRERROR(result));
 		}
 	}
 

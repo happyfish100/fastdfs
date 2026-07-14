@@ -133,8 +133,10 @@ static int fdfs_ping_leader(ConnectionInfo *pTrackerServer)
 	{
         format_ip_address(pTrackerServer->ip_addr, formatted_ip);
         logError("file: "__FILE__", line: %d, "
-                "fdfs_recv_response from %s:%u fail, result: %d",
-                __LINE__, formatted_ip, pTrackerServer->port, result);
+                "fdfs_recv_response from %s:%u fail, "
+                "errno: %d, error info: %s",
+                __LINE__, formatted_ip, pTrackerServer->port,
+                result, STRERROR(result));
 		return result;
 	}
 
@@ -375,7 +377,8 @@ static int do_notify_leader_changed(TrackerServerInfo *pTrackerServer,
         format_ip_address(conn->ip_addr, formatted_ip);
         logError("file: "__FILE__", line: %d, "
                 "fdfs_recv_response from tracker server %s:%u fail, "
-                "result: %d", __LINE__, formatted_ip, conn->port, result);
+                "errno: %d, error info: %s", __LINE__, formatted_ip,
+                conn->port, result, STRERROR(result));
 		break;
 	}
 

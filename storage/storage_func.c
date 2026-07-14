@@ -316,8 +316,8 @@ static int storage_do_get_group_name(ConnectionInfo *pTrackerServer)
                     FDFS_GROUP_NAME_MAX_LEN, &in_bytes)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, "
-                "fdfs_recv_response fail, result: %d",
-                __LINE__, result);
+                "fdfs_recv_response fail, errno: %d, error info: %s",
+                __LINE__, result, STRERROR(result));
 		return result;
 	}
 

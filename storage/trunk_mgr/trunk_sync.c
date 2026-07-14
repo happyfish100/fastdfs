@@ -2141,8 +2141,8 @@ static int trunk_sync_data(TrunkBinLogReader *pReader, \
 	if ((result=fdfs_recv_response(pStorage, &pBuff, 0, &in_bytes)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, "
-                "fdfs_recv_response fail, result: %d",
-                __LINE__, result);
+                "fdfs_recv_response fail, errno: %d, error info: %s",
+                __LINE__, result, STRERROR(result));
 		return result;
 	}
 

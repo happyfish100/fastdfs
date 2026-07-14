@@ -4315,13 +4315,13 @@ static int tracker_mem_get_sys_file_piece(ConnectionInfo *pTrackerServer,
 	}
 
 	pInBuff = in_buff;
-	result = fdfs_recv_response(pTrackerServer, &pInBuff, \
+	result = fdfs_recv_response(pTrackerServer, &pInBuff,
 				sizeof(in_buff), &in_bytes);
 	if (result != 0)
 	{
         logError("file: "__FILE__", line: %d, "
-                "fdfs_recv_response fail, result: %d",
-                __LINE__, result);
+                "fdfs_recv_response fail, errno: %d, error info: %s",
+                __LINE__, result, STRERROR(result));
 		return result;
 	}
 
@@ -5529,12 +5529,12 @@ static int _storage_get_trunk_binlog_size(
 	}
 
 	pInBuff = in_buff;
-	if ((result=fdfs_recv_response(pStorageServer, \
+	if ((result=fdfs_recv_response(pStorageServer,
 		&pInBuff, sizeof(in_buff), &in_bytes)) != 0)
 	{
         logError("file: "__FILE__", line: %d, "
-                "fdfs_recv_response fail, result: %d",
-                __LINE__, result);
+                "fdfs_recv_response fail, errno: %d, error info: %s",
+                __LINE__, result, STRERROR(result));
 		return result;
 	}
 

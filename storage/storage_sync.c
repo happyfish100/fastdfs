@@ -354,7 +354,7 @@ static int storage_sync_copy_file(ConnectionInfo *pStorageServer,
 			&pBuff, 0, &in_bytes)) != 0)
 		{
             logError("file: "__FILE__", line: %d, "
-                    "fdfs_recv_response fail, result: %d, error info: %s",
+                    "fdfs_recv_response fail, errno: %d, error info: %s",
                     __LINE__, result, STRERROR(result));
 			break;
 		}
@@ -549,7 +549,7 @@ static int storage_sync_modify_file(ConnectionInfo *pStorageServer,
 			&pBuff, 0, &in_bytes)) != 0)
 		{
             logError("file: "__FILE__", line: %d, "
-                    "fdfs_recv_response fail, result: %d, error info: %s",
+                    "fdfs_recv_response fail, errno: %d, error info: %s",
                     __LINE__, result, STRERROR(result));
 			break;
 		}
@@ -701,7 +701,7 @@ static int storage_sync_truncate_file(ConnectionInfo *pStorageServer,
 			&pBuff, 0, &in_bytes)) != 0)
 		{
             logError("file: "__FILE__", line: %d, "
-                    "fdfs_recv_response fail, result: %d, error info: %s",
+                    "fdfs_recv_response fail, errno: %d, error info: %s",
                     __LINE__, result, STRERROR(result));
 			break;
 		}
@@ -780,7 +780,7 @@ static int storage_sync_delete_file(ConnectionInfo *pStorageServer, \
         else
         {
             logError("file: "__FILE__", line: %d, "
-                    "fdfs_recv_response fail, result: %d, error info: %s",
+                    "fdfs_recv_response fail, errno: %d, error info: %s",
                     __LINE__, result, STRERROR(result));
         }
     }
@@ -824,7 +824,7 @@ static int storage_report_my_server_id(ConnectionInfo *pStorageServer)
     if (result != 0)
     {
         logError("file: "__FILE__", line: %d, "
-                "fdfs_recv_response fail, result: %d, error info: %s",
+                "fdfs_recv_response fail, errno: %d, error info: %s",
                 __LINE__, result, STRERROR(result));
     }
     return result;
@@ -1063,7 +1063,7 @@ static int storage_sync_link_file(ConnectionInfo *pStorageServer,
         else
         {
             logError("file: "__FILE__", line: %d, "
-                    "fdfs_recv_response fail, result: %d, error info: %s",
+                    "fdfs_recv_response fail, errno: %d, error info: %s",
                     __LINE__, result, STRERROR(result));
         }
     }

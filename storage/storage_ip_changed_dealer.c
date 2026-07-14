@@ -95,15 +95,14 @@ static int storage_report_ip_changed(ConnectionInfo *pTrackerServer)
 	pInBuff = in_buff;
 	result = fdfs_recv_response(pTrackerServer,
                 &pInBuff, 0, &in_bytes);
-
 	if (result == 0 || result == EALREADY || result == ENOENT
             || result == EEXIST)
 	{
         if (result != 0)
         {
             logWarning("file: "__FILE__", line: %d, "
-                    "fdfs_recv_response fail, result: %d",
-                    __LINE__, result);
+                    "fdfs_recv_response fail, errno: %d, error info: %s",
+                    __LINE__, result, STRERROR(result));
         }
 		return 0;
 	}
