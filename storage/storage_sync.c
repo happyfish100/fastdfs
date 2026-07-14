@@ -354,8 +354,8 @@ static int storage_sync_copy_file(ConnectionInfo *pStorageServer,
 			&pBuff, 0, &in_bytes)) != 0)
 		{
             logError("file: "__FILE__", line: %d, "
-                    "fdfs_recv_response fail, result: %d",
-                    __LINE__, result);
+                    "fdfs_recv_response fail, result: %d, error info: %s",
+                    __LINE__, result, STRERROR(result));
 			break;
 		}
 	} while (0);
@@ -403,8 +403,8 @@ FDFS_GROUP_NAME_MAX_LEN bytes: group_name
 filename bytes : filename
 file size bytes: file content
 **/
-static int storage_sync_modify_file(ConnectionInfo *pStorageServer, \
-	StorageBinLogReader *pReader, StorageBinLogRecord *pRecord, \
+static int storage_sync_modify_file(ConnectionInfo *pStorageServer,
+	StorageBinLogReader *pReader, StorageBinLogRecord *pRecord,
 	const char cmd)
 {
 #define SYNC_MODIFY_FIELD_COUNT  3
@@ -545,12 +545,12 @@ static int storage_sync_modify_file(ConnectionInfo *pStorageServer, \
 		}
 
 		pBuff = in_buff;
-		if ((result=fdfs_recv_response(pStorageServer, \
+		if ((result=fdfs_recv_response(pStorageServer,
 			&pBuff, 0, &in_bytes)) != 0)
 		{
             logError("file: "__FILE__", line: %d, "
-                    "fdfs_recv_response fail, result: %d",
-                    __LINE__, result);
+                    "fdfs_recv_response fail, result: %d, error info: %s",
+                    __LINE__, result, STRERROR(result));
 			break;
 		}
 	} while (0);
@@ -574,7 +574,7 @@ static int storage_sync_modify_file(ConnectionInfo *pStorageServer, \
 FDFS_GROUP_NAME_MAX_LEN bytes: group_name
 filename bytes : filename
 **/
-static int storage_sync_truncate_file(ConnectionInfo *pStorageServer, \
+static int storage_sync_truncate_file(ConnectionInfo *pStorageServer,
 	StorageBinLogReader *pReader, StorageBinLogRecord *pRecord)
 {
 #define SYNC_TRUNCATE_FIELD_COUNT  3
@@ -697,12 +697,12 @@ static int storage_sync_truncate_file(ConnectionInfo *pStorageServer, \
 		}
 
 		pBuff = in_buff;
-		if ((result=fdfs_recv_response(pStorageServer, \
+		if ((result=fdfs_recv_response(pStorageServer,
 			&pBuff, 0, &in_bytes)) != 0)
 		{
             logError("file: "__FILE__", line: %d, "
-                    "fdfs_recv_response fail, result: %d",
-                    __LINE__, result);
+                    "fdfs_recv_response fail, result: %d, error info: %s",
+                    __LINE__, result, STRERROR(result));
 			break;
 		}
 	} while (0);
@@ -780,8 +780,8 @@ static int storage_sync_delete_file(ConnectionInfo *pStorageServer, \
         else
         {
             logError("file: "__FILE__", line: %d, "
-                    "fdfs_recv_response fail, result: %d",
-                    __LINE__, result);
+                    "fdfs_recv_response fail, result: %d, error info: %s",
+                    __LINE__, result, STRERROR(result));
         }
     }
 	
@@ -824,8 +824,8 @@ static int storage_report_my_server_id(ConnectionInfo *pStorageServer)
     if (result != 0)
     {
         logError("file: "__FILE__", line: %d, "
-                "fdfs_recv_response fail, result: %d",
-                __LINE__, result);
+                "fdfs_recv_response fail, result: %d, error info: %s",
+                __LINE__, result, STRERROR(result));
     }
     return result;
 }
@@ -838,7 +838,7 @@ FDFS_GROUP_NAME_MAX_LEN bytes: group_name
 dest filename length: dest filename
 source filename length: source filename
 **/
-static int storage_sync_link_file(ConnectionInfo *pStorageServer, \
+static int storage_sync_link_file(ConnectionInfo *pStorageServer,
 		StorageBinLogRecord *pRecord)
 {
 	TrackerHeader *pHeader;
@@ -1063,8 +1063,8 @@ static int storage_sync_link_file(ConnectionInfo *pStorageServer, \
         else
         {
             logError("file: "__FILE__", line: %d, "
-                    "fdfs_recv_response fail, result: %d",
-                    __LINE__, result);
+                    "fdfs_recv_response fail, result: %d, error info: %s",
+                    __LINE__, result, STRERROR(result));
         }
     }
 	
@@ -1184,8 +1184,8 @@ static int storage_sync_rename_file(ConnectionInfo *pStorageServer,
         else
         {
             logError("file: "__FILE__", line: %d, "
-                    "fdfs_recv_response fail, result: %d",
-                    __LINE__, result);
+                    "fdfs_recv_response fail, errno: %d, error info: %s",
+                    __LINE__, result, STRERROR(result));
         }
     }
 	
@@ -1278,22 +1278,19 @@ static int storage_sync_data(StorageBinLogReader *pReader,
 					pRecord);
 			break;
 		case STORAGE_OP_TYPE_REPLICA_CREATE_FILE:
-			result = storage_sync_copy_file(pStorageServer, \
-					pReader, pRecord, \
-					STORAGE_PROTO_CMD_SYNC_CREATE_FILE);
+			result = storage_sync_copy_file(pStorageServer, pReader,
+                    pRecord, STORAGE_PROTO_CMD_SYNC_CREATE_FILE);
 			break;
 		case STORAGE_OP_TYPE_REPLICA_DELETE_FILE:
-			result = storage_sync_delete_file( \
+			result = storage_sync_delete_file(
 					pStorageServer, pRecord);
 			break;
 		case STORAGE_OP_TYPE_REPLICA_UPDATE_FILE:
-			result = storage_sync_copy_file(pStorageServer, \
-					pReader, pRecord, \
-					STORAGE_PROTO_CMD_SYNC_UPDATE_FILE);
+			result = storage_sync_copy_file(pStorageServer, pReader,
+                    pRecord, STORAGE_PROTO_CMD_SYNC_UPDATE_FILE);
 			break;
 		case STORAGE_OP_TYPE_REPLICA_CREATE_LINK:
-			result = storage_sync_link_file(pStorageServer, \
-					pRecord);
+			result = storage_sync_link_file(pStorageServer, pRecord);
 			break;
         case STORAGE_OP_TYPE_REPLICA_RENAME_FILE:
 			result = storage_sync_rename_file(pStorageServer,
