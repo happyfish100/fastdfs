@@ -1,6 +1,7 @@
 # FastDFS Prometheus Exporter
 
 Prometheus exporter for FastDFS that exposes metrics for monitoring storage capacity, performance, and health.
+This exporter supports HTTP basic authorization. More detail please see [the exporter config file](exporter.conf)
 
 ## Metrics Exposed
 

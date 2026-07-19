@@ -1,5 +1,5 @@
 [Unit]
-Description=FastDFS trackerd service
+Description=FastDFS tracker service
 After=network-online.target
 
 [Service]

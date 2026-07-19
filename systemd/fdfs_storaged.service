@@ -1,5 +1,5 @@
 [Unit]
-Description=FastDFS storaged service
+Description=FastDFS storage service
 After=network-online.target
 
 [Service]
