@@ -1,6 +1,6 @@
 # FastDFS Prometheus Exporter
 
-Prometheus exporter for FastDFS that exposes metrics for monitoring storage capacity, performance, and health.
+Prometheus exporter for FastDFS that exposes metrics for monitoring storage capacity, performance and health.
 This exporter supports HTTP basic authorization. More detail please see [the exporter config file](exporter.conf)
 
 ## Metrics Exposed
@@ -13,13 +13,17 @@ This exporter supports HTTP basic authorization. More detail please see [the exp
 - **Disk I/O statistics** - Operation counts (upload, download, delete, append, modify)
 - **Network throughput** - Bytes uploaded/downloaded
 
+## Prerequisites
+* gcc >= 4.7.0
+* libfastcommon (/usr/lib64/libfastcommon.so)
+* libserverframe (/usr/lib64/libserverframe.so)
+* FastDFS client library (/usr/lib64/libfdfsclient.so)
+
 ## Build
 
 ```bash
 make
 ```
-
-**Prerequisites:** FastDFS client library, libfastcommon, libserverframe, gcc
 
 ## Usage
 
