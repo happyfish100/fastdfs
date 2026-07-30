@@ -669,28 +669,28 @@ int tracker_sync_diff_servers(ConnectionInfo *pTrackerServer, \
 	return resp.status;
 }
 
-int tracker_report_storage_status(ConnectionInfo *pTrackerServer, \
+int tracker_report_storage_status(ConnectionInfo *pTrackerServer,
 		FDFSStorageBrief *briefServer)
 {
-	char out_buff[sizeof(TrackerHeader) + FDFS_GROUP_NAME_MAX_LEN + \
-			sizeof(FDFSStorageBrief)];
+	char out_buff[sizeof(TrackerHeader) + sizeof(StorageReportStatusBody)];
     char formatted_ip[FORMATTED_IP_SIZE];
 	TrackerHeader *pHeader;
+    StorageReportStatusBody *req;
 	TrackerHeader resp;
 	int result;
 
 	memset(out_buff, 0, sizeof(out_buff));
 	pHeader = (TrackerHeader *)out_buff;
+    req = (StorageReportStatusBody *)(pHeader + 1);
 	pHeader->cmd = TRACKER_PROTO_CMD_STORAGE_REPORT_STATUS;
+	long2buff(sizeof(StorageReportStatusBody), pHeader->pkg_len);
 
-	long2buff(FDFS_GROUP_NAME_MAX_LEN + sizeof(FDFSStorageBrief), \
-			pHeader->pkg_len);
-	strcpy(out_buff + sizeof(TrackerHeader), g_group_name);
-	memcpy(out_buff + sizeof(TrackerHeader) + FDFS_GROUP_NAME_MAX_LEN, \
-			briefServer, sizeof(FDFSStorageBrief));
-	if ((result=tcpsenddata_nb(pTrackerServer->sock, out_buff, \
-			sizeof(TrackerHeader) + FDFS_GROUP_NAME_MAX_LEN + \
-			sizeof(FDFSStorageBrief), SF_G_NETWORK_TIMEOUT)) != 0)
+	strcpy(req->group_name, g_group_name);
+    strcpy(req->storage_id, g_my_server_id_str);
+    int2buff(SF_G_INNER_PORT, req->storage_port);
+	req->brief = *briefServer;
+	if ((result=tcpsenddata_nb(pTrackerServer->sock, out_buff,
+			sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
         format_ip_address(pTrackerServer->ip_addr, formatted_ip);
 		logError("file: "__FILE__", line: %d, "
@@ -711,16 +711,16 @@ int tracker_report_storage_status(ConnectionInfo *pTrackerServer, \
 		return result;
 	}
 
-	if (memcmp(resp.pkg_len, "\0\0\0\0\0\0\0\0", \
-		FDFS_PROTO_PKG_LEN_SIZE) != 0)
-	{
+	if (memcmp(resp.pkg_len, "\0\0\0\0\0\0\0\0",
+                FDFS_PROTO_PKG_LEN_SIZE) != 0)
+    {
         format_ip_address(pTrackerServer->ip_addr, formatted_ip);
-		logError("file: "__FILE__", line: %d, "
-			"tracker server %s:%u, expect pkg len 0, "
-            "but recv pkg len != 0", __LINE__, formatted_ip,
-			pTrackerServer->port);
-		return EINVAL;
-	}
+        logError("file: "__FILE__", line: %d, "
+                "tracker server %s:%u, expect pkg len 0, "
+                "but recv pkg len != 0", __LINE__, formatted_ip,
+                pTrackerServer->port);
+        return EINVAL;
+    }
 
 	return resp.status;
 }

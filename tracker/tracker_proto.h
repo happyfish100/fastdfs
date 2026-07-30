@@ -183,6 +183,14 @@ typedef struct
 
 typedef struct
 {
+    char group_name[FDFS_GROUP_NAME_MAX_LEN + 1];
+    char storage_id[FDFS_STORAGE_ID_MAX_SIZE];
+    char storage_port[4];
+    FDFSStorageBrief brief;
+} StorageReportStatusBody;
+
+typedef struct
+{
 	char group_name[FDFS_GROUP_NAME_MAX_LEN + 1];
 	char sz_total_mb[FDFS_PROTO_PKG_LEN_SIZE]; //total disk storage in MB
 	char sz_free_mb[FDFS_PROTO_PKG_LEN_SIZE];  //free disk storage in MB

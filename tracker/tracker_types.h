@@ -306,8 +306,10 @@ typedef struct StructFDFSMultiIP
 	FDFSIPInfo ips[FDFS_MULTI_IP_MAX_COUNT];
 } FDFSMultiIP;
 
+#define FDFS_FIRST_IP_ADDR(pServer) (pServer)->ip_addrs.ips[0].address
 #define FDFS_CURRENT_IP_ADDR(pServer) \
     (pServer)->ip_addrs.ips[(pServer)->ip_addrs.index].address
+
 
 typedef struct StructFDFSStorageDetail
 {

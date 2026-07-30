@@ -2328,7 +2328,7 @@ static char *get_mark_filename_by_id(const char *storage_id,
             SF_G_INNER_PORT, full_filename, filename_size);
 }
 
-int storage_report_storage_status(const char *storage_id, \
+int storage_report_storage_status(const char *storage_id,
 		const char *ip_addr, const char status)
 {
 	FDFSStorageBrief briefServer;
@@ -2413,11 +2413,10 @@ int storage_report_storage_status(const char *storage_id, \
         }
 
 		report_count++;
-		if ((result=tracker_report_storage_status(conn,
-			&briefServer)) == 0)
-		{
-			success_count++;
-		}
+        if ((result=tracker_report_storage_status(conn, &briefServer)) == 0)
+        {
+            success_count++;
+        }
 
 		fdfs_quit(conn);
 		close(conn->sock);

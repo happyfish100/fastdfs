@@ -4912,20 +4912,136 @@ static int tracker_mem_get_sys_files_from_others(FDFSStorageJoinBody *pJoinBody,
 	return tracker_open_changlog_file();
 }
 
-int tracker_mem_add_group_and_storage(TrackerClientInfo *pClientInfo,
-		const char *ip_addr, FDFSStorageJoinBody *pJoinBody,
-		const bool bNeedSleep)
+int tracker_mem_check_storage_server(FDFSGroupInfo *pGroup,
+        const char *ip_addr, const int port, const char *storage_id)
+{
+    if (g_use_storage_id)
+    {
+        FDFSStorageIdInfo *pStorageIdInfo;
+        if (g_trust_storage_server_id)
+        {
+            pStorageIdInfo = fdfs_get_storage_by_id(storage_id);
+            if (pStorageIdInfo == NULL)
+            {
+                logError("file: "__FILE__", line: %d, "
+                        "get storage id info fail, storage id: %s",
+                        __LINE__, storage_id);
+                return ENOENT;
+            }
+
+            if (strcmp(pGroup->group_name, pStorageIdInfo->group_name) != 0)
+            {
+                logError("file: "__FILE__", line: %d, "
+                        "storage id: %s, group_name: %s != %s in "
+                        "storage_ids.conf", __LINE__, storage_id,
+                        pGroup->group_name, pStorageIdInfo->group_name);
+                return EINVAL;
+            }
+        }
+        else
+        {
+            pStorageIdInfo = fdfs_get_storage_id_by_group_and_ip_port(
+                    pGroup->group_name, ip_addr, port);
+            if (pStorageIdInfo == NULL)
+            {
+                logError("file: "__FILE__", line: %d, "
+                        "group_name: %s, storage ip: %s, port: %d not exist",
+                        __LINE__, pGroup->group_name, ip_addr, port);
+                return ENOENT;
+            }
+        }
+
+        return 0;
+    }
+    else
+    {
+        FDFSStorageDetail **ppServer;
+        FDFSStorageDetail **ppEnd;
+        ppEnd = pGroup->all_servers + pGroup->storage_count;
+        for (ppServer=pGroup->all_servers; ppServer<ppEnd; ppServer++)
+        {
+            if ((*ppServer)->status == FDFS_STORAGE_STATUS_DELETED ||
+                    (*ppServer)->status == FDFS_STORAGE_STATUS_IP_CHANGED ||
+                    (*ppServer)->status == FDFS_STORAGE_STATUS_NONE)
+            {
+                continue;
+            }
+
+            if (strcmp(FDFS_FIRST_IP_ADDR(*ppServer), ip_addr) == 0 &&
+                    (*ppServer)->storage_port == port)
+            {
+                return 0;
+            }
+        }
+
+        logError("file: "__FILE__", line: %d, "
+                "group_name: %s, storage ip: %s, port: %d not exist",
+                __LINE__, pGroup->group_name, ip_addr, port);
+        return ENOENT;
+    }
+}
+
+static int storage_join_get_storage_id(const char *ip_addr,
+        FDFSStorageJoinBody *pJoinBody, FDFSStorageId *storage_id)
+{
+	if (g_use_storage_id)
+	{
+        FDFSStorageIdInfo *pStorageIdInfo;
+        if (g_trust_storage_server_id && *(pJoinBody->storage_id) != '\0')
+        {
+            pStorageIdInfo = fdfs_get_storage_by_id(pJoinBody->storage_id);
+            if (pStorageIdInfo == NULL)
+            {
+                logError("file: "__FILE__", line: %d, "
+                        "get storage id info fail, storage id: %s",
+                        __LINE__, pJoinBody->storage_id);
+                return ENOENT;
+            }
+
+            if (strcmp(pJoinBody->group_name, pStorageIdInfo->group_name) != 0)
+            {
+                logError("file: "__FILE__", line: %d, "
+                        "storage id: %s, group_name: %s != %s in "
+                        "storage_ids.conf", __LINE__, pJoinBody->storage_id,
+                        pJoinBody->group_name, pStorageIdInfo->group_name);
+                return EINVAL;
+            }
+        }
+        else
+        {
+            pStorageIdInfo = fdfs_get_storage_id_by_group_and_ip_port(
+                    pJoinBody->group_name, ip_addr, pJoinBody->storage_port);
+            if (pStorageIdInfo == NULL)
+            {
+                logError("file: "__FILE__", line: %d, "
+                        "get storage id info fail, group_name: %s, "
+                        "storage ip: %s", __LINE__,
+                        pJoinBody->group_name, ip_addr);
+                return ENOENT;
+            }
+        }
+
+		storage_id->ptr = pStorageIdInfo->id;
+	}
+	else
+	{
+		// 当IP地址为IPv6时，其storage_id值为IP地址的short code
+		if (is_ipv6_addr(ip_addr))
+        {
+            storage_id->ptr = fdfs_ip_to_shortcode(ip_addr, storage_id->holder);
+		}
+        else
+        {
+            storage_id->ptr = (char *)ip_addr;
+        }
+	}
+
+    return 0;
+}
+
+static int storage_join_check_add_tracker_servers(FDFSStorageJoinBody *pJoinBody)
 {
 	int result;
-	bool bStorageInserted;
-	bool bGroupInserted;
-	FDFSStorageDetail *pStorageServer;
-	FDFSStorageDetail **ppServer;
-	FDFSStorageDetail **ppEnd;
-	FDFSStorageId storage_id;
-    char formatted_ip[FORMATTED_IP_SIZE];
-
-	tracker_mem_file_lock();
 
 	if (need_get_sys_files)
 	{
@@ -4941,7 +5057,6 @@ int tracker_mem_add_group_and_storage(TrackerClientInfo *pClientInfo,
                     pJoinBody, &runningStatus);
             if (result != 0)
 			{
-				tracker_mem_file_unlock();
 			    logError("file: "__FILE__", line: %d, "
                         "get sys files from other trackers fail, errno: %d",
                         __LINE__, result);
@@ -4959,7 +5074,6 @@ int tracker_mem_add_group_and_storage(TrackerClientInfo *pClientInfo,
         if ((result=tracker_mem_get_sys_files_from_others(
                         pJoinBody, NULL)) != 0)
         {
-            tracker_mem_file_unlock();
             logError("file: "__FILE__", line: %d, "
                     "get sys files from other trackers fail, errno: %d",
                     __LINE__, result);
@@ -4971,24 +5085,40 @@ int tracker_mem_add_group_and_storage(TrackerClientInfo *pClientInfo,
 
 	if (g_tracker_servers.servers == NULL)
 	{
-		result = tracker_mem_first_add_tracker_servers(pJoinBody);
-		if (result != 0)
-		{
-			tracker_mem_file_unlock();
-			return result;
-		}
+		return tracker_mem_first_add_tracker_servers(pJoinBody);
 	}
 	else
 	{
-		result = tracker_mem_check_add_tracker_servers(pJoinBody);
-		if (result != 0)
-		{
-			tracker_mem_file_unlock();
-			return result;
-		}
+		return tracker_mem_check_add_tracker_servers(pJoinBody);
 	}
+}
 
+int tracker_mem_add_group_and_storage(TrackerClientInfo *pClientInfo,
+		const char *ip_addr, FDFSStorageJoinBody *pJoinBody,
+		const bool bNeedSleep)
+{
+	int result;
+	bool bStorageInserted;
+	bool bGroupInserted;
+	FDFSStorageDetail *pStorageServer;
+	FDFSStorageDetail **ppServer;
+	FDFSStorageDetail **ppEnd;
+	FDFSStorageId storage_id;
+    char formatted_ip[FORMATTED_IP_SIZE];
+
+    if ((result=storage_join_get_storage_id(ip_addr,
+                    pJoinBody, &storage_id)) != 0)
+    {
+        return result;
+    }
+
+	tracker_mem_file_lock();
+    result = storage_join_check_add_tracker_servers(pJoinBody);
 	tracker_mem_file_unlock();
+    if (result != 0)
+    {
+        return result;
+    }
 
 	if ((result=tracker_mem_add_group_ex(&g_groups, pClientInfo,
 		pJoinBody->group_name, bNeedSleep, &bGroupInserted)) != 0)
@@ -5002,50 +5132,6 @@ int tracker_mem_add_group_and_storage(TrackerClientInfo *pClientInfo,
 		{
 			return result;
 		}
-	}
-
-	if (g_use_storage_id)
-	{
-        FDFSStorageIdInfo *pStorageIdInfo;
-
-        if (g_trust_storage_server_id && *(pJoinBody->storage_id) != '\0')
-        {
-            pStorageIdInfo = fdfs_get_storage_by_id(pJoinBody->storage_id);
-            if (pStorageIdInfo == NULL)
-            {
-                logError("file: "__FILE__", line: %d, "
-                        "get storage id info fail, storage id: %s",
-                        __LINE__, pJoinBody->storage_id);
-                return ENOENT;
-            }
-        }
-        else
-        {
-            pStorageIdInfo = fdfs_get_storage_id_by_group_and_ip_port(
-                    pClientInfo->pGroup->group_name, ip_addr,
-                    pJoinBody->storage_port);
-            if (pStorageIdInfo == NULL)
-            {
-                logError("file: "__FILE__", line: %d, "
-                        "get storage id info fail, group_name: %s, "
-                        "storage ip: %s", __LINE__,
-                        pClientInfo->pGroup->group_name, ip_addr);
-                return ENOENT;
-            }
-        }
-		storage_id.ptr = pStorageIdInfo->id;
-	}
-	else
-	{
-		// 当IP地址为IPv6时，其storage_id值为IP地址的short code
-		if (is_ipv6_addr(ip_addr))
-        {
-            storage_id.ptr = fdfs_ip_to_shortcode(ip_addr, storage_id.holder);
-		}
-        else
-        {
-            storage_id.ptr = (char *)ip_addr;
-        }
 	}
 
 	if (pClientInfo->pGroup->storage_port == 0)
