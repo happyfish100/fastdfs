@@ -3555,26 +3555,6 @@ static void dispatch_ctx_close(StorageDispatchContext *dispatch_ctx)
     storage_reader_destroy(dispatch_ctx->pReader);
 }
 
-static bool storage_is_myself(const FDFSStorageBrief *pStorage)
-{
-    if (strcmp(pStorage->id, g_my_server_id_str) == 0)
-    {
-        return true;
-    }
-    else
-    {
-        if (g_use_storage_id)
-        {
-            return (buff2int(pStorage->port) == SF_G_INNER_PORT &&
-                    is_local_host_ip(pStorage->ip_addr));
-        }
-        else
-        {
-            return is_local_host_ip(pStorage->ip_addr);
-        }
-    }
-}
-
 static void* storage_sync_thread_entrance(void* arg)
 {
     StorageDispatchContext dispatch_ctx;
@@ -3718,7 +3698,7 @@ static void* storage_sync_thread_entrance(void* arg)
             pStorage->ip_addr, local_ip_addr);
 		*/
 
-        if (storage_is_myself(pStorage))  //can't self sync to self
+        if (storage_sync_is_myself(pStorage))  //can't self sync to self
         {
 			logError("file: "__FILE__", line: %d, "
 				"ip_addr %s belong to the local host, "
@@ -3909,7 +3889,7 @@ int storage_sync_thread_start(const FDFSStorageBrief *pStorage)
 		return 0;
 	}
 
-    if (storage_is_myself(pStorage)) //can't self sync to self
+    if (storage_sync_is_myself(pStorage)) //can't self sync to self
     {
         logWarning("file: "__FILE__", line: %d, "
                 "storage id: %s is myself, can't start sync thread!",

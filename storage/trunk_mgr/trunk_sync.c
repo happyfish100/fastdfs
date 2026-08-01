@@ -1641,14 +1641,14 @@ char *trunk_mark_filename_by_reader(const void *pArg, char *full_filename)
 		full_filename = buff;
 	}
 
-	return trunk_get_mark_filename_by_id_and_port(pReader->storage_id, \
+	return trunk_get_mark_filename_by_id_and_port(pReader->storage_id,
 			SF_G_INNER_PORT, full_filename, MAX_PATH_SIZE);
 }
 
 static char *trunk_get_mark_filename_by_id(const char *storage_id, 
 	char *full_filename, const int filename_size)
 {
-	return trunk_get_mark_filename_by_id_and_port(storage_id, SF_G_INNER_PORT, \
+	return trunk_get_mark_filename_by_id_and_port(storage_id, SF_G_INNER_PORT,
 				full_filename, filename_size);
 }
 
@@ -2015,20 +2015,20 @@ int trunk_unlink_mark_file(const char *storage_id)
 	return 0;
 }
 
-int trunk_rename_mark_file(const char *old_ip_addr, const int old_port, \
+int trunk_rename_mark_file(const char *old_ip_addr, const int old_port,
 		const char *new_ip_addr, const int new_port)
 {
 	char old_filename[MAX_PATH_SIZE];
 	char new_filename[MAX_PATH_SIZE];
 
-	trunk_get_mark_filename_by_id_and_port(old_ip_addr, old_port, \
+	trunk_get_mark_filename_by_id_and_port(old_ip_addr, old_port,
 			old_filename, sizeof(old_filename));
 	if (!fileExists(old_filename))
 	{
 		return ENOENT;
 	}
 
-	trunk_get_mark_filename_by_id_and_port(new_ip_addr, new_port, \
+	trunk_get_mark_filename_by_id_and_port(new_ip_addr, new_port,
 			new_filename, sizeof(new_filename));
 	if (fileExists(new_filename))
 	{
@@ -2190,7 +2190,7 @@ static void *trunk_sync_thread_entrance(void* arg)
 	pStorage = thread_data->pStorage;
     memset(&storage_server, 0, sizeof(storage_server));
     conn_pool_set_server_info(&storage_server,
-            pStorage->ip_addr, SF_G_INNER_PORT);
+            pStorage->ip_addr, buff2int(pStorage->port));
 
     format_ip_address(storage_server.ip_addr, formatted_ip);
 	logInfo("file: "__FILE__", line: %d, "
@@ -2238,12 +2238,11 @@ static void *trunk_sync_thread_entrance(void* arg)
 			__LINE__, pStorage->ip_addr, local_ip_addr);
 		*/
 
-		if ((strcmp(pStorage->id, g_my_server_id_str) == 0) ||
-                is_local_host_ip(pStorage->ip_addr))
-		{  //can't self sync to self
-			logError("file: "__FILE__", line: %d, " \
-				"ip_addr %s belong to the local host," \
-				" trunk sync thread exit.", \
+		if (storage_sync_is_myself(pStorage))  //can't self sync to self
+		{
+			logError("file: "__FILE__", line: %d, "
+				"ip_addr %s belong to the local host, "
+				"trunk sync thread exit.",
 				__LINE__, pStorage->ip_addr);
 			fdfs_quit(&storage_server);
 			close(storage_server.sock);
@@ -2497,8 +2496,7 @@ int trunk_sync_thread_start(const FDFSStorageBrief *pStorage)
 		return 0;
 	}
 
-	if ((strcmp(pStorage->id, g_my_server_id_str) == 0) ||
-            is_local_host_ip(pStorage->ip_addr)) //can't self sync to self
+	if (storage_sync_is_myself(pStorage)) //can't self sync to self
 	{
 		return 0;
 	}

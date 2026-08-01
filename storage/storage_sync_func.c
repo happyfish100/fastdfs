@@ -175,3 +175,23 @@ int storage_sync_connect_storage_server_ex(const char *module_name,
 
     return conn_results[0] != 0 ? conn_results[0] : ECONNRESET;
 }
+
+bool storage_sync_is_myself(const FDFSStorageBrief *pStorage)
+{
+    if (strcmp(pStorage->id, g_my_server_id_str) == 0)
+    {
+        return true;
+    }
+    else
+    {
+        if (g_use_storage_id)
+        {
+            return (buff2int(pStorage->port) == SF_G_INNER_PORT &&
+                    is_local_host_ip(pStorage->ip_addr));
+        }
+        else
+        {
+            return is_local_host_ip(pStorage->ip_addr);
+        }
+    }
+}
