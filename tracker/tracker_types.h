@@ -116,6 +116,7 @@
 #define FDFS_FILE_TYPE_SLAVE    4  //slave file
 
 #define FDFS_STORAGE_ID_MAX_SIZE	16
+#define FDFS_STORAGE_SYNC_KEY_LEN   16
 
 #define TRACKER_STORAGE_RESERVED_SPACE_FLAG_MB		0
 #define TRACKER_STORAGE_RESERVED_SPACE_FLAG_RATIO	1
@@ -152,6 +153,7 @@ typedef struct
 	char port[4];
 	char id[FDFS_STORAGE_ID_MAX_SIZE];
 	char ip_addr[IP_ADDRESS_SIZE];
+    char sync_key[FDFS_STORAGE_SYNC_KEY_LEN];  //since 6.17
 } FDFSStorageBrief;
 
 typedef struct
@@ -317,6 +319,7 @@ typedef struct StructFDFSStorageDetail
 	char id[FDFS_STORAGE_ID_MAX_SIZE];
     FDFSMultiIP ip_addrs;
 	char version[FDFS_VERSION_SIZE + 1];
+    char sync_key[FDFS_STORAGE_SYNC_KEY_LEN];  //since 6.17
 
 	int storage_port;   //storage server listen port
 	int store_path_count;  //store base path count of each storage server
@@ -442,6 +445,7 @@ typedef struct
     char version[FDFS_VERSION_SIZE + 1];   //storage version
     char group_name[FDFS_GROUP_NAME_MAX_LEN + 1];
     char storage_id[FDFS_STORAGE_ID_MAX_SIZE];
+    char sync_key[FDFS_STORAGE_SYNC_KEY_LEN];   //since 6.17
     char init_flag;
     signed char status;
     int tracker_count;

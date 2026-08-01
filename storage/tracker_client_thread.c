@@ -38,11 +38,11 @@
 #include "trunk_sync.h"
 #include "storage_param_getter.h"
 
-static pthread_mutex_t reporter_thread_lock;
-
-/* save report thread ids */
-static pthread_t *report_tids = NULL;
-static bool need_rejoin_tracker = false;
+static struct {
+    pthread_mutex_t lock;
+    pthread_t *tids; //save report thread ids
+    bool rejoin_tracker;
+} reporter_ctx;
 
 static int tracker_heart_beat(ConnectionInfo *pTrackerServer,
         const int tracker_index, int *pstat_chg_sync_count,
@@ -63,7 +63,7 @@ static int tracker_report_trunk_fid(ConnectionInfo *pTrackerServer);
 static int tracker_fetch_trunk_fid(ConnectionInfo *pTrackerServer);
 static int tracker_report_trunk_free_space(ConnectionInfo *pTrackerServer);
 
-static bool tracker_insert_into_sorted_servers( \
+static bool tracker_insert_into_sorted_servers(
 		FDFSStorageServer *pInsertedServer);
 
 int tracker_report_init()
@@ -72,19 +72,24 @@ int tracker_report_init()
 
 	memset(g_storage_servers, 0, sizeof(g_storage_servers));
 	memset(g_sorted_storages, 0, sizeof(g_sorted_storages));
-	if ((result=init_pthread_lock(&reporter_thread_lock)) != 0)
+	if ((result=init_pthread_lock(&reporter_ctx.lock)) != 0)
 	{
 		return result;
 	}
 
-	return 0;
+    g_storage_sync_key.fields.ts = g_current_time;
+    g_storage_sync_key.fields.ns = (get_current_time_ns() & 0xFFFFFFFF);
+    g_storage_sync_key.fields.r1 = fc_safe_rand();
+    g_storage_sync_key.fields.r2 = fc_safe_rand();
+
+    return 0;
 }
  
 int tracker_report_destroy()
 {
 	int result;
 
-	if ((result=pthread_mutex_destroy(&reporter_thread_lock)) != 0)
+	if ((result=pthread_mutex_destroy(&reporter_ctx.lock)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"call pthread_mutex_destroy fail, " \
@@ -101,12 +106,12 @@ int kill_tracker_report_threads()
 	int result;
 	int kill_res;
 
-	if (report_tids == NULL)
+	if (reporter_ctx.tids == NULL)
 	{
 		return 0;
 	}
 
-	if ((result=pthread_mutex_lock(&reporter_thread_lock)) != 0)
+	if ((result=pthread_mutex_lock(&reporter_ctx.lock)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"call pthread_mutex_lock fail, " \
@@ -114,9 +119,9 @@ int kill_tracker_report_threads()
 			__LINE__, result, STRERROR(result));
 	}
 
-	kill_res = kill_work_threads(report_tids, g_tracker_reporter_count);
+	kill_res = kill_work_threads(reporter_ctx.tids, g_tracker_reporter_count);
 
-	if ((result=pthread_mutex_unlock(&reporter_thread_lock)) != 0)
+	if ((result=pthread_mutex_unlock(&reporter_ctx.lock)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"call pthread_mutex_unlock fail, " \
@@ -134,7 +139,7 @@ static void thracker_report_thread_exit(TrackerServerInfo *pTrackerServer)
 	pthread_t tid;
     char formatted_ip[FORMATTED_IP_SIZE];
 
-	if ((result=pthread_mutex_lock(&reporter_thread_lock)) != 0)
+	if ((result=pthread_mutex_lock(&reporter_ctx.lock)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"call pthread_mutex_lock fail, " \
@@ -145,7 +150,7 @@ static void thracker_report_thread_exit(TrackerServerInfo *pTrackerServer)
 	tid = pthread_self();
 	for (i=0; i<g_tracker_group.server_count; i++)
 	{
-		if (pthread_equal(report_tids[i], tid))
+		if (pthread_equal(reporter_ctx.tids[i], tid))
 		{
 			break;
 		}
@@ -153,12 +158,12 @@ static void thracker_report_thread_exit(TrackerServerInfo *pTrackerServer)
 
 	while (i < g_tracker_group.server_count - 1)
 	{
-		report_tids[i] = report_tids[i + 1];
+		reporter_ctx.tids[i] = reporter_ctx.tids[i + 1];
 		i++;
 	}
 	
 	g_tracker_reporter_count--;
-	if ((result=pthread_mutex_unlock(&reporter_thread_lock)) != 0)
+	if ((result=pthread_mutex_unlock(&reporter_ctx.lock)) != 0)
 	{
 		logError("file: "__FILE__", line: %d, " \
 			"call pthread_mutex_unlock fail, " \
@@ -339,7 +344,7 @@ static void *tracker_report_thread_entrance(void *arg)
 
 		if (!sync_old_done)
 		{
-			if ((result=pthread_mutex_lock(&reporter_thread_lock)) \
+			if ((result=pthread_mutex_lock(&reporter_ctx.lock)) \
 					 != 0)
 			{
 				logError("file: "__FILE__", line: %d, " \
@@ -367,14 +372,14 @@ static void *tracker_report_thread_entrance(void *arg)
 
 						SF_G_CONTINUE_FLAG = false;
 						pthread_mutex_unlock( \
-							&reporter_thread_lock);
+							&reporter_ctx.lock);
 						break;
 					}
 				}
 				else //request failed or need to try again
 				{
 					pthread_mutex_unlock( \
-						&reporter_thread_lock);
+						&reporter_ctx.lock);
 
 					fdfs_quit(conn);
 					sleep(g_heart_beat_interval);
@@ -386,14 +391,14 @@ static void *tracker_report_thread_entrance(void *arg)
 				if (tracker_sync_notify(conn, tracker_index) != 0)
 				{
 					pthread_mutex_unlock( \
-						&reporter_thread_lock);
+						&reporter_ctx.lock);
 					fdfs_quit(conn);
 					sleep(g_heart_beat_interval);
 					continue;
 				}
 			}
 
-			if ((result=pthread_mutex_unlock(&reporter_thread_lock))
+			if ((result=pthread_mutex_unlock(&reporter_ctx.lock))
 				 != 0)
 			{
 				logError("file: "__FILE__", line: %d, " \
@@ -430,11 +435,11 @@ static void *tracker_report_thread_entrance(void *arg)
 					if (my_status < FDFS_STORAGE_STATUS_OFFLINE
 						&& g_sync_old_done)
 					{  //need re-sync old files
-						pthread_mutex_lock(&reporter_thread_lock);
+						pthread_mutex_lock(&reporter_ctx.lock);
 						g_sync_old_done = false;
 						sync_old_done = g_sync_old_done;
 						storage_write_to_sync_ini_file();
-						pthread_mutex_unlock(&reporter_thread_lock);
+						pthread_mutex_unlock(&reporter_ctx.lock);
 					}
 				}
 			}
@@ -533,9 +538,9 @@ static void *tracker_report_thread_entrance(void *arg)
 			}
 			}
 
-			if (need_rejoin_tracker)
+			if (reporter_ctx.rejoin_tracker)
 			{
-				need_rejoin_tracker = false;
+				reporter_ctx.rejoin_tracker = false;
 				break;
 			}
 			sleep(1);
@@ -568,7 +573,7 @@ static void *tracker_report_thread_entrance(void *arg)
 	return NULL;
 }
 
-static bool tracker_insert_into_sorted_servers( \
+static bool tracker_insert_into_sorted_servers(
 		FDFSStorageServer *pInsertedServer)
 {
 	FDFSStorageServer **ppServer;
@@ -578,7 +583,7 @@ static bool tracker_insert_into_sorted_servers( \
 	ppEnd = g_sorted_storages + g_storage_count;
 	for (ppServer=ppEnd; ppServer > g_sorted_storages; ppServer--)
 	{
-		nCompare = strcmp(pInsertedServer->server.id, \
+		nCompare = strcmp(pInsertedServer->server.id,
 			   	(*(ppServer-1))->server.id);
 		if (nCompare > 0)
 		{
@@ -670,7 +675,7 @@ int tracker_sync_diff_servers(ConnectionInfo *pTrackerServer, \
 }
 
 int tracker_report_storage_status(ConnectionInfo *pTrackerServer,
-		FDFSStorageBrief *briefServer)
+		const FDFSStorageBrief *briefServer)
 {
 	char out_buff[sizeof(TrackerHeader) + sizeof(StorageReportStatusBody)];
     char formatted_ip[FORMATTED_IP_SIZE];
@@ -812,7 +817,7 @@ static int tracker_merge_servers(ConnectionInfo *pTrackerServer,
 	pEnd = briefServers + server_count;
 	for (pServer=briefServers; pServer<pEnd; pServer++)
 	{
-		memcpy(&(targetServer.server),pServer,sizeof(FDFSStorageBrief));
+		memcpy(&(targetServer.server), pServer, sizeof(FDFSStorageBrief));
 
         if (strcmp(pServer->id, g_my_server_id_str) == 0)
         {
@@ -821,14 +826,30 @@ static int tracker_merge_servers(ConnectionInfo *pTrackerServer,
         }
 
 		ppFound = (FDFSStorageServer **)bsearch(&pTargetServer,
-			g_sorted_storages, g_storage_count,
-			sizeof(FDFSStorageServer *), storage_cmp_by_server_id);
+                g_sorted_storages, g_storage_count,
+                sizeof(FDFSStorageServer *),
+                storage_cmp_by_server_id);
 		if (ppFound != NULL)
 		{
+            if (memcmp((*ppFound)->server.sync_key, pServer->sync_key,
+                        FDFS_STORAGE_SYNC_KEY_LEN) != 0)
+            {
+                memcpy((*ppFound)->server.sync_key, pServer->sync_key,
+                        FDFS_STORAGE_SYNC_KEY_LEN);
+            }
+
+            if (memcmp((*ppFound)->server.port, pServer->port, 4) != 0)
+            {
+                memcpy((*ppFound)->server.port, pServer->port, 4);
+            }
+
 			if (g_use_storage_id)
-			{
-			strcpy((*ppFound)->server.ip_addr, pServer->ip_addr);
-			}
+            {
+                if (strcmp((*ppFound)->server.ip_addr, pServer->ip_addr) != 0)
+                {
+                    strcpy((*ppFound)->server.ip_addr, pServer->ip_addr);
+                }
+            }
 
 			/*
 			//logInfo("ip_addr=%s, local status: %d, " \
@@ -842,36 +863,26 @@ static int tracker_merge_servers(ConnectionInfo *pTrackerServer,
 
 			if (pServer->status == FDFS_STORAGE_STATUS_OFFLINE)
 			{
-				if ((*ppFound)->server.status == \
-						FDFS_STORAGE_STATUS_ACTIVE
-				 || (*ppFound)->server.status == \
-						FDFS_STORAGE_STATUS_ONLINE)
+				if ((*ppFound)->server.status == FDFS_STORAGE_STATUS_ACTIVE
+				 || (*ppFound)->server.status == FDFS_STORAGE_STATUS_ONLINE)
 				{
-					(*ppFound)->server.status = \
-					FDFS_STORAGE_STATUS_OFFLINE;
+					(*ppFound)->server.status = FDFS_STORAGE_STATUS_OFFLINE;
 				}
-				else if ((*ppFound)->server.status != \
-						FDFS_STORAGE_STATUS_NONE
-				     && (*ppFound)->server.status != \
-						FDFS_STORAGE_STATUS_INIT)
+				else if ((*ppFound)->server.status != FDFS_STORAGE_STATUS_NONE
+				     && (*ppFound)->server.status != FDFS_STORAGE_STATUS_INIT)
 				{
-					memcpy(pDiffServer++, \
-						&((*ppFound)->server), \
+					memcpy(pDiffServer++, &((*ppFound)->server),
 						sizeof(FDFSStorageBrief));
 				}
 			}
-			else if ((*ppFound)->server.status == \
-					FDFS_STORAGE_STATUS_OFFLINE)
+			else if ((*ppFound)->server.status == FDFS_STORAGE_STATUS_OFFLINE)
 			{
 				(*ppFound)->server.status = pServer->status;
 			}
-			else if ((*ppFound)->server.status == \
-					FDFS_STORAGE_STATUS_NONE)
+			else if ((*ppFound)->server.status == FDFS_STORAGE_STATUS_NONE)
 			{
-				if (pServer->status == \
-					FDFS_STORAGE_STATUS_DELETED \
-				 || pServer->status == \
-					FDFS_STORAGE_STATUS_IP_CHANGED)
+				if (pServer->status == FDFS_STORAGE_STATUS_DELETED
+				 || pServer->status == FDFS_STORAGE_STATUS_IP_CHANGED)
 				{ //ignore
 				}
 				else
@@ -885,10 +896,8 @@ static int tracker_merge_servers(ConnectionInfo *pTrackerServer,
 					}
 				}
 			}
-			else if (((pServer->status == \
-					FDFS_STORAGE_STATUS_WAIT_SYNC) || \
-				(pServer->status == \
-					FDFS_STORAGE_STATUS_SYNCING)) && \
+			else if (((pServer->status == FDFS_STORAGE_STATUS_WAIT_SYNC) ||
+				(pServer->status == FDFS_STORAGE_STATUS_SYNCING)) &&
 				((*ppFound)->server.status > pServer->status))
 			{
                 pServer->id[FDFS_STORAGE_ID_MAX_SIZE - 1] = '\0';
@@ -897,7 +906,7 @@ static int tracker_merge_servers(ConnectionInfo *pTrackerServer,
                         (is_local_host_ip(pServer->ip_addr) &&
                          buff2int(pServer->port) == SF_G_INNER_PORT))
 				{
-					need_rejoin_tracker = true;
+					reporter_ctx.rejoin_tracker = true;
                     format_ip_address(pTrackerServer->ip_addr, formatted_ip);
 					logWarning("file: "__FILE__", line: %d, "
 						"tracker response status: %d, "
@@ -928,7 +937,7 @@ static int tracker_merge_servers(ConnectionInfo *pTrackerServer,
 			*/
 
 			if ((res=pthread_mutex_lock( \
-				 &reporter_thread_lock)) != 0)
+				 &reporter_ctx.lock)) != 0)
 			{
 				logError("file: "__FILE__", line: %d, "\
 					"call pthread_mutex_lock fail,"\
@@ -965,7 +974,7 @@ static int tracker_merge_servers(ConnectionInfo *pTrackerServer,
 			}
 
 			if ((res=pthread_mutex_unlock( \
-				&reporter_thread_lock)) != 0)
+				&reporter_ctx.lock)) != 0)
 			{
 				logError("file: "__FILE__", line: %d, "\
 				"call pthread_mutex_unlock fail, " \
@@ -1025,7 +1034,7 @@ static int tracker_merge_servers(ConnectionInfo *pTrackerServer,
 		}
 		else
 		{
-			memcpy(pDiffServer++, &((*ppGlobalServer)->server), \
+			memcpy(pDiffServer++, &((*ppGlobalServer)->server),
 				sizeof(FDFSStorageBrief));
 			ppGlobalServer++;
 		}
@@ -1433,9 +1442,9 @@ static int tracker_check_response(ConnectionInfo *pTrackerServer,
                         __LINE__, formatted_ip, pTrackerServer->port,
                         formatted_leader_ip, tracker_leader_port);
 
-                pthread_mutex_lock(&reporter_thread_lock);
+                pthread_mutex_lock(&reporter_ctx.lock);
                 set_tracker_leader(leader_index);
-                pthread_mutex_unlock(&reporter_thread_lock);
+                pthread_mutex_unlock(&reporter_ctx.lock);
             }
 		}
 
@@ -1537,17 +1546,20 @@ static int tracker_check_response(ConnectionInfo *pTrackerServer,
 		return 0;
 	}
 
-	/*
-	//printf("resp server count=%d\n", server_count);
-	{
-		int i;
-		for (i=0; i<server_count; i++)
-		{	
-			//printf("%d. %d:%s\n", i+1, pBriefServers[i].status, \
-				pBriefServers[i].ip_addr);
-		}
-	}
-	*/
+    /*
+	logInfo("resp server count=%d", server_count);
+    {
+        int i;
+        for (i=0; i<server_count; i++)
+        {
+            char buff[64];
+            logInfo("%d. %s %s:%u %d %s", i+1, pBriefServers[i].id,
+                    pBriefServers[i].ip_addr, buff2int(pBriefServers[i].port),
+                    pBriefServers[i].status, bin2hex(pBriefServers[i].
+                        sync_key, FDFS_STORAGE_SYNC_KEY_LEN, buff));
+        }
+    }
+    */
 
 	if (*bServerPortChanged)
 	{
@@ -2047,6 +2059,8 @@ int tracker_report_join(ConnectionInfo *pTrackerServer,
     if (g_use_storage_id) {
         strcpy(pReqBody->storage_id, g_my_server_id_str);
     }
+    memcpy(pReqBody->sync_key, g_storage_sync_key.key,
+            FDFS_STORAGE_SYNC_KEY_LEN);
 
 	memset(&targetServer, 0, sizeof(targetServer));
 	pTargetServer = &targetServer;
@@ -2694,8 +2708,8 @@ int tracker_report_thread_start()
 	}
 
     bytes = sizeof(pthread_t) * g_tracker_group.server_count;
-	report_tids = (pthread_t *)malloc(bytes);
-	if (report_tids == NULL)
+	reporter_ctx.tids = (pthread_t *)malloc(bytes);
+	if (reporter_ctx.tids == NULL)
 	{
 		logError("file: "__FILE__", line: %d, "
 			"malloc %d bytes fail, "
@@ -2703,7 +2717,7 @@ int tracker_report_thread_start()
 			__LINE__, bytes, errno, STRERROR(errno));
 		return errno != 0 ? errno : ENOMEM;
 	}
-	memset(report_tids, 0, bytes);
+	memset(reporter_ctx.tids, 0, bytes);
 	
 	g_tracker_reporter_count = 0;
 	pServerEnd = g_tracker_group.servers + g_tracker_group.server_count;
@@ -2720,7 +2734,7 @@ int tracker_report_thread_start()
 			return result;
 		}
 
-		if ((result=pthread_mutex_lock(&reporter_thread_lock)) != 0)
+		if ((result=pthread_mutex_lock(&reporter_ctx.lock)) != 0)
 		{
 			logError("file: "__FILE__", line: %d, " \
 				"call pthread_mutex_lock fail, " \
@@ -2728,9 +2742,9 @@ int tracker_report_thread_start()
 				__LINE__, result, STRERROR(result));
 		}
 
-		report_tids[g_tracker_reporter_count] = tid;
+		reporter_ctx.tids[g_tracker_reporter_count] = tid;
 		g_tracker_reporter_count++;
-		if ((result=pthread_mutex_unlock(&reporter_thread_lock)) != 0)
+		if ((result=pthread_mutex_unlock(&reporter_ctx.lock)) != 0)
 		{
 			logError("file: "__FILE__", line: %d, " \
 				"call pthread_mutex_unlock fail, " \
@@ -2743,4 +2757,3 @@ int tracker_report_thread_start()
 
 	return 0;
 }
-

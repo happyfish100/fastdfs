@@ -788,36 +788,37 @@ static int storage_sync_delete_file(ConnectionInfo *pStorageServer, \
 	return result;
 }
 
-/**
-FDFS_STORAGE_ID_MAX_SIZE bytes: my server id
-**/
-static int storage_report_my_server_id(ConnectionInfo *pStorageServer)
+static int storage_sync_join_server(ConnectionInfo *pStorageServer,
+        const char *sync_key)
 {
 	int result;
 	TrackerHeader *pHeader;
-	char out_buff[sizeof(TrackerHeader) + FDFS_STORAGE_ID_MAX_SIZE];
+    StorageSyncJoinBody *req;
+	char out_buff[sizeof(TrackerHeader) + sizeof(StorageSyncJoinBody)];
     char formatted_ip[FORMATTED_IP_SIZE];
 	char in_buff[1];
 	char *pBuff;
 	int64_t in_bytes;
 
-	pHeader = (TrackerHeader *)out_buff;
 	memset(out_buff, 0, sizeof(out_buff));
-	
-	long2buff(FDFS_STORAGE_ID_MAX_SIZE, pHeader->pkg_len);
-	pHeader->cmd = STORAGE_PROTO_CMD_REPORT_SERVER_ID;
-	strcpy(out_buff + sizeof(TrackerHeader), g_my_server_id_str);
-	if ((result=tcpsenddata_nb(pStorageServer->sock, out_buff, \
-		sizeof(TrackerHeader) + FDFS_STORAGE_ID_MAX_SIZE, \
-		SF_G_NETWORK_TIMEOUT)) != 0)
-	{
+	pHeader = (TrackerHeader *)out_buff;
+    req = (StorageSyncJoinBody *)(pHeader + 1);
+
+	long2buff(sizeof(StorageSyncJoinBody), pHeader->pkg_len);
+	pHeader->cmd = STORAGE_PROTO_CMD_SYNC_JOIN_SERVER;
+	strcpy(req->group_name, g_group_name);
+	strcpy(req->storage_id, g_my_server_id_str);
+	memcpy(req->sync_key, sync_key, FDFS_STORAGE_SYNC_KEY_LEN);
+	if ((result=tcpsenddata_nb(pStorageServer->sock, out_buff,
+                    sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
+    {
         format_ip_address(pStorageServer->ip_addr, formatted_ip);
-		logError("FILE: "__FILE__", line: %d, "
-			"send data to storage server %s:%u fail, errno: %d, "
-			"error info: %s", __LINE__, formatted_ip,
-			pStorageServer->port, result, STRERROR(result));
-		return result;
-	}
+        logError("FILE: "__FILE__", line: %d, "
+                "send data to storage server %s:%u fail, errno: %d, "
+                "error info: %s", __LINE__, formatted_ip,
+                pStorageServer->port, result, STRERROR(result));
+        return result;
+    }
 
 	pBuff = in_buff;
 	result = fdfs_recv_response(pStorageServer, &pBuff, 0, &in_bytes);
@@ -1317,10 +1318,16 @@ static void sync_data_func(StorageSyncTaskInfo *task, void *thread_data)
     if (task->storage_server.sock < 0 || g_current_time -
             task->last_communicate_time > 3600)
     {
-        conn_pool_disconnect_server(&task->storage_server);
+        if (task->storage_server.sock >= 0) {
+            conn_pool_disconnect_server(&task->storage_server);
+        }
         task->result = storage_sync_connect_storage_server_once(
                 "[file-sync]", task->thread_index, task->dispatch_ctx->
                 pStorage, &task->storage_server);
+        if (task->result == 0) {
+            task->result = storage_sync_join_server(&task->storage_server,
+                    task->dispatch_ctx->pStorage->sync_key);
+        }
     } else {
         task->result = 0;
     }
@@ -2328,10 +2335,8 @@ static char *get_mark_filename_by_id(const char *storage_id,
             SF_G_INNER_PORT, full_filename, filename_size);
 }
 
-int storage_report_storage_status(const char *storage_id,
-		const char *ip_addr, const char status)
+static int report_storage_status(FDFSStorageBrief *briefServer)
 {
-	FDFSStorageBrief briefServer;
 	TrackerServerInfo trackerServer;
 	TrackerServerInfo *pGlobalServer;
 	TrackerServerInfo *pTServer;
@@ -2343,21 +2348,16 @@ int storage_report_storage_status(const char *storage_id,
 	int success_count;
 	int i;
 
-	memset(&briefServer, 0, sizeof(FDFSStorageBrief));
-	strcpy(briefServer.id, storage_id);
-	strcpy(briefServer.ip_addr, ip_addr);
-	briefServer.status = status;
-
-	logDebug("file: "__FILE__", line: %d, " \
-		"begin to report storage %s 's status as: %d", \
-		__LINE__, ip_addr, status);
+	logDebug("file: "__FILE__", line: %d, "
+		"begin to report storage %s 's status as: %d",
+		__LINE__, briefServer->ip_addr, briefServer->status);
 
 	if (!g_sync_old_done)
 	{
-		logDebug("file: "__FILE__", line: %d, " \
-			"report storage %s 's status as: %d, " \
-			"waiting for g_sync_old_done turn to true...", \
-			__LINE__, ip_addr, status);
+		logDebug("file: "__FILE__", line: %d, "
+			"report storage %s 's status as: %d, "
+			"waiting for g_sync_old_done turn to true...",
+			__LINE__, briefServer->ip_addr, briefServer->status);
 
 		while (SF_G_CONTINUE_FLAG && !g_sync_old_done)
 		{
@@ -2369,10 +2369,10 @@ int storage_report_storage_status(const char *storage_id,
 			return 0;
 		}
 
-		logDebug("file: "__FILE__", line: %d, " \
-			"report storage %s 's status as: %d, " \
-			"ok, g_sync_old_done turn to true", \
-			__LINE__, ip_addr, status);
+		logDebug("file: "__FILE__", line: %d, "
+			"report storage %s 's status as: %d, "
+			"ok, g_sync_old_done turn to true", __LINE__,
+            briefServer->ip_addr, briefServer->status);
 	}
 
     conn = NULL;
@@ -2413,7 +2413,7 @@ int storage_report_storage_status(const char *storage_id,
         }
 
 		report_count++;
-        if ((result=tracker_report_storage_status(conn, &briefServer)) == 0)
+        if ((result=tracker_report_storage_status(conn, briefServer)) == 0)
         {
             success_count++;
         }
@@ -2422,12 +2422,26 @@ int storage_report_storage_status(const char *storage_id,
 		close(conn->sock);
 	}
 
-	logDebug("file: "__FILE__", line: %d, " \
-		"report storage %s 's status as: %d done, " \
-		"report count: %d, success count: %d", \
-		__LINE__, ip_addr, status, report_count, success_count);
+	logDebug("file: "__FILE__", line: %d, "
+		"report storage %s 's status as: %d done, "
+		"report count: %d, success count: %d", __LINE__,
+        briefServer->ip_addr, briefServer->status,
+        report_count, success_count);
 
 	return success_count > 0 ? 0 : EAGAIN;
+}
+
+int storage_report_storage_status(const char *storage_id, const char *ip_addr,
+        const char status, const char *sync_key)
+{
+    FDFSStorageBrief briefServer;
+
+    memset(&briefServer, 0, sizeof(FDFSStorageBrief));
+    strcpy(briefServer.id, storage_id);
+    strcpy(briefServer.ip_addr, ip_addr);
+    briefServer.status = status;
+    memcpy(briefServer.sync_key, sync_key, FDFS_STORAGE_SYNC_KEY_LEN);
+    return report_storage_status(&briefServer);
 }
 
 static int storage_reader_sync_init_req(StorageBinLogReader *pReader)
@@ -3713,17 +3727,16 @@ static void* storage_sync_thread_entrance(void* arg)
 			break;
 		}
 
-		if (storage_report_my_server_id(storage_server) != 0) {
+		if (storage_sync_join_server(storage_server, pStorage->sync_key) != 0) {
 			conn_pool_disconnect_server(storage_server);
 			storage_reader_destroy(dispatch_ctx.pReader);
-			sleep(1);
+			sleep(3);
 			continue;
 		}
 
         if (pStorage->status == FDFS_STORAGE_STATUS_WAIT_SYNC) {
             pStorage->status = FDFS_STORAGE_STATUS_SYNCING;
-            storage_report_storage_status(pStorage->id,
-                    pStorage->ip_addr, pStorage->status);
+            report_storage_status(pStorage);
         }
 
 		if (pStorage->status == FDFS_STORAGE_STATUS_SYNCING) {
@@ -3731,8 +3744,7 @@ static void* storage_sync_thread_entrance(void* arg)
                     dispatch_ctx.pReader->sync_old_done)
             {
 				pStorage->status = FDFS_STORAGE_STATUS_OFFLINE;
-				storage_report_storage_status(pStorage->id,
-					pStorage->ip_addr, pStorage->status);
+				report_storage_status(pStorage);
 			}
 		}
 
@@ -3766,8 +3778,7 @@ static void* storage_sync_thread_entrance(void* arg)
 
                     if (pStorage->status == FDFS_STORAGE_STATUS_SYNCING) {
                         pStorage->status = FDFS_STORAGE_STATUS_OFFLINE;
-                        storage_report_storage_status(pStorage->id,
-                                pStorage->ip_addr, pStorage->status);
+                        report_storage_status(pStorage);
                     }
                 }
 

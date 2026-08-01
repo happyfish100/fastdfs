@@ -99,6 +99,8 @@ struct storage_dio_thread_data *g_dio_thread_data = NULL;
 
 FDFSStorageIdInfo *g_my_storage_id_info = NULL;
 
+StorageSyncKey g_storage_sync_key;
+
 int storage_cmp_by_server_id(const void *p1, const void *p2)
 {
 	return strcmp((*((FDFSStorageServer **)p1))->server.id,

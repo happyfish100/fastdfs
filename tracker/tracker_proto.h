@@ -71,7 +71,7 @@
 #define TRACKER_PROTO_CMD_RESP					100
 #define FDFS_PROTO_CMD_ACTIVE_TEST				111  //active test, tracker and storage both support since V1.28
 
-#define STORAGE_PROTO_CMD_REPORT_SERVER_ID	9  
+#define STORAGE_PROTO_CMD_SYNC_JOIN_SERVER   9
 #define STORAGE_PROTO_CMD_UPLOAD_FILE		11
 #define STORAGE_PROTO_CMD_DELETE_FILE		12
 #define STORAGE_PROTO_CMD_SET_METADATA		13
@@ -157,6 +157,7 @@ typedef struct
 	char storage_id[FDFS_STORAGE_ID_MAX_SIZE];    //since 6.11
 	char current_tracker_ip[IP_ADDRESS_SIZE];     //current tracker ip address
 	char tracker_count[FDFS_PROTO_PKG_LEN_SIZE];  //all tracker server count
+	char sync_key[FDFS_STORAGE_SYNC_KEY_LEN];     //since 6.17
 } TrackerStorageJoinBody;
 
 typedef struct
@@ -188,6 +189,13 @@ typedef struct
     char storage_port[4];
     FDFSStorageBrief brief;
 } StorageReportStatusBody;
+
+typedef struct
+{
+    char group_name[FDFS_GROUP_NAME_MAX_LEN + 1];
+    char storage_id[FDFS_STORAGE_ID_MAX_SIZE];
+    char sync_key[FDFS_STORAGE_SYNC_KEY_LEN];
+} StorageSyncJoinBody;   //since 6.17
 
 typedef struct
 {

@@ -205,8 +205,8 @@ static FDFSStorageServer *get_storage_server(const char *storage_server_id)
 	strcpy(targetServer.server.id, storage_server_id);
 
 	pTargetServer = &targetServer;
-	ppFound = (FDFSStorageServer **)bsearch(&pTargetServer, \
-		g_sorted_storages, g_storage_count, \
+	ppFound = (FDFSStorageServer **)bsearch(&pTargetServer,
+		g_sorted_storages, g_storage_count,
 		sizeof(FDFSStorageServer *), storage_cmp_by_server_id);
 	if (ppFound == NULL)
 	{
@@ -234,27 +234,19 @@ static FDFSStorageServer *get_storage_server(const char *storage_server_id)
         }  \
     } while (1)
 
-#define CHECK_AND_WRITE_TO_STAT_FILE1()  \
+#define CHECK_AND_WRITE_TO_STAT_FILE_BY_SYNC()  \
 \
-		if (pClientInfo->pSrcStorage == NULL) \
-		{ \
-			pClientInfo->pSrcStorage = get_storage_server( \
-					pClientInfo->storage_server_id); \
-		} \
-		if (pClientInfo->pSrcStorage != NULL) \
-		{ \
-            SET_LAST_SYNC_SRC_TIMESTAMP(pClientInfo->pSrcStorage, \
-                    pFileContext->timestamp2log);  \
-			g_sync_change_count++; \
-		} \
+        SET_LAST_SYNC_SRC_TIMESTAMP(pClientInfo->pSrcStorage, \
+                pFileContext->timestamp2log);  \
+        g_sync_change_count++; \
 \
 		g_storage_stat.last_sync_update = g_current_time; \
 		++g_stat_change_count
 
-#define CHECK_AND_WRITE_TO_STAT_FILE1_WITH_BYTES( \
+#define CHECK_AND_WRITE_TO_STAT_FILE_WITH_BYTES_BY_SYNC( \
 		total_bytes, success_bytes, bytes)  \
 \
-        CHECK_AND_WRITE_TO_STAT_FILE1();    \
+        CHECK_AND_WRITE_TO_STAT_FILE_BY_SYNC();    \
         __sync_add_and_fetch(&total_bytes, bytes);   \
 		__sync_add_and_fetch(&success_bytes, bytes); \
 
@@ -285,6 +277,17 @@ static FDFSStorageServer *get_storage_server(const char *storage_server_id)
 		__sync_add_and_fetch(&success_bytes, bytes); \
 		timestamp = g_current_time; \
 		++g_stat_change_count;      \
+
+#define STORAGE_SYNC_CHECK_LOGINED(pTask, cmd) \
+    if (((StorageClientInfo *)pTask->arg)->pSrcStorage == NULL) \
+    { \
+        logError("file: "__FILE__", line: %d, " \
+                "client ip: %s, cmd: %d, please join first", \
+                __LINE__, pTask->client_ip, cmd); \
+        result = EACCES; \
+        break; \
+    } \
+
 
 static void storage_log_access_log(struct fast_task_info *pTask, \
 		const char *action_str, const int action_len, const int status)
@@ -498,7 +501,7 @@ static void storage_sync_delete_file_done_callback( \
 
 	if (result == 0)
 	{
-		CHECK_AND_WRITE_TO_STAT_FILE1();
+		CHECK_AND_WRITE_TO_STAT_FILE_BY_SYNC();
 	}
 
 	pClientInfo->total_length = sizeof(TrackerHeader);
@@ -539,7 +542,7 @@ static void storage_sync_truncate_file_done_callback( \
 
 	if (result == 0)
 	{
-		CHECK_AND_WRITE_TO_STAT_FILE1();
+		CHECK_AND_WRITE_TO_STAT_FILE_BY_SYNC();
 	}
 
 	pClientInfo->total_length = sizeof(TrackerHeader);
@@ -627,7 +630,7 @@ static void storage_sync_copy_file_done_callback(struct fast_task_info *pTask, \
 	{
 		if (result == 0)
 		{
-			CHECK_AND_WRITE_TO_STAT_FILE1_WITH_BYTES( \
+			CHECK_AND_WRITE_TO_STAT_FILE_WITH_BYTES_BY_SYNC( \
 				g_storage_stat.total_sync_in_bytes, \
 				g_storage_stat.success_sync_in_bytes, \
 				pFileContext->end - pFileContext->start)
@@ -637,7 +640,7 @@ static void storage_sync_copy_file_done_callback(struct fast_task_info *pTask, \
 	{
 		if (result == 0)
 		{
-			CHECK_AND_WRITE_TO_STAT_FILE1();
+			CHECK_AND_WRITE_TO_STAT_FILE_BY_SYNC();
 		}
 
 		result = EEXIST;
@@ -683,7 +686,7 @@ static void storage_sync_modify_file_done_callback( \
 			    pFileContext->sync_flag, pFileContext->fname2log.str,
                 pFileContext->fname2log.len);
 
-			CHECK_AND_WRITE_TO_STAT_FILE1_WITH_BYTES( \
+			CHECK_AND_WRITE_TO_STAT_FILE_WITH_BYTES_BY_SYNC( \
 				g_storage_stat.total_sync_in_bytes, \
 				g_storage_stat.success_sync_in_bytes, \
 				pFileContext->end - pFileContext->start)
@@ -715,7 +718,7 @@ static void storage_sync_modify_file_done_callback( \
 				result = EEXIST;
 			}
 
-			CHECK_AND_WRITE_TO_STAT_FILE1();
+			CHECK_AND_WRITE_TO_STAT_FILE_BY_SYNC();
 		}
 	}
 
@@ -3312,48 +3315,6 @@ static int storage_server_set_metadata(struct fast_task_info *pTask)
 	}
 
 	return TASK_STATUS_CONTINUE;
-}
-
-/**
-IP_ADDRESS_SIZE bytes: tracker client ip address
-**/
-static int storage_server_report_server_id(struct fast_task_info *pTask)
-{
-	StorageClientInfo *pClientInfo;
-	char *storage_server_id;
-	int64_t nInPackLen;
-
-	pClientInfo = (StorageClientInfo *)pTask->arg;
-	nInPackLen = pClientInfo->total_length - sizeof(TrackerHeader);
-	pClientInfo->total_length = sizeof(TrackerHeader);
-	if (nInPackLen != FDFS_STORAGE_ID_MAX_SIZE)
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"cmd=%d, client ip: %s, package size " \
-			"%"PRId64" is not correct, " \
-			"expect length: %d", __LINE__, \
-			STORAGE_PROTO_CMD_REPORT_SERVER_ID, \
-			pTask->client_ip,  nInPackLen, \
-			FDFS_STORAGE_ID_MAX_SIZE);
-		return EINVAL;
-	}
-
-	storage_server_id = pTask->recv.ptr->data + sizeof(TrackerHeader);
-	*(storage_server_id + (FDFS_STORAGE_ID_MAX_SIZE - 1)) = '\0';
-	if (*storage_server_id == '\0')
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"client ip: %s, storage server id is empty!", \
-			__LINE__, pTask->client_ip);
-		return EINVAL;
-	}
-
-	strcpy(pClientInfo->storage_server_id, storage_server_id);
-	logDebug("file: "__FILE__", line: %d, "
-			"client ip: %s, storage server id: %s",
-			__LINE__, pTask->client_ip, storage_server_id);
-
-	return 0;
 }
 
 /**
@@ -6877,7 +6838,7 @@ static int storage_do_sync_link_file(struct fast_task_info *pTask)
 			binlog_buff, binlog_len);
 	} while (0);
 
-	CHECK_AND_WRITE_TO_STAT_FILE1();
+	CHECK_AND_WRITE_TO_STAT_FILE_BY_SYNC();
 
 	pClientInfo->total_offset = 0;
 	pTask->send.ptr->length = pClientInfo->total_length;
@@ -8413,6 +8374,73 @@ static int storage_create_link(struct fast_task_info *pTask)
 	return TASK_STATUS_CONTINUE;
 }
 
+static int storage_sync_join_server(struct fast_task_info *pTask)
+{
+    StorageSyncJoinBody *req;
+	StorageClientInfo *pClientInfo;
+
+    if (pTask->recv.ptr->length - sizeof(TrackerHeader) != sizeof(*req))
+    {
+        logError("file: "__FILE__", line: %d, "
+                "cmd=%d, client ip addr: %s, "
+                "package size: %d is not correct, expected: %d",
+                __LINE__, STORAGE_PROTO_CMD_SYNC_JOIN_SERVER,
+                pTask->client_ip, pTask->recv.ptr->length -
+                (int)sizeof(TrackerHeader), (int)sizeof(*req));
+        return EINVAL;
+    }
+
+	pClientInfo = (StorageClientInfo *)pTask->arg;
+    req = (StorageSyncJoinBody *)(pTask->recv.
+            ptr->data + sizeof(TrackerHeader));
+    *(req->group_name + FDFS_GROUP_NAME_MAX_LEN) = '\0';
+    if (strcmp(req->group_name, g_group_name) != 0)
+    {
+        logError("file: "__FILE__", line: %d, "
+                "client ip: %s, group_name: %s != mine: %s",
+                __LINE__, pTask->client_ip, req->group_name, g_group_name);
+        return EINVAL;
+    }
+    if (memcmp(req->sync_key, g_storage_sync_key.key,
+            FDFS_STORAGE_SYNC_KEY_LEN) != 0)
+    {
+        /*
+        char buff1[64];
+        char buff2[64];
+        logError("file: "__FILE__", line: %d, "
+                "client ip: %s, sync key %s not correct! my key: %s",
+                __LINE__, pTask->client_ip, bin2hex(req->sync_key, FDFS_STORAGE_SYNC_KEY_LEN, buff1),
+                bin2hex(g_storage_sync_key.key, FDFS_STORAGE_SYNC_KEY_LEN, buff2));
+                */
+
+        logError("file: "__FILE__", line: %d, "
+                "client ip: %s, the sync key not correct!",
+                __LINE__, pTask->client_ip);
+        return EACCES;
+    }
+
+    *(req->storage_id + FDFS_STORAGE_ID_MAX_SIZE - 1) = '\0';
+	if (*(req->storage_id) == '\0')
+    {
+        logError("file: "__FILE__", line: %d, "
+                "client ip: %s, storage server id is empty!",
+                __LINE__, pTask->client_ip);
+        return EINVAL;
+    }
+
+    pClientInfo->pSrcStorage = get_storage_server(req->storage_id);
+    if (pClientInfo->pSrcStorage == NULL)
+    {
+        logError("file: "__FILE__", line: %d, "
+                "client ip: %s, storage server %s not exist!",
+                __LINE__, pTask->client_ip, req->storage_id);
+        return ENOENT;
+    }
+
+    pClientInfo->total_length = sizeof(TrackerHeader);
+    return 0;
+}
+
 int fdfs_stat_file_sync_func(void *args)
 {
 	int result;
@@ -8560,28 +8588,39 @@ static int storage_deal_task(struct fast_task_info *pTask, const int stage)
 		case STORAGE_PROTO_CMD_CREATE_LINK:
 			result = storage_create_link(pTask);
 			break;
+        case STORAGE_PROTO_CMD_SYNC_JOIN_SERVER:
+			result = storage_sync_join_server(pTask);
+			break;
 		case STORAGE_PROTO_CMD_SYNC_CREATE_FILE:
+            STORAGE_SYNC_CHECK_LOGINED(pTask, pHeader->cmd);
 			result = storage_sync_copy_file(pTask, pHeader->cmd);
 			break;
 		case STORAGE_PROTO_CMD_SYNC_DELETE_FILE:
+            STORAGE_SYNC_CHECK_LOGINED(pTask, pHeader->cmd);
 			result = storage_sync_delete_file(pTask);
 			break;
 		case STORAGE_PROTO_CMD_SYNC_UPDATE_FILE:
+            STORAGE_SYNC_CHECK_LOGINED(pTask, pHeader->cmd);
 			result = storage_sync_copy_file(pTask, pHeader->cmd);
 			break;
 		case STORAGE_PROTO_CMD_SYNC_APPEND_FILE:
+            STORAGE_SYNC_CHECK_LOGINED(pTask, pHeader->cmd);
 			result = storage_sync_append_file(pTask);
 			break;
 		case STORAGE_PROTO_CMD_SYNC_MODIFY_FILE:
+            STORAGE_SYNC_CHECK_LOGINED(pTask, pHeader->cmd);
 			result = storage_sync_modify_file(pTask);
 			break;
 		case STORAGE_PROTO_CMD_SYNC_TRUNCATE_FILE:
+            STORAGE_SYNC_CHECK_LOGINED(pTask, pHeader->cmd);
 			result = storage_sync_truncate_file(pTask);
 			break;
         case STORAGE_PROTO_CMD_SYNC_RENAME_FILE:
+            STORAGE_SYNC_CHECK_LOGINED(pTask, pHeader->cmd);
 			result = storage_sync_rename_file(pTask);
 			break;
 		case STORAGE_PROTO_CMD_SYNC_CREATE_LINK:
+            STORAGE_SYNC_CHECK_LOGINED(pTask, pHeader->cmd);
 			result = storage_sync_link_file(pTask);
 			break;
 		case STORAGE_PROTO_CMD_FETCH_ONE_PATH_BINLOG:
@@ -8592,9 +8631,6 @@ static int storage_deal_task(struct fast_task_info *pTask, const int stage)
 			return 0;
 		case FDFS_PROTO_CMD_ACTIVE_TEST:
 			result = storage_deal_active_test(pTask);
-			break;
-		case STORAGE_PROTO_CMD_REPORT_SERVER_ID:
-			result = storage_server_report_server_id(pTask);
 			break;
 		case STORAGE_PROTO_CMD_TRUNK_ALLOC_SPACE:
 			result = storage_server_trunk_alloc_space(pTask);

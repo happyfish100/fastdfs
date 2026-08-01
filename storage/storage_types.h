@@ -136,8 +136,6 @@ typedef struct
 
 typedef struct
 {
-    char storage_server_id[FDFS_STORAGE_ID_MAX_SIZE];
-
     StorageFileContext file_context;
 
     int64_t total_length;   //pkg total length for req and request
@@ -145,7 +143,7 @@ typedef struct
 
     int64_t request_length;   //request pkg length for access log
 
-    FDFSStorageServer *pSrcStorage; //for binlog sync
+    FDFSStorageServer *pSrcStorage; //for storage binlog sync
     TaskDealFunc deal_func;  //function pointer to deal this task
     void *extra_arg;   //store extra arg, such as (BinLogReader *)
     DisconnectCleanFunc clean_func;  //clean function pointer when finished

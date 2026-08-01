@@ -1,6 +1,7 @@
 
-Version 6.17.0  2026-07-30
+Version 6.17.0  2026-08-01
  * tracker server check storage server for safety
+ * storage sync authorization by key for safety
 
 Version 6.16.1  2026-07-14
  * adjust global variables‘s order for cache line optimization

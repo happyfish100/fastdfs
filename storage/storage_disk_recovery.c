@@ -1470,7 +1470,8 @@ static int storage_disk_recovery_do_restore(const string_t *base_path)
     {
         if (storage_report_storage_status(g_my_server_id_str,
                     g_tracker_client_ip.ips[0].address,
-                    saved_storage_status) == 0)
+                    saved_storage_status,
+                    g_storage_sync_key.key) == 0)
         {
             break;
         }
@@ -1828,9 +1829,10 @@ int storage_disk_recovery_prepare(const int store_path_index)
 
 	while (SF_G_CONTINUE_FLAG)
 	{
-		if (storage_report_storage_status(g_my_server_id_str, \
+		if (storage_report_storage_status(g_my_server_id_str,
 			g_tracker_client_ip.ips[0].address,
-            FDFS_STORAGE_STATUS_RECOVERY) == 0)
+            FDFS_STORAGE_STATUS_RECOVERY,
+            g_storage_sync_key.key) == 0)
 		{
 			break;
 		}

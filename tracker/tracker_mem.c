@@ -4209,7 +4209,7 @@ static int _tracker_mem_add_storage(FDFSGroupInfo *pGroup,
                 fdfs_set_multi_ip_index(&(*ppStorageServer)->ip_addrs, ip_addr);
             }
 
-			if ((*ppStorageServer)->status==FDFS_STORAGE_STATUS_DELETED \
+			if ((*ppStorageServer)->status==FDFS_STORAGE_STATUS_DELETED
 			 || (*ppStorageServer)->status==FDFS_STORAGE_STATUS_IP_CHANGED)
 			{
 			 	(*ppStorageServer)->status = FDFS_STORAGE_STATUS_INIT;
@@ -5098,6 +5098,7 @@ int tracker_mem_add_group_and_storage(TrackerClientInfo *pClientInfo,
 		const bool bNeedSleep)
 {
 	int result;
+    int chg_inc_count;
 	bool bStorageInserted;
 	bool bGroupInserted;
 	FDFSStorageDetail *pStorageServer;
@@ -5233,19 +5234,19 @@ int tracker_mem_add_group_and_storage(TrackerClientInfo *pClientInfo,
 	pStorageServer = tracker_mem_get_storage(pClientInfo->pGroup,
             storage_id.ptr);
 	if (pthread_mutex_unlock(&mem_thread_lock) != 0)
-	{
-		logError("file: "__FILE__", line: %d, "   \
-			"call pthread_mutex_unlock fail", \
-			__LINE__);
-	}
+    {
+        logError("file: "__FILE__", line: %d, "
+                "call pthread_mutex_unlock fail",
+                __LINE__);
+    }
 
 	if (pStorageServer == NULL)
 	{
 		if (!pJoinBody->init_flag)
 		{
-			if (pJoinBody->status < 0 || \
-			pJoinBody->status == FDFS_STORAGE_STATUS_DELETED || \
-			pJoinBody->status == FDFS_STORAGE_STATUS_IP_CHANGED || \
+			if (pJoinBody->status < 0 ||
+			pJoinBody->status == FDFS_STORAGE_STATUS_DELETED ||
+			pJoinBody->status == FDFS_STORAGE_STATUS_IP_CHANGED ||
 			pJoinBody->status == FDFS_STORAGE_STATUS_NONE)
 			{
                 format_ip_address(ip_addr, formatted_ip);
@@ -5268,6 +5269,7 @@ int tracker_mem_add_group_and_storage(TrackerClientInfo *pClientInfo,
 		return result;
 	}
 
+    chg_inc_count = 0;
 	pStorageServer = pClientInfo->pStorage;
 	pStorageServer->store_path_count = pJoinBody->store_path_count;
 	pStorageServer->subdir_count_per_path = pJoinBody->subdir_count_per_path;
@@ -5275,13 +5277,25 @@ int tracker_mem_add_group_and_storage(TrackerClientInfo *pClientInfo,
 	pStorageServer->join_time = pJoinBody->join_time;
 	pStorageServer->up_time = pJoinBody->up_time;
 	fc_safe_strcpy(pStorageServer->version, pJoinBody->version);
-	pStorageServer->storage_port = pJoinBody->storage_port;
+    if (memcmp(pStorageServer->sync_key, pJoinBody->sync_key,
+                FDFS_STORAGE_SYNC_KEY_LEN) != 0)
+    {
+        memcpy(pStorageServer->sync_key, pJoinBody->sync_key,
+                FDFS_STORAGE_SYNC_KEY_LEN);
+        chg_inc_count++;
+    }
+
+    if (pStorageServer->storage_port != pJoinBody->storage_port)
+    {
+        pStorageServer->storage_port = pJoinBody->storage_port;
+        chg_inc_count++;
+    }
 
 	if (pClientInfo->pGroup->store_path_count == 0)
 	{
-		pClientInfo->pGroup->store_path_count = \
+		pClientInfo->pGroup->store_path_count =
 				pJoinBody->store_path_count;
-		if ((result=tracker_malloc_group_path_mbs( \
+		if ((result=tracker_malloc_group_path_mbs(
 				pClientInfo->pGroup)) != 0)
 		{
 			return result;
@@ -5332,7 +5346,7 @@ int tracker_mem_add_group_and_storage(TrackerClientInfo *pClientInfo,
 				"are same, adjust to %d", \
 				__LINE__, pJoinBody->store_path_count);
 			}
-			else if (pJoinBody->store_path_count < \
+			else if (pJoinBody->store_path_count <
 				pClientInfo->pGroup->store_path_count)
 			{
 				logError("file: "__FILE__", line: %d, " \
@@ -5350,7 +5364,7 @@ int tracker_mem_add_group_and_storage(TrackerClientInfo *pClientInfo,
 
 	if (pClientInfo->pGroup->subdir_count_per_path == 0)
 	{
-		pClientInfo->pGroup->subdir_count_per_path = \
+		pClientInfo->pGroup->subdir_count_per_path =
 				pJoinBody->subdir_count_per_path;
 		if ((result=tracker_save_groups()) != 0)
 		{
@@ -5359,15 +5373,15 @@ int tracker_mem_add_group_and_storage(TrackerClientInfo *pClientInfo,
 	}
 	else
 	{
-		if (pClientInfo->pGroup->subdir_count_per_path != \
+		if (pClientInfo->pGroup->subdir_count_per_path !=
 				pJoinBody->subdir_count_per_path)
 		{
-			ppEnd = pClientInfo->pGroup->all_servers + \
+			ppEnd = pClientInfo->pGroup->all_servers +
 				pClientInfo->pGroup->storage_count;
-			for (ppServer=pClientInfo->pGroup->all_servers; \
+			for (ppServer=pClientInfo->pGroup->all_servers;
 				ppServer<ppEnd; ppServer++)
 			{
-				if ((*ppServer)->subdir_count_per_path != \
+				if ((*ppServer)->subdir_count_per_path !=
 					pJoinBody->subdir_count_per_path)
 				{
 					break;
@@ -5376,7 +5390,7 @@ int tracker_mem_add_group_and_storage(TrackerClientInfo *pClientInfo,
 
 			if (ppServer == ppEnd)  //all servers are same, adjust
 			{
-				pClientInfo->pGroup->subdir_count_per_path = \
+				pClientInfo->pGroup->subdir_count_per_path =
 					pJoinBody->subdir_count_per_path;
 				if ((result=tracker_save_groups()) != 0)
 				{
@@ -5406,10 +5420,15 @@ int tracker_mem_add_group_and_storage(TrackerClientInfo *pClientInfo,
 			if (pJoinBody->status == FDFS_STORAGE_STATUS_ACTIVE)
 			{
 				pStorageServer->status = FDFS_STORAGE_STATUS_ONLINE;
+                chg_inc_count++;
 			}
 			else
 			{
-				pStorageServer->status = pJoinBody->status;
+				if (pStorageServer->status != pJoinBody->status)
+                {
+                    pStorageServer->status = pJoinBody->status;
+                    chg_inc_count++;
+                }
 			}
 		}
 
@@ -5423,11 +5442,17 @@ int tracker_mem_add_group_and_storage(TrackerClientInfo *pClientInfo,
 	    pStorageServer->status == FDFS_STORAGE_STATUS_RECOVERY)
 	{
 		pStorageServer->status = FDFS_STORAGE_STATUS_ONLINE;
+        chg_inc_count++;
 	}
 	else if (pStorageServer->status == FDFS_STORAGE_STATUS_INIT)
 	{
 	 	pStorageServer->changelog_offset = g_changelog_fsize;
 	}
+
+    if (chg_inc_count > 0)
+    {
+        pClientInfo->pGroup->chg_count++;
+    }
 
     logDebug("file: "__FILE__", line: %d, "
             "storage server %s::%s join in, remain changelog bytes: "
@@ -5437,8 +5462,9 @@ int tracker_mem_add_group_and_storage(TrackerClientInfo *pClientInfo,
 	return 0;
 }
 
-int tracker_mem_sync_storages(FDFSGroupInfo *pGroup, \
-		FDFSStorageBrief *briefServers, const int server_count)
+int tracker_mem_sync_storages(FDFSGroupInfo *pGroup,
+		FDFSStorageBrief *briefServers,
+        const int server_count)
 {
 	int result;
     int port;
@@ -5530,9 +5556,11 @@ int tracker_mem_sync_storages(FDFSGroupInfo *pGroup, \
 					&pStorageServer, pServer->id, pServer->ip_addr,
                     port, true, false, &bInserted);
 				if (result == 0 && bInserted)
-				{
-					pStorageServer->status = pServer->status;
-				}
+                {
+                    pStorageServer->status = pServer->status;
+                    memcpy(pStorageServer->sync_key, pServer->sync_key,
+                            FDFS_STORAGE_SYNC_KEY_LEN);
+                }
 			}
 		}
 	} while (0);

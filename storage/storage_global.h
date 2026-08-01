@@ -44,6 +44,16 @@ typedef struct storage_access_log_context {
     LogContext log_ctx;
 } StorageAccessLogContext;
 
+typedef union {
+    char key[FDFS_STORAGE_SYNC_KEY_LEN];  //since 6.17
+    struct {
+        int32_t ts;
+        int32_t ns;
+        int32_t r1;
+        int32_t r2;
+    } fields;
+} StorageSyncKey;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -137,6 +147,8 @@ extern int g_access_log_time_precision;
 extern struct storage_dio_thread_data *g_dio_thread_data;  //disk io thread data
 
 extern FDFSStorageIdInfo *g_my_storage_id_info;
+
+extern StorageSyncKey g_storage_sync_key;
 
 int storage_cmp_by_server_id(const void *p1, const void *p2);
 

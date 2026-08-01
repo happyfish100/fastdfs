@@ -144,6 +144,9 @@ static int tracker_check_and_sync(struct fast_task_info *pTask,
 	FDFSStorageDetail *pServer;
 	FDFSStorageBrief *pDestServer;
 	TrackerClientInfo *pClientInfo;
+    int tracker_leader_chg_count;
+    int trunk_chg_count;
+    int group_chg_count;
 	char *pFlags;
 	char *p;
 
@@ -159,8 +162,9 @@ static int tracker_check_and_sync(struct fast_task_info *pTask,
 	*pFlags = 0;
 	if (g_if_leader_self)
     {
+        tracker_leader_chg_count = g_tracker_leader_chg_count;
         if (pClientInfo->chg_count.tracker_leader !=
-                g_tracker_leader_chg_count)
+                tracker_leader_chg_count)
         {
             TrackerClusterServer *leader;
 
@@ -183,12 +187,12 @@ static int tracker_check_and_sync(struct fast_task_info *pTask,
             pDestServer++;
 
             pClientInfo->chg_count.tracker_leader =
-                g_tracker_leader_chg_count;
+                tracker_leader_chg_count;
             p = (char *)pDestServer;
         }
 
-        if (pClientInfo->pStorage->trunk_chg_count !=
-                pClientInfo->pGroup->trunk_chg_count)
+        trunk_chg_count = pClientInfo->pGroup->trunk_chg_count;
+        if (pClientInfo->pStorage->trunk_chg_count != trunk_chg_count)
         {
             *pFlags |= FDFS_CHANGE_FLAG_TRUNK_SERVER;
 
@@ -208,13 +212,12 @@ static int tracker_check_and_sync(struct fast_task_info *pTask,
             }
             pDestServer++;
 
-            pClientInfo->pStorage->trunk_chg_count =
-                pClientInfo->pGroup->trunk_chg_count;
+            pClientInfo->pStorage->trunk_chg_count = trunk_chg_count;
             p = (char *)pDestServer;
         }
 
-        if (pClientInfo->pStorage->chg_count !=
-                pClientInfo->pGroup->chg_count)
+        group_chg_count = pClientInfo->pGroup->chg_count;
+        if (pClientInfo->pStorage->chg_count != group_chg_count)
         {
             *pFlags |= FDFS_CHANGE_FLAG_GROUP_SERVER;
 
@@ -222,7 +225,7 @@ static int tracker_check_and_sync(struct fast_task_info *pTask,
             ppEnd = pClientInfo->pGroup->sorted_servers +
                 pClientInfo->pGroup->storage_count;
             for (ppServer=pClientInfo->pGroup->sorted_servers;
-                    ppServer<ppEnd; ppServer++)
+                    ppServer<ppEnd; ppServer++, pDestServer++)
             {
                 pDestServer->status = (*ppServer)->status;
                 memcpy(pDestServer->id, (*ppServer)->id,
@@ -231,11 +234,11 @@ static int tracker_check_and_sync(struct fast_task_info *pTask,
                         fdfs_get_ipaddr_by_peer_ip(&(*ppServer)->ip_addrs,
                             pTask->client_ip), IP_ADDRESS_SIZE);
                 int2buff((*ppServer)->storage_port, pDestServer->port);
-                pDestServer++;
+                memcpy(pDestServer->sync_key, (*ppServer)->sync_key,
+                        FDFS_STORAGE_SYNC_KEY_LEN);
             }
 
-            pClientInfo->pStorage->chg_count =
-                pClientInfo->pGroup->chg_count;
+            pClientInfo->pStorage->chg_count = group_chg_count;
             p = (char *)pDestServer;
         }
     }
@@ -1424,9 +1427,9 @@ static int tracker_deal_storage_join(struct fast_task_info *pTask)
 		return EINVAL;
 	}
 
-	joinBody.subdir_count_per_path = (int)buff2long( \
+	joinBody.subdir_count_per_path = (int)buff2long(
 					pBody->subdir_count_per_path);
-	if (joinBody.subdir_count_per_path <= 0 || \
+	if (joinBody.subdir_count_per_path <= 0 ||
 	    joinBody.subdir_count_per_path > 256)
 	{
 		logError("file: "__FILE__", line: %d, " \
@@ -1473,7 +1476,7 @@ static int tracker_deal_storage_join(struct fast_task_info *pTask)
 	joinBody.init_flag = pBody->init_flag;
 	joinBody.status = pBody->status;
 	memcpy(joinBody.storage_id, pBody->storage_id, FDFS_STORAGE_ID_MAX_SIZE);
-
+    memcpy(joinBody.sync_key, pBody->sync_key, FDFS_STORAGE_SYNC_KEY_LEN);
     pBody->current_tracker_ip[IP_ADDRESS_SIZE - 1] = '\0';
 
 	getSockIpaddr(pTask->event.fd,
@@ -2232,8 +2235,8 @@ static int tracker_deal_storage_sync_notify(struct fast_task_info *pTask)
             sizeof(TrackerHeader));
 	if (*(pBody->src_id) == '\0')
 	{
-	if (pClientInfo->pStorage->status == FDFS_STORAGE_STATUS_INIT || \
-	    pClientInfo->pStorage->status == FDFS_STORAGE_STATUS_WAIT_SYNC || \
+	if (pClientInfo->pStorage->status == FDFS_STORAGE_STATUS_INIT ||
+	    pClientInfo->pStorage->status == FDFS_STORAGE_STATUS_WAIT_SYNC ||
 	    pClientInfo->pStorage->status == FDFS_STORAGE_STATUS_SYNCING)
 	{
 		pClientInfo->pStorage->status = FDFS_STORAGE_STATUS_ONLINE;
@@ -3762,8 +3765,7 @@ static int tracker_deal_storage_sync_dest_req(struct fast_task_info *pTask)
 
 	if (pSrcStorage == NULL)
 	{
-		pClientInfo->pStorage->status = \
-				FDFS_STORAGE_STATUS_ONLINE;
+		pClientInfo->pStorage->status = FDFS_STORAGE_STATUS_ONLINE;
 		pClientInfo->pGroup->chg_count++;
 		tracker_save_storages();
 
