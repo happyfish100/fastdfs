@@ -362,8 +362,10 @@ typedef struct
 	   under each store_path (disk) of the storage servers
 	*/
 	int subdir_count_per_path;
-	int storage_count; //total storage server count
-    int storage_port;  //storage server listen port
+	int storage_count;  //total storage server count
+    int readable_count; //total readable storage count
+    int writable_count; //total writable storage count
+    int storage_port;   //storage server listen port
 
 	FDFSStorageDetail **all_servers;     //all storage servers
 	FDFSStorageDetail **sorted_servers;  //storages order by ip addr
