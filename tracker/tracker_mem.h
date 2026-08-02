@@ -85,10 +85,10 @@ int tracker_mem_file_unlock();
 #define tracker_mem_get_group(group_name) \
 	tracker_mem_get_group_ex((&g_groups), group_name)
 
-FDFSGroupInfo *tracker_mem_get_group_ex(FDFSGroups *pGroups, \
+FDFSGroupInfo *tracker_mem_get_group_ex(FDFSGroups *pGroups,
 		const char *group_name);
 
-FDFSStorageDetail *tracker_mem_get_storage(FDFSGroupInfo *pGroup, \
+FDFSStorageDetail *tracker_mem_get_storage(FDFSGroupInfo *pGroup,
 				const char *id);
 FDFSStorageDetail *tracker_mem_get_storage_by_ip_port(FDFSGroupInfo *pGroup,
 				const char *ip_addr, const int port);

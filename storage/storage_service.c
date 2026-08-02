@@ -4428,12 +4428,14 @@ static int storage_server_do_fetch_one_path_binlog(
 
 /**
 FDFS_GROUP_NAME_MAX_LEN bytes: group_name
+FDFS_STORAGE_SYNC_KEY_LEN bytes: sync_key
 1 byte: store path index
 **/
 static int storage_server_fetch_one_path_binlog(struct fast_task_info *pTask)
 {
 	StorageClientInfo *pClientInfo;
 	char *in_buff;
+    char *sync_key;
 	char group_name[FDFS_GROUP_NAME_MAX_LEN + 1];
 	int store_path_index;
 	int64_t nInPackLen;
@@ -4441,40 +4443,52 @@ static int storage_server_fetch_one_path_binlog(struct fast_task_info *pTask)
 	pClientInfo = (StorageClientInfo *)pTask->arg;
 	nInPackLen = pClientInfo->total_length - sizeof(TrackerHeader);
 	pClientInfo->total_length = sizeof(TrackerHeader);
-	if (nInPackLen != FDFS_GROUP_NAME_MAX_LEN + 1)
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"cmd=%d, client ip: %s, package size " \
-			"%"PRId64" is not correct, " \
-			"expect length = %d", __LINE__, \
-			STORAGE_PROTO_CMD_FETCH_ONE_PATH_BINLOG, \
-			pTask->client_ip,  \
-			nInPackLen, FDFS_GROUP_NAME_MAX_LEN + 1);
-		return EINVAL;
-	}
+	if (nInPackLen != FDFS_GROUP_NAME_MAX_LEN +
+            FDFS_STORAGE_SYNC_KEY_LEN + 1)
+    {
+        logError("file: "__FILE__", line: %d, "
+                "cmd=%d, client ip: %s, package size "
+                "%"PRId64" is not correct, "
+                "expect length = %d", __LINE__,
+                STORAGE_PROTO_CMD_FETCH_ONE_PATH_BINLOG,
+                pTask->client_ip, nInPackLen,
+                FDFS_GROUP_NAME_MAX_LEN +
+                FDFS_STORAGE_SYNC_KEY_LEN + 1);
+        return EINVAL;
+    }
 
 	in_buff = pTask->recv.ptr->data + sizeof(TrackerHeader);
 	memcpy(group_name, in_buff, FDFS_GROUP_NAME_MAX_LEN);
 	*(group_name + FDFS_GROUP_NAME_MAX_LEN) = '\0';
 	if (strcmp(group_name, g_group_name) != 0)
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"client ip:%s, group_name: %s " \
-			"not correct, should be: %s", \
-			__LINE__, pTask->client_ip, \
-			group_name, g_group_name);
-		return EINVAL;
-	}
+    {
+        logError("file: "__FILE__", line: %d, " \
+                "client ip:%s, group_name: %s " \
+                "not correct, should be: %s", \
+                __LINE__, pTask->client_ip, \
+                group_name, g_group_name);
+        return EINVAL;
+    }
 
-	store_path_index = *(in_buff + FDFS_GROUP_NAME_MAX_LEN);
+    sync_key = in_buff + FDFS_GROUP_NAME_MAX_LEN;
+    if (memcmp(sync_key, g_storage_sync_key.key,
+            FDFS_STORAGE_SYNC_KEY_LEN) != 0)
+    {
+        logError("file: "__FILE__", line: %d, "
+                "client ip: %s, the sync key not correct!",
+                __LINE__, pTask->client_ip);
+        return EACCES;
+    }
+
+	store_path_index = *(sync_key + FDFS_STORAGE_SYNC_KEY_LEN);
 	if (store_path_index < 0 || store_path_index >= g_fdfs_store_paths.count)
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"client ip: %s, store_path_index: %d " \
-			"is invalid", __LINE__, \
-			pTask->client_ip, store_path_index);
-		return EINVAL;
-	}
+    {
+        logError("file: "__FILE__", line: %d, "
+                "client ip: %s, store_path_index: %d "
+                "is invalid", __LINE__, pTask->client_ip,
+                store_path_index);
+        return EINVAL;
+    }
 
 	return storage_server_do_fetch_one_path_binlog(
 			pTask, store_path_index);

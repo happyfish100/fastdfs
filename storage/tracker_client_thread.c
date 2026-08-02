@@ -1598,10 +1598,10 @@ static int tracker_check_response(ConnectionInfo *pTrackerServer,
             pBriefServers, server_count);
 }
 
-int tracker_sync_src_req(ConnectionInfo *pTrackerServer, \
+int tracker_sync_src_req(ConnectionInfo *pTrackerServer,
 			StorageBinLogReader *pReader)
 {
-	char out_buff[sizeof(TrackerHeader) + FDFS_GROUP_NAME_MAX_LEN + \
+	char out_buff[sizeof(TrackerHeader) + FDFS_GROUP_NAME_MAX_LEN +
 			FDFS_STORAGE_ID_MAX_SIZE];
 	char sync_src_id[FDFS_STORAGE_ID_MAX_SIZE];
     char formatted_ip[FORMATTED_IP_SIZE];

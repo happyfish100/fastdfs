@@ -147,17 +147,113 @@ static inline char *recovery_get_global_binlog_filename(
             full_filename);
 }
 
-static int storage_do_fetch_binlog(ConnectionInfo *pSrcStorage, \
-		const int store_path_index)
+static int do_get_sync_key(ConnectionInfo *pTrackerServer,
+        const char *src_storage_id, char *sync_key)
 {
-	char out_buff[sizeof(TrackerHeader) + FDFS_GROUP_NAME_MAX_LEN + 1];
+    char out_buff[sizeof(TrackerHeader) + sizeof(StorageFetchSyncKeyBody)];
+    StorageFetchSyncKeyBody *req;
+    char formatted_ip[FORMATTED_IP_SIZE];
+    TrackerHeader *pHeader;
+    int64_t in_bytes;
+    int result;
+
+    memset(out_buff, 0, sizeof(out_buff));
+    pHeader = (TrackerHeader *)out_buff;
+    req = (StorageFetchSyncKeyBody *)(pHeader + 1);
+    long2buff(sizeof(StorageFetchSyncKeyBody), pHeader->pkg_len);
+    pHeader->cmd = TRACKER_PROTO_CMD_STORAGE_FETCH_SYNC_KEY;
+    strcpy(req->group_name, g_group_name);
+    strcpy(req->storage_id, g_my_server_id_str);
+    int2buff(SF_G_INNER_PORT, req->storage_port);
+    strcpy(req->src_storage_id, src_storage_id);
+    if ((result=tcpsenddata_nb(pTrackerServer->sock, out_buff,
+                    sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
+    {
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+        logError("file: "__FILE__", line: %d, "
+                "tracker server %s:%u, send data fail, errno: %d, "
+                "error info: %s.", __LINE__, formatted_ip,
+                pTrackerServer->port, result, STRERROR(result));
+        return result;
+    }
+
+    if ((result=fdfs_recv_response(pTrackerServer, &sync_key,
+                    FDFS_STORAGE_SYNC_KEY_LEN, &in_bytes)) != 0)
+    {
+        logError("file: "__FILE__", line: %d, "
+                "fdfs_recv_response fail, errno: %d, error info: %s",
+                __LINE__, result, STRERROR(result));
+        return result;
+    }
+
+    if (in_bytes != FDFS_STORAGE_SYNC_KEY_LEN)
+    {
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+        logError("file: "__FILE__", line: %d, "
+                "tracker server %s:%u, recv body length: %"PRId64" is invalid, "
+                "expect body length: %d", __LINE__, formatted_ip,
+                pTrackerServer->port, in_bytes, FDFS_STORAGE_SYNC_KEY_LEN);
+        return EINVAL;
+    }
+
+    return 0;
+}
+
+static int recovery_get_sync_key(const char *src_storage_id, char *sync_key)
+{
+    TrackerServerInfo *pTrackerServer;
+    TrackerServerInfo *pServerEnd;
+    ConnectionInfo *pTrackerConn;
+    TrackerServerInfo tracker_server;
+    int result;
+
+    result = ENOENT;
+    pServerEnd = g_tracker_group.servers + g_tracker_group.server_count;
+    for (pTrackerServer=g_tracker_group.servers;
+            pTrackerServer<pServerEnd; pTrackerServer++)
+    {
+        memcpy(&tracker_server, pTrackerServer,
+                sizeof(TrackerServerInfo));
+        fdfs_server_sock_reset(&tracker_server);
+        if ((pTrackerConn=tracker_connect_server(&tracker_server,
+                        &result)) == NULL)
+        {
+            continue;
+        }
+
+        result = do_get_sync_key(pTrackerConn, src_storage_id, sync_key);
+        tracker_close_connection_ex(pTrackerConn, result != 0);
+        if (result == 0)
+        {
+            return 0;
+        }
+    }
+
+    return result;
+}
+
+static int storage_do_fetch_binlog(ConnectionInfo *pSrcStorage,
+        const char *src_storage_id, const int store_path_index)
+{
+	char out_buff[sizeof(TrackerHeader) + FDFS_GROUP_NAME_MAX_LEN +
+        FDFS_STORAGE_SYNC_KEY_LEN + 1];
 	char full_binlog_filename[MAX_PATH_SIZE];
     char formatted_ip[FORMATTED_IP_SIZE];
 	TrackerHeader *pHeader;
+    char *sync_key;
 	int64_t in_bytes;
 	int64_t file_bytes;
 	int result;
     int network_timeout;
+
+	memset(out_buff, 0, sizeof(out_buff));
+	pHeader = (TrackerHeader *)out_buff;
+
+    sync_key = out_buff + sizeof(TrackerHeader) + FDFS_GROUP_NAME_MAX_LEN;
+    if ((result=recovery_get_sync_key(src_storage_id, sync_key)) != 0)
+    {
+        return result;
+    }
 
     recovery_get_full_filename_ex(&g_fdfs_store_paths.paths[
             store_path_index].path, 0,
@@ -165,26 +261,21 @@ static int storage_do_fetch_binlog(ConnectionInfo *pSrcStorage, \
             RECOVERY_BINLOG_FILENAME_LEN,
             full_binlog_filename);
 
-	memset(out_buff, 0, sizeof(out_buff));
-	pHeader = (TrackerHeader *)out_buff;
-
-	long2buff(FDFS_GROUP_NAME_MAX_LEN + 1, pHeader->pkg_len);
+	long2buff(sizeof(out_buff) - sizeof(TrackerHeader), pHeader->pkg_len);
 	pHeader->cmd = STORAGE_PROTO_CMD_FETCH_ONE_PATH_BINLOG;
 	strcpy(out_buff + sizeof(TrackerHeader), g_group_name);
-	*(out_buff + sizeof(TrackerHeader) + FDFS_GROUP_NAME_MAX_LEN) =
-			store_path_index;
-
+	*(sync_key + FDFS_STORAGE_SYNC_KEY_LEN) = store_path_index;
 	if((result=tcpsenddata_nb(pSrcStorage->sock, out_buff,
 		sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
-	{
+    {
         format_ip_address(pSrcStorage->ip_addr, formatted_ip);
-		logError("file: "__FILE__", line: %d, "
-			"storage server %s:%u, send data fail, "
-			"errno: %d, error info: %s.", __LINE__,
-            formatted_ip, pSrcStorage->port,
-			result, STRERROR(result));
-		return result;
-	}
+        logError("file: "__FILE__", line: %d, "
+                "storage server %s:%u, send data fail, "
+                "errno: %d, error info: %s.", __LINE__,
+                formatted_ip, pSrcStorage->port,
+                result, STRERROR(result));
+        return result;
+    }
 
     if (SF_G_NETWORK_TIMEOUT >= 600)
     {
@@ -196,12 +287,12 @@ static int storage_do_fetch_binlog(ConnectionInfo *pSrcStorage, \
     }
 	if ((result=fdfs_recv_header_ex(pSrcStorage, network_timeout,
                     &in_bytes)) != 0)
-	{
-		logError("file: "__FILE__", line: %d, "
+    {
+        logError("file: "__FILE__", line: %d, "
                 "fdfs_recv_header fail, errno: %d, error info: %s",
                 __LINE__, result, STRERROR(result));
-		return result;
-	}
+        return result;
+    }
 
 	if ((result=tcprecvfile(pSrcStorage->sock, full_binlog_filename,
 				in_bytes, 0, network_timeout, &file_bytes)) != 0)
@@ -223,7 +314,8 @@ static int storage_do_fetch_binlog(ConnectionInfo *pSrcStorage, \
 	return 0;
 }
 
-static int recovery_get_src_storage_server(ConnectionInfo *pSrcStorage)
+static int recovery_get_src_storage_server(
+        ConnectionInfo *pSrcStorage, char *storage_id)
 {
 	int result;
 	int storage_count;
@@ -380,6 +472,10 @@ static int recovery_get_src_storage_server(ConnectionInfo *pSrcStorage)
                 found = true;
                 strcpy(pSrcStorage->ip_addr, pStorageStat->ip_addr);
                 pSrcStorage->port = pStorageStat->storage_port;
+                if (storage_id != NULL)
+                {
+                    strcpy(storage_id, pStorageStat->id);
+                }
                 break;
             }
 		}
@@ -1028,7 +1124,8 @@ static void *storage_disk_recovery_restore_entrance(void *arg)
 
     do
     {
-        if ((pThreadData->result=recovery_get_src_storage_server(&srcStorage)) != 0)
+        if ((pThreadData->result=recovery_get_src_storage_server(
+                        &srcStorage, NULL)) != 0)
         {
             if (pThreadData->result == ENOENT)
             {
@@ -1799,6 +1896,7 @@ static int storage_disk_recovery_split_trunk_binlog(const int store_path_index)
 int storage_disk_recovery_prepare(const int store_path_index)
 {
     char formatted_ip[FORMATTED_IP_SIZE];
+    char src_storage_id[FDFS_STORAGE_ID_MAX_SIZE];
 	ConnectionInfo srcStorage;
 	ConnectionInfo *pStorageConn;
 	string_t *base_path;
@@ -1815,7 +1913,8 @@ int storage_disk_recovery_prepare(const int store_path_index)
 		return result;
 	}
 
-	if ((result=recovery_get_src_storage_server(&srcStorage)) != 0)
+	if ((result=recovery_get_src_storage_server(&srcStorage,
+                    src_storage_id)) != 0)
 	{
 		if (result == ENOENT)
 		{
@@ -1853,12 +1952,13 @@ int storage_disk_recovery_prepare(const int store_path_index)
             "try to fetch binlog from %s:%u ...", __LINE__,
             formatted_ip, pStorageConn->port);
 
-	result = storage_do_fetch_binlog(pStorageConn, store_path_index);
-	tracker_close_connection_ex(pStorageConn, true);
-	if (result != 0)
-	{
-		return result;
-	}
+    result = storage_do_fetch_binlog(pStorageConn,
+            src_storage_id, store_path_index);
+    tracker_close_connection_ex(pStorageConn, true);
+    if (result != 0)
+    {
+        return result;
+    }
 
     format_ip_address(pStorageConn->ip_addr, formatted_ip);
     logInfo("file: "__FILE__", line: %d, "

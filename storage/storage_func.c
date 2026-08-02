@@ -1388,13 +1388,12 @@ static int storage_check_store_path_mark(const int store_path_index,
     return storage_write_to_sync_ini_file();
 }
 
-static int storage_check_and_make_data_dirs()
+
+static int storage_load_inited_data()
 {
 	int result;
-	int i;
 	char full_filename[MAX_PATH_SIZE];
     char error_info[256];
-	bool pathCreated;
 
     fc_get_one_subdir_full_filename(SF_G_BASE_PATH_STR,
             SF_G_BASE_PATH_LEN, "data", 4,
@@ -1454,11 +1453,11 @@ static int storage_check_and_make_data_dirs()
 		}
 		fc_safe_strcpy(g_sync_src_id, pValue);
 
-		g_sync_until_timestamp = iniGetIntValue(NULL, \
-				INIT_ITEM_SYNC_UNTIL_TIMESTAMP_STR, \
+		g_sync_until_timestamp = iniGetIntValue(NULL,
+				INIT_ITEM_SYNC_UNTIL_TIMESTAMP_STR,
 				&iniContext, 0);
 
-		pValue = iniGetStrValue(NULL, INIT_ITEM_LAST_IP_ADDRESS_STR, \
+		pValue = iniGetStrValue(NULL, INIT_ITEM_LAST_IP_ADDRESS_STR,
 				&iniContext);
 		if (pValue != NULL)
 		{
@@ -1466,7 +1465,7 @@ static int storage_check_and_make_data_dirs()
                     error_info, sizeof(error_info));
 		}
 
-		pValue = iniGetStrValue(NULL, INIT_ITEM_LAST_SERVER_PORT_STR, \
+		pValue = iniGetStrValue(NULL, INIT_ITEM_LAST_SERVER_PORT_STR,
 				&iniContext);
 		if (pValue != NULL)
 		{
@@ -1529,6 +1528,15 @@ static int storage_check_and_make_data_dirs()
 			return result;
 		}
 	}
+
+    return 0;
+}
+
+static int storage_check_and_make_data_dirs()
+{
+	int result;
+	int i;
+	bool pathCreated;
 
 	for (i=0; i<g_fdfs_store_paths.count; i++)
 	{
@@ -2441,10 +2449,10 @@ int storage_func_init(const char *filename)
 		return result;
 	}
 
-	if ((result=storage_check_and_make_data_dirs()) != 0)
+	if ((result=storage_load_inited_data()) != 0)
 	{
-		logCrit("file: "__FILE__", line: %d, " \
-			"storage_check_and_make_data_dirs fail, " \
+		logCrit("file: "__FILE__", line: %d, "
+			"storage_load_inited_data() fail, "
 			"program exit!", __LINE__);
 		return result;
 	}
@@ -2483,6 +2491,14 @@ int storage_func_init(const char *filename)
             return ENOENT;
         }
     }
+
+	if ((result=storage_check_and_make_data_dirs()) != 0)
+	{
+		logCrit("file: "__FILE__", line: %d, "
+			"storage_check_and_make_data_dirs fail, "
+			"program exit!", __LINE__);
+		return result;
+	}
 
 	if ((result=storage_check_ip_changed()) != 0)
 	{

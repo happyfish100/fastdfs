@@ -16,8 +16,9 @@
 #include "fastcommon/connection_pool.h"
 #include "fastcommon/ini_file_reader.h"
 
+#define TRACKER_PROTO_CMD_STORAGE_FETCH_SYNC_KEY    80
 #define TRACKER_PROTO_CMD_STORAGE_JOIN              81
-#define FDFS_PROTO_CMD_QUIT			    82
+#define FDFS_PROTO_CMD_QUIT                         82
 #define TRACKER_PROTO_CMD_STORAGE_BEAT              83  //storage heart beat
 #define TRACKER_PROTO_CMD_STORAGE_REPORT_DISK_USAGE 84  //report disk usage
 #define TRACKER_PROTO_CMD_STORAGE_REPLICA_CHG       85  //repl new storage servers
@@ -187,8 +188,16 @@ typedef struct
     char group_name[FDFS_GROUP_NAME_MAX_LEN + 1];
     char storage_id[FDFS_STORAGE_ID_MAX_SIZE];
     char storage_port[4];
-    FDFSStorageBrief brief;
+    FDFSStorageBrief brief; //storage to report
 } StorageReportStatusBody;
+
+typedef struct
+{
+    char group_name[FDFS_GROUP_NAME_MAX_LEN + 1];
+    char storage_id[FDFS_STORAGE_ID_MAX_SIZE];
+    char storage_port[4];
+    char src_storage_id[FDFS_STORAGE_ID_MAX_SIZE];
+} StorageFetchSyncKeyBody;
 
 typedef struct
 {
