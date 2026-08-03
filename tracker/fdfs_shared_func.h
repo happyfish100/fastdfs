@@ -169,6 +169,9 @@ char *fdfs_ip_to_shortcode(const char *ipAddr, char *shortCode);
 
 bool fdfs_multi_ips_contain_ipv6(const FDFSMultiIP *ip_addrs);
 
+bool fdfs_server_contain_ip(TrackerServerInfo *pServerInfo,
+        const char *target_ip);
+
 #ifdef __cplusplus
 }
 #endif

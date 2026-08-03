@@ -1900,6 +1900,7 @@ int tracker_set_trunk_server(TrackerServerGroup *pTrackerGroup, \
 		const char *group_name, const char *storage_id, \
 		char *new_trunk_server_id)
 {
+    const bool log_error_on_bad_status = false;
 	TrackerHeader *pHeader;
 	ConnectionInfo *conn;
 	TrackerServerInfo *pServer;
@@ -1962,9 +1963,8 @@ int tracker_set_trunk_server(TrackerServerGroup *pTrackerGroup, \
 		}
 
 		pInBuff = in_buff;
-		result = fdfs_recv_response(conn, &pInBuff,
-				sizeof(in_buff) - 1, &in_bytes);
-
+		result = fdfs_recv_response_ex(conn, &pInBuff, sizeof(in_buff) - 1,
+                &in_bytes, log_error_on_bad_status);
 		tracker_close_connection_ex(conn, result != 0);
 		if (result == 0)
 		{

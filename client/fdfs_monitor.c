@@ -30,9 +30,11 @@ static void usage(char *argv[])
             "  %s <client_cfg_file> [-h <tracker_server>]\n"
             "  [list|delete|set_trunk_server <group_name> [storage_id]]\n\n"
             "Note:\n"
-            "  the tracker server format: host[:port], "
+            "  * the tracker server format: host[:port], "
             "the tracker default port is %d\n"
-            "  %s without parameter equals: %s %s\n\n",
+            "  * %s without parameter equals: %s %s\n"
+            "  * delete and set_trunk_server operations "
+            "must be executed on the tracker server\n\n",
             argv[0], FDFS_TRACKER_SERVER_DEF_PORT, argv[0],
             argv[0], FDFS_CLIENT_DEFAULT_CONFIG_FILENAME);
 }
@@ -187,6 +189,12 @@ int main(int argc, char *argv[])
 	}
 	else if (strcmp(op_type, "delete") == 0)
 	{
+        if (group_name == NULL)
+        {
+            usage(argv);
+            return 1;
+        }
+
 		if (arg_index >= argc)
         {
             if ((result=tracker_delete_group(&g_tracker_group,
@@ -203,22 +211,22 @@ int main(int argc, char *argv[])
         }
         else
         {
-		char *storage_id;
+            char *storage_id;
 
-		storage_id = argv[arg_index++];
-		if ((result=tracker_delete_storage(&g_tracker_group, \
-				group_name, storage_id)) == 0)
-		{
-			printf("delete storage server %s::%s success\n", \
-				group_name, storage_id);
-		}
-		else
-		{
-			printf("delete storage server %s::%s fail, " \
-				"error no: %d, error info: %s\n", \
-				group_name, storage_id, \
-				result, STRERROR(result));
-		}
+            storage_id = argv[arg_index++];
+            if ((result=tracker_delete_storage(&g_tracker_group,
+                            group_name, storage_id)) == 0)
+            {
+                printf("delete storage server %s::%s success\n",
+                        group_name, storage_id);
+            }
+            else
+            {
+                printf("delete storage server %s::%s fail, "
+                        "error no: %d, error info: %s\n",
+                        group_name, storage_id,
+                        result, STRERROR(result));
+            }
         }
 	}
 	else if (strcmp(op_type, "set_trunk_server") == 0)
@@ -240,7 +248,7 @@ int main(int argc, char *argv[])
 			storage_id = argv[arg_index++];
 		}
 
-		if ((result=tracker_set_trunk_server(&g_tracker_group, \
+		if ((result=tracker_set_trunk_server(&g_tracker_group,
 			group_name, storage_id, new_trunk_server_id)) == 0)
 		{
 			printf("set trunk server %s::%s success, " \

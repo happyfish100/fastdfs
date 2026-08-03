@@ -454,18 +454,29 @@ int metadata_cmp_by_name(const void *p1, const void *p2);
 const char *get_storage_status_caption(const int status);
 
 int fdfs_recv_header_ex(ConnectionInfo *pTrackerServer,
-        const int network_timeout, int64_t *in_bytes);
+        const int network_timeout, int64_t *in_bytes,
+        const bool log_error_on_bad_status);
 
 static inline int fdfs_recv_header(ConnectionInfo *pTrackerServer,
         int64_t *in_bytes)
 {
-    return fdfs_recv_header_ex(pTrackerServer,
-        SF_G_NETWORK_TIMEOUT, in_bytes);
+    const bool log_error_on_bad_status = true;
+    return fdfs_recv_header_ex(pTrackerServer, SF_G_NETWORK_TIMEOUT,
+            in_bytes, log_error_on_bad_status);
 }
 
-int fdfs_recv_response(ConnectionInfo *pTrackerServer, \
-		char **buff, const int buff_size, \
-		int64_t *in_bytes);
+int fdfs_recv_response_ex(ConnectionInfo *pTrackerServer,
+		char **buff, const int buff_size, int64_t *in_bytes,
+        const bool log_error_on_bad_status);
+
+static inline int fdfs_recv_response(ConnectionInfo *pTrackerServer,
+		char **buff, const int buff_size, int64_t *in_bytes)
+{
+    const bool log_error_on_bad_status = true;
+    return fdfs_recv_response_ex(pTrackerServer, buff,
+            buff_size, in_bytes, log_error_on_bad_status);
+}
+
 int fdfs_quit(ConnectionInfo *pTrackerServer);
 
 #define fdfs_active_test(pTrackerServer) \

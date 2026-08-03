@@ -924,3 +924,31 @@ bool fdfs_multi_ips_contain_ipv6(const FDFSMultiIP *ip_addrs)
 
     return false;
 }
+
+bool fdfs_server_contain_ip(TrackerServerInfo *pServerInfo,
+        const char *target_ip)
+{
+	ConnectionInfo *conn;
+	ConnectionInfo *end;
+
+    if (pServerInfo->count == 1)
+    {
+		return strcmp(pServerInfo->connections[0].ip_addr, target_ip) == 0;
+    }
+    else if (pServerInfo->count == 2)
+    {
+        return strcmp(pServerInfo->connections[0].ip_addr, target_ip) == 0 ||
+            strcmp(pServerInfo->connections[1].ip_addr, target_ip) == 0;
+    }
+
+	end = pServerInfo->connections + pServerInfo->count;
+	for (conn=pServerInfo->connections; conn<end; conn++)
+    {
+        if (strcmp(conn->ip_addr, target_ip) == 0)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}

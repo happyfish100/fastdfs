@@ -40,7 +40,8 @@ int fdfs_set_body_length(struct fast_task_info *pTask)
 }
 
 int fdfs_recv_header_ex(ConnectionInfo *pTrackerServer,
-        const int network_timeout, int64_t *in_bytes)
+        const int network_timeout, int64_t *in_bytes,
+        const bool log_error_on_bad_status)
 {
 	TrackerHeader resp;
     char formatted_ip[FORMATTED_IP_SIZE];
@@ -59,15 +60,18 @@ int fdfs_recv_header_ex(ConnectionInfo *pTrackerServer,
     }
 
 	if (resp.status != 0)
-	{
-        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
-		logError("file: "__FILE__", line: %d, "
-			"server: %s:%u, response status %d != 0", __LINE__,
-            formatted_ip, pTrackerServer->port, resp.status);
+    {
+        if (log_error_on_bad_status)
+        {
+            format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+            logError("file: "__FILE__", line: %d, "
+                    "server: %s:%u, response status %d != 0", __LINE__,
+                    formatted_ip, pTrackerServer->port, resp.status);
+        }
 
-		*in_bytes = 0;
-		return resp.status;
-	}
+        *in_bytes = 0;
+        return resp.status;
+    }
 
 	*in_bytes = buff2long(resp.pkg_len);
 	if (*in_bytes < 0)
@@ -83,15 +87,16 @@ int fdfs_recv_header_ex(ConnectionInfo *pTrackerServer,
 	return resp.status;
 }
 
-int fdfs_recv_response(ConnectionInfo *pTrackerServer, \
-		char **buff, const int buff_size, \
-		int64_t *in_bytes)
+int fdfs_recv_response_ex(ConnectionInfo *pTrackerServer,
+		char **buff, const int buff_size, int64_t *in_bytes,
+        const bool log_error_on_bad_status)
 {
 	int result;
 	bool bMalloced;
     char formatted_ip[FORMATTED_IP_SIZE];
 
-	result = fdfs_recv_header(pTrackerServer, in_bytes);
+	result = fdfs_recv_header_ex(pTrackerServer, SF_G_NETWORK_TIMEOUT,
+            in_bytes, log_error_on_bad_status);
 	if (result != 0)
 	{
 		return result;

@@ -1579,6 +1579,33 @@ static int tracker_deal_storage_join(struct fast_task_info *pTask)
 	return 0;
 }
 
+static int check_tracker_server_ip(struct fast_task_info *pTask,
+        const byte cmd)
+{
+    TrackerClusterServer **ppServer;
+    TrackerClusterServer **ppEnd;
+
+    ppEnd = g_tracker_servers.servers + g_tracker_servers.server_count;
+    for (ppServer=g_tracker_servers.servers; ppServer<ppEnd; ppServer++)
+    {
+        if (fdfs_server_contain_ip(&(*ppServer)->server, pTask->client_ip))
+        {
+            break;
+        }
+    }
+
+    if (ppServer == ppEnd)
+    {
+        logError("file: "__FILE__", line: %d, "
+                "cmd: %d, client ip: %s not in tracker server ip list!",
+                __LINE__, cmd, pTask->client_ip);
+        pTask->send.ptr->length = sizeof(TrackerHeader);
+        return EACCES;
+    }
+
+    return 0;
+}
+
 static int tracker_deal_server_delete_group(struct fast_task_info *pTask)
 {
 	char group_name[FDFS_GROUP_NAME_MAX_LEN + 1];
@@ -4510,13 +4537,22 @@ static int tracker_deal_task(struct fast_task_info *pTask, const int stage)
 			result = tracker_deal_storage_sync_dest_query(pTask);
 			break;
 		case TRACKER_PROTO_CMD_SERVER_DELETE_GROUP:
-			result = tracker_deal_server_delete_group(pTask);
+            if ((result=check_tracker_server_ip(pTask, pHeader->cmd)) == 0)
+            {
+                result = tracker_deal_server_delete_group(pTask);
+            }
 			break;
 		case TRACKER_PROTO_CMD_SERVER_DELETE_STORAGE:
-			result = tracker_deal_server_delete_storage(pTask);
+            if ((result=check_tracker_server_ip(pTask, pHeader->cmd)) == 0)
+            {
+                result = tracker_deal_server_delete_storage(pTask);
+            }
 			break;
 		case TRACKER_PROTO_CMD_SERVER_SET_TRUNK_SERVER:
-			result = tracker_deal_server_set_trunk_server(pTask);
+            if ((result=check_tracker_server_ip(pTask, pHeader->cmd)) == 0)
+            {
+                result = tracker_deal_server_set_trunk_server(pTask);
+            }
 			break;
 		case TRACKER_PROTO_CMD_STORAGE_REPORT_IP_CHANGED:
 			result = tracker_deal_storage_report_ip_changed(pTask);

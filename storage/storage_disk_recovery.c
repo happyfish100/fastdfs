@@ -235,6 +235,7 @@ static int recovery_get_sync_key(const char *src_storage_id, char *sync_key)
 static int storage_do_fetch_binlog(ConnectionInfo *pSrcStorage,
         const char *src_storage_id, const int store_path_index)
 {
+    const bool log_error_on_bad_status = true;
 	char out_buff[sizeof(TrackerHeader) + FDFS_GROUP_NAME_MAX_LEN +
         FDFS_STORAGE_SYNC_KEY_LEN + 1];
 	char full_binlog_filename[MAX_PATH_SIZE];
@@ -286,7 +287,7 @@ static int storage_do_fetch_binlog(ConnectionInfo *pSrcStorage,
         network_timeout = 600;
     }
 	if ((result=fdfs_recv_header_ex(pSrcStorage, network_timeout,
-                    &in_bytes)) != 0)
+                    &in_bytes, log_error_on_bad_status)) != 0)
     {
         logError("file: "__FILE__", line: %d, "
                 "fdfs_recv_header fail, errno: %d, error info: %s",
