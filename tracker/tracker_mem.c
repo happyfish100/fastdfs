@@ -4952,6 +4952,15 @@ int tracker_mem_check_storage_server(FDFSGroupInfo *pGroup,
                         __LINE__, pGroup->group_name, ip_addr, port);
                 return ENOENT;
             }
+
+            if (strcmp(storage_id, pStorageIdInfo->id) != 0)
+            {
+                logError("file: "__FILE__", line: %d, "
+                        "group_name: %s, storage id: %s != %s",
+                        __LINE__, pGroup->group_name, storage_id,
+                        pStorageIdInfo->id);
+                return EINVAL;
+            }
         }
 
         return 0;

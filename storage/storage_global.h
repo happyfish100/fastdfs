@@ -11,15 +11,12 @@
 #ifndef _STORAGE_GLOBAL_H
 #define _STORAGE_GLOBAL_H
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
 #include "fastcommon/common_define.h"
 #include "fastcommon/local_ip_func.h"
 #include "sf/sf_types.h"
 #include "fdfs_define.h"
 #include "tracker_types.h"
+#include "tracker_proto.h"
 #include "client_global.h"
 #include "fdht_types.h"
 #include "storage_types.h"
@@ -154,6 +151,13 @@ int storage_cmp_by_server_id(const void *p1, const void *p2);
 
 int storage_insert_ip_addr_to_multi_ips(FDFSMultiIP *multi_ip,
         const char *ip_addr, const int ips_limit);
+
+static inline void storage_pack_my_identification(StorageIdentification *storage)
+{
+    strcpy(storage->group_name, g_group_name);
+    strcpy(storage->id, g_my_server_id_str);
+    int2buff(SF_G_INNER_PORT, storage->port);
+}
 
 #ifdef __cplusplus
 }

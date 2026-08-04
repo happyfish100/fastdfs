@@ -8,20 +8,10 @@
 
 //storage_func.c
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <grp.h>
 #include <pwd.h>
-#include <errno.h>
-#include <time.h>
 #include "fdfs_define.h"
 #include "fastcommon/logger.h"
 #include "fdfs_global.h"

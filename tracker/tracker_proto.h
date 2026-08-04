@@ -186,16 +186,19 @@ typedef struct
 typedef struct
 {
     char group_name[FDFS_GROUP_NAME_MAX_LEN + 1];
-    char storage_id[FDFS_STORAGE_ID_MAX_SIZE];
-    char storage_port[4];
+    char id[FDFS_STORAGE_ID_MAX_SIZE];
+    char port[4];
+} StorageIdentification;
+
+typedef struct
+{
+    StorageIdentification storage;
     FDFSStorageBrief brief; //storage to report
 } StorageReportStatusBody;
 
 typedef struct
 {
-    char group_name[FDFS_GROUP_NAME_MAX_LEN + 1];
-    char storage_id[FDFS_STORAGE_ID_MAX_SIZE];
-    char storage_port[4];
+    StorageIdentification storage;
     char src_storage_id[FDFS_STORAGE_ID_MAX_SIZE];
 } StorageFetchSyncKeyBody;
 

@@ -160,11 +160,9 @@ static int do_get_sync_key(ConnectionInfo *pTrackerServer,
     memset(out_buff, 0, sizeof(out_buff));
     pHeader = (TrackerHeader *)out_buff;
     req = (StorageFetchSyncKeyBody *)(pHeader + 1);
-    long2buff(sizeof(StorageFetchSyncKeyBody), pHeader->pkg_len);
     pHeader->cmd = TRACKER_PROTO_CMD_STORAGE_FETCH_SYNC_KEY;
-    strcpy(req->group_name, g_group_name);
-    strcpy(req->storage_id, g_my_server_id_str);
-    int2buff(SF_G_INNER_PORT, req->storage_port);
+    long2buff(sizeof(StorageFetchSyncKeyBody), pHeader->pkg_len);
+    storage_pack_my_identification(&req->storage);
     strcpy(req->src_storage_id, src_storage_id);
     if ((result=tcpsenddata_nb(pTrackerServer->sock, out_buff,
                     sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)

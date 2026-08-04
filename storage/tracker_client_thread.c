@@ -689,10 +689,7 @@ int tracker_report_storage_status(ConnectionInfo *pTrackerServer,
     req = (StorageReportStatusBody *)(pHeader + 1);
 	pHeader->cmd = TRACKER_PROTO_CMD_STORAGE_REPORT_STATUS;
 	long2buff(sizeof(StorageReportStatusBody), pHeader->pkg_len);
-
-	strcpy(req->group_name, g_group_name);
-    strcpy(req->storage_id, g_my_server_id_str);
-    int2buff(SF_G_INNER_PORT, req->storage_port);
+    storage_pack_my_identification(&req->storage);
 	req->brief = *briefServer;
 	if ((result=tcpsenddata_nb(pTrackerServer->sock, out_buff,
 			sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
@@ -1059,7 +1056,8 @@ static int tracker_merge_servers(ConnectionInfo *pTrackerServer,
 
 static int _notify_reselect_tleader(ConnectionInfo *conn)
 {
-	char out_buff[sizeof(TrackerHeader)];
+	char out_buff[sizeof(TrackerHeader) + sizeof(StorageIdentification)];
+    StorageIdentification *req;
     char formatted_ip[FORMATTED_IP_SIZE];
 	TrackerHeader *pHeader;
 	int64_t in_bytes;
@@ -1067,8 +1065,11 @@ static int _notify_reselect_tleader(ConnectionInfo *conn)
 
 	pHeader = (TrackerHeader *)out_buff;
 	memset(out_buff, 0, sizeof(out_buff));
+    req = (StorageIdentification *)(pHeader + 1);
 	pHeader->cmd = TRACKER_PROTO_CMD_TRACKER_NOTIFY_RESELECT_LEADER;
-	if ((result=tcpsenddata_nb(conn->sock, out_buff, \
+	long2buff(sizeof(StorageIdentification), pHeader->pkg_len);
+    storage_pack_my_identification(req);
+	if ((result=tcpsenddata_nb(conn->sock, out_buff,
 			sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
 	{
         format_ip_address(conn->ip_addr, formatted_ip);
