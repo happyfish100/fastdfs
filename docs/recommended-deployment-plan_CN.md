@@ -1,6 +1,6 @@
 
 # FastDFS部署建议
-* 使用FastDFS最新版本V6.16，旧版本可以平滑升级
+* 使用FastDFS最新版本V6.17，旧版本可以平滑升级
 * 使用V4引入的storage server ID特性
 * 如果以小文件为主（比如文件平均size小于200K）且单个存储目录的文件数总量将超过一千万，推荐启用合并存储特性
 * 不要做RAID，直接挂载单盘，每个硬盘一个mount point作为FastDFS的一个store path
