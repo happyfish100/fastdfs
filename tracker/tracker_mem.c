@@ -1657,7 +1657,7 @@ static int tracker_load_sync_timestamps(FDFSGroups *pGroups, const char *data_pa
 
 		for (dest_index=0; dest_index<cols-2; dest_index++)
 		{
-			pGroup->last_sync_timestamps[src_index][dest_index] = \
+			pGroup->last_sync_timestamps[src_index][dest_index] =
 				atoi(trim_left(fields[2 + dest_index]));
 		}
 
@@ -1703,18 +1703,15 @@ static int tracker_load_sync_timestamps(FDFSGroups *pGroups, const char *data_pa
 
 					if (min_synced_timestamp == 0)
 					{
-						min_synced_timestamp = \
-							curr_synced_timestamp;
+						min_synced_timestamp = curr_synced_timestamp;
 					}
-					else if (curr_synced_timestamp < \
-						min_synced_timestamp)
+					else if (curr_synced_timestamp < min_synced_timestamp)
 					{
-						min_synced_timestamp = \
-							curr_synced_timestamp;
+						min_synced_timestamp = curr_synced_timestamp;
 					}
 				}
 
-				(*ppGroup)->all_servers[dest_index]->stat. \
+				(*ppGroup)->all_servers[dest_index]->stat.
 					last_synced_timestamp = min_synced_timestamp;
 			}
 			else
@@ -1722,7 +1719,7 @@ static int tracker_load_sync_timestamps(FDFSGroups *pGroups, const char *data_pa
 				int max_synced_timestamp;
 
 				max_synced_timestamp = 0;
-				for (src_index=0; src_index<(*ppGroup)->storage_count; \
+				for (src_index=0; src_index<(*ppGroup)->storage_count;
 					src_index++)
 				{
 					if (src_index == dest_index)
@@ -1730,18 +1727,15 @@ static int tracker_load_sync_timestamps(FDFSGroups *pGroups, const char *data_pa
 						continue;
 					}
 
-					curr_synced_timestamp = \
-						(*ppGroup)->last_sync_timestamps \
-							[src_index][dest_index];
-					if (curr_synced_timestamp > \
-						max_synced_timestamp)
+					curr_synced_timestamp = (*ppGroup)->last_sync_timestamps
+                        [src_index][dest_index];
+					if (curr_synced_timestamp > max_synced_timestamp)
 					{
-						max_synced_timestamp = \
-							curr_synced_timestamp;
+						max_synced_timestamp = curr_synced_timestamp;
 					}
 				}
 
-				(*ppGroup)->all_servers[dest_index]->stat. \
+				(*ppGroup)->all_servers[dest_index]->stat.
 					last_synced_timestamp = max_synced_timestamp;
 			}
 		}

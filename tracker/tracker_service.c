@@ -4042,10 +4042,10 @@ static int tracker_deal_storage_sync_report(struct fast_task_info *pTask)
 	nPkgLen = pTask->recv.ptr->length - sizeof(TrackerHeader);
 	if (nPkgLen <= 0 || nPkgLen % (FDFS_STORAGE_ID_MAX_SIZE + 4) != 0)
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"cmd=%d, client ip: %s, package size " \
-			PKG_LEN_PRINTF_FORMAT" is not correct", \
-			__LINE__, TRACKER_PROTO_CMD_STORAGE_SYNC_REPORT, \
+		logError("file: "__FILE__", line: %d, "
+			"cmd=%d, client ip: %s, package size "
+			PKG_LEN_PRINTF_FORMAT" is not correct",
+			__LINE__, TRACKER_PROTO_CMD_STORAGE_SYNC_REPORT,
 			pTask->client_ip, nPkgLen);
 
 		pTask->send.ptr->length = sizeof(TrackerHeader);
@@ -4068,7 +4068,7 @@ static int tracker_deal_storage_sync_report(struct fast_task_info *pTask)
 
 		min_synced_timestamp = 0;
 		pEnd = pTask->recv.ptr->data + pTask->recv.ptr->length;
-		for (p=pTask->recv.ptr->data + sizeof(TrackerHeader); p<pEnd; \
+		for (p=pTask->recv.ptr->data + sizeof(TrackerHeader); p<pEnd;
 			p += (FDFS_STORAGE_ID_MAX_SIZE + 4))
 		{
 			sync_timestamp = buff2int(p + FDFS_STORAGE_ID_MAX_SIZE);
@@ -4098,9 +4098,8 @@ static int tracker_deal_storage_sync_report(struct fast_task_info *pTask)
 				continue;
 			}
 
-			pClientInfo->pGroup->last_sync_timestamps \
+			pClientInfo->pGroup->last_sync_timestamps
 				[src_index][dest_index] = sync_timestamp;
-
 			if (min_synced_timestamp == 0)
 			{
 				min_synced_timestamp = sync_timestamp;
@@ -4112,10 +4111,10 @@ static int tracker_deal_storage_sync_report(struct fast_task_info *pTask)
 		}
 
 		if (min_synced_timestamp > 0)
-		{
-			pClientInfo->pStorage->stat.last_synced_timestamp = \
-						   min_synced_timestamp;
-		}
+        {
+            pClientInfo->pStorage->stat.last_synced_timestamp =
+                min_synced_timestamp;
+        }
 	}
 	else
 	{
@@ -4154,9 +4153,8 @@ static int tracker_deal_storage_sync_report(struct fast_task_info *pTask)
 				continue;
 			}
 
-			pClientInfo->pGroup->last_sync_timestamps \
-				[src_index][dest_index] = sync_timestamp;
-
+			pClientInfo->pGroup->last_sync_timestamps
+                [src_index][dest_index] = sync_timestamp;
 			if (sync_timestamp > max_synced_timestamp)
 			{
 				max_synced_timestamp = sync_timestamp;
@@ -4164,7 +4162,7 @@ static int tracker_deal_storage_sync_report(struct fast_task_info *pTask)
 		}
 
 		pClientInfo->pStorage->stat.last_synced_timestamp =
-						    max_synced_timestamp;
+            max_synced_timestamp;
 	}
 
 	if (++g_storage_sync_time_chg_count % TRACKER_SYNC_TO_FILE_FREQ == 0)

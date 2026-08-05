@@ -394,14 +394,13 @@ static int list_storages(FDFSGroupStat *pGroupStat)
 	{
 		max_last_source_update = 0;
 		for (p=storage_infos; p<pStorageEnd; p++)
-		{
-			if (p != pStorage && p->stat.last_source_update
-				> max_last_source_update)
-			{
-				max_last_source_update = \
-					p->stat.last_source_update;
-			}
-		}
+        {
+            if (p != pStorage && p->stat.last_source_update >
+                    max_last_source_update)
+            {
+                max_last_source_update = p->stat.last_source_update;
+            }
+        }
 
 		pStorageStat = &(pStorage->stat);
 		if (max_last_source_update == 0)
@@ -427,11 +426,10 @@ static int list_storages(FDFSGroupStat *pGroupStat)
 		}
 
 		if (pStorage->up_time != 0)
-		{
-			formatDatetime(pStorage->up_time, \
-				"%Y-%m-%d %H:%M:%S", \
-				szUpTime, sizeof(szUpTime));
-		}
+        {
+            formatDatetime(pStorage->up_time, "%Y-%m-%d %H:%M:%S",
+                    szUpTime, sizeof(szUpTime));
+        }
 		else
 		{
 			*szUpTime = '\0';

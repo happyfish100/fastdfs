@@ -8418,15 +8418,6 @@ static int storage_sync_join_server(struct fast_task_info *pTask)
     if (memcmp(req->sync_key, g_storage_sync_key.key,
             FDFS_STORAGE_SYNC_KEY_LEN) != 0)
     {
-        /*
-        char buff1[64];
-        char buff2[64];
-        logError("file: "__FILE__", line: %d, "
-                "client ip: %s, sync key %s not correct! my key: %s",
-                __LINE__, pTask->client_ip, bin2hex(req->sync_key, FDFS_STORAGE_SYNC_KEY_LEN, buff1),
-                bin2hex(g_storage_sync_key.key, FDFS_STORAGE_SYNC_KEY_LEN, buff2));
-                */
-
         logError("file: "__FILE__", line: %d, "
                 "client ip: %s, the sync key not correct!",
                 __LINE__, pTask->client_ip);
@@ -8446,8 +8437,9 @@ static int storage_sync_join_server(struct fast_task_info *pTask)
     if (pClientInfo->pSrcStorage == NULL)
     {
         logError("file: "__FILE__", line: %d, "
-                "client ip: %s, storage server %s not exist!",
-                __LINE__, pTask->client_ip, req->storage_id);
+                "client ip: %s, storage server %s not exist! "
+                "local storage count: %d", __LINE__, pTask->client_ip,
+                req->storage_id, g_storage_count);
         return ENOENT;
     }
 
