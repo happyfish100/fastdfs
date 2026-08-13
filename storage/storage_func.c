@@ -2009,7 +2009,8 @@ int storage_func_init(const char *filename)
                 "sync_min_threads", 1, 1, FDFS_FILE_SYNC_MAX_THREADS);
         g_sync_max_threads = iniGetIntCorrectValue(&ini_full_ctx,
                 "sync_max_threads", 0, 0, FDFS_FILE_SYNC_MAX_THREADS);
-        if (g_sync_max_threads == 0) {
+        if (g_sync_max_threads == 0)
+        {
             char *sync_max_threads;
             sync_max_threads = iniGetStrValue(NULL,
                     "sync_max_threads", &iniContext);
@@ -2017,19 +2018,25 @@ int storage_func_init(const char *filename)
                     strcmp(sync_max_threads, "0") == 0 ||
                     strcasecmp(sync_max_threads, "auto") == 0)
             {
-                g_sync_max_threads = 2 * g_fdfs_store_paths.count;
-            } else {
+                g_sync_max_threads = (g_fdfs_store_paths.count <= 8 ?  2 *
+                        g_fdfs_store_paths.count : g_fdfs_store_paths.count);
+            }
+            else
+            {
                 logWarning("file: "__FILE__", line: %d, "
                         "sync_max_threads \"%s\" is invalid, "
                         "set to twice of sync_min_threads",
                         __LINE__, sync_max_threads);
                 g_sync_max_threads = 2 * g_sync_min_threads;
             }
-            if (g_sync_max_threads > FDFS_FILE_SYNC_MAX_THREADS) {
+
+            if (g_sync_max_threads > FDFS_FILE_SYNC_MAX_THREADS)
+            {
                 g_sync_max_threads = FDFS_FILE_SYNC_MAX_THREADS;
             }
         }
-        if (g_sync_max_threads < g_sync_min_threads) {
+        if (g_sync_max_threads < g_sync_min_threads)
+        {
             logWarning("file: "__FILE__", line: %d, "
                     "sync_max_threads:%d < sync_min_threads: %d, "
                     "set to sync_min_threads", __LINE__,
@@ -2037,7 +2044,7 @@ int storage_func_init(const char *filename)
             g_sync_max_threads = g_sync_min_threads;
         }
 
-		g_sync_wait_usec = iniGetIntValue(NULL, "sync_wait_msec",\
+		g_sync_wait_usec = iniGetIntValue(NULL, "sync_wait_msec",
 			 &iniContext, STORAGE_DEF_SYNC_WAIT_MSEC);
 		if (g_sync_wait_usec <= 0)
 		{

@@ -118,7 +118,8 @@ typedef struct
 		StorageSetMetaInfo setmeta;
 	} extra_info;
 
-	int timestamp2log;      //timestamp to log
+	time_t timestamp2log;   //timestamp to log
+	time_t timestamp2set;   //timestamp to set on syncing
 	short dio_thread_index; //dio thread index
 	char delete_flag;       //delete file flag
 	char create_flag;       //create file flag

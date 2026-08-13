@@ -1,4 +1,8 @@
 
+Version 6.17.1  2026-08-13
+ * bug fixed: set synced timestamp correctly
+   when storage sync files by multi threads
+
 Version 6.17.0  2026-08-05
  * tracker server check storage server for safety
  * storage sync authorization by key for safety

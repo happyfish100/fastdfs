@@ -126,6 +126,7 @@ typedef struct {
     struct storage_dispatch_context *dispatch_ctx;
     ConnectionInfo storage_server;
     StorageBinLogRecord record;
+    time_t synced_timestamp;  //synced timestamp for recording
 } StorageSyncTaskInfo;
 
 typedef struct {
@@ -140,8 +141,12 @@ typedef struct storage_dispatch_context {
     int64_t scan_row_count;
     StorageSyncTaskArray task_array;
     SFSynchronizeContext notify_ctx;
-	const FDFSStorageBrief *pStorage;
+    const FDFSStorageBrief *pStorage;
     StorageBinLogReader *pReader;
+    struct {
+        time_t current;
+        time_t pending;  //for setting to current on next turn
+    } synced_timestamps;  //synced timestamp for recording
 } StorageDispatchContext;
 
 static struct {
@@ -173,620 +178,6 @@ static int storage_write_to_mark_file(StorageBinLogReader *pReader);
 static int storage_binlog_reader_skip(StorageBinLogReader *pReader);
 static int storage_binlog_fsync(const bool bNeedLock);
 static int storage_binlog_preread(StorageBinLogReader *pReader);
-
-/**
-8 bytes: filename bytes
-8 bytes: file size
-4 bytes: source op timestamp
-FDFS_GROUP_NAME_MAX_LEN bytes: group_name
-filename bytes : filename
-file size bytes: file content
-**/
-static int storage_sync_copy_file(ConnectionInfo *pStorageServer,
-	StorageBinLogReader *pReader, const StorageBinLogRecord *pRecord,
-	char proto_cmd)
-{
-	TrackerHeader *pHeader;
-	char *p;
-	char *pBuff;
-	char full_filename[MAX_PATH_SIZE];
-	char out_buff[sizeof(TrackerHeader)+FDFS_GROUP_NAME_MAX_LEN+256];
-    char formatted_ip[FORMATTED_IP_SIZE];
-	char in_buff[1];
-	struct stat stat_buf;
-	FDFSTrunkFullInfo trunkInfo;
-	FDFSTrunkHeader trunkHeader;
-	int64_t file_offset;
-	int64_t in_bytes;
-	int64_t total_send_bytes;
-	int result;
-	bool need_sync_file;
-
-	if ((result=trunk_file_stat(pRecord->store_path_index,
-		pRecord->true_filename, pRecord->true_filename_len,
-		&stat_buf, &trunkInfo, &trunkHeader)) != 0)
-	{
-		if (result == ENOENT)
-		{
-			if(pRecord->op_type==STORAGE_OP_TYPE_SOURCE_CREATE_FILE)
-			{
-				logDebug("file: "__FILE__", line: %d, " \
-					"sync data file, logic file: %s " \
-					"not exists, maybe deleted later?", \
-					__LINE__, pRecord->filename);
-			}
-
-			return 0;
-		}
-		else
-		{
-			logError("file: "__FILE__", line: %d, " \
-				"call stat fail, logic file: %s, "\
-				"error no: %d, error info: %s", \
-				__LINE__, pRecord->filename, \
-				result, STRERROR(result));
-			return result;
-		}
-	}
-
-	need_sync_file = true;
-	if (pReader->last_file_exist && proto_cmd ==
-			STORAGE_PROTO_CMD_SYNC_CREATE_FILE)
-	{
-		FDFSFileInfo file_info;
-		result = storage_query_file_info_ex(NULL,
-				pStorageServer, g_group_name,
-				pRecord->filename, &file_info, true);
-		if (result == 0)
-		{
-			if (file_info.file_size == stat_buf.st_size)
-			{
-                if (FC_LOG_BY_LEVEL(LOG_DEBUG)) {
-                    format_ip_address(pStorageServer->ip_addr, formatted_ip);
-                    logDebug("file: "__FILE__", line: %d, "
-                            "sync data file, logic file: %s "
-                            "on dest server %s:%u already exists, "
-                            "and same as mine, ignore it", __LINE__,
-                            pRecord->filename, formatted_ip,
-                            pStorageServer->port);
-                }
-				need_sync_file = false;
-			}
-			else
-			{
-                format_ip_address(pStorageServer->ip_addr, formatted_ip);
-				logWarning("file: "__FILE__", line: %d, "
-					"sync data file, logic file: %s "
-					"on dest server %s:%u already exists, "
-					"but file size: %"PRId64" not same as mine: %"PRId64
-					", need re-sync it", __LINE__, pRecord->filename,
-                    formatted_ip, pStorageServer->port, file_info.file_size,
-                    (int64_t)stat_buf.st_size);
-
-				proto_cmd = STORAGE_PROTO_CMD_SYNC_UPDATE_FILE;
-			}
-		}
-		else if (result != ENOENT)
-		{
-			return result;
-		}
-	}
-
-	if (IS_TRUNK_FILE_BY_ID(trunkInfo))
-	{
-		file_offset = TRUNK_FILE_START_OFFSET(trunkInfo);
-		trunk_get_full_filename((&trunkInfo), full_filename,
-				sizeof(full_filename));
-	}
-	else
-	{
-		file_offset = 0;
-        fc_get_one_subdir_full_filename(
-                FDFS_STORE_PATH_STR(pRecord->store_path_index),
-                FDFS_STORE_PATH_LEN(pRecord->store_path_index),
-                "data", 4, pRecord->true_filename,
-                pRecord->true_filename_len, full_filename);
-	}
-
-	total_send_bytes = 0;
-	//printf("sync create file: %s\n", pRecord->filename);
-	do
-	{
-		int64_t body_len;
-
-		pHeader = (TrackerHeader *)out_buff;
-		memset(pHeader, 0, sizeof(TrackerHeader));
-
-		body_len = 2 * FDFS_PROTO_PKG_LEN_SIZE +
-				4 + FDFS_GROUP_NAME_MAX_LEN +
-				pRecord->filename_len;
-		if (need_sync_file)
-		{
-			body_len += stat_buf.st_size;
-		}
-
-		long2buff(body_len, pHeader->pkg_len);
-		pHeader->cmd = proto_cmd;
-		pHeader->status = need_sync_file ? 0 : EEXIST;
-
-		p = out_buff + sizeof(TrackerHeader);
-
-		long2buff(pRecord->filename_len, p);
-		p += FDFS_PROTO_PKG_LEN_SIZE;
-
-		long2buff(stat_buf.st_size, p);
-		p += FDFS_PROTO_PKG_LEN_SIZE;
-
-		int2buff(pRecord->timestamp, p);
-		p += 4;
-
-		strcpy(p, g_group_name);
-		p += FDFS_GROUP_NAME_MAX_LEN;
-		memcpy(p, pRecord->filename, pRecord->filename_len);
-		p += pRecord->filename_len;
-
-		if((result=tcpsenddata_nb(pStorageServer->sock, out_buff,
-			p - out_buff, SF_G_NETWORK_TIMEOUT)) != 0)
-		{
-            format_ip_address(pStorageServer->ip_addr, formatted_ip);
-			logError("file: "__FILE__", line: %d, "
-				"sync data to storage server %s:%u fail, errno: %d, "
-				"error info: %s", __LINE__, formatted_ip,
-				pStorageServer->port, result, STRERROR(result));
-			break;
-		}
-
-		if (need_sync_file && (stat_buf.st_size > 0) &&
-			((result=tcpsendfile_ex(pStorageServer->sock,
-			full_filename, file_offset, stat_buf.st_size,
-			SF_G_NETWORK_TIMEOUT, &total_send_bytes)) != 0))
-		{
-            format_ip_address(pStorageServer->ip_addr, formatted_ip);
-			logError("file: "__FILE__", line: %d, "
-				"sync data to storage server %s:%u fail, errno: %d, "
-				"error info: %s", __LINE__, formatted_ip,
-				pStorageServer->port, result, STRERROR(result));
-			break;
-		}
-
-		pBuff = in_buff;
-		if ((result=fdfs_recv_response(pStorageServer,
-			&pBuff, 0, &in_bytes)) != 0)
-		{
-            logError("file: "__FILE__", line: %d, "
-                    "fdfs_recv_response fail, errno: %d, error info: %s",
-                    __LINE__, result, STRERROR(result));
-			break;
-		}
-	} while (0);
-
-	__sync_add_and_fetch(&g_storage_stat.total_sync_out_bytes,
-            total_send_bytes);
-	if (result == 0)
-    {
-        __sync_add_and_fetch(&g_storage_stat.success_sync_out_bytes,
-                total_send_bytes);
-    }
-
-	if (result == EEXIST)
-	{
-		if (need_sync_file && pRecord->op_type ==
-                STORAGE_OP_TYPE_SOURCE_CREATE_FILE)
-		{
-            format_ip_address(pStorageServer->ip_addr, formatted_ip);
-			logWarning("file: "__FILE__", line: %d, "
-				"storage server ip: %s:%u, data file: %s already exists, "
-				"maybe some mistake?", __LINE__, formatted_ip,
-				pStorageServer->port, pRecord->filename);
-		}
-
-		pReader->last_file_exist = true;
-		return 0;
-	}
-	else if (result == 0)
-	{
-		pReader->last_file_exist = false;
-		return 0;
-	}
-	else
-	{
-		return result;
-	}
-}
-
-/**
-8 bytes: filename bytes
-8 bytes: start offset
-8 bytes: append length
-4 bytes: source op timestamp
-FDFS_GROUP_NAME_MAX_LEN bytes: group_name
-filename bytes : filename
-file size bytes: file content
-**/
-static int storage_sync_modify_file(ConnectionInfo *pStorageServer,
-	StorageBinLogReader *pReader, StorageBinLogRecord *pRecord,
-	const char cmd)
-{
-#define SYNC_MODIFY_FIELD_COUNT  3
-	TrackerHeader *pHeader;
-	char *p;
-	char *pBuff;
-	char *fields[SYNC_MODIFY_FIELD_COUNT];
-	char full_filename[MAX_PATH_SIZE];
-	char out_buff[sizeof(TrackerHeader)+FDFS_GROUP_NAME_MAX_LEN+256];
-    char formatted_ip[FORMATTED_IP_SIZE];
-	char in_buff[1];
-	struct stat stat_buf;
-	int64_t in_bytes;
-	int64_t total_send_bytes;
-	int64_t start_offset;
-	int64_t modify_length;
-	int result;
-	int count;
-
-	if ((count=splitEx(pRecord->filename, ' ', fields, SYNC_MODIFY_FIELD_COUNT))
-			!= SYNC_MODIFY_FIELD_COUNT)
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"the format of binlog not correct, filename: %s", \
-			__LINE__, pRecord->filename);
-		return EINVAL;
-	}
-
-	start_offset = strtoll((fields[1]), NULL, 10);
-	modify_length = strtoll((fields[2]), NULL, 10);
-	
-	pRecord->filename_len = strlen(pRecord->filename);
-	pRecord->true_filename_len = pRecord->filename_len;
-	if ((result=storage_split_filename_ex(pRecord->filename, \
-			&pRecord->true_filename_len, pRecord->true_filename, \
-			&pRecord->store_path_index)) != 0)
-	{
-		return result;
-	}
-
-    fc_get_one_subdir_full_filename(
-            FDFS_STORE_PATH_STR(pRecord->store_path_index),
-            FDFS_STORE_PATH_LEN(pRecord->store_path_index),
-            "data", 4, pRecord->true_filename,
-            pRecord->true_filename_len, full_filename);
-	if (lstat(full_filename, &stat_buf) != 0)
-	{
-		if (errno == ENOENT)
-		{
-			logDebug("file: "__FILE__", line: %d, " \
-				"sync appender file, file: %s not exists, "\
-				"maybe deleted later?", \
-				__LINE__, full_filename);
-
-			return 0;
-		}
-		else
-		{
-			result = errno != 0 ? errno : EPERM;
-			logError("file: "__FILE__", line: %d, " \
-				"call stat fail, appender file: %s, "\
-				"error no: %d, error info: %s", \
-				__LINE__, full_filename, \
-				result, STRERROR(result));
-			return result;
-		}
-	}
-
-	if (stat_buf.st_size < start_offset + modify_length)
-	{
-		logWarning("file: "__FILE__", line: %d, " \
-			"appender file: %s 'size: %"PRId64 \
-			" < %"PRId64", maybe some mistakes " \
-			"happened, skip sync this appender file", __LINE__, \
-			full_filename, stat_buf.st_size, \
-			start_offset + modify_length);
-
-		return 0;
-	}
-
-	total_send_bytes = 0;
-	//printf("sync create file: %s\n", pRecord->filename);
-	do
-	{
-		int64_t body_len;
-
-		pHeader = (TrackerHeader *)out_buff;
-		memset(pHeader, 0, sizeof(TrackerHeader));
-
-		body_len = 3 * FDFS_PROTO_PKG_LEN_SIZE + \
-				4 + FDFS_GROUP_NAME_MAX_LEN + \
-				pRecord->filename_len + modify_length;
-
-		long2buff(body_len, pHeader->pkg_len);
-		pHeader->cmd = cmd;
-		pHeader->status = 0;
-
-		p = out_buff + sizeof(TrackerHeader);
-
-		long2buff(pRecord->filename_len, p);
-		p += FDFS_PROTO_PKG_LEN_SIZE;
-
-		long2buff(start_offset, p);
-		p += FDFS_PROTO_PKG_LEN_SIZE;
-
-		long2buff(modify_length, p);
-		p += FDFS_PROTO_PKG_LEN_SIZE;
-
-		int2buff(pRecord->timestamp, p);
-		p += 4;
-
-		strcpy(p, g_group_name);
-		p += FDFS_GROUP_NAME_MAX_LEN;
-		memcpy(p, pRecord->filename, pRecord->filename_len);
-		p += pRecord->filename_len;
-
-		if((result=tcpsenddata_nb(pStorageServer->sock, out_buff, \
-			p - out_buff, SF_G_NETWORK_TIMEOUT)) != 0)
-		{
-            format_ip_address(pStorageServer->ip_addr, formatted_ip);
-			logError("file: "__FILE__", line: %d, "
-				"sync data to storage server %s:%u fail, errno: %d, "
-				"error info: %s", __LINE__, formatted_ip,
-				pStorageServer->port, result, STRERROR(result));
-			break;
-		}
-
-		if ((result=tcpsendfile_ex(pStorageServer->sock, \
-			full_filename, start_offset, modify_length, \
-			SF_G_NETWORK_TIMEOUT, &total_send_bytes)) != 0)
-		{
-            format_ip_address(pStorageServer->ip_addr, formatted_ip);
-			logError("file: "__FILE__", line: %d, "
-				"sync data to storage server %s:%u fail, errno: %d, "
-				"error info: %s", __LINE__, formatted_ip,
-				pStorageServer->port, result, STRERROR(result));
-			break;
-		}
-
-		pBuff = in_buff;
-		if ((result=fdfs_recv_response(pStorageServer,
-			&pBuff, 0, &in_bytes)) != 0)
-		{
-            logError("file: "__FILE__", line: %d, "
-                    "fdfs_recv_response fail, errno: %d, error info: %s",
-                    __LINE__, result, STRERROR(result));
-			break;
-		}
-	} while (0);
-
-	__sync_add_and_fetch(&g_storage_stat.total_sync_out_bytes,
-            total_send_bytes);
-	if (result == 0)
-    {
-        __sync_add_and_fetch(&g_storage_stat.success_sync_out_bytes,
-                total_send_bytes);
-    }
-
-	return result == EEXIST ? 0 : result;
-}
-
-/**
-8 bytes: filename bytes
-8 bytes: old file size
-8 bytes: new file size
-4 bytes: source op timestamp
-FDFS_GROUP_NAME_MAX_LEN bytes: group_name
-filename bytes : filename
-**/
-static int storage_sync_truncate_file(ConnectionInfo *pStorageServer,
-	StorageBinLogReader *pReader, StorageBinLogRecord *pRecord)
-{
-#define SYNC_TRUNCATE_FIELD_COUNT  3
-	TrackerHeader *pHeader;
-	char *p;
-	char *pBuff;
-	char *fields[SYNC_TRUNCATE_FIELD_COUNT];
-	char full_filename[MAX_PATH_SIZE];
-	char out_buff[sizeof(TrackerHeader)+FDFS_GROUP_NAME_MAX_LEN+256];
-    char formatted_ip[FORMATTED_IP_SIZE];
-	char in_buff[1];
-	struct stat stat_buf;
-	int64_t in_bytes;
-	int64_t old_file_size;
-	int64_t new_file_size;
-	int result;
-	int count;
-
-	if ((count=splitEx(pRecord->filename, ' ', fields,
-                    SYNC_TRUNCATE_FIELD_COUNT)) != SYNC_TRUNCATE_FIELD_COUNT)
-	{
-		logError("file: "__FILE__", line: %d, " \
-			"the format of binlog not correct, filename: %s", \
-			__LINE__, pRecord->filename);
-		return EINVAL;
-	}
-
-	old_file_size = strtoll((fields[1]), NULL, 10);
-	new_file_size = strtoll((fields[2]), NULL, 10);
-	
-	pRecord->filename_len = strlen(pRecord->filename);
-	pRecord->true_filename_len = pRecord->filename_len;
-	if ((result=storage_split_filename_ex(pRecord->filename, \
-			&pRecord->true_filename_len, pRecord->true_filename, \
-			&pRecord->store_path_index)) != 0)
-	{
-		return result;
-	}
-
-    fc_get_one_subdir_full_filename(
-            FDFS_STORE_PATH_STR(pRecord->store_path_index),
-            FDFS_STORE_PATH_LEN(pRecord->store_path_index),
-            "data", 4, pRecord->true_filename,
-            pRecord->true_filename_len, full_filename);
-	if (lstat(full_filename, &stat_buf) != 0)
-	{
-		if (errno == ENOENT)
-		{
-			logDebug("file: "__FILE__", line: %d, " \
-				"sync appender file, file: %s not exists, "\
-				"maybe deleted later?", \
-				__LINE__, full_filename);
-
-			return 0;
-		}
-		else
-		{
-			result = errno != 0 ? errno : EPERM;
-			logError("file: "__FILE__", line: %d, " \
-				"call stat fail, appender file: %s, "\
-				"error no: %d, error info: %s", \
-				__LINE__, full_filename, \
-				result, STRERROR(result));
-			return result;
-		}
-	}
-
-	if (stat_buf.st_size != new_file_size)
-	{
-		logDebug("file: "__FILE__", line: %d, " \
-			"appender file: %s 'size: %"PRId64 \
-			" != %"PRId64", maybe append/modify later",\
-			__LINE__, full_filename, stat_buf.st_size, 
-			new_file_size);
-	}
-
-	do
-	{
-		int64_t body_len;
-
-		pHeader = (TrackerHeader *)out_buff;
-		memset(pHeader, 0, sizeof(TrackerHeader));
-
-		body_len = 3 * FDFS_PROTO_PKG_LEN_SIZE + \
-				4 + FDFS_GROUP_NAME_MAX_LEN + \
-				pRecord->filename_len;
-
-		long2buff(body_len, pHeader->pkg_len);
-		pHeader->cmd = STORAGE_PROTO_CMD_SYNC_TRUNCATE_FILE;
-		pHeader->status = 0;
-
-		p = out_buff + sizeof(TrackerHeader);
-
-		long2buff(pRecord->filename_len, p);
-		p += FDFS_PROTO_PKG_LEN_SIZE;
-
-		long2buff(old_file_size, p);
-		p += FDFS_PROTO_PKG_LEN_SIZE;
-
-		long2buff(new_file_size, p);
-		p += FDFS_PROTO_PKG_LEN_SIZE;
-
-		int2buff(pRecord->timestamp, p);
-		p += 4;
-
-		strcpy(p, g_group_name);
-		p += FDFS_GROUP_NAME_MAX_LEN;
-		memcpy(p, pRecord->filename, pRecord->filename_len);
-		p += pRecord->filename_len;
-
-		if((result=tcpsenddata_nb(pStorageServer->sock, out_buff,
-			p - out_buff, SF_G_NETWORK_TIMEOUT)) != 0)
-		{
-            format_ip_address(pStorageServer->ip_addr, formatted_ip);
-			logError("file: "__FILE__", line: %d, "
-				"sync data to storage server %s:%u fail, errno: %d, "
-				"error info: %s", __LINE__, formatted_ip,
-				pStorageServer->port, result, STRERROR(result));
-			break;
-		}
-
-		pBuff = in_buff;
-		if ((result=fdfs_recv_response(pStorageServer,
-			&pBuff, 0, &in_bytes)) != 0)
-		{
-            logError("file: "__FILE__", line: %d, "
-                    "fdfs_recv_response fail, errno: %d, error info: %s",
-                    __LINE__, result, STRERROR(result));
-			break;
-		}
-	} while (0);
-
-	return result == EEXIST ? 0 : result;
-}
-
-/**
-send pkg format:
-4 bytes: source delete timestamp
-FDFS_GROUP_NAME_MAX_LEN bytes: group_name
-remain bytes: filename
-**/
-static int storage_sync_delete_file(ConnectionInfo *pStorageServer, \
-			const StorageBinLogRecord *pRecord)
-{
-	TrackerHeader *pHeader;
-	char out_buff[sizeof(TrackerHeader)+FDFS_GROUP_NAME_MAX_LEN+256];
-    char formatted_ip[FORMATTED_IP_SIZE];
-	struct stat stat_buf;
-	FDFSTrunkFullInfo trunkInfo;
-	FDFSTrunkHeader trunkHeader;
-	char in_buff[1];
-	char *pBuff;
-	int64_t in_bytes;
-	int result;
-
-	if ((result=trunk_file_stat(pRecord->store_path_index, \
-		pRecord->true_filename, pRecord->true_filename_len, \
-		&stat_buf, &trunkInfo, &trunkHeader)) == 0)
-	{
-		if (pRecord->op_type == STORAGE_OP_TYPE_SOURCE_DELETE_FILE)
-		{
-			logWarning("file: "__FILE__", line: %d, " \
-				"sync data file, logic file: %s exists, " \
-				"maybe created later?", \
-				__LINE__, pRecord->filename);
-		}
-
-		return 0;
-	}
-
-	memset(out_buff, 0, sizeof(out_buff));
-	int2buff(pRecord->timestamp, out_buff + sizeof(TrackerHeader));
-	memcpy(out_buff + sizeof(TrackerHeader) + 4, g_group_name, \
-		sizeof(g_group_name));
-	memcpy(out_buff + sizeof(TrackerHeader) + 4 + FDFS_GROUP_NAME_MAX_LEN, \
-		pRecord->filename, pRecord->filename_len);
-
-	pHeader = (TrackerHeader *)out_buff;
-	long2buff(4 + FDFS_GROUP_NAME_MAX_LEN + pRecord->filename_len, \
-			pHeader->pkg_len);
-	pHeader->cmd = STORAGE_PROTO_CMD_SYNC_DELETE_FILE;
-
-	if ((result=tcpsenddata_nb(pStorageServer->sock, out_buff, \
-		sizeof(TrackerHeader) + 4 + FDFS_GROUP_NAME_MAX_LEN + \
-		pRecord->filename_len, SF_G_NETWORK_TIMEOUT)) != 0)
-	{
-        format_ip_address(pStorageServer->ip_addr, formatted_ip);
-		logError("FILE: "__FILE__", line: %d, "
-			"send data to storage server %s:%u fail, errno: %d, "
-			"error info: %s", __LINE__, formatted_ip,
-			pStorageServer->port, result, STRERROR(result));
-		return result;
-	}
-
-	pBuff = in_buff;
-	result = fdfs_recv_response(pStorageServer, &pBuff, 0, &in_bytes);
-    if (result != 0)
-    {
-        if (result == ENOENT)
-        {
-            result = 0;
-        }
-        else
-        {
-            logError("file: "__FILE__", line: %d, "
-                    "fdfs_recv_response fail, errno: %d, error info: %s",
-                    __LINE__, result, STRERROR(result));
-        }
-    }
-	
-	return result;
-}
 
 static int storage_sync_join_server(ConnectionInfo *pStorageServer,
         const char *sync_key)
@@ -831,44 +222,690 @@ static int storage_sync_join_server(ConnectionInfo *pStorageServer,
     return result;
 }
 
+static int report_storage_synced_timestamp(ConnectionInfo *
+        pStorageServer, const time_t timestamp)
+{
+	int result;
+	TrackerHeader *pHeader;
+	char out_buff[sizeof(TrackerHeader) + 8];
+    char formatted_ip[FORMATTED_IP_SIZE];
+	char in_buff[1];
+	char *pBuff;
+	int64_t in_bytes;
+
+	memset(out_buff, 0, sizeof(out_buff));
+	pHeader = (TrackerHeader *)out_buff;
+	long2buff(8, pHeader->pkg_len);
+	pHeader->cmd = STORAGE_PROTO_CMD_SYNC_REPORT_TS;
+    long2buff(timestamp, (char *)(pHeader + 1));
+	if ((result=tcpsenddata_nb(pStorageServer->sock, out_buff,
+                    sizeof(out_buff), SF_G_NETWORK_TIMEOUT)) != 0)
+    {
+        format_ip_address(pStorageServer->ip_addr, formatted_ip);
+        logError("FILE: "__FILE__", line: %d, "
+                "send data to storage server %s:%u fail, errno: %d, "
+                "error info: %s", __LINE__, formatted_ip,
+                pStorageServer->port, result, STRERROR(result));
+        return result;
+    }
+
+	pBuff = in_buff;
+	result = fdfs_recv_response(pStorageServer, &pBuff, 0, &in_bytes);
+    if (result != 0)
+    {
+        logError("file: "__FILE__", line: %d, "
+                "fdfs_recv_response fail, errno: %d, error info: %s",
+                __LINE__, result, STRERROR(result));
+    }
+    return result;
+}
+
+#define TRECORD  task->record
+#define TREADER  task->dispatch_ctx->pReader
+#define TSERVER  task->storage_server
+
+/**
+8 bytes: filename bytes
+8 bytes: file size
+8 bytes: source op timestamp for log
+8 bytes: source op timestamp for recording
+filename bytes : filename
+file size bytes: file content
+**/
+static int storage_sync_copy_file(StorageSyncTaskInfo *task, char proto_cmd)
+{
+	TrackerHeader *pHeader;
+	char *p;
+	char *pBuff;
+	char full_filename[MAX_PATH_SIZE];
+	char out_buff[sizeof(TrackerHeader) + 16 + 256];
+    char formatted_ip[FORMATTED_IP_SIZE];
+	char in_buff[1];
+	struct stat stat_buf;
+	FDFSTrunkFullInfo trunkInfo;
+	FDFSTrunkHeader trunkHeader;
+	int64_t file_offset;
+	int64_t in_bytes;
+	int64_t total_send_bytes;
+	int result;
+	bool need_sync_file;
+
+	if ((result=trunk_file_stat(TRECORD.store_path_index,
+		TRECORD.true_filename, TRECORD.true_filename_len,
+		&stat_buf, &trunkInfo, &trunkHeader)) != 0)
+	{
+		if (result == ENOENT)
+		{
+			if(TRECORD.op_type==STORAGE_OP_TYPE_SOURCE_CREATE_FILE)
+			{
+				logDebug("file: "__FILE__", line: %d, " \
+					"sync data file, logic file: %s " \
+					"not exists, maybe deleted later?", \
+					__LINE__, TRECORD.filename);
+			}
+
+			return 0;
+		}
+		else
+		{
+			logError("file: "__FILE__", line: %d, " \
+				"call stat fail, logic file: %s, "\
+				"error no: %d, error info: %s", \
+				__LINE__, TRECORD.filename, \
+				result, STRERROR(result));
+			return result;
+		}
+	}
+
+	need_sync_file = true;
+	if (TREADER->last_file_exist && proto_cmd ==
+			STORAGE_PROTO_CMD_SYNC_CREATE_FILE)
+	{
+		FDFSFileInfo file_info;
+		result = storage_query_file_info_ex(NULL,
+				&TSERVER, g_group_name,
+				TRECORD.filename, &file_info, true);
+		if (result == 0)
+		{
+			if (file_info.file_size == stat_buf.st_size)
+			{
+                if (FC_LOG_BY_LEVEL(LOG_DEBUG)) {
+                    format_ip_address(TSERVER.ip_addr, formatted_ip);
+                    logDebug("file: "__FILE__", line: %d, "
+                            "sync data file, logic file: %s "
+                            "on dest server %s:%u already exists, "
+                            "and same as mine, ignore it", __LINE__,
+                            TRECORD.filename, formatted_ip,
+                            TSERVER.port);
+                }
+				need_sync_file = false;
+			}
+			else
+			{
+                format_ip_address(TSERVER.ip_addr, formatted_ip);
+				logWarning("file: "__FILE__", line: %d, "
+					"sync data file, logic file: %s "
+					"on dest server %s:%u already exists, "
+					"but file size: %"PRId64" not same as mine: %"PRId64
+					", need re-sync it", __LINE__, TRECORD.filename,
+                    formatted_ip, TSERVER.port, file_info.file_size,
+                    (int64_t)stat_buf.st_size);
+
+				proto_cmd = STORAGE_PROTO_CMD_SYNC_UPDATE_FILE;
+			}
+		}
+		else if (result != ENOENT)
+		{
+			return result;
+		}
+	}
+
+	if (IS_TRUNK_FILE_BY_ID(trunkInfo))
+	{
+		file_offset = TRUNK_FILE_START_OFFSET(trunkInfo);
+		trunk_get_full_filename((&trunkInfo), full_filename,
+				sizeof(full_filename));
+	}
+	else
+	{
+		file_offset = 0;
+        fc_get_one_subdir_full_filename(
+                FDFS_STORE_PATH_STR(TRECORD.store_path_index),
+                FDFS_STORE_PATH_LEN(TRECORD.store_path_index),
+                "data", 4, TRECORD.true_filename,
+                TRECORD.true_filename_len, full_filename);
+	}
+
+	total_send_bytes = 0;
+	//printf("sync create file: %s\n", TRECORD.filename);
+	do
+	{
+		int64_t body_len;
+
+		pHeader = (TrackerHeader *)out_buff;
+		memset(pHeader, 0, sizeof(TrackerHeader));
+
+		body_len = 2 * FDFS_PROTO_PKG_LEN_SIZE +
+				16 + TRECORD.filename_len;
+		if (need_sync_file)
+		{
+			body_len += stat_buf.st_size;
+		}
+
+		long2buff(body_len, pHeader->pkg_len);
+		pHeader->cmd = proto_cmd;
+		pHeader->status = need_sync_file ? 0 : EEXIST;
+
+        p = (char *)(pHeader + 1);
+		long2buff(TRECORD.filename_len, p);
+		p += FDFS_PROTO_PKG_LEN_SIZE;
+
+		long2buff(stat_buf.st_size, p);
+		p += FDFS_PROTO_PKG_LEN_SIZE;
+
+		long2buff(TRECORD.timestamp, p);
+		p += 8;
+		long2buff(task->synced_timestamp, p);
+		p += 8;
+
+        memcpy(p, TRECORD.filename, TRECORD.filename_len);
+        p += TRECORD.filename_len;
+
+		if((result=tcpsenddata_nb(TSERVER.sock, out_buff,
+			p - out_buff, SF_G_NETWORK_TIMEOUT)) != 0)
+		{
+            format_ip_address(TSERVER.ip_addr, formatted_ip);
+			logError("file: "__FILE__", line: %d, "
+				"sync data to storage server %s:%u fail, errno: %d, "
+				"error info: %s", __LINE__, formatted_ip,
+				TSERVER.port, result, STRERROR(result));
+			break;
+		}
+
+		if (need_sync_file && (stat_buf.st_size > 0) &&
+			((result=tcpsendfile_ex(TSERVER.sock,
+			full_filename, file_offset, stat_buf.st_size,
+			SF_G_NETWORK_TIMEOUT, &total_send_bytes)) != 0))
+		{
+            format_ip_address(TSERVER.ip_addr, formatted_ip);
+			logError("file: "__FILE__", line: %d, "
+				"sync data to storage server %s:%u fail, errno: %d, "
+				"error info: %s", __LINE__, formatted_ip,
+				TSERVER.port, result, STRERROR(result));
+			break;
+		}
+
+		pBuff = in_buff;
+		if ((result=fdfs_recv_response(&TSERVER,
+			&pBuff, 0, &in_bytes)) != 0)
+		{
+            logError("file: "__FILE__", line: %d, "
+                    "fdfs_recv_response fail, errno: %d, error info: %s",
+                    __LINE__, result, STRERROR(result));
+			break;
+		}
+	} while (0);
+
+	__sync_add_and_fetch(&g_storage_stat.total_sync_out_bytes,
+            total_send_bytes);
+	if (result == 0)
+    {
+        __sync_add_and_fetch(&g_storage_stat.success_sync_out_bytes,
+                total_send_bytes);
+    }
+
+	if (result == EEXIST)
+	{
+		if (need_sync_file && TRECORD.op_type ==
+                STORAGE_OP_TYPE_SOURCE_CREATE_FILE)
+		{
+            format_ip_address(TSERVER.ip_addr, formatted_ip);
+			logWarning("file: "__FILE__", line: %d, "
+				"storage server ip: %s:%u, data file: %s already exists, "
+				"maybe some mistake?", __LINE__, formatted_ip,
+				TSERVER.port, TRECORD.filename);
+		}
+
+		TREADER->last_file_exist = true;
+		return 0;
+	}
+	else if (result == 0)
+	{
+		TREADER->last_file_exist = false;
+		return 0;
+	}
+	else
+	{
+		return result;
+	}
+}
+
+/**
+8 bytes: filename bytes
+8 bytes: start offset
+8 bytes: append length
+8 bytes: source op timestamp for log
+8 bytes: source op timestamp for recording
+filename bytes : filename
+file size bytes: file content
+**/
+static int storage_sync_modify_file(StorageSyncTaskInfo *task, const char cmd)
+{
+#define SYNC_MODIFY_FIELD_COUNT  3
+	TrackerHeader *pHeader;
+	char *pBuff;
+	char *p;
+	char *fields[SYNC_MODIFY_FIELD_COUNT];
+	char full_filename[MAX_PATH_SIZE];
+	char out_buff[sizeof(TrackerHeader) + 16 + 256];
+    char formatted_ip[FORMATTED_IP_SIZE];
+	char in_buff[1];
+	struct stat stat_buf;
+	int64_t in_bytes;
+	int64_t total_send_bytes;
+	int64_t start_offset;
+	int64_t modify_length;
+	int result;
+	int count;
+
+	if ((count=splitEx(TRECORD.filename, ' ', fields, SYNC_MODIFY_FIELD_COUNT))
+			!= SYNC_MODIFY_FIELD_COUNT)
+	{
+		logError("file: "__FILE__", line: %d, " \
+			"the format of binlog not correct, filename: %s", \
+			__LINE__, TRECORD.filename);
+		return EINVAL;
+	}
+
+	start_offset = strtoll((fields[1]), NULL, 10);
+	modify_length = strtoll((fields[2]), NULL, 10);
+	
+	TRECORD.filename_len = strlen(TRECORD.filename);
+	TRECORD.true_filename_len = TRECORD.filename_len;
+	if ((result=storage_split_filename_ex(TRECORD.filename, \
+			&TRECORD.true_filename_len, TRECORD.true_filename, \
+			&TRECORD.store_path_index)) != 0)
+	{
+		return result;
+	}
+
+    fc_get_one_subdir_full_filename(
+            FDFS_STORE_PATH_STR(TRECORD.store_path_index),
+            FDFS_STORE_PATH_LEN(TRECORD.store_path_index),
+            "data", 4, TRECORD.true_filename,
+            TRECORD.true_filename_len, full_filename);
+	if (lstat(full_filename, &stat_buf) != 0)
+	{
+		if (errno == ENOENT)
+		{
+			logDebug("file: "__FILE__", line: %d, " \
+				"sync appender file, file: %s not exists, "\
+				"maybe deleted later?", \
+				__LINE__, full_filename);
+
+			return 0;
+		}
+		else
+		{
+			result = errno != 0 ? errno : EPERM;
+			logError("file: "__FILE__", line: %d, " \
+				"call stat fail, appender file: %s, "\
+				"error no: %d, error info: %s", \
+				__LINE__, full_filename, \
+				result, STRERROR(result));
+			return result;
+		}
+	}
+
+	if (stat_buf.st_size < start_offset + modify_length)
+	{
+		logWarning("file: "__FILE__", line: %d, " \
+			"appender file: %s 'size: %"PRId64 \
+			" < %"PRId64", maybe some mistakes " \
+			"happened, skip sync this appender file", __LINE__, \
+			full_filename, stat_buf.st_size, \
+			start_offset + modify_length);
+
+		return 0;
+	}
+
+	total_send_bytes = 0;
+	//printf("sync create file: %s\n", TRECORD.filename);
+	do
+	{
+		int64_t body_len;
+
+		pHeader = (TrackerHeader *)out_buff;
+		memset(pHeader, 0, sizeof(TrackerHeader));
+
+		body_len = 3 * FDFS_PROTO_PKG_LEN_SIZE + 16 +
+            TRECORD.filename_len + modify_length;
+
+		long2buff(body_len, pHeader->pkg_len);
+		pHeader->cmd = cmd;
+
+        p = (char *)(pHeader + 1);
+		long2buff(TRECORD.filename_len, p);
+		p += FDFS_PROTO_PKG_LEN_SIZE;
+
+		long2buff(start_offset, p);
+		p += FDFS_PROTO_PKG_LEN_SIZE;
+
+		long2buff(modify_length, p);
+		p += FDFS_PROTO_PKG_LEN_SIZE;
+
+		long2buff(TRECORD.timestamp, p);
+		p += 8;
+		long2buff(task->synced_timestamp, p);
+		p += 8;
+
+		memcpy(p, TRECORD.filename, TRECORD.filename_len);
+		p += TRECORD.filename_len;
+
+		if((result=tcpsenddata_nb(TSERVER.sock, out_buff,
+			p - out_buff, SF_G_NETWORK_TIMEOUT)) != 0)
+		{
+            format_ip_address(TSERVER.ip_addr, formatted_ip);
+			logError("file: "__FILE__", line: %d, "
+				"sync data to storage server %s:%u fail, errno: %d, "
+				"error info: %s", __LINE__, formatted_ip,
+				TSERVER.port, result, STRERROR(result));
+			break;
+		}
+
+		if ((result=tcpsendfile_ex(TSERVER.sock, \
+			full_filename, start_offset, modify_length, \
+			SF_G_NETWORK_TIMEOUT, &total_send_bytes)) != 0)
+		{
+            format_ip_address(TSERVER.ip_addr, formatted_ip);
+			logError("file: "__FILE__", line: %d, "
+				"sync data to storage server %s:%u fail, errno: %d, "
+				"error info: %s", __LINE__, formatted_ip,
+				TSERVER.port, result, STRERROR(result));
+			break;
+		}
+
+		pBuff = in_buff;
+		if ((result=fdfs_recv_response(&TSERVER,
+			&pBuff, 0, &in_bytes)) != 0)
+		{
+            logError("file: "__FILE__", line: %d, "
+                    "fdfs_recv_response fail, errno: %d, error info: %s",
+                    __LINE__, result, STRERROR(result));
+			break;
+		}
+	} while (0);
+
+	__sync_add_and_fetch(&g_storage_stat.total_sync_out_bytes,
+            total_send_bytes);
+	if (result == 0)
+    {
+        __sync_add_and_fetch(&g_storage_stat.success_sync_out_bytes,
+                total_send_bytes);
+    }
+
+	return result == EEXIST ? 0 : result;
+}
+
+/**
+8 bytes: filename bytes
+8 bytes: old file size
+8 bytes: new file size
+8 bytes: source op timestamp for log
+8 bytes: source op timestamp for recording
+filename bytes : filename
+**/
+static int storage_sync_truncate_file(StorageSyncTaskInfo *task)
+{
+#define SYNC_TRUNCATE_FIELD_COUNT  3
+	TrackerHeader *pHeader;
+	char *p;
+	char *pBuff;
+	char *fields[SYNC_TRUNCATE_FIELD_COUNT];
+	char full_filename[MAX_PATH_SIZE];
+	char out_buff[sizeof(TrackerHeader) + 16 + 256];
+    char formatted_ip[FORMATTED_IP_SIZE];
+	char in_buff[1];
+	struct stat stat_buf;
+	int64_t in_bytes;
+	int64_t old_file_size;
+	int64_t new_file_size;
+	int result;
+	int count;
+
+	if ((count=splitEx(TRECORD.filename, ' ', fields,
+                    SYNC_TRUNCATE_FIELD_COUNT)) != SYNC_TRUNCATE_FIELD_COUNT)
+	{
+		logError("file: "__FILE__", line: %d, " \
+			"the format of binlog not correct, filename: %s", \
+			__LINE__, TRECORD.filename);
+		return EINVAL;
+	}
+
+	old_file_size = strtoll((fields[1]), NULL, 10);
+	new_file_size = strtoll((fields[2]), NULL, 10);
+	
+	TRECORD.filename_len = strlen(TRECORD.filename);
+	TRECORD.true_filename_len = TRECORD.filename_len;
+	if ((result=storage_split_filename_ex(TRECORD.filename, \
+			&TRECORD.true_filename_len, TRECORD.true_filename, \
+			&TRECORD.store_path_index)) != 0)
+	{
+		return result;
+	}
+
+    fc_get_one_subdir_full_filename(
+            FDFS_STORE_PATH_STR(TRECORD.store_path_index),
+            FDFS_STORE_PATH_LEN(TRECORD.store_path_index),
+            "data", 4, TRECORD.true_filename,
+            TRECORD.true_filename_len, full_filename);
+	if (lstat(full_filename, &stat_buf) != 0)
+	{
+		if (errno == ENOENT)
+		{
+			logDebug("file: "__FILE__", line: %d, " \
+				"sync appender file, file: %s not exists, "\
+				"maybe deleted later?", \
+				__LINE__, full_filename);
+
+			return 0;
+		}
+		else
+		{
+			result = errno != 0 ? errno : EPERM;
+			logError("file: "__FILE__", line: %d, " \
+				"call stat fail, appender file: %s, "\
+				"error no: %d, error info: %s", \
+				__LINE__, full_filename, \
+				result, STRERROR(result));
+			return result;
+		}
+	}
+
+	if (stat_buf.st_size != new_file_size)
+	{
+		logDebug("file: "__FILE__", line: %d, " \
+			"appender file: %s 'size: %"PRId64 \
+			" != %"PRId64", maybe append/modify later",\
+			__LINE__, full_filename, stat_buf.st_size, 
+			new_file_size);
+	}
+
+	do
+	{
+		int64_t body_len;
+
+		pHeader = (TrackerHeader *)out_buff;
+		memset(pHeader, 0, sizeof(TrackerHeader));
+
+		body_len = 3 * FDFS_PROTO_PKG_LEN_SIZE +
+				16 + TRECORD.filename_len;
+
+		long2buff(body_len, pHeader->pkg_len);
+		pHeader->cmd = STORAGE_PROTO_CMD_SYNC_TRUNCATE_FILE;
+		pHeader->status = 0;
+
+        p = (char *)(pHeader + 1);
+		long2buff(TRECORD.filename_len, p);
+		p += FDFS_PROTO_PKG_LEN_SIZE;
+
+		long2buff(old_file_size, p);
+		p += FDFS_PROTO_PKG_LEN_SIZE;
+
+		long2buff(new_file_size, p);
+		p += FDFS_PROTO_PKG_LEN_SIZE;
+
+		long2buff(TRECORD.timestamp, p);
+		p += 8;
+		long2buff(task->synced_timestamp, p);
+		p += 8;
+
+		memcpy(p, TRECORD.filename, TRECORD.filename_len);
+		p += TRECORD.filename_len;
+
+		if((result=tcpsenddata_nb(TSERVER.sock, out_buff,
+			p - out_buff, SF_G_NETWORK_TIMEOUT)) != 0)
+		{
+            format_ip_address(TSERVER.ip_addr, formatted_ip);
+			logError("file: "__FILE__", line: %d, "
+				"sync data to storage server %s:%u fail, errno: %d, "
+				"error info: %s", __LINE__, formatted_ip,
+				TSERVER.port, result, STRERROR(result));
+			break;
+		}
+
+		pBuff = in_buff;
+		if ((result=fdfs_recv_response(&TSERVER,
+			&pBuff, 0, &in_bytes)) != 0)
+		{
+            logError("file: "__FILE__", line: %d, "
+                    "fdfs_recv_response fail, errno: %d, error info: %s",
+                    __LINE__, result, STRERROR(result));
+			break;
+		}
+	} while (0);
+
+	return result == EEXIST ? 0 : result;
+}
+
+/**
+send pkg format:
+8 bytes: source delete timestamp for log
+8 bytes: source delete timestamp for recording
+remain bytes: filename
+**/
+static int storage_sync_delete_file(StorageSyncTaskInfo *task)
+{
+	TrackerHeader *pHeader;
+	char out_buff[sizeof(TrackerHeader) + 256];
+    char formatted_ip[FORMATTED_IP_SIZE];
+	struct stat stat_buf;
+	FDFSTrunkFullInfo trunkInfo;
+	FDFSTrunkHeader trunkHeader;
+	char in_buff[1];
+	char *pBuff;
+    char *p;
+    int64_t body_len;
+	int64_t in_bytes;
+	int result;
+
+	if ((result=trunk_file_stat(TRECORD.store_path_index,
+		TRECORD.true_filename, TRECORD.true_filename_len,
+		&stat_buf, &trunkInfo, &trunkHeader)) == 0)
+	{
+		if (TRECORD.op_type == STORAGE_OP_TYPE_SOURCE_DELETE_FILE)
+		{
+			logWarning("file: "__FILE__", line: %d, " \
+				"sync data file, logic file: %s exists, " \
+				"maybe created later?", \
+				__LINE__, TRECORD.filename);
+		}
+
+		return 0;
+	}
+
+    body_len = 16 + TRECORD.filename_len;
+
+	memset(out_buff, 0, sizeof(out_buff));
+	pHeader = (TrackerHeader *)out_buff;
+	pHeader->cmd = STORAGE_PROTO_CMD_SYNC_DELETE_FILE;
+	long2buff(body_len, pHeader->pkg_len);
+
+    p = (char *)(pHeader + 1);
+	long2buff(TRECORD.timestamp, p);
+    p += 8;
+    long2buff(task->synced_timestamp, p);
+    p += 8;
+	memcpy(p, TRECORD.filename, TRECORD.filename_len);
+    p += TRECORD.filename_len;
+	if ((result=tcpsenddata_nb(TSERVER.sock, out_buff,
+            p - out_buff, SF_G_NETWORK_TIMEOUT)) != 0)
+    {
+        format_ip_address(TSERVER.ip_addr, formatted_ip);
+		logError("FILE: "__FILE__", line: %d, "
+			"send data to storage server %s:%u fail, errno: %d, "
+			"error info: %s", __LINE__, formatted_ip,
+			TSERVER.port, result, STRERROR(result));
+		return result;
+	}
+
+	pBuff = in_buff;
+	result = fdfs_recv_response(&TSERVER, &pBuff, 0, &in_bytes);
+    if (result != 0)
+    {
+        if (result == ENOENT)
+        {
+            result = 0;
+        }
+        else
+        {
+            logError("file: "__FILE__", line: %d, "
+                    "fdfs_recv_response fail, errno: %d, error info: %s",
+                    __LINE__, result, STRERROR(result));
+        }
+    }
+
+	return result;
+}
+
 /**
 8 bytes: dest(link) filename length
 8 bytes: source filename length
-4 bytes: source op timestamp
-FDFS_GROUP_NAME_MAX_LEN bytes: group_name
+8 bytes: source op timestamp for log
+8 bytes: source op timestamp for recording
 dest filename length: dest filename
 source filename length: source filename
 **/
-static int storage_sync_link_file(ConnectionInfo *pStorageServer,
-		StorageBinLogRecord *pRecord)
+static int storage_sync_link_file(StorageSyncTaskInfo *task)
 {
 	TrackerHeader *pHeader;
 	int result;
-	char out_buff[sizeof(TrackerHeader) + 2 * FDFS_PROTO_PKG_LEN_SIZE + \
-			4 + FDFS_GROUP_NAME_MAX_LEN + 256];
+	char out_buff[sizeof(TrackerHeader) + 2 *
+        FDFS_PROTO_PKG_LEN_SIZE + 16 + 256];
     char formatted_ip[FORMATTED_IP_SIZE];
 	char in_buff[1];
 	FDFSTrunkFullInfo trunkInfo;
 	FDFSTrunkHeader trunkHeader;
 	int out_body_len;
 	int64_t in_bytes;
+    char *p;
 	char *pBuff;
 	struct stat stat_buf;
 	int fd;
 
 	fd = -1;
-	if ((result=trunk_file_lstat_ex(pRecord->store_path_index, \
-		pRecord->true_filename, pRecord->true_filename_len, \
+	if ((result=trunk_file_lstat_ex(TRECORD.store_path_index, \
+		TRECORD.true_filename, TRECORD.true_filename_len, \
 		&stat_buf, &trunkInfo, &trunkHeader, &fd)) != 0)
 	{
 		if (result == ENOENT)
 		{
-		if (pRecord->op_type == STORAGE_OP_TYPE_SOURCE_CREATE_LINK)
+		if (TRECORD.op_type == STORAGE_OP_TYPE_SOURCE_CREATE_LINK)
 		{
 			logDebug("file: "__FILE__", line: %d, " \
 				"sync data file, logic file: %s does not " \
 				"exist, maybe delete later?", \
-				__LINE__, pRecord->filename);
+				__LINE__, TRECORD.filename);
 		}
 		}
 		else
@@ -876,7 +913,7 @@ static int storage_sync_link_file(ConnectionInfo *pStorageServer,
 			logError("file: "__FILE__", line: %d, " \
 				"call stat fail, logic file: %s, "\
 				"error no: %d, error info: %s", \
-				__LINE__, pRecord->filename, \
+				__LINE__, TRECORD.filename, \
 				result, STRERROR(result));
 		}
 
@@ -890,18 +927,18 @@ static int storage_sync_link_file(ConnectionInfo *pStorageServer,
 			close(fd);
 		}
 
-		if (pRecord->op_type == STORAGE_OP_TYPE_SOURCE_CREATE_LINK)
+		if (TRECORD.op_type == STORAGE_OP_TYPE_SOURCE_CREATE_LINK)
 		{
 			logWarning("file: "__FILE__", line: %d, " \
 				"sync data file, logic file %s is not " \
 				"a symbol link, maybe create later?", \
-				__LINE__, pRecord->filename);
+				__LINE__, TRECORD.filename);
 		}
 
 		return 0;
 	}
 
-	if (pRecord->src_filename_len > 0)
+	if (TRECORD.src_filename_len > 0)
 	{
 		if (fd >= 0)
 		{
@@ -911,8 +948,8 @@ static int storage_sync_link_file(ConnectionInfo *pStorageServer,
 	else if (IS_TRUNK_FILE_BY_ID(trunkInfo))
 	{
         result = trunk_file_get_content(&trunkInfo,
-                stat_buf.st_size, &fd, pRecord->src_filename,
-                sizeof(pRecord->src_filename));
+                stat_buf.st_size, &fd, TRECORD.src_filename,
+                sizeof(TRECORD.src_filename));
         close(fd);
 
 		if (result != 0)
@@ -920,29 +957,28 @@ static int storage_sync_link_file(ConnectionInfo *pStorageServer,
 			logWarning("file: "__FILE__", line: %d, " \
 				"logic file: %s, get file content fail, " \
 				"errno: %d, error info: %s", \
-				__LINE__, pRecord->filename, \
+				__LINE__, TRECORD.filename, \
 				result, STRERROR(result));
 			return 0;
 		}
 
-		pRecord->src_filename_len = stat_buf.st_size;
-		*(pRecord->src_filename + pRecord->src_filename_len) = '\0';
+		TRECORD.src_filename_len = stat_buf.st_size;
+		*(TRECORD.src_filename + TRECORD.src_filename_len) = '\0';
 	}
 	else
 	{
 	char full_filename[MAX_PATH_SIZE];
 	char src_full_filename[MAX_PATH_SIZE];
-	char *p;
 	char *pSrcFilename;
     int filename_len;
 	int src_path_index;
 	int src_filename_len;
 
     fc_get_one_subdir_full_filename(
-            FDFS_STORE_PATH_STR(pRecord->store_path_index),
-            FDFS_STORE_PATH_LEN(pRecord->store_path_index),
-            "data", 4, pRecord->true_filename,
-            pRecord->true_filename_len, full_filename);
+            FDFS_STORE_PATH_STR(TRECORD.store_path_index),
+            FDFS_STORE_PATH_LEN(TRECORD.store_path_index),
+            "data", 4, TRECORD.true_filename,
+            TRECORD.true_filename_len, full_filename);
 	src_filename_len = readlink(full_filename, src_full_filename,
 				sizeof(src_full_filename) - 1);
 	if (src_filename_len <= 0)
@@ -1000,8 +1036,8 @@ static int storage_sync_link_file(ConnectionInfo *pStorageServer,
 	}
 
     filename_len = src_filename_len - (pSrcFilename - src_full_filename);
-	pRecord->src_filename_len = filename_len + 4;
-	if (pRecord->src_filename_len >= sizeof(pRecord->src_filename))
+	TRECORD.src_filename_len = filename_len + 4;
+	if (TRECORD.src_filename_len >= sizeof(TRECORD.src_filename))
 	{
 		logError("file: "__FILE__", line: %d, "
 			"source data file: %s is invalid",
@@ -1009,7 +1045,7 @@ static int storage_sync_link_file(ConnectionInfo *pStorageServer,
 		return EINVAL;
 	}
 
-    p = pRecord->src_filename;
+    p = TRECORD.src_filename;
     *p++ = FDFS_STORAGE_STORE_PATH_PREFIX_CHAR;
     *p++ = g_upper_hex_chars[(src_path_index >> 4) & 0x0F];
     *p++ = g_upper_hex_chars[src_path_index & 0x0F];
@@ -1021,40 +1057,41 @@ static int storage_sync_link_file(ConnectionInfo *pStorageServer,
 
 	pHeader = (TrackerHeader *)out_buff;
 	memset(out_buff, 0, sizeof(out_buff));
-	long2buff(pRecord->filename_len, out_buff + sizeof(TrackerHeader));
-	long2buff(pRecord->src_filename_len, out_buff + sizeof(TrackerHeader) +
-			FDFS_PROTO_PKG_LEN_SIZE);
-	int2buff(pRecord->timestamp, out_buff + sizeof(TrackerHeader) +
-			2 * FDFS_PROTO_PKG_LEN_SIZE);
-	strcpy(out_buff + sizeof(TrackerHeader) + 2 * FDFS_PROTO_PKG_LEN_SIZE
-		 + 4, g_group_name);
-	memcpy(out_buff + sizeof(TrackerHeader) + 2 * FDFS_PROTO_PKG_LEN_SIZE
-		+ 4 + FDFS_GROUP_NAME_MAX_LEN, pRecord->filename,
-        pRecord->filename_len);
-	memcpy(out_buff + sizeof(TrackerHeader) + 2 * FDFS_PROTO_PKG_LEN_SIZE
-		+ 4 + FDFS_GROUP_NAME_MAX_LEN + pRecord->filename_len,
-		pRecord->src_filename, pRecord->src_filename_len);
 
-	out_body_len = 2 * FDFS_PROTO_PKG_LEN_SIZE + 4 + \
-		FDFS_GROUP_NAME_MAX_LEN + pRecord->filename_len + \
-		pRecord->src_filename_len;
+    p = (char *)(pHeader + 1);
+	long2buff(TRECORD.filename_len, p);
+    p += FDFS_PROTO_PKG_LEN_SIZE;
+	long2buff(TRECORD.src_filename_len, p);
+    p += FDFS_PROTO_PKG_LEN_SIZE;
+
+	long2buff(TRECORD.timestamp, p);
+    p += 8;
+    long2buff(task->synced_timestamp, p);
+    p += 8;
+
+	memcpy(p, TRECORD.filename, TRECORD.filename_len);
+    p += TRECORD.filename_len;
+	memcpy(p, TRECORD.src_filename, TRECORD.src_filename_len);
+    p += TRECORD.src_filename_len;
+
+	out_body_len = 2 * FDFS_PROTO_PKG_LEN_SIZE + 16 +
+		TRECORD.filename_len + TRECORD.src_filename_len;
 	long2buff(out_body_len, pHeader->pkg_len);
 	pHeader->cmd = STORAGE_PROTO_CMD_SYNC_CREATE_LINK;
 
-	if ((result=tcpsenddata_nb(pStorageServer->sock, out_buff,
-		sizeof(TrackerHeader) + out_body_len,
-		SF_G_NETWORK_TIMEOUT)) != 0)
+	if ((result=tcpsenddata_nb(TSERVER.sock, out_buff,
+		p - out_buff, SF_G_NETWORK_TIMEOUT)) != 0)
 	{
-        format_ip_address(pStorageServer->ip_addr, formatted_ip);
+        format_ip_address(TSERVER.ip_addr, formatted_ip);
 		logError("FILE: "__FILE__", line: %d, "
 			"send data to storage server %s:%u fail, errno: %d, "
 			"error info: %s", __LINE__, formatted_ip,
-			pStorageServer->port, result, STRERROR(result));
+			TSERVER.port, result, STRERROR(result));
 		return result;
 	}
 
 	pBuff = in_buff;
-	result = fdfs_recv_response(pStorageServer, &pBuff, 0, &in_bytes);
+	result = fdfs_recv_response(&TSERVER, &pBuff, 0, &in_bytes);
     if (result != 0)
     {
         if (result == ENOENT)
@@ -1075,37 +1112,36 @@ static int storage_sync_link_file(ConnectionInfo *pStorageServer,
 /**
 8 bytes: dest filename length
 8 bytes: source filename length
-4 bytes: source op timestamp
-FDFS_GROUP_NAME_MAX_LEN bytes: group_name
+8 bytes: source op timestamp for log
+8 bytes: source op timestamp for recording
 dest filename length: dest filename
 source filename length: source filename
 **/
-static int storage_sync_rename_file(ConnectionInfo *pStorageServer,
-		StorageBinLogReader *pReader, StorageBinLogRecord *pRecord)
+static int storage_sync_rename_file(StorageSyncTaskInfo *task)
 {
 	TrackerHeader *pHeader;
 	int result;
-	char out_buff[sizeof(TrackerHeader) + 2 * FDFS_PROTO_PKG_LEN_SIZE +
-			4 + FDFS_GROUP_NAME_MAX_LEN + 256];
+	char out_buff[sizeof(TrackerHeader) + 2 *
+        FDFS_PROTO_PKG_LEN_SIZE + 16 + 256];
     char formatted_ip[FORMATTED_IP_SIZE];
 	char in_buff[1];
 	int out_body_len;
 	int64_t in_bytes;
 	char *pBuff;
+    char *p;
 	char full_filename[MAX_PATH_SIZE];
 	struct stat stat_buf;
 
-    if (pRecord->op_type == STORAGE_OP_TYPE_REPLICA_RENAME_FILE)
+    if (TRECORD.op_type == STORAGE_OP_TYPE_REPLICA_RENAME_FILE)
     {
-        return storage_sync_copy_file(pStorageServer, pReader,
-                pRecord, STORAGE_PROTO_CMD_SYNC_CREATE_FILE);
+        return storage_sync_copy_file(task, STORAGE_PROTO_CMD_SYNC_CREATE_FILE);
     }
 
     fc_get_one_subdir_full_filename(
-            FDFS_STORE_PATH_STR(pRecord->store_path_index),
-            FDFS_STORE_PATH_LEN(pRecord->store_path_index),
-            "data", 4, pRecord->true_filename,
-            pRecord->true_filename_len, full_filename);
+            FDFS_STORE_PATH_STR(TRECORD.store_path_index),
+            FDFS_STORE_PATH_LEN(TRECORD.store_path_index),
+            "data", 4, TRECORD.true_filename,
+            TRECORD.true_filename_len, full_filename);
 	if (lstat(full_filename, &stat_buf) != 0)
 	{
 		if (errno == ENOENT)
@@ -1128,57 +1164,57 @@ static int storage_sync_rename_file(ConnectionInfo *pStorageServer,
 		}
 	}
 
-	pHeader = (TrackerHeader *)out_buff;
 	memset(out_buff, 0, sizeof(out_buff));
-	long2buff(pRecord->filename_len, out_buff + sizeof(TrackerHeader));
-	long2buff(pRecord->src_filename_len, out_buff + sizeof(TrackerHeader) +
-			FDFS_PROTO_PKG_LEN_SIZE);
-	int2buff(pRecord->timestamp, out_buff + sizeof(TrackerHeader) +
-			2 * FDFS_PROTO_PKG_LEN_SIZE);
-	strcpy(out_buff + sizeof(TrackerHeader) + 2 * FDFS_PROTO_PKG_LEN_SIZE
-		 + 4, g_group_name);
-	memcpy(out_buff + sizeof(TrackerHeader) + 2 * FDFS_PROTO_PKG_LEN_SIZE
-		+ 4 + FDFS_GROUP_NAME_MAX_LEN,
-		pRecord->filename, pRecord->filename_len);
-	memcpy(out_buff + sizeof(TrackerHeader) + 2 * FDFS_PROTO_PKG_LEN_SIZE
-		+ 4 + FDFS_GROUP_NAME_MAX_LEN + pRecord->filename_len,
-		pRecord->src_filename, pRecord->src_filename_len);
+	pHeader = (TrackerHeader *)out_buff;
+    p = (char *)(pHeader + 1);
+	long2buff(TRECORD.filename_len, p);
+    p += FDFS_PROTO_PKG_LEN_SIZE;
+	long2buff(TRECORD.src_filename_len, p);
+    p += FDFS_PROTO_PKG_LEN_SIZE;
 
-	out_body_len = 2 * FDFS_PROTO_PKG_LEN_SIZE + 4 +
-		FDFS_GROUP_NAME_MAX_LEN + pRecord->filename_len +
-		pRecord->src_filename_len;
+	long2buff(TRECORD.timestamp, p);
+    p += 8;
+    long2buff(task->synced_timestamp, p);
+    p += 8;
+
+	memcpy(p, TRECORD.filename, TRECORD.filename_len);
+    p += TRECORD.filename_len;
+	memcpy(p, TRECORD.src_filename, TRECORD.src_filename_len);
+    p += TRECORD.src_filename_len;
+
+	out_body_len = 2 * FDFS_PROTO_PKG_LEN_SIZE + 16 +
+		TRECORD.filename_len + TRECORD.src_filename_len;
 	long2buff(out_body_len, pHeader->pkg_len);
 	pHeader->cmd = STORAGE_PROTO_CMD_SYNC_RENAME_FILE;
 
-	if ((result=tcpsenddata_nb(pStorageServer->sock, out_buff,
-		sizeof(TrackerHeader) + out_body_len,
-		SF_G_NETWORK_TIMEOUT)) != 0)
+	if ((result=tcpsenddata_nb(TSERVER.sock, out_buff,
+		p - out_buff, SF_G_NETWORK_TIMEOUT)) != 0)
 	{
-        format_ip_address(pStorageServer->ip_addr, formatted_ip);
+        format_ip_address(TSERVER.ip_addr, formatted_ip);
 		logError("FILE: "__FILE__", line: %d, "
 			"send data to storage server %s:%u fail, errno: %d, "
 			"error info: %s", __LINE__, formatted_ip,
-			pStorageServer->port, result, STRERROR(result));
+			TSERVER.port, result, STRERROR(result));
 		return result;
 	}
 
 	pBuff = in_buff;
-	result = fdfs_recv_response(pStorageServer, &pBuff, 0, &in_bytes);
+	result = fdfs_recv_response(&TSERVER, &pBuff, 0, &in_bytes);
     if (result != 0)
     {
         if (result == ENOENT)
         {
-            return storage_sync_copy_file(pStorageServer, pReader,
-                    pRecord, STORAGE_PROTO_CMD_SYNC_CREATE_FILE);
+            return storage_sync_copy_file(task,
+                    STORAGE_PROTO_CMD_SYNC_CREATE_FILE);
         }
         else if (result == EEXIST)
         {
             if (FC_LOG_BY_LEVEL(LOG_DEBUG)) {
-                format_ip_address(pStorageServer->ip_addr, formatted_ip);
+                format_ip_address(TSERVER.ip_addr, formatted_ip);
                 logDebug("file: "__FILE__", line: %d, "
                         "storage server ip: %s:%u, data file: %s "
                         "already exists", __LINE__, formatted_ip,
-                        pStorageServer->port, pRecord->filename);
+                        TSERVER.port, TRECORD.filename);
             }
             return 0;
         }
@@ -1189,7 +1225,7 @@ static int storage_sync_rename_file(ConnectionInfo *pStorageServer,
                     __LINE__, result, STRERROR(result));
         }
     }
-	
+
 	return result;
 }
 
@@ -1230,72 +1266,65 @@ static int storage_check_need_sync(StorageBinLogReader *pReader,
     }
 }
 
-static int storage_sync_data(StorageBinLogReader *pReader,
-			ConnectionInfo *pStorageServer,
-			StorageBinLogRecord *pRecord)
+static int storage_sync_data(StorageSyncTaskInfo *task)
 {
 	int result;
-	switch(pRecord->op_type)
+	switch(task->record.op_type)
 	{
 		case STORAGE_OP_TYPE_SOURCE_CREATE_FILE:
-			result = storage_sync_copy_file(pStorageServer, pReader,
-                    pRecord, STORAGE_PROTO_CMD_SYNC_CREATE_FILE);
+			result = storage_sync_copy_file(task,
+                    STORAGE_PROTO_CMD_SYNC_CREATE_FILE);
 			break;
 		case STORAGE_OP_TYPE_SOURCE_DELETE_FILE:
-			result = storage_sync_delete_file(pStorageServer, pRecord);
+			result = storage_sync_delete_file(task);
 			break;
 		case STORAGE_OP_TYPE_SOURCE_UPDATE_FILE:
-			result = storage_sync_copy_file(pStorageServer, pReader,
-                    pRecord, STORAGE_PROTO_CMD_SYNC_UPDATE_FILE);
+			result = storage_sync_copy_file(task,
+                    STORAGE_PROTO_CMD_SYNC_UPDATE_FILE);
 			break;
 		case STORAGE_OP_TYPE_SOURCE_APPEND_FILE:
-			result = storage_sync_modify_file(pStorageServer, pReader,
-                    pRecord, STORAGE_PROTO_CMD_SYNC_APPEND_FILE);
+			result = storage_sync_modify_file(task,
+                    STORAGE_PROTO_CMD_SYNC_APPEND_FILE);
 			if (result == ENOENT)  //resync appender file
 			{
-			result = storage_sync_copy_file(pStorageServer, pReader,
-                    pRecord, STORAGE_PROTO_CMD_SYNC_UPDATE_FILE);
+			result = storage_sync_copy_file(task,
+                    STORAGE_PROTO_CMD_SYNC_UPDATE_FILE);
 			}
 			break;
 		case STORAGE_OP_TYPE_SOURCE_MODIFY_FILE:
-			result = storage_sync_modify_file(pStorageServer, pReader,
-                    pRecord, STORAGE_PROTO_CMD_SYNC_MODIFY_FILE);
+			result = storage_sync_modify_file(task,
+                    STORAGE_PROTO_CMD_SYNC_MODIFY_FILE);
 			if (result == ENOENT)  //resync appender file
 			{
-			result = storage_sync_copy_file(pStorageServer, pReader,
-                    pRecord, STORAGE_PROTO_CMD_SYNC_UPDATE_FILE);
+			result = storage_sync_copy_file(task,
+                    STORAGE_PROTO_CMD_SYNC_UPDATE_FILE);
 			}
 			break;
 		case STORAGE_OP_TYPE_SOURCE_TRUNCATE_FILE:
-			result = storage_sync_truncate_file(pStorageServer,
-                    pReader, pRecord);
+			result = storage_sync_truncate_file(task);
 			break;
 		case STORAGE_OP_TYPE_SOURCE_RENAME_FILE:
-			result = storage_sync_rename_file(pStorageServer,
-					pReader, pRecord);
+			result = storage_sync_rename_file(task);
 			break;
 		case STORAGE_OP_TYPE_SOURCE_CREATE_LINK:
-			result = storage_sync_link_file(pStorageServer,
-					pRecord);
+			result = storage_sync_link_file(task);
 			break;
 		case STORAGE_OP_TYPE_REPLICA_CREATE_FILE:
-			result = storage_sync_copy_file(pStorageServer, pReader,
-                    pRecord, STORAGE_PROTO_CMD_SYNC_CREATE_FILE);
+			result = storage_sync_copy_file(task,
+                    STORAGE_PROTO_CMD_SYNC_CREATE_FILE);
 			break;
 		case STORAGE_OP_TYPE_REPLICA_DELETE_FILE:
-			result = storage_sync_delete_file(
-					pStorageServer, pRecord);
+			result = storage_sync_delete_file(task);
 			break;
 		case STORAGE_OP_TYPE_REPLICA_UPDATE_FILE:
-			result = storage_sync_copy_file(pStorageServer, pReader,
-                    pRecord, STORAGE_PROTO_CMD_SYNC_UPDATE_FILE);
+			result = storage_sync_copy_file(task,
+                    STORAGE_PROTO_CMD_SYNC_UPDATE_FILE);
 			break;
 		case STORAGE_OP_TYPE_REPLICA_CREATE_LINK:
-			result = storage_sync_link_file(pStorageServer, pRecord);
+			result = storage_sync_link_file(task);
 			break;
         case STORAGE_OP_TYPE_REPLICA_RENAME_FILE:
-			result = storage_sync_rename_file(pStorageServer,
-					pReader, pRecord);
+			result = storage_sync_rename_file(task);
 			break;
 		case STORAGE_OP_TYPE_REPLICA_APPEND_FILE:
 			return 0;
@@ -1306,7 +1335,7 @@ static int storage_sync_data(StorageBinLogReader *pReader,
 		default:
 			logError("file: "__FILE__", line: %d, "
 				"invalid file operation type: %d",
-				__LINE__, pRecord->op_type);
+				__LINE__, task->record.op_type);
 			return EINVAL;
 	}
 
@@ -1334,35 +1363,95 @@ static void sync_data_func(StorageSyncTaskInfo *task, void *thread_data)
 
     if (task->result == 0) {
         task->last_communicate_time = g_current_time;
-        task->result = storage_sync_data(task->dispatch_ctx->pReader,
-                &task->storage_server, &task->record);
+        task->result = storage_sync_data(task);
     }
     sf_synchronize_counter_notify(&task->dispatch_ctx->notify_ctx, 1);
+}
+
+static inline void set_current_synced_timestamp(StorageDispatchContext *
+        dispatch_ctx, const time_t timestamp)
+{
+    if (timestamp > dispatch_ctx->synced_timestamps.current)
+    {
+        dispatch_ctx->synced_timestamps.current = timestamp;
+    }
 }
 
 static int storage_batch_sync_data(StorageDispatchContext *dispatch_ctx)
 {
     int result;
     int sync_row_count;
+    time_t min_timestamp;
+    time_t max_timestamp;
     StorageSyncTaskInfo *task;
     StorageSyncTaskInfo *end;
 
-    if (dispatch_ctx->task_array.count == 1) {
-        task = dispatch_ctx->task_array.tasks;
-        if ((result=storage_sync_data(dispatch_ctx->pReader, &task->
-                        storage_server, &task->record)) == 0)
+    if (dispatch_ctx->synced_timestamps.pending >
+            dispatch_ctx->synced_timestamps.current)
+    {
+        StorageSyncTaskInfo *first;
+        first = dispatch_ctx->task_array.tasks;
+        if (first->record.timestamp < dispatch_ctx->synced_timestamps.pending)
         {
+            result = report_storage_synced_timestamp(&first->storage_server,
+                    dispatch_ctx->synced_timestamps.pending);
+            if (result != 0)
+            {
+                return result;
+            }
+        }
+
+        /*
+        logInfo("line: %d, set synced_timestamp {old: %ld, new: %ld}, "
+                "need report: %d", __LINE__, dispatch_ctx->synced_timestamps.
+                current, dispatch_ctx->synced_timestamps.pending,
+                (first->record.timestamp < dispatch_ctx->
+                 synced_timestamps.pending));
+                 */
+
+        dispatch_ctx->synced_timestamps.current =
+            dispatch_ctx->synced_timestamps.pending;
+    }
+
+    if (dispatch_ctx->task_array.count == 1)
+    {
+        task = dispatch_ctx->task_array.tasks;
+        task->synced_timestamp = task->record.timestamp;
+        if ((result=storage_sync_data(task)) == 0)
+        {
+            set_current_synced_timestamp(dispatch_ctx,
+                    task->record.timestamp);
             sync_row_count = 1;
-        } else {
+        }
+        else
+        {
             dispatch_ctx->last_binlog_index = task->binlog_index;
             dispatch_ctx->last_binlog_offset = task->binlog_offset;
             dispatch_ctx->scan_row_count = 0;
             sync_row_count = 0;
         }
-    } else {
+    }
+    else
+    {
+        min_timestamp = max_timestamp = dispatch_ctx->
+            task_array.tasks[0].record.timestamp;
         dispatch_ctx->notify_ctx.waiting_count = dispatch_ctx->task_array.count;
         end = dispatch_ctx->task_array.tasks + dispatch_ctx->task_array.count;
-        for (task=dispatch_ctx->task_array.tasks; task<end; task++) {
+        for (task=dispatch_ctx->task_array.tasks+1; task<end; task++)
+        {
+            if (task->record.timestamp < min_timestamp)
+            {
+                min_timestamp = task->record.timestamp;
+            }
+            else if (task->record.timestamp > max_timestamp)
+            {
+                max_timestamp = task->record.timestamp;
+            }
+        }
+
+        for (task=dispatch_ctx->task_array.tasks; task<end; task++)
+        {
+            task->synced_timestamp = min_timestamp;
             if ((result=fc_thread_pool_run(&SYNC_THREAD_POOL,
                             (fc_thread_pool_callback)sync_data_func,
                             task)) != 0)
@@ -1376,16 +1465,21 @@ static int storage_batch_sync_data(StorageDispatchContext *dispatch_ctx)
         }
 
         sf_synchronize_counter_wait(&dispatch_ctx->notify_ctx);
-        if (!SF_G_CONTINUE_FLAG) {
+        if (!SF_G_CONTINUE_FLAG)
+        {
             return EINTR;
         }
 
         sync_row_count = 0;
         result = 0;
-        for (task=dispatch_ctx->task_array.tasks; task<end; task++) {
-            if (task->result == 0) {
+        for (task=dispatch_ctx->task_array.tasks; task<end; task++)
+        {
+            if (task->result == 0)
+            {
                 ++sync_row_count;
-            } else {
+            }
+            else
+            {
                 /* set last_binlog_index, last_binlog_offset and
                  * scan_row_count on error */
                 result = task->result;
@@ -1394,15 +1488,29 @@ static int storage_batch_sync_data(StorageDispatchContext *dispatch_ctx)
 
                 end = task;
                 dispatch_ctx->scan_row_count = 0;  //re-calculate
-                for (task=dispatch_ctx->task_array.tasks; task<end; task++) {
+                for (task=dispatch_ctx->task_array.tasks; task<end; task++)
+                {
                     dispatch_ctx->scan_row_count += task->scan_row_count;
                 }
                 break;
             }
         }
+
+        if (result == 0)
+        {
+            if (max_timestamp == min_timestamp)
+            {
+                set_current_synced_timestamp(dispatch_ctx, max_timestamp);
+            }
+            else
+            {
+                dispatch_ctx->synced_timestamps.pending = max_timestamp;
+            }
+        }
     }
 
-    if (sync_row_count > 0) {
+    if (sync_row_count > 0)
+    {
         dispatch_ctx->pReader->sync_row_count += sync_row_count;
         if (dispatch_ctx->pReader->sync_row_count - dispatch_ctx->
                 pReader->last_sync_rows >= g_write_mark_file_freq)
@@ -2197,7 +2305,7 @@ static int compress_binlog_file(const char *filename)
     return 0;
 }
 
-int storage_open_readable_binlog(StorageBinLogReader *pReader, \
+int storage_open_readable_binlog(StorageBinLogReader *pReader,
 		get_filename_func filename_func, const void *pArg)
 {
 	char full_filename[MAX_PATH_SIZE];
@@ -2970,7 +3078,7 @@ static int storage_binlog_do_line_read(StorageBinLogReader *pReader,
 	return 0;
 }
 
-static int storage_binlog_read_line(StorageBinLogReader *pReader, \
+static int storage_binlog_read_line(StorageBinLogReader *pReader,
 		char *line, const int line_size, int *line_length)
 {
 	int result;
@@ -3518,6 +3626,8 @@ static int init_dispatch_ctx(StorageDispatchContext *dispatch_ctx,
 {
     int result;
 
+    dispatch_ctx->synced_timestamps.current = 0;
+    dispatch_ctx->synced_timestamps.pending = 0;
     dispatch_ctx->pStorage = pStorage;
     if ((result=init_task_array(dispatch_ctx, pStorage)) != 0) {
         return result;
@@ -3553,6 +3663,35 @@ static void dispatch_ctx_close(StorageDispatchContext *dispatch_ctx)
     }
 
     storage_reader_destroy(dispatch_ctx->pReader);
+}
+
+static inline int check_report_synced_timestamp(
+        StorageDispatchContext *dispatch_ctx,
+        ConnectionInfo *storage_server)
+{
+    int result;
+
+    if (dispatch_ctx->synced_timestamps.pending >
+            dispatch_ctx->synced_timestamps.current)
+    {
+        if ((result=report_storage_synced_timestamp(storage_server,
+                        dispatch_ctx->synced_timestamps.pending)) != 0)
+        {
+            return result;
+        }
+
+        /*
+        logInfo("line: %d, report synced_timestamp "
+                "{old: %ld, new: %ld}", __LINE__,
+                dispatch_ctx->synced_timestamps.current,
+                dispatch_ctx->synced_timestamps.pending);
+                */
+
+        dispatch_ctx->synced_timestamps.current =
+            dispatch_ctx->synced_timestamps.pending;
+    }
+
+    return 0;
 }
 
 static void* storage_sync_thread_entrance(void* arg)
@@ -3735,6 +3874,15 @@ static void* storage_sync_thread_entrance(void* arg)
 				&start_time, &end_time);
 		}
 
+        if (check_report_synced_timestamp(&dispatch_ctx,
+                    storage_server) != 0)
+        {
+            conn_pool_disconnect_server(storage_server);
+            storage_reader_destroy(dispatch_ctx.pReader);
+            sleep(5);
+            continue;
+        }
+
 		sync_result = 0;
 		while (SF_G_CONTINUE_FLAG && (!g_sync_part_time ||
 			(current_time >= start_time && current_time <= end_time)) &&
@@ -3773,6 +3921,12 @@ static void* storage_sync_thread_entrance(void* arg)
                         break;
                     }
 				}
+
+                if (check_report_synced_timestamp(&dispatch_ctx,
+                            storage_server) != 0)
+                {
+                    break;
+                }
 
 				current_time = g_current_time;
                 if (current_time - dispatch_ctx.task_array.tasks[0].

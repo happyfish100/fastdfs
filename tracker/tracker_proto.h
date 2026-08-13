@@ -70,9 +70,10 @@
 #define TRACKER_PROTO_CMD_SERVER_DELETE_GROUP			108
 
 #define TRACKER_PROTO_CMD_RESP					100
-#define FDFS_PROTO_CMD_ACTIVE_TEST				111  //active test, tracker and storage both support since V1.28
+#define FDFS_PROTO_CMD_ACTIVE_TEST				111
 
 #define STORAGE_PROTO_CMD_SYNC_JOIN_SERVER   9
+#define STORAGE_PROTO_CMD_SYNC_REPORT_TS    10  //src storage report synced timestamp
 #define STORAGE_PROTO_CMD_UPLOAD_FILE		11
 #define STORAGE_PROTO_CMD_DELETE_FILE		12
 #define STORAGE_PROTO_CMD_SET_METADATA		13
