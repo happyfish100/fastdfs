@@ -8373,6 +8373,7 @@ static int storage_sync_report_timestamp(struct fast_task_info *pTask)
     pClientInfo = (StorageClientInfo *)pTask->arg;
     timestamp = buff2long(pTask->recv.ptr->data + sizeof(TrackerHeader));
     SET_LAST_SYNC_SRC_TIMESTAMP(pClientInfo->pSrcStorage, timestamp);
+    g_sync_change_count++;
     pClientInfo->total_length = sizeof(TrackerHeader);
     return 0;
 }

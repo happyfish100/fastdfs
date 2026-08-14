@@ -30,7 +30,7 @@ Chinese language: http://www.fastken.com/
 # command lines as:
 
    git clone https://github.com/happyfish100/fastdfs.git
-   cd fastdfs; git checkout V6.17.0
+   cd fastdfs; git checkout V6.17.1
    ./make.sh clean && ./make.sh && ./make.sh install
 
 

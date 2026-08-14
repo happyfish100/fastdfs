@@ -483,8 +483,7 @@ static void *tracker_report_thread_entrance(void *arg)
 				current_time - last_sync_report_time >=
 					g_heart_beat_interval)
 			{
-				if (tracker_report_sync_timestamp(conn,
-                            tracker_index,
+				if (tracker_report_sync_timestamp(conn, tracker_index,
                             &bServerPortChanged) != 0)
 				{
 					break;

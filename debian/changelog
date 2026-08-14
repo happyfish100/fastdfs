@@ -1,4 +1,4 @@
-fastdfs (6.17.0-1) stable; urgency=medium
- * fix trunk binlog sync when multi storage instances in one server
+fastdfs (6.17.1-1) stable; urgency=medium
+ * bug fixed: set synced timestamp correctly
 
- -- YuQing <384681@qq.com>  Sat, Aug 1 2026 15:48:37 +0800
+ -- YuQing <384681@qq.com>  Thu, Aug 13 2026 11:05:02 +0800
