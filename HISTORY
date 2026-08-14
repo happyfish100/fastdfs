@@ -2,6 +2,7 @@
 Version 6.17.1  2026-08-14
  * bug fixed: set synced timestamp correctly
    when storage sync files by multi threads
+ * storage_sync.c: set last_communicate_time gracefully
 
 Version 6.17.0  2026-08-05
  * tracker server check storage server for safety

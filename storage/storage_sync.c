@@ -1327,9 +1327,7 @@ static int storage_sync_data(StorageSyncTaskInfo *task)
 			result = storage_sync_rename_file(task);
 			break;
 		case STORAGE_OP_TYPE_REPLICA_APPEND_FILE:
-			return 0;
 		case STORAGE_OP_TYPE_REPLICA_MODIFY_FILE:
-			return 0;
 		case STORAGE_OP_TYPE_REPLICA_TRUNCATE_FILE:
 			return 0;
 		default:
@@ -1339,6 +1337,7 @@ static int storage_sync_data(StorageSyncTaskInfo *task)
 			return EINVAL;
 	}
 
+    task->last_communicate_time = g_current_time;
 	return result;
 }
 
@@ -1356,13 +1355,13 @@ static void sync_data_func(StorageSyncTaskInfo *task, void *thread_data)
         if (task->result == 0) {
             task->result = storage_sync_join_server(&task->storage_server,
                     task->dispatch_ctx->pStorage->sync_key);
+            task->last_communicate_time = g_current_time;
         }
     } else {
         task->result = 0;
     }
 
     if (task->result == 0) {
-        task->last_communicate_time = g_current_time;
         task->result = storage_sync_data(task);
     }
     sf_synchronize_counter_notify(&task->dispatch_ctx->notify_ctx, 1);
@@ -3687,6 +3686,8 @@ static inline int check_report_synced_timestamp(
                 dispatch_ctx->synced_timestamps.pending);
                 */
 
+        dispatch_ctx->task_array.tasks[0].
+            last_communicate_time = g_current_time;
         dispatch_ctx->synced_timestamps.current =
             dispatch_ctx->synced_timestamps.pending;
     }
@@ -3779,8 +3780,6 @@ static void* storage_sync_thread_entrance(void* arg)
         {
             break;
         }
-        dispatch_ctx.task_array.tasks[0].
-            last_communicate_time = g_current_time;
 
 		if (pStorage->status == FDFS_STORAGE_STATUS_DELETED ||
 			pStorage->status == FDFS_STORAGE_STATUS_IP_CHANGED ||
@@ -3852,6 +3851,8 @@ static void* storage_sync_thread_entrance(void* arg)
 			sleep(3);
 			continue;
 		}
+        dispatch_ctx.task_array.tasks[0].
+            last_communicate_time = g_current_time;
 
         if (pStorage->status == FDFS_STORAGE_STATUS_WAIT_SYNC) {
             pStorage->status = FDFS_STORAGE_STATUS_SYNCING;
