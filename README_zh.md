@@ -22,7 +22,7 @@
 * 支持多线程方式上传（仅适用于appender类型文件，通过truncate + modify实现）和下载文件，支持断点续传；
 * 存储服务器上可以保存文件附加属性。
 
-  FastDFS安装和配置文档参见 [Wiki](https://gitee.com/fastdfs100/fastdfs/wikis/Home)；FastDFS更多更详细的功能和特性介绍，请参阅FastDFS微信公众号的其他文章，搜索公众号：fastdfs。
+  FastDFS安装和配置参见 [Wiki文档](https://gitee.com/fastdfs100/fastdfs/wikis/Home)；FastDFS更多更详细的功能和特性介绍，请参阅FastDFS微信公众号的其他文章，搜索公众号：fastdfs。
 
   [FastDFS重大版本一览](docs/version-history-zh_CN.md)
 
@@ -36,6 +36,8 @@
 * [Go SDK: https://gitee.com/daitougege/fastdfs_client_go](https://gitee.com/daitougege/fastdfs_client_go)
 
 ### 其他
+
+  V6.15.5 开始维护和改进第三方贡献的fdfs_exporter，为prometheus提供监控数据，对应的源码目录为：monitoring/prometheus_exporter。执行 fdfs_exporter -h 查看帮助信息。
 
   FastDFS是轻量级的对象存储解决方案，如果你在数据库、K8s和虚拟机（如KVM）等场景，需要使用通用分布式文件系统，可以了解一下保证数据强一致性且高性能的 [FastCFS](https://gitee.com/fastdfs100/FastCFS)。
 
