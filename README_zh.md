@@ -37,7 +37,7 @@
 
 ### 其他
 
-  V6.15.5 开始维护和改进第三方贡献的fdfs_exporter，为prometheus提供监控数据，对应的源码目录为：monitoring/prometheus_exporter。执行 fdfs_exporter -h 查看帮助信息。
+  V6.15.5 开始维护和改进第三方贡献的fdfs_exporter，为prometheus提供监控数据，对应的源码目录为：monitoring/prometheus_exporter。执行 fdfs_exporter -h 可查看帮助信息。
 
   FastDFS是轻量级的对象存储解决方案，如果你在数据库、K8s和虚拟机（如KVM）等场景，需要使用通用分布式文件系统，可以了解一下保证数据强一致性且高性能的 [FastCFS](https://gitee.com/fastdfs100/FastCFS)。
 

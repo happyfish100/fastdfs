@@ -1347,7 +1347,8 @@ static void sync_data_func(StorageSyncTaskInfo *task, void *thread_data)
             task->last_communicate_time > 3600)
     {
         if (task->storage_server.sock >= 0) {
-            conn_pool_disconnect_server(&task->storage_server);
+            storage_sync_disconnect_storage_server("[file-sync]",
+                    task->thread_index, &task->storage_server);
         }
         task->result = storage_sync_connect_storage_server_once(
                 "[file-sync]", task->thread_index, task->dispatch_ctx->
@@ -3658,7 +3659,10 @@ static void dispatch_ctx_close(StorageDispatchContext *dispatch_ctx)
     for (task=dispatch_ctx->task_array.tasks;
             task<dispatch_ctx->task_array.end; task++)
     {
-        conn_pool_disconnect_server(&task->storage_server);
+        if (task->storage_server.sock >= 0) {
+            storage_sync_disconnect_storage_server("[file-sync]",
+                    task->thread_index, &task->storage_server);
+        }
     }
 
     storage_reader_destroy(dispatch_ctx->pReader);
@@ -3792,7 +3796,9 @@ static void* storage_sync_thread_entrance(void* arg)
 			pStorage->status != FDFS_STORAGE_STATUS_WAIT_SYNC &&
 			pStorage->status != FDFS_STORAGE_STATUS_SYNCING)
         {
-            conn_pool_disconnect_server(storage_server);
+            storage_sync_disconnect_storage_server("[file-sync]",
+                    dispatch_ctx.task_array.tasks[0].thread_index,
+                    storage_server);
             sleep(5);
             continue;
         }
@@ -3819,7 +3825,9 @@ static void* storage_sync_thread_entrance(void* arg)
 			}
 
 			if (pStorage->status != FDFS_STORAGE_STATUS_ACTIVE) {
-                conn_pool_disconnect_server(storage_server);
+                storage_sync_disconnect_storage_server("[file-sync]",
+                        dispatch_ctx.task_array.tasks[0].thread_index,
+                        storage_server);
 				storage_reader_destroy(dispatch_ctx.pReader);
 				continue;
 			}
@@ -3841,12 +3849,17 @@ static void* storage_sync_thread_entrance(void* arg)
 			logError("file: "__FILE__", line: %d, "
 				"ip_addr %s belong to the local host, "
 				"sync thread exit.", __LINE__, pStorage->ip_addr);
-            conn_pool_disconnect_server(storage_server);
-			break;
+
+            storage_sync_disconnect_storage_server("[file-sync]",
+                    dispatch_ctx.task_array.tasks[0].thread_index,
+                    storage_server);
+            break;
 		}
 
 		if (storage_sync_join_server(storage_server, pStorage->sync_key) != 0) {
-			conn_pool_disconnect_server(storage_server);
+            storage_sync_disconnect_storage_server("[file-sync]",
+                    dispatch_ctx.task_array.tasks[0].thread_index,
+                    storage_server);
 			storage_reader_destroy(dispatch_ctx.pReader);
 			sleep(3);
 			continue;
@@ -3878,7 +3891,9 @@ static void* storage_sync_thread_entrance(void* arg)
         if (check_report_synced_timestamp(&dispatch_ctx,
                     storage_server) != 0)
         {
-            conn_pool_disconnect_server(storage_server);
+            storage_sync_disconnect_storage_server("[file-sync]",
+                    dispatch_ctx.task_array.tasks[0].thread_index,
+                    storage_server);
             storage_reader_destroy(dispatch_ctx.pReader);
             sleep(5);
             continue;

@@ -2245,7 +2245,8 @@ static void *trunk_sync_thread_entrance(void* arg)
 				"trunk sync thread exit.",
 				__LINE__, pStorage->ip_addr);
 			fdfs_quit(&storage_server);
-			close(storage_server.sock);
+            storage_sync_disconnect_storage_server(
+                    "[trunk-sync]", -1, &storage_server);
 			break;
 		}
 
@@ -2268,7 +2269,8 @@ static void *trunk_sync_thread_entrance(void* arg)
                         "fdfs_deal_no_body_cmd fail, result: %d",
                         __LINE__, result);
 
-				close(storage_server.sock);
+                storage_sync_disconnect_storage_server(
+                        "[trunk-sync]", -1, &storage_server);
 				trunk_reader_destroy(&reader);
 				sleep(5);
 				continue;
@@ -2348,9 +2350,9 @@ static void *trunk_sync_thread_entrance(void* arg)
 			}
 		}
 
-		close(storage_server.sock);
-		storage_server.sock = -1;
-		trunk_reader_destroy(&reader);
+        storage_sync_disconnect_storage_server(
+                "[trunk-sync]", -1, &storage_server);
+        trunk_reader_destroy(&reader);
 
 		if (!SF_G_CONTINUE_FLAG)
 		{
@@ -2363,10 +2365,8 @@ static void *trunk_sync_thread_entrance(void* arg)
 		}
 	}
 
-	if (storage_server.sock >= 0)
-	{
-		close(storage_server.sock);
-	}
+    storage_sync_disconnect_storage_server(
+            "[trunk-sync]", -1, &storage_server);
 	trunk_reader_destroy(&reader);
 
 	trunk_sync_thread_exit(thread_data, storage_server.port);

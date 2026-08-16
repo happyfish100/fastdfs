@@ -39,6 +39,9 @@ static inline int storage_sync_connect_storage_server_once(
             thread_index, pStorage, conn, &check_flag);
 }
 
+void storage_sync_disconnect_storage_server(const char *module_name,
+        const int thread_index, ConnectionInfo *conn);
+
 bool storage_sync_is_myself(const FDFSStorageBrief *pStorage);
 
 #ifdef __cplusplus

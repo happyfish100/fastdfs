@@ -176,6 +176,25 @@ int storage_sync_connect_storage_server_ex(const char *module_name,
     return conn_results[0] != 0 ? conn_results[0] : ECONNRESET;
 }
 
+void storage_sync_disconnect_storage_server(const char *module_name,
+        const int thread_index, ConnectionInfo *conn)
+{
+    char formatted_ip[FORMATTED_IP_SIZE];
+    char thread_prompt[64];
+
+    if (conn->sock >= 0) {
+        close(conn->sock);
+        conn->sock = -1;
+
+        SET_THREAD_PROMPT(thread_index, thread_prompt);
+        format_ip_address(conn->ip_addr, formatted_ip);
+        logInfo("file: "__FILE__", line: %d, %s%s "
+                "disconnect storage server %s:%u",
+                __LINE__, module_name, thread_prompt,
+                formatted_ip, conn->port);
+    }
+}
+
 bool storage_sync_is_myself(const FDFSStorageBrief *pStorage)
 {
     if (strcmp(pStorage->id, g_my_server_id_str) == 0)
