@@ -3609,7 +3609,7 @@ static int init_task_array(StorageDispatchContext *dispatch_ctx,
 
     end = tasks + g_sync_max_threads;
     for (task=tasks; task<end; task++) {
-        task->thread_index = task - tasks;
+        task->thread_index = (g_sync_max_threads > 1 ? task - tasks : -1);
         task->dispatch_ctx = dispatch_ctx;
         conn_pool_set_server_info(&task->storage_server,
                 pStorage->ip_addr, buff2int(pStorage->port));

@@ -1957,7 +1957,7 @@ void storage_get_store_path(const char *filename, const int filename_len, \
 
 #define COMBINE_RAND_FILE_SIZE(file_size, masked_file_size) \
 	do \
-	{ \
+	{  \
 		int r; \
 		r = (rand() & 0x007FFFFF) | 0x80000000; \
 		masked_file_size = (((int64_t)r) << 32 ) | (file_size); \
