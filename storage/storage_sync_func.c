@@ -45,7 +45,8 @@
         } \
     } while (0)
 
-int storage_sync_connect_storage_server_ex(const char *module_name,
+int storage_sync_connect_storage_server_ex1(
+        const char *file, const int line, const char *module_name,
         const int thread_index, const FDFSStorageBrief *pStorage,
         ConnectionInfo *conn, bool *check_flag)
 {
@@ -64,10 +65,10 @@ int storage_sync_connect_storage_server_ex(const char *module_name,
         FDFSStorageIdInfo *idInfo;
         idInfo = fdfs_get_storage_by_id(pStorage->id);
         if (idInfo == NULL) {
-            logWarning("file: "__FILE__", line: %d, "
+            logWarning("file: %s, line: %d, "
                     "storage server id: %s not exist "
                     "in storage_ids.conf from tracker server, "
-                    "storage ip: %s", __LINE__, pStorage->id,
+                    "storage ip: %s", file, line, pStorage->id,
                     pStorage->ip_addr);
             multi_ip = NULL;
         } else {
@@ -102,8 +103,8 @@ int storage_sync_connect_storage_server_ex(const char *module_name,
             conn->sock = socketCreateExAuto(conn->ip_addr,
                     O_NONBLOCK, bind_addr, &result);
             if (conn->sock < 0) {
-                logCrit("file: "__FILE__", line: %d, "
-                        "socket create fail, program exit!", __LINE__);
+                logCrit("file: %s, line: %d, "
+                        "socket create fail, program exit!", file, line);
                 SF_G_CONTINUE_FLAG = false;
                 break;
             }
@@ -122,9 +123,9 @@ int storage_sync_connect_storage_server_ex(const char *module_name,
 
                 SET_THREAD_PROMPT(thread_index, thread_prompt);
                 format_ip_address(conn->ip_addr, formatted_ip);
-                logInfo("file: "__FILE__", line: %d, %s%s "
+                logInfo("file: %s, line: %d, %s%s "
                         "successfully connect to storage server "
-                        "%s:%u%s", __LINE__, module_name, thread_prompt,
+                        "%s:%u%s", file, line, module_name, thread_prompt,
                         formatted_ip, conn->port, szFailPrompt);
                 return 0;
             }
@@ -133,9 +134,9 @@ int storage_sync_connect_storage_server_ex(const char *module_name,
             if (previousCodes[i] != conn_results[i]) {
                 SET_THREAD_PROMPT(thread_index, thread_prompt);
                 format_ip_address(conn->ip_addr, formatted_ip);
-                logError("file: "__FILE__", line: %d, %s%s "
+                logError("file: %s, line: %d, %s%s "
                         "connect to storage server %s:%u fail, "
-                        "errno: %d, error info: %s", __LINE__,
+                        "errno: %d, error info: %s", file, line,
                         module_name, thread_prompt, formatted_ip,
                         conn->port, conn_results[i],
                         STRERROR(conn_results[i]));
@@ -163,10 +164,10 @@ int storage_sync_connect_storage_server_ex(const char *module_name,
             for (i=0; i<ip_addrs.count; i++) {
                 SET_THREAD_PROMPT(thread_index, thread_prompt);
                 format_ip_address(ip_addrs.ips[i].address, formatted_ip);
-                logError("file: "__FILE__", line: %d, %s%s "
+                logError("file: %s, line: %d, %s%s "
                         "connect to storage server %s:%u fail, "
                         "try count: %d, errno: %d, error info: %s",
-                        __LINE__, module_name, thread_prompt,
+                        file, line, module_name, thread_prompt,
                         formatted_ip, conn->port, avg_fails,
                         conn_results[i], STRERROR(conn_results[i]));
             }
@@ -176,8 +177,9 @@ int storage_sync_connect_storage_server_ex(const char *module_name,
     return conn_results[0] != 0 ? conn_results[0] : ECONNRESET;
 }
 
-void storage_sync_disconnect_storage_server(const char *module_name,
-        const int thread_index, ConnectionInfo *conn)
+void storage_sync_disconnect_storage_server_ex(const char *file,
+        const int line, const char *module_name, const int thread_index,
+        ConnectionInfo *conn)
 {
     char formatted_ip[FORMATTED_IP_SIZE];
     char thread_prompt[64];
@@ -188,9 +190,9 @@ void storage_sync_disconnect_storage_server(const char *module_name,
 
         SET_THREAD_PROMPT(thread_index, thread_prompt);
         format_ip_address(conn->ip_addr, formatted_ip);
-        logInfo("file: "__FILE__", line: %d, %s%s "
+        logInfo("file: %s, line: %d, %s%s "
                 "disconnect storage server %s:%u",
-                __LINE__, module_name, thread_prompt,
+                file, line, module_name, thread_prompt,
                 formatted_ip, conn->port);
     }
 }

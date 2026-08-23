@@ -17,32 +17,55 @@
 extern "C" {
 #endif
 
-int storage_sync_connect_storage_server_ex(const char *module_name,
+int storage_sync_connect_storage_server_ex1(
+        const char *file, const int line, const char *module_name,
         const int thread_index, const FDFSStorageBrief *pStorage,
         ConnectionInfo *conn, bool *check_flag);
 
-static inline int storage_sync_connect_storage_server_always(
+static inline int storage_sync_connect_storage_server_always_ex(
+        const char *file, const int line,
         const char *module_name, const int thread_index,
         const FDFSStorageBrief *pStorage, ConnectionInfo *conn)
 {
     bool check_flag = true;
-    return storage_sync_connect_storage_server_ex(module_name,
-            thread_index, pStorage, conn, &check_flag);
+    return storage_sync_connect_storage_server_ex1(file, line,
+            module_name, thread_index, pStorage, conn, &check_flag);
 }
 
-static inline int storage_sync_connect_storage_server_once(
+static inline int storage_sync_connect_storage_server_once_ex(
+        const char *file, const int line,
         const char *module_name, const int thread_index,
         const FDFSStorageBrief *pStorage, ConnectionInfo *conn)
 {
     bool check_flag = false;
-    return storage_sync_connect_storage_server_ex(module_name,
-            thread_index, pStorage, conn, &check_flag);
+    return storage_sync_connect_storage_server_ex1(file, line,
+            module_name, thread_index, pStorage, conn, &check_flag);
 }
 
-void storage_sync_disconnect_storage_server(const char *module_name,
-        const int thread_index, ConnectionInfo *conn);
+void storage_sync_disconnect_storage_server_ex(const char *file,
+        const int line, const char *module_name, const int thread_index,
+        ConnectionInfo *conn);
 
 bool storage_sync_is_myself(const FDFSStorageBrief *pStorage);
+
+#define storage_sync_connect_storage_server_ex(module_name,     \
+        thread_index, pStorage, conn, check_flag)               \
+    storage_sync_connect_storage_server_ex1(__FILE__, __LINE__, \
+            module_name, thread_index, pStorage, conn, check_flag)
+
+#define storage_sync_connect_storage_server_always( \
+        module_name, thread_index, pStorage, conn)  \
+        storage_sync_connect_storage_server_always_ex(__FILE__,     \
+                __LINE__, module_name, thread_index, pStorage, conn)
+
+#define storage_sync_connect_storage_server_once(   \
+        module_name, thread_index, pStorage, conn)  \
+        storage_sync_connect_storage_server_once_ex(__FILE__,     \
+                __LINE__, module_name, thread_index, pStorage, conn)
+
+#define storage_sync_disconnect_storage_server(module_name, thread_index, conn)\
+    storage_sync_disconnect_storage_server_ex(__FILE__, __LINE__, \
+            module_name, thread_index, conn)
 
 #ifdef __cplusplus
 }
