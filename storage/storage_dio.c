@@ -177,7 +177,7 @@ int storage_dio_queue_push(struct fast_task_info *pTask)
 	return 0;
 }
 
-int storage_dio_get_thread_index(struct fast_task_info *pTask, \
+int storage_dio_get_thread_index(struct fast_task_info *pTask,
 		const int store_path_index, const char file_op)
 {
 	struct storage_dio_thread_data *pThreadData;
