@@ -65,7 +65,7 @@ extern "C" {
 #endif
 
 extern TrackerClusterGroup g_tracker_servers;  //save all tracker servers from storage server
-extern int g_next_leader_index;			   //next leader index
+extern int g_next_leader_index;			       //next leader index
 extern int g_tracker_leader_chg_count;		   //for notify storage servers
 extern int g_trunk_server_chg_count;		   //for notify other trackers
 
@@ -148,6 +148,9 @@ void tracker_calc_running_times(TrackerRunningStatus *pStatus);
 int tracker_save_groups();
 
 void tracker_mem_find_trunk_servers();
+
+int tracker_mem_first_add_tracker_servers(const TrackerServerInfo *
+        tracker_servers, const int tracker_count);
 
 #ifdef __cplusplus
 }

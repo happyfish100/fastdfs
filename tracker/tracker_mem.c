@@ -4502,7 +4502,7 @@ static int find_my_ip_in_tracker_list()
     const char *current_ip;
     const char *previous_ip;
     TrackerClusterServer *pServer;
-    char buff[256];
+    char buff[1024];
 
     previous_ip = NULL;
     while ((current_ip=get_next_local_ip(previous_ip)) != NULL)
@@ -4547,17 +4547,16 @@ static void init_tracker_cluster_server(TrackerClusterServer *pClusterServer,
     fdfs_server_sock_reset(&pClusterServer->server);
 }
 
-static int tracker_mem_first_add_tracker_servers(FDFSStorageJoinBody *pJoinBody)
+int tracker_mem_first_add_tracker_servers(const TrackerServerInfo *
+        tracker_servers, const int tracker_count)
 {
     TrackerClusterServer **ppLocalTracker;
     TrackerClusterServer **ppLocalEnd;
-    TrackerServerInfo *pTrackerServer;
+    const TrackerServerInfo *pTrackerServer;
     TrackerClusterServer *pClusterServer;
     TrackerClusterServer **servers;
-    int tracker_count;
     int bytes;
 
-    tracker_count = pJoinBody->tracker_count;
     bytes = sizeof(TrackerClusterServer *) * tracker_count;
     servers = (TrackerClusterServer **)malloc(bytes);
     if (servers == NULL)
@@ -4570,7 +4569,7 @@ static int tracker_mem_first_add_tracker_servers(FDFSStorageJoinBody *pJoinBody)
     }
 
     ppLocalEnd = servers + tracker_count;
-    for (pTrackerServer=pJoinBody->tracker_servers, ppLocalTracker=servers;
+    for (pTrackerServer=tracker_servers, ppLocalTracker=servers;
             ppLocalTracker<ppLocalEnd; pTrackerServer++, ppLocalTracker++)
     {
         pClusterServer = (TrackerClusterServer *)
@@ -4591,15 +4590,16 @@ static int tracker_mem_first_add_tracker_servers(FDFSStorageJoinBody *pJoinBody)
 
     g_tracker_servers.servers = servers;
     g_tracker_servers.server_count = tracker_count;
+
     return find_my_ip_in_tracker_list();
 }
 
 static int tracker_mem_copy_uniq_tracker_servers(
-        TrackerServerInfo *pSrcServer,
+        const TrackerServerInfo *pSrcServer,
         TrackerServerInfo *pDestServer)
 {
-	ConnectionInfo *conn;
-	ConnectionInfo *end;
+	const ConnectionInfo *conn;
+	const ConnectionInfo *end;
 
 	end = pSrcServer->connections + pSrcServer->count;
 	for (conn=pSrcServer->connections; conn<end; conn++)
@@ -4620,10 +4620,11 @@ static int tracker_mem_copy_uniq_tracker_servers(
     return 0;
 }
 
-static int tracker_mem_check_add_tracker_servers(FDFSStorageJoinBody *pJoinBody)
+static int tracker_mem_check_add_tracker_servers(const TrackerServerInfo *
+        tracker_servers, const int tracker_count)
 {
-	TrackerServerInfo *pJoinTracker;
-	TrackerServerInfo *pJoinEnd;
+	const TrackerServerInfo *pJoinTracker;
+	const TrackerServerInfo *pJoinEnd;
 	TrackerClusterServer **ppLocalTracker;
 	TrackerClusterServer **ppLocalEnd;
 	TrackerClusterServer **ppNewServer;
@@ -4637,9 +4638,8 @@ static int tracker_mem_check_add_tracker_servers(FDFSStorageJoinBody *pJoinBody)
 
 	add_count = 0;
 	ppLocalEnd = g_tracker_servers.servers + g_tracker_servers.server_count;
-	pJoinEnd = pJoinBody->tracker_servers + pJoinBody->tracker_count;
-    for (pJoinTracker=pJoinBody->tracker_servers;
-            pJoinTracker<pJoinEnd; pJoinTracker++)
+	pJoinEnd = tracker_servers + tracker_count;
+    for (pJoinTracker=tracker_servers; pJoinTracker<pJoinEnd; pJoinTracker++)
     {
         for (ppLocalTracker=g_tracker_servers.servers;
                 ppLocalTracker<ppLocalEnd; ppLocalTracker++)
@@ -4713,8 +4713,7 @@ static int tracker_mem_check_add_tracker_servers(FDFSStorageJoinBody *pJoinBody)
             g_tracker_servers.server_count);
 
     ppNewServer = new_servers + g_tracker_servers.server_count;
-	for (pJoinTracker=pJoinBody->tracker_servers;
-		pJoinTracker<pJoinEnd; pJoinTracker++)
+	for (pJoinTracker=tracker_servers; pJoinTracker<pJoinEnd; pJoinTracker++)
 	{
 		for (ppLocalTracker=new_servers;
 			ppLocalTracker<ppNewServer; ppLocalTracker++)
@@ -5089,13 +5088,20 @@ static int storage_join_check_add_tracker_servers(FDFSStorageJoinBody *pJoinBody
         get_sys_files_done = true;
     }
 
+    if (g_if_static_tracker_servers)
+    {
+        return 0;
+    }
+
 	if (g_tracker_servers.servers == NULL)
 	{
-		return tracker_mem_first_add_tracker_servers(pJoinBody);
+		return tracker_mem_first_add_tracker_servers(pJoinBody->
+                tracker_servers, pJoinBody->tracker_count);
 	}
 	else
 	{
-		return tracker_mem_check_add_tracker_servers(pJoinBody);
+		return tracker_mem_check_add_tracker_servers(pJoinBody->
+                tracker_servers, pJoinBody->tracker_count);
 	}
 }
 

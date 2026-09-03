@@ -63,22 +63,22 @@ int fdfs_connection_pool_init(const char *config_filename, \
 
 void fdfs_connection_pool_destroy();
 
-bool fdfs_server_contain(TrackerServerInfo *pServerInfo,
+bool fdfs_server_contain(const TrackerServerInfo *pServerInfo,
         const char *target_ip, const int target_port);
 
-static inline bool fdfs_server_contain1(TrackerServerInfo *pServerInfo,
+static inline bool fdfs_server_contain1(const TrackerServerInfo *pServerInfo,
         const ConnectionInfo *target)
 {
     return fdfs_server_contain(pServerInfo, target->ip_addr, target->port);
 }
 
-bool fdfs_server_contain_ex(TrackerServerInfo *pServer1,
-        TrackerServerInfo *pServer2);
+bool fdfs_server_contain_ex(const TrackerServerInfo *pServer1,
+        const TrackerServerInfo *pServer2);
 
-bool fdfs_server_equal(TrackerServerInfo *pServer1,
-        TrackerServerInfo *pServer2);
+bool fdfs_server_equal(const TrackerServerInfo *pServer1,
+        const TrackerServerInfo *pServer2);
 
-bool fdfs_server_contain_local_service(TrackerServerInfo *pServerInfo,
+bool fdfs_server_contain_local_service(const TrackerServerInfo *pServerInfo,
         const int target_port);
 
 /**
@@ -169,8 +169,63 @@ char *fdfs_ip_to_shortcode(const char *ipAddr, char *shortCode);
 
 bool fdfs_multi_ips_contain_ipv6(const FDFSMultiIP *ip_addrs);
 
-bool fdfs_server_contain_ip(TrackerServerInfo *pServerInfo,
+bool fdfs_server_contain_ip(const TrackerServerInfo *pServerInfo,
         const char *target_ip);
+
+/**
+* load tracker server group
+* params:
+*       pTrackerGroup: tracker group
+*	conf_filename: tracker server group config filename
+* return: 0 success, !=0 fail, return the error code
+**/
+int fdfs_load_tracker_group(TrackerServerGroup *pTrackerGroup,
+		const char *conf_filename);
+
+/**
+* load tracker server group
+* params:
+*       pTrackerGroup: tracker group
+*	conf_filename: config filename
+*       items: ini file items
+*       nItemCount: ini file item count
+* return: 0 success, !=0 fail, return the error code
+**/
+int fdfs_load_tracker_group_ex(TrackerServerGroup *pTrackerGroup,
+		const char *conf_filename, IniContext *pIniContext);
+
+/**
+* copy tracker server group
+* params:
+*       pDestTrackerGroup: the dest tracker group
+*       pSrcTrackerGroup: the source tracker group
+* return: 0 success, !=0 fail, return the error code
+**/
+int fdfs_copy_tracker_group(TrackerServerGroup *pDestTrackerGroup,
+		TrackerServerGroup *pSrcTrackerGroup);
+
+/**
+* tracker group equals
+* params:
+*       pGroup1: tracker group 1
+*       pGroup2: tracker group 2
+* return: true for equals, otherwise false
+**/
+bool fdfs_tracker_group_equals(const TrackerServerGroup *pGroup1,
+        const TrackerServerGroup *pGroup2);
+
+static inline void fdfs_destroy_tracker_group(
+        TrackerServerGroup *pTrackerGroup)
+{
+    if (pTrackerGroup->servers != NULL)
+    {
+        free(pTrackerGroup->servers);
+        pTrackerGroup->servers = NULL;
+
+        pTrackerGroup->server_count = 0;
+        pTrackerGroup->server_index = 0;
+    }
+}
 
 #ifdef __cplusplus
 }

@@ -135,6 +135,32 @@ static int tracker_load_storage_id_info(const char *config_filename,
 	return fdfs_load_storage_ids_from_file(config_filename, iniContext);
 }
 
+static int load_static_tracker_servers(const char *config_filename,
+        IniContext *iniContext)
+{
+    TrackerServerGroup tracker_group;
+    int result;
+
+    g_if_static_tracker_servers = iniGetBoolValue(NULL,
+            "static_tracker_servers", iniContext, false);
+    if (!g_if_static_tracker_servers)
+    {
+        return 0;
+    }
+
+    if ((result=fdfs_load_tracker_group_ex(&tracker_group,
+                    config_filename, iniContext)) != 0)
+    {
+        return result;
+    }
+
+    result = tracker_mem_first_add_tracker_servers(tracker_group.
+            servers, tracker_group.server_count);
+
+    fdfs_destroy_tracker_group(&tracker_group);
+    return result;
+}
+
 int tracker_load_from_conf_file(const char *filename)
 {
     const int fixed_buffer_size = 0;
@@ -186,6 +212,12 @@ int tracker_load_from_conf_file(const char *filename)
                 "buff_size", 0);
         if ((result=sf_load_config_ex("trackerd", &config, fixed_buffer_size,
                         task_buffer_extra_size, need_set_run_by)) != 0)
+        {
+            return result;
+        }
+
+        if ((result=load_static_tracker_servers(filename,
+                        &iniContext)) != 0)
         {
             return result;
         }
@@ -471,6 +503,7 @@ int tracker_load_from_conf_file(const char *filename)
             sz_service_config, sizeof(sz_service_config));
 
 		logInfo("FastDFS v%d.%d.%d, %s, %s, "
+            "static_tracker_servers=%d, "
 			"store_lookup=%d, store_group=%s, "
 			"store_server=%d, store_path=%d, "
 			"reserved_storage_space=%s, "
@@ -507,6 +540,7 @@ int tracker_load_from_conf_file(const char *filename)
 			"g_connection_pool_max_idle_time=%ds",
 			g_fdfs_version.major, g_fdfs_version.minor,
             g_fdfs_version.patch, sz_global_config, sz_service_config,
+            g_if_static_tracker_servers,
 			g_groups.store_lookup, g_groups.store_group,
 			g_groups.store_server, g_groups.store_path,
 			fdfs_storage_reserved_space_to_string(

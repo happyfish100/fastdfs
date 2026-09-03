@@ -1,4 +1,8 @@
 
+Version 6.18.0  2026-09-03
+ * tracker.conf support static tracker servers
+ * use libfastcommon V1.88 and libserverframe 1.2.15
+
 Version 6.17.1  2026-08-14
  * bug fixed: set synced timestamp correctly
    when storage sync files by multi threads

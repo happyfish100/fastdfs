@@ -46,6 +46,8 @@ extern bool g_use_storage_id;  //identify storage by ID instead of IP address
 extern bool g_trust_storage_server_id;
 extern byte g_id_type_in_filename; //id type of the storage server in the filename
 
+extern bool g_if_static_tracker_servers;  //since v6.18
+
 extern int g_storage_sync_file_max_delay;
 extern int g_storage_sync_file_max_time;
 

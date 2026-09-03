@@ -63,54 +63,12 @@ int fdfs_client_init_from_buffer_ex(TrackerServerGroup *pTrackerGroup, \
 		const char *buffer);
 
 /**
-* load tracker server group
-* params:
-*       pTrackerGroup: tracker group
-*	conf_filename: tracker server group config filename
-* return: 0 success, !=0 fail, return the error code
-**/
-int fdfs_load_tracker_group(TrackerServerGroup *pTrackerGroup, \
-		const char *conf_filename);
-
-/**
-* load tracker server group
-* params:
-*       pTrackerGroup: tracker group
-*	conf_filename: config filename
-*       items: ini file items
-*       nItemCount: ini file item count
-* return: 0 success, !=0 fail, return the error code
-**/
-int fdfs_load_tracker_group_ex(TrackerServerGroup *pTrackerGroup, \
-		const char *conf_filename, IniContext *pIniContext);
-
-/**
-* copy tracker server group
-* params:
-*       pDestTrackerGroup: the dest tracker group
-*       pSrcTrackerGroup: the source tracker group
-* return: 0 success, !=0 fail, return the error code
-**/
-int fdfs_copy_tracker_group(TrackerServerGroup *pDestTrackerGroup, \
-		TrackerServerGroup *pSrcTrackerGroup);
-
-/**
 * client destroy function
 * params:
 *       pTrackerGroup: tracker group
 * return: none
 **/
 void fdfs_client_destroy_ex(TrackerServerGroup *pTrackerGroup);
-
-/**
-* tracker group equals
-* params:
-*       pGroup1: tracker group 1
-*       pGroup2: tracker group 2
-* return: true for equals, otherwise false
-**/
-bool fdfs_tracker_group_equals(TrackerServerGroup *pGroup1, \
-        TrackerServerGroup *pGroup2);
 
 /**
 * get file ext name from filename, extension name do not include dot
