@@ -1,6 +1,8 @@
 
-Version 6.18.0  2026-09-03
+Version 6.18.0  2026-09-04
  * tracker.conf support static tracker servers
+ * tracker.conf: storage_sync_file_max_delay and storage_sync_file_max_time
+   support time unit as m for minute, d for day etc. such as 10m, 1d
  * use libfastcommon V1.88 and libserverframe 1.2.15
 
 Version 6.17.1  2026-08-14

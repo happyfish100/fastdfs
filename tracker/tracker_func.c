@@ -166,6 +166,8 @@ int tracker_load_from_conf_file(const char *filename)
     const int fixed_buffer_size = 0;
     const int task_buffer_extra_size = 0;
     const bool need_set_run_by = false;
+	int result;
+    int len;
 	char *pSlotMinSize;
 	char *pSlotMaxSize;
 	char *pSpaceThreshold;
@@ -173,13 +175,13 @@ int tracker_load_from_conf_file(const char *filename)
     char *pResponseIpAddrSize;
 	IniContext iniContext;
     SFContextIniConfig config;
-	int result;
 	int64_t trunk_file_size;
 	int64_t slot_min_size;
 	int64_t slot_max_size;
 	char reserved_space_str[32];
     char sz_global_config[1024];
     char sz_service_config[256];
+    char sz_static_tracker_servers[256];
 
 	memset(&g_groups, 0, sizeof(FDFSGroups));
 	memset(&iniContext, 0, sizeof(IniContext));
@@ -285,8 +287,8 @@ int tracker_load_from_conf_file(const char *filename)
 			return result;
 		}
 
-		g_check_active_interval = iniGetIntValue(NULL, \
-				"check_active_interval", &iniContext, \
+		g_check_active_interval = iniGetTimestampValue(NULL,
+				"check_active_interval", &iniContext,
 				CHECK_ACTIVE_DEF_INTERVAL);
 		if (g_check_active_interval <= 0)
 		{
@@ -297,23 +299,23 @@ int tracker_load_from_conf_file(const char *filename)
 				"storage_ip_changed_auto_adjust", \
 				&iniContext, true);
 
-		g_storage_sync_file_max_delay = iniGetIntValue(NULL, \
-				"storage_sync_file_max_delay", &iniContext, \
+		g_storage_sync_file_max_delay = iniGetTimestampValue(NULL,
+				"storage_sync_file_max_delay", &iniContext,
 				DEFAULT_STORAGE_SYNC_FILE_MAX_DELAY);
 		if (g_storage_sync_file_max_delay <= 0)
 		{
-			g_storage_sync_file_max_delay = \
-					DEFAULT_STORAGE_SYNC_FILE_MAX_DELAY;
+			g_storage_sync_file_max_delay =
+                DEFAULT_STORAGE_SYNC_FILE_MAX_DELAY;
 		}
 
-		g_storage_sync_file_max_time = iniGetIntValue(NULL, \
-				"storage_sync_file_max_time", &iniContext, \
+		g_storage_sync_file_max_time = iniGetTimestampValue(NULL,
+				"storage_sync_file_max_time", &iniContext,
 				DEFAULT_STORAGE_SYNC_FILE_MAX_TIME);
 		if (g_storage_sync_file_max_time <= 0)
-		{
-			g_storage_sync_file_max_time = \
-				DEFAULT_STORAGE_SYNC_FILE_MAX_TIME;
-		}
+        {
+            g_storage_sync_file_max_time =
+                DEFAULT_STORAGE_SYNC_FILE_MAX_TIME;
+        }
 
 		g_if_use_trunk_file = iniGetBoolValue(NULL, \
 			"use_trunk_file", &iniContext, false);
@@ -405,10 +407,10 @@ int tracker_load_from_conf_file(const char *filename)
 			return result;
 		}
 
-		g_trunk_create_file_interval = iniGetIntValue(NULL, \
-				"trunk_create_file_interval", &iniContext, \
+		g_trunk_create_file_interval = iniGetTimestampValue(NULL,
+				"trunk_create_file_interval", &iniContext,
 				86400);
-		pSpaceThreshold = iniGetStrValue(NULL, \
+		pSpaceThreshold = iniGetStrValue(NULL,
 			"trunk_create_file_space_threshold", &iniContext);
 		if (pSpaceThreshold == NULL)
 		{
@@ -419,12 +421,10 @@ int tracker_load_from_conf_file(const char *filename)
 		{
 			return result;
 		}
-		g_trunk_compress_binlog_min_interval = iniGetIntValue(NULL,
-				"trunk_compress_binlog_min_interval",
-				&iniContext, 0);
-		g_trunk_compress_binlog_interval = iniGetIntValue(NULL,
-				"trunk_compress_binlog_interval",
-                &iniContext, 0);
+		g_trunk_compress_binlog_min_interval = iniGetTimestampValue(NULL,
+				"trunk_compress_binlog_min_interval", &iniContext, 0);
+		g_trunk_compress_binlog_interval = iniGetTimestampValue(NULL,
+				"trunk_compress_binlog_interval", &iniContext, 0);
 		if ((result=get_time_item_from_conf(&iniContext,
                 	"trunk_compress_binlog_time_base",
                     &g_trunk_compress_binlog_time_base, 3, 0)) != 0)
@@ -502,8 +502,17 @@ int tracker_load_from_conf_file(const char *filename)
         sf_context_config_to_string(&g_sf_context,
             sz_service_config, sizeof(sz_service_config));
 
-		logInfo("FastDFS v%d.%d.%d, %s, %s, "
-            "static_tracker_servers=%d, "
+        len = sprintf(sz_static_tracker_servers,
+                "static_tracker_servers=%d",
+                g_if_static_tracker_servers);
+        if (g_if_static_tracker_servers)
+        {
+            sprintf(sz_static_tracker_servers + len,
+                    ", tracker server count=%d",
+                    g_tracker_servers.server_count);
+        }
+
+		logInfo("FastDFS v%d.%d.%d, %s, %s, %s, "
 			"store_lookup=%d, store_group=%s, "
 			"store_server=%d, store_path=%d, "
 			"reserved_storage_space=%s, "
@@ -540,7 +549,7 @@ int tracker_load_from_conf_file(const char *filename)
 			"g_connection_pool_max_idle_time=%ds",
 			g_fdfs_version.major, g_fdfs_version.minor,
             g_fdfs_version.patch, sz_global_config, sz_service_config,
-            g_if_static_tracker_servers,
+            sz_static_tracker_servers,
 			g_groups.store_lookup, g_groups.store_group,
 			g_groups.store_server, g_groups.store_path,
 			fdfs_storage_reserved_space_to_string(
