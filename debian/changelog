@@ -1,4 +1,4 @@
-fastdfs (6.17.1-1) stable; urgency=medium
- * bug fixed: set synced timestamp correctly
+fastdfs (6.18.0-1) stable; urgency=medium
+ * tracker.conf support static tracker servers
 
- -- YuQing <384681@qq.com>  Thu, Aug 13 2026 11:05:02 +0800
+ -- YuQing <384681@qq.com>  Thu, Sep 3 2026 15:37:41 +0800
