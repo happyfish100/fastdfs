@@ -11,6 +11,10 @@ if [ ! -f $TARGET_CONF_PATH/tracker.conf ]; then
   cp -f conf/tracker.conf $TARGET_CONF_PATH/tracker.conf
 fi
 
+if [ ! -f $TARGET_CONF_PATH/tracker_servers.conf ]; then
+  cp -f conf/tracker_servers.conf $TARGET_CONF_PATH/tracker_servers.conf
+fi
+
 if [ ! -f $TARGET_CONF_PATH/storage.conf ]; then
   cp -f conf/storage.conf $TARGET_CONF_PATH/storage.conf
 fi
