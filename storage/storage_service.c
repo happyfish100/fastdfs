@@ -6593,17 +6593,26 @@ static int storage_do_sync_link_file(struct fast_task_info *pTask)
 	src_filename_len = buff2long(p);
 	p += FDFS_PROTO_PKG_LEN_SIZE + 4;
 
-	if (src_filename_len < 0 || src_filename_len >= sizeof(src_filename))
+	if (dest_filename_len < 0 || dest_filename_len >= sizeof(dest_filename))
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"client ip: %s, in request pkg, " \
-			"filename length: %d is invalid, " \
-			"which < 0 or >= %d", \
-			__LINE__, pTask->client_ip, \
-			src_filename_len, (int)sizeof(src_filename));
+		logError("file: "__FILE__", line: %d, "
+			"client ip: %s, in request pkg, "
+			"dest filename length: %d is invalid, "
+			"which < 0 or >= %d", __LINE__, pTask->client_ip,
+			dest_filename_len, (int)sizeof(dest_filename));
 		result = EINVAL;
 		break;
 	}
+	if (src_filename_len < 0 || src_filename_len >= sizeof(src_filename))
+    {
+        logError("file: "__FILE__", line: %d, "
+                "client ip: %s, in request pkg, "
+                "src filename length: %d is invalid, "
+                "which < 0 or >= %d", __LINE__, pTask->client_ip,
+                src_filename_len, (int)sizeof(src_filename));
+        result = EINVAL;
+        break;
+    }
 
 	memcpy(group_name, p, FDFS_GROUP_NAME_MAX_LEN);
 	*(group_name + FDFS_GROUP_NAME_MAX_LEN) = '\0';
@@ -6841,11 +6850,10 @@ static int storage_sync_link_file(struct fast_task_info *pTask)
 
 	if (dest_filename_len < 0 || dest_filename_len >= sizeof(dest_filename))
 	{
-		logError("file: "__FILE__", line: %d, " \
-			"client ip: %s, in request pkg, " \
-			"filename length: %d is invalid, " \
-			"which < 0 or >= %d", \
-			__LINE__, pTask->client_ip, \
+		logError("file: "__FILE__", line: %d, "
+			"client ip: %s, in request pkg, "
+			"dest filename length: %d is invalid, "
+			"which < 0 or >= %d", __LINE__, pTask->client_ip,
 			dest_filename_len, (int)sizeof(dest_filename));
 		return EINVAL;
 	}
@@ -6889,7 +6897,7 @@ static int storage_sync_link_file(struct fast_task_info *pTask)
 
 	pFileContext->fd = -1;
 	pFileContext->op = FDFS_STORAGE_FILE_OP_WRITE;
-	pFileContext->dio_thread_index = storage_dio_get_thread_index( \
+	pFileContext->dio_thread_index = storage_dio_get_thread_index(
 		pTask, dest_store_path_index, pFileContext->op);
 
 	if ((result=storage_dio_queue_push(pTask)) != 0)
@@ -6942,9 +6950,18 @@ static int storage_sync_rename_file(struct fast_task_info *pTask)
 	{
 		logError("file: "__FILE__", line: %d, "
 			"client ip: %s, in request pkg, "
-			"filename length: %d is invalid, "
+			"dest filename length: %d is invalid, "
 			"which < 0 or >= %d", __LINE__, pTask->client_ip,
 			dest_filename_len, (int)sizeof(dest_filename));
+		return EINVAL;
+	}
+	if (src_filename_len < 0 || src_filename_len >= sizeof(src_filename))
+	{
+		logError("file: "__FILE__", line: %d, "
+			"client ip: %s, in request pkg, "
+			"src filename length: %d is invalid, "
+			"which < 0 or >= %d", __LINE__, pTask->client_ip,
+			src_filename_len, (int)sizeof(src_filename));
 		return EINVAL;
 	}
 
@@ -8079,7 +8096,7 @@ static int storage_do_create_link(struct fast_task_info *pTask)
 	p += FDFS_PROTO_PKG_LEN_SIZE;
 	sourceFileInfo.src_file_sig_len = buff2long(p);
 	p += FDFS_PROTO_PKG_LEN_SIZE;
-	if (master_filename_len < 0 || master_filename_len >= \
+	if (master_filename_len < 0 || master_filename_len >=
 			sizeof(master_filename))
 	{
 		logError("file: "__FILE__", line: %d, " \
@@ -8090,7 +8107,7 @@ static int storage_do_create_link(struct fast_task_info *pTask)
 		break;
 	}
 
-	if (src_filename_len <= 0 || src_filename_len >= \
+	if (src_filename_len <= 0 || src_filename_len >=
 			sizeof(src_filename))
 	{
 		logError("file: "__FILE__", line: %d, " \
