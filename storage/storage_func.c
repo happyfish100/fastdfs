@@ -1885,14 +1885,13 @@ int storage_func_init(const char *filename)
             return result;
         }
 
-		g_subdir_count_per_path=iniGetIntValue(NULL, \
-				"subdir_count_per_path", &iniContext, \
+		g_subdir_count_per_path=iniGetIntValue(NULL,
+				"subdir_count_per_path", &iniContext,
 				FDFS_DEFAULT_DATA_DIR_COUNT_PER_PATH);
-		if (g_subdir_count_per_path <= 0 || \
-		    g_subdir_count_per_path > 256)
+		if (g_subdir_count_per_path <= 0 || g_subdir_count_per_path > 256)
 		{
-			logError("file: "__FILE__", line: %d, " \
-				"conf file \"%s\", invalid subdir_count: %d", \
+			logError("file: "__FILE__", line: %d, "
+				"conf file \"%s\", invalid subdir_count: %d",
 				__LINE__, filename, g_subdir_count_per_path);
 			result = EINVAL;
 			break;
@@ -1904,53 +1903,53 @@ int storage_func_init(const char *filename)
 		}
 
 		load_log_level(&iniContext);
-		if ((result=log_set_prefix(SF_G_BASE_PATH_STR, \
+		if ((result=log_set_prefix(SF_G_BASE_PATH_STR,
 				STORAGE_ERROR_LOG_FILENAME)) != 0)
 		{
 			break;
 		}
 
-		SF_G_CONNECT_TIMEOUT = iniGetIntValue(NULL, "connect_timeout", \
+		SF_G_CONNECT_TIMEOUT = iniGetIntValue(NULL, "connect_timeout",
 				&iniContext, DEFAULT_CONNECT_TIMEOUT);
 		if (SF_G_CONNECT_TIMEOUT <= 0)
 		{
 			SF_G_CONNECT_TIMEOUT = DEFAULT_CONNECT_TIMEOUT;
 		}
 
-		SF_G_NETWORK_TIMEOUT = iniGetIntValue(NULL, "network_timeout", \
+		SF_G_NETWORK_TIMEOUT = iniGetIntValue(NULL, "network_timeout",
 				&iniContext, DEFAULT_NETWORK_TIMEOUT);
 		if (SF_G_NETWORK_TIMEOUT <= 0)
 		{
 			SF_G_NETWORK_TIMEOUT = DEFAULT_NETWORK_TIMEOUT;
 		}
 
-		SF_G_INNER_PORT = iniGetIntValue(NULL, "port", &iniContext, \
+		SF_G_INNER_PORT = iniGetIntValue(NULL, "port", &iniContext,
 					FDFS_STORAGE_SERVER_DEF_PORT);
 		if (SF_G_INNER_PORT <= 0)
 		{
 			SF_G_INNER_PORT = FDFS_STORAGE_SERVER_DEF_PORT;
 		}
 
-		g_heart_beat_interval = iniGetIntValue(NULL, \
-				"heart_beat_interval", &iniContext, \
+		g_heart_beat_interval = iniGetIntValue(NULL,
+				"heart_beat_interval", &iniContext,
 				STORAGE_BEAT_DEF_INTERVAL);
 		if (g_heart_beat_interval <= 0)
 		{
 			g_heart_beat_interval = STORAGE_BEAT_DEF_INTERVAL;
 		}
 
-		g_stat_report_interval = iniGetIntValue(NULL, \
-				"stat_report_interval", &iniContext, \
+		g_stat_report_interval = iniGetIntValue(NULL,
+				"stat_report_interval", &iniContext,
 				STORAGE_REPORT_DEF_INTERVAL);
 		if (g_stat_report_interval <= 0)
 		{
 			g_stat_report_interval = STORAGE_REPORT_DEF_INTERVAL;
 		}
 
-		g_client_bind_addr = iniGetBoolValue(NULL, "client_bind", \
+		g_client_bind_addr = iniGetBoolValue(NULL, "client_bind",
 					&iniContext, true);
 
-		result = fdfs_load_tracker_group_ex(&g_tracker_group, \
+		result = fdfs_load_tracker_group_ex(&g_tracker_group,
 				filename, &iniContext);
 		if (result != 0)
 		{
@@ -1968,25 +1967,23 @@ int storage_func_init(const char *filename)
             result = storage_get_group_name_from_tracker();
             if (result == 0)
             {
-                logInfo("file: "__FILE__", line: %d, " \
+                logInfo("file: "__FILE__", line: %d, "
                         "get group name from tracker server, group_name: %s",
                         __LINE__, g_group_name);
             }
             else
             {
-                logError("file: "__FILE__", line: %d, " \
-                        "conf file \"%s\" must have item " \
-                        "\"group_name\"!", \
-                        __LINE__, filename);
+                logError("file: "__FILE__", line: %d, "
+                        "conf file \"%s\" must have item "
+                        "\"group_name\"!", __LINE__, filename);
                 result = ENOENT;
                 break;
             }
 		}
         else if (pGroupName[0] == '\0')
 		{
-			logError("file: "__FILE__", line: %d, " \
-				"conf file \"%s\", " \
-				"group_name is empty!", \
+			logError("file: "__FILE__", line: %d, "
+				"conf file \"%s\", group_name is empty!",
 				__LINE__, filename);
 			result = EINVAL;
 			break;

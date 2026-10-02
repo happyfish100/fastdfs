@@ -4534,7 +4534,7 @@ static int find_my_ip_in_tracker_list()
     }
 
     logError("file: "__FILE__", line: %d, "
-            "my ip NOT in tracker server list. %s",
+            "my ip NOT in tracker server list! %s",
             __LINE__, local_host_ip_addrs_to_string(buff, sizeof(buff)));
     return ENOENT;
 }
