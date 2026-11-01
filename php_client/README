@@ -90,7 +90,7 @@ parameters:
 	master_filename: the master filename / file id to generate 
 			the slave filename
 	prefix_name: the prefix name  to generate the slave filename
-	file_ext_name: slave file extension name, can be null or emtpy 
+	file_ext_name: slave file extension name, can be null or empty 
 			(do not including dot)
 return slave filename string for success, false for error
 
@@ -597,7 +597,7 @@ parameters:
 	file_buff: the file content
 	group_name: the group name of the master file
 	master_filename: the master filename to generate the slave file id
-	prefix_name: the prefix name to generage the slave file id
+	prefix_name: the prefix name to generate the slave file id
 	file_ext_name: the file extension name, do not include dot(.)
 	meta_list: meta data assoc array, such as
                    array('width'=>1024, 'height'=>768)
@@ -617,7 +617,7 @@ upload local file to storage server (slave file mode)
 parameters:
 	local_filename: the local filename
 	master_file_id: the master file id to generate the slave file id
-	prefix_name: the prefix name to generage the slave file id
+	prefix_name: the prefix name to generate the slave file id
 	file_ext_name: the file extension name, do not include dot(.)
 	meta_list: meta data assoc array, such as
                    array('width'=>1024, 'height'=>768)
@@ -637,7 +637,7 @@ parameters:
 	file_buff: the file content
 	group_name: the group name of the master file
 	master_filename: the master filename to generate the slave file id
-	prefix_name: the prefix name to generage the slave file id
+	prefix_name: the prefix name to generate the slave file id
 	file_ext_name: the file extension name, do not include dot(.)
 	meta_list: meta data assoc array, such as
                    array('width'=>1024, 'height'=>768)
@@ -657,7 +657,7 @@ upload file buff to storage server (slave file mode)
 parameters:
 	file_buff: the file content
 	master_file_id: the master file id to generate the slave file id
-	prefix_name: the prefix name to generage the slave file id
+	prefix_name: the prefix name to generate the slave file id
 	file_ext_name: the file extension name, do not include dot(.)
 	meta_list: meta data assoc array, such as
                    array('width'=>1024, 'height'=>768)
@@ -682,7 +682,7 @@ parameters:
 			args      - use argument for callback function
 	group_name: the group name of the master file
 	master_filename: the master filename to generate the slave file id
-	prefix_name: the prefix name to generage the slave file id
+	prefix_name: the prefix name to generate the slave file id
 	file_ext_name: the file extension name, do not include dot(.)
 	meta_list: meta data assoc array, such as
                    array('width'=>1024, 'height'=>768)
@@ -707,7 +707,7 @@ parameters:
 			file_size - the file size
 			args      - use argument for callback function
 	master_file_id: the master file id to generate the slave file id
-	prefix_name: the prefix name to generage the slave file id
+	prefix_name: the prefix name to generate the slave file id
 	file_ext_name: the file extension name, do not include dot(.)
 	meta_list: meta data assoc array, such as
                    array('width'=>1024, 'height'=>768)
@@ -1127,7 +1127,7 @@ parameters:
 	master_filename: the master filename / file id to generate 
 			the slave filename
 	prefix_name: the prefix name  to generate the slave filename
-	file_ext_name: slave file extension name, can be null or emtpy 
+	file_ext_name: slave file extension name, can be null or empty 
 			(do not including dot)
 return slave filename string for success, false for error
 
@@ -1635,7 +1635,7 @@ parameters:
 	file_buff: the file content
 	group_name: the group name of the master file
 	master_filename: the master filename to generate the slave file id
-	prefix_name: the prefix name to generage the slave file id
+	prefix_name: the prefix name to generate the slave file id
 	file_ext_name: the file extension name, do not include dot(.)
 	meta_list: meta data assoc array, such as
                    array('width'=>1024, 'height'=>768)
@@ -1655,7 +1655,7 @@ upload local file to storage server (slave file mode)
 parameters:
 	local_filename: the local filename
 	master_file_id: the master file id to generate the slave file id
-	prefix_name: the prefix name to generage the slave file id
+	prefix_name: the prefix name to generate the slave file id
 	file_ext_name: the file extension name, do not include dot(.)
 	meta_list: meta data assoc array, such as
                    array('width'=>1024, 'height'=>768)
@@ -1675,7 +1675,7 @@ parameters:
 	file_buff: the file content
 	group_name: the group name of the master file
 	master_filename: the master filename to generate the slave file id
-	prefix_name: the prefix name to generage the slave file id
+	prefix_name: the prefix name to generate the slave file id
 	file_ext_name: the file extension name, do not include dot(.)
 	meta_list: meta data assoc array, such as
                    array('width'=>1024, 'height'=>768)
@@ -1695,7 +1695,7 @@ upload file buff to storage server (slave file mode)
 parameters:
 	file_buff: the file content
 	master_file_id: the master file id to generate the slave file id
-	prefix_name: the prefix name to generage the slave file id
+	prefix_name: the prefix name to generate the slave file id
 	file_ext_name: the file extension name, do not include dot(.)
 	meta_list: meta data assoc array, such as
                    array('width'=>1024, 'height'=>768)
@@ -1720,7 +1720,7 @@ parameters:
 			args      - use argument for callback function
 	group_name: the group name of the master file
 	master_filename: the master filename to generate the slave file id
-	prefix_name: the prefix name to generage the slave file id
+	prefix_name: the prefix name to generate the slave file id
 	file_ext_name: the file extension name, do not include dot(.)
 	meta_list: meta data assoc array, such as
                    array('width'=>1024, 'height'=>768)
@@ -1745,7 +1745,7 @@ parameters:
 			file_size - the file size
 			args      - use argument for callback function
 	master_file_id: the master file id to generate the slave file id
-	prefix_name: the prefix name to generage the slave file id
+	prefix_name: the prefix name to generate the slave file id
 	file_ext_name: the file extension name, do not include dot(.)
 	meta_list: meta data assoc array, such as
                    array('width'=>1024, 'height'=>768)
