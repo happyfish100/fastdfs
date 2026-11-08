@@ -374,26 +374,26 @@ static void sigAlarmHandler(int sig)
 		"signal server to quit done", __LINE__);
 }
 
-static void sigHupHandler(int sig)
+static void sigUsrHandler(int sig)
 {
-	if (g_sf_global_vars.error_log.rotate_everyday)
-	{
-		g_log_context.rotate_immediately = true;
-	}
+    if (g_sf_global_vars.error_log.rotate_everyday)
+    {
+        g_log_context.rotate_immediately = true;
+    }
 
-	if (g_access_log_context.enabled)
+    if (g_access_log_context.enabled)
     {
         g_access_log_context.log_ctx.rotate_immediately = true;
     }
 
-	logInfo("file: "__FILE__", line: %d, " \
-		"catch signal %d, rotate log", __LINE__, sig);
+    logInfo("file: "__FILE__", line: %d, "
+            "catch signal %d, rotate log", __LINE__, sig);
 }
 
-static void sigUsrHandler(int sig)
+static void sigHupHandler(int sig)
 {
-	logInfo("file: "__FILE__", line: %d, " \
-		"catch signal %d, ignore it", __LINE__, sig);
+    logInfo("file: "__FILE__", line: %d, "
+            "catch signal %d, ignore it", __LINE__, sig);
 }
 
 #if defined(DEBUG_FLAG)

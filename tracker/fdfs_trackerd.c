@@ -58,61 +58,61 @@ static void sigDumpHandler(int sig);
 
 static int setup_signal_handlers()
 {
-	struct sigaction act;
+    struct sigaction act;
 
-	memset(&act, 0, sizeof(act));
-	sigemptyset(&act.sa_mask);
-	act.sa_handler = sigUsrHandler;
-	if(sigaction(SIGUSR1, &act, NULL) < 0 || \
-		sigaction(SIGUSR2, &act, NULL) < 0)
-	{
-		logCrit("file: "__FILE__", line: %d, " \
-			"call sigaction fail, errno: %d, error info: %s", \
-			__LINE__, errno, STRERROR(errno));
-		return errno;
-	}
+    memset(&act, 0, sizeof(act));
+    sigemptyset(&act.sa_mask);
+    act.sa_handler = sigUsrHandler;
+    if (sigaction(SIGUSR1, &act, NULL) < 0 ||
+            sigaction(SIGUSR2, &act, NULL) < 0)
+    {
+        logCrit("file: "__FILE__", line: %d, "
+                "call sigaction fail, errno: %d, error info: %s",
+                __LINE__, errno, STRERROR(errno));
+        return errno;
+    }
 
-	act.sa_handler = sigHupHandler;
-	if(sigaction(SIGHUP, &act, NULL) < 0)
-	{
-		logCrit("file: "__FILE__", line: %d, " \
-			"call sigaction fail, errno: %d, error info: %s", \
-			__LINE__, errno, STRERROR(errno));
-		return errno;
-	}
+    act.sa_handler = sigHupHandler;
+    if (sigaction(SIGHUP, &act, NULL) < 0)
+    {
+        logCrit("file: "__FILE__", line: %d, "
+                "call sigaction fail, errno: %d, error info: %s",
+                __LINE__, errno, STRERROR(errno));
+        return errno;
+    }
 
-	act.sa_handler = SIG_IGN;
-	if(sigaction(SIGPIPE, &act, NULL) < 0)
-	{
-		logCrit("file: "__FILE__", line: %d, " \
-			"call sigaction fail, errno: %d, error info: %s", \
-			__LINE__, errno, STRERROR(errno));
-		return errno;
-	}
+    act.sa_handler = SIG_IGN;
+    if (sigaction(SIGPIPE, &act, NULL) < 0)
+    {
+        logCrit("file: "__FILE__", line: %d, "
+                "call sigaction fail, errno: %d, error info: %s",
+                __LINE__, errno, STRERROR(errno));
+        return errno;
+    }
 
-	act.sa_handler = sigQuitHandler;
-	if(sigaction(SIGINT, &act, NULL) < 0 || \
-		sigaction(SIGTERM, &act, NULL) < 0 || \
-		sigaction(SIGQUIT, &act, NULL) < 0)
-	{
-		logCrit("file: "__FILE__", line: %d, " \
-			"call sigaction fail, errno: %d, error info: %s", \
-			__LINE__, errno, STRERROR(errno));
-		return errno;
-	}
+    act.sa_handler = sigQuitHandler;
+    if (sigaction(SIGINT, &act, NULL) < 0 ||
+            sigaction(SIGTERM, &act, NULL) < 0 ||
+            sigaction(SIGQUIT, &act, NULL) < 0)
+    {
+        logCrit("file: "__FILE__", line: %d, "
+                "call sigaction fail, errno: %d, error info: %s",
+                __LINE__, errno, STRERROR(errno));
+        return errno;
+    }
 
 #if defined(DEBUG_FLAG)
-	memset(&act, 0, sizeof(act));
-	sigemptyset(&act.sa_mask);
-	act.sa_handler = sigDumpHandler;
-	if(sigaction(SIGUSR1, &act, NULL) < 0 || \
-		sigaction(SIGUSR2, &act, NULL) < 0)
-	{
-		logCrit("file: "__FILE__", line: %d, " \
-			"call sigaction fail, errno: %d, error info: %s", \
-			__LINE__, errno, STRERROR(errno));
-		return errno;
-	}
+    memset(&act, 0, sizeof(act));
+    sigemptyset(&act.sa_mask);
+    act.sa_handler = sigDumpHandler;
+    if (sigaction(SIGUSR1, &act, NULL) < 0 ||
+            sigaction(SIGUSR2, &act, NULL) < 0)
+    {
+        logCrit("file: "__FILE__", line: %d, "
+                "call sigaction fail, errno: %d, error info: %s",
+                __LINE__, errno, STRERROR(errno));
+        return errno;
+    }
 #endif
 
     return 0;
@@ -359,13 +359,8 @@ static void sigQuitHandler(int sig)
 
 static void sigHupHandler(int sig)
 {
-	if (g_sf_global_vars.error_log.rotate_everyday)
-	{
-		g_log_context.rotate_immediately = true;
-	}
-
-	logInfo("file: "__FILE__", line: %d, "
-		"catch signal %d, rotate log", __LINE__, sig);
+    logInfo("file: "__FILE__", line: %d, "
+            "catch signal %d, ignore it", __LINE__, sig);
 }
 
 static void sigAlarmHandler(int sig)
@@ -422,7 +417,12 @@ static void sigAlarmHandler(int sig)
 
 static void sigUsrHandler(int sig)
 {
-	logInfo("file: "__FILE__", line: %d, " \
-		"catch signal %d, ignore it", __LINE__, sig);
+	if (g_sf_global_vars.error_log.rotate_everyday)
+	{
+		g_log_context.rotate_immediately = true;
+	}
+
+	logInfo("file: "__FILE__", line: %d, "
+		"catch signal %d, rotate log", __LINE__, sig);
 }
 

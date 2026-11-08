@@ -90,7 +90,7 @@ parameters:
 	master_filename: the master filename / file id to generate 
 			the slave filename
 	prefix_name: the prefix name  to generate the slave filename
-	file_ext_name: slave file extension name, can be null or empty 
+	file_ext_name: slave file extension name, can be null or empty
 			(do not including dot)
 return slave filename string for success, false for error
 
@@ -1127,7 +1127,7 @@ parameters:
 	master_filename: the master filename / file id to generate 
 			the slave filename
 	prefix_name: the prefix name  to generate the slave filename
-	file_ext_name: slave file extension name, can be null or empty 
+	file_ext_name: slave file extension name, can be null or empty
 			(do not including dot)
 return slave filename string for success, false for error
 
