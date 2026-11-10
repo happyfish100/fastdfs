@@ -147,7 +147,6 @@ int main(int argc, char *argv[])
 #define PID_FILENAME_STR  "data/fdfs_trackerd.pid"
 #define PID_FILENAME_LEN  (sizeof(PID_FILENAME_STR) - 1)
 
-	const char *conf_filename;
     char *action;
 	int result;
 	int wait_count;
@@ -161,9 +160,9 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-    conf_filename = sf_parse_daemon_mode_and_action(argc, argv,
-            &g_fdfs_version, &daemon_mode, &action);
-    if (conf_filename == NULL)
+    SF_G_CONFIG_FILENAME = sf_parse_daemon_mode_and_action(argc,
+            argv, &g_fdfs_version, &daemon_mode, &action);
+    if (SF_G_CONFIG_FILENAME == NULL)
     {
         return 0;
     }
@@ -171,7 +170,7 @@ int main(int argc, char *argv[])
 	g_current_time = time(NULL);
 	log_init2();
 
-	if ((result=sf_get_base_path_from_conf_file(conf_filename)) != 0)
+	if ((result=sf_get_base_path_from_conf_file(SF_G_CONFIG_FILENAME)) != 0)
 	{
 		log_destroy();
 		return result;
@@ -194,7 +193,7 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 
-	if ((result=tracker_load_from_conf_file(conf_filename)) != 0)
+	if ((result=tracker_load_from_conf_file(SF_G_CONFIG_FILENAME)) != 0)
 	{
 		logCrit("exit abnormally!\n");
 		log_destroy();
@@ -360,7 +359,9 @@ static void sigQuitHandler(int sig)
 static void sigHupHandler(int sig)
 {
     logInfo("file: "__FILE__", line: %d, "
-            "catch signal %d, ignore it", __LINE__, sig);
+            "catch signal %d, reload log_level from config %s",
+            __LINE__, sig, SF_G_CONFIG_FILENAME);
+    reload_log_level_ex(SF_G_CONFIG_FILENAME);
 }
 
 static void sigAlarmHandler(int sig)

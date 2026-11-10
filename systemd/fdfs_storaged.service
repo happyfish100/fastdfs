@@ -8,6 +8,7 @@ PIDFile=/opt/fastdfs/data/fdfs_storaged.pid
 ExecStart=/usr/bin/fdfs_storaged /etc/fdfs/storage.conf start
 ExecStartPost=/bin/sleep 0.1
 ExecStop=/usr/bin/fdfs_storaged /etc/fdfs/storage.conf stop
+ExecReload=/usr/bin/fdfs_storaged /etc/fdfs/storage.conf reload
 
 # No artificial start/stop timeout
 TimeoutSec=0

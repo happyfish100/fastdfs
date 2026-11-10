@@ -57,7 +57,6 @@ static bool bTerminateFlag = false;
 static char accept_stage = ACCEPT_STAGE_NONE;
 
 static void sigQuitHandler(int sig);
-static void sigHupHandler(int sig);
 static void sigUsrHandler(int sig);
 static void sigAlarmHandler(int sig);
 
@@ -65,13 +64,6 @@ static int setup_schedule_tasks();
 static int setupSignalHandlers();
 
 #if defined(DEBUG_FLAG)
-
-/*
-#if defined(OS_LINUX)
-static void sigSegvHandler(int signum, siginfo_t *info, void *ptr);
-#endif
-*/
-
 static void sigDumpHandler(int sig);
 #endif
 
@@ -80,7 +72,6 @@ int main(int argc, char *argv[])
 #define PID_FILENAME_STR  "data/fdfs_storaged.pid"
 #define PID_FILENAME_LEN  (sizeof(PID_FILENAME_STR) - 1)
 
-	const char *conf_filename;
     char *action;
 	int result;
 	int wait_count;
@@ -94,9 +85,9 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-    conf_filename = sf_parse_daemon_mode_and_action(argc, argv,
-            &g_fdfs_version, &daemon_mode, &action);
-    if (conf_filename == NULL)
+    SF_G_CONFIG_FILENAME = sf_parse_daemon_mode_and_action(argc,
+            argv, &g_fdfs_version, &daemon_mode, &action);
+    if (SF_G_CONFIG_FILENAME == NULL)
     {
         return 0;
     }
@@ -109,7 +100,7 @@ int main(int argc, char *argv[])
 		return result;
     }
 
-	if ((result=sf_get_base_path_from_conf_file(conf_filename)) != 0)
+	if ((result=sf_get_base_path_from_conf_file(SF_G_CONFIG_FILENAME)) != 0)
 	{
 		log_destroy();
 		return result;
@@ -150,7 +141,7 @@ int main(int argc, char *argv[])
 		return result;
     }
 
-	if ((result=storage_func_init(conf_filename)) != 0)
+	if ((result=storage_func_init(SF_G_CONFIG_FILENAME)) != 0)
 	{
 		logCrit("exit abnormally!\n");
 		log_destroy();
@@ -390,12 +381,6 @@ static void sigUsrHandler(int sig)
             "catch signal %d, rotate log", __LINE__, sig);
 }
 
-static void sigHupHandler(int sig)
-{
-    logInfo("file: "__FILE__", line: %d, "
-            "catch signal %d, ignore it", __LINE__, sig);
-}
-
 #if defined(DEBUG_FLAG)
 static void sigDumpHandler(int sig)
 {
@@ -468,76 +453,47 @@ static int setup_schedule_tasks()
 
 static int setupSignalHandlers()
 {
+    int result;
 	struct sigaction act;
+
+    if ((result=sf_setup_signal_handler()) != 0)
+    {
+        return result;
+    }
 
 	memset(&act, 0, sizeof(act));
 	sigemptyset(&act.sa_mask);
 
 	act.sa_handler = sigUsrHandler;
-	if(sigaction(SIGUSR1, &act, NULL) < 0 || \
+	if(sigaction(SIGUSR1, &act, NULL) < 0 ||
 		sigaction(SIGUSR2, &act, NULL) < 0)
 	{
-		logCrit("file: "__FILE__", line: %d, " \
-			"call sigaction fail, errno: %d, error info: %s", \
-			__LINE__, errno, STRERROR(errno));
-		return errno != 0 ? errno : EFAULT;
-	}
-
-	act.sa_handler = sigHupHandler;
-	if(sigaction(SIGHUP, &act, NULL) < 0)
-	{
-		logCrit("file: "__FILE__", line: %d, " \
-			"call sigaction fail, errno: %d, error info: %s", \
-			__LINE__, errno, STRERROR(errno));
-		return errno != 0 ? errno : EFAULT;
-	}
-	
-	act.sa_handler = SIG_IGN;
-	if(sigaction(SIGPIPE, &act, NULL) < 0)
-	{
-		logCrit("file: "__FILE__", line: %d, " \
-			"call sigaction fail, errno: %d, error info: %s", \
+		logCrit("file: "__FILE__", line: %d, "
+			"call sigaction fail, errno: %d, error info: %s",
 			__LINE__, errno, STRERROR(errno));
 		return errno != 0 ? errno : EFAULT;
 	}
 
 	act.sa_handler = sigQuitHandler;
-	if(sigaction(SIGINT, &act, NULL) < 0 || \
-		sigaction(SIGTERM, &act, NULL) < 0 || \
+	if(sigaction(SIGINT, &act, NULL) < 0 ||
+		sigaction(SIGTERM, &act, NULL) < 0 ||
 		sigaction(SIGQUIT, &act, NULL) < 0)
 	{
-		logCrit("file: "__FILE__", line: %d, " \
-			"call sigaction fail, errno: %d, error info: %s", \
+		logCrit("file: "__FILE__", line: %d, "
+			"call sigaction fail, errno: %d, error info: %s",
 			__LINE__, errno, STRERROR(errno));
 		return errno != 0 ? errno : EFAULT;
 	}
 
 #if defined(DEBUG_FLAG)
-
-/*
-#if defined(OS_LINUX)
-	memset(&act, 0, sizeof(act));
-        act.sa_sigaction = sigSegvHandler;
-        act.sa_flags = SA_SIGINFO;
-        if (sigaction(SIGSEGV, &act, NULL) < 0 || \
-        	sigaction(SIGABRT, &act, NULL) < 0)
-	{
-		logCrit("file: "__FILE__", line: %d, " \
-			"call sigaction fail, errno: %d, error info: %s", \
-			__LINE__, errno, STRERROR(errno));
-		return errno != 0 ? errno : EFAULT;
-	}
-#endif
-*/
-
 	memset(&act, 0, sizeof(act));
 	sigemptyset(&act.sa_mask);
 	act.sa_handler = sigDumpHandler;
-	if(sigaction(SIGUSR1, &act, NULL) < 0 || \
+	if(sigaction(SIGUSR1, &act, NULL) < 0 ||
 		sigaction(SIGUSR2, &act, NULL) < 0)
 	{
-		logCrit("file: "__FILE__", line: %d, " \
-			"call sigaction fail, errno: %d, error info: %s", \
+		logCrit("file: "__FILE__", line: %d, "
+			"call sigaction fail, errno: %d, error info: %s",
 			__LINE__, errno, STRERROR(errno));
 		return errno != 0 ? errno : EFAULT;
 	}

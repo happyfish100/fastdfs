@@ -8,6 +8,7 @@ PIDFile=/opt/fastdfs/data/fdfs_trackerd.pid
 ExecStart=/usr/bin/fdfs_trackerd /etc/fdfs/tracker.conf start
 ExecStartPost=/bin/sleep 0.1
 ExecStop=/usr/bin/fdfs_trackerd /etc/fdfs/tracker.conf stop
+ExecReload=/usr/bin/fdfs_trackerd /etc/fdfs/tracker.conf reload
 
 # No artificial start/stop timeout
 TimeoutSec=0

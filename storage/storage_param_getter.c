@@ -273,4 +273,3 @@ int storage_get_params_from_tracker()
 
 	return 0;
 }
-
