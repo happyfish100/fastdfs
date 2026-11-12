@@ -1305,11 +1305,64 @@ static void do_unset_trunk_server_myself(ConnectionInfo *pTrackerServer)
     }
 }
 
+static int tracker_reload_config_items(char *content,
+        ConnectionInfo *pTrackerServer)
+{
+    int result;
+    IniContext iniContext;
+    char *pReservedSpaceStr;
+    FDFSStorageReservedSpace reserved_space;
+    char old_reserved_space_str[32];
+    char new_reserved_space_str[32];
+    char formatted_ip[FORMATTED_IP_SIZE];
+
+    if ((result=iniLoadFromBuffer(content, &iniContext)) != 0)
+    {
+        return result;
+    }
+
+    do {
+        pReservedSpaceStr = iniGetStrValue(NULL,
+                "reserved_storage_space", &iniContext);
+        if (pReservedSpaceStr == NULL)
+        {
+            break;
+        }
+
+        if ((result=fdfs_parse_storage_reserved_space_str(
+                        pReservedSpaceStr, &reserved_space)) != 0)
+        {
+            break;
+        }
+
+        fdfs_storage_reserved_space_to_string(
+                &g_storage_reserved_space,
+                old_reserved_space_str);
+        fdfs_storage_reserved_space_to_string(
+                &reserved_space, new_reserved_space_str);
+        if (strcmp(old_reserved_space_str, new_reserved_space_str) != 0)
+        {
+            format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+            logInfo("file: "__FILE__", line: %d, "
+                    "tracker server %s:%u, set reserved_storage_space "
+                    "from %s to %s", __LINE__, formatted_ip,
+                    pTrackerServer->port, old_reserved_space_str,
+                    new_reserved_space_str);
+            g_storage_reserved_space = reserved_space;
+            storage_calc_avg_reserved_space();
+        }
+    } while (0);
+
+    iniFreeContext(&iniContext);
+    return result;
+}
+
 static int tracker_check_response(ConnectionInfo *pTrackerServer,
 	const int tracker_index, bool *bServerPortChanged)
 {
 	int64_t nInPackLen;
 	TrackerHeader resp;
+    int remain_len;
 	int server_count;
 	int result;
 	char in_buff[1 + (2 + FDFS_MAX_SERVERS_EACH_GROUP) *
@@ -1342,8 +1395,7 @@ static int tracker_check_response(ConnectionInfo *pTrackerServer,
 		return 0;
 	}
 
-	if ((nInPackLen <= 0) || ((nInPackLen - 1) %
-			sizeof(FDFSStorageBrief) != 0))
+	if (nInPackLen < 0)
 	{
         format_ip_address(pTrackerServer->ip_addr, formatted_ip);
 		logError("file: "__FILE__", line: %d, "
@@ -1374,9 +1426,56 @@ static int tracker_check_response(ConnectionInfo *pTrackerServer,
 	}
 
 	pFlags = in_buff;
-	server_count = (nInPackLen - 1) / sizeof(FDFSStorageBrief);
-	pBriefServers = (FDFSStorageBrief *)(in_buff + 1);
+	if ((*pFlags) & FDFS_CHANGE_FLAG_CONFIG_ITEMS)
+    {
+        string_t content;
 
+        if (nInPackLen < 3)
+        {
+            format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+            logError("file: "__FILE__", line: %d, "
+                    "tracker server %s:%u, package size %"PRId64
+                    " is not correct", __LINE__, formatted_ip,
+                    pTrackerServer->port, nInPackLen);
+            return EINVAL;
+        }
+
+        content.len = buff2short(in_buff + 1);
+        if (nInPackLen < 3 + content.len)
+        {
+            format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+            logError("file: "__FILE__", line: %d, "
+                    "tracker server %s:%u, package size %"PRId64
+                    " is not correct", __LINE__, formatted_ip,
+                    pTrackerServer->port, nInPackLen);
+            return EINVAL;
+        }
+
+        content.str = in_buff + 3;
+        content.str[content.len - 1] = '\0'; //replace the last char to terminator
+        if ((result=tracker_reload_config_items(content.str,
+                        pTrackerServer)) != 0)
+        {
+            return result;
+        }
+        remain_len = nInPackLen - (3 + content.len);
+    }
+    else
+    {
+        remain_len = nInPackLen - 1;
+    }
+
+	if ((remain_len < 0) || (remain_len % sizeof(FDFSStorageBrief) != 0))
+    {
+        format_ip_address(pTrackerServer->ip_addr, formatted_ip);
+        logError("file: "__FILE__", line: %d, "
+                "tracker server %s:%u, package size %"PRId64" is not correct",
+                __LINE__, formatted_ip, pTrackerServer->port, nInPackLen);
+        return EINVAL;
+    }
+
+	server_count = remain_len / sizeof(FDFSStorageBrief);
+	pBriefServers = (FDFSStorageBrief *)(in_buff + (nInPackLen - remain_len));
 	if ((*pFlags) & FDFS_CHANGE_FLAG_TRACKER_LEADER)
 	{
 		char tracker_leader_ip[IP_ADDRESS_SIZE];

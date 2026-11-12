@@ -195,16 +195,13 @@ int fdfs_get_tracker_leader_index_ex(TrackerServerGroup *pServerGroup,
 	return -1;
 }
 
-int fdfs_parse_storage_reserved_space(IniContext *pIniContext,
+int fdfs_parse_storage_reserved_space_str(char *pReservedSpaceStr,
 		FDFSStorageReservedSpace *pStorageReservedSpace)
 {
 	int result;
 	int len;
-	char *pReservedSpaceStr;
 	int64_t storage_reserved;
 
-	pReservedSpaceStr = iniGetStrValue(NULL,
-			"reserved_storage_space", pIniContext);
 	if (pReservedSpaceStr == NULL)
 	{
 		pStorageReservedSpace->flag =
@@ -257,6 +254,16 @@ int fdfs_parse_storage_reserved_space(IniContext *pIniContext,
     pStorageReservedSpace->flag = TRACKER_STORAGE_RESERVED_SPACE_FLAG_MB;
     pStorageReservedSpace->rs.mb = storage_reserved / FC_BYTES_ONE_MB;
     return 0;
+}
+
+int fdfs_parse_storage_reserved_space(IniContext *pIniContext,
+		FDFSStorageReservedSpace *pStorageReservedSpace)
+{
+    char *pReservedSpaceStr;
+    pReservedSpaceStr = iniGetStrValue(NULL,
+            "reserved_storage_space", pIniContext);
+    return fdfs_parse_storage_reserved_space_str(
+            pReservedSpaceStr, pStorageReservedSpace);
 }
 
 const char *fdfs_storage_reserved_space_to_string(FDFSStorageReservedSpace

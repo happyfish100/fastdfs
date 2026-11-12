@@ -95,16 +95,7 @@ int storage_get_params_from_tracker()
 		iniFreeContext(&iniContext);
 		return result;
 	}
-	if (g_storage_reserved_space.flag ==
-		TRACKER_STORAGE_RESERVED_SPACE_FLAG_MB)
-	{
-		g_avg_storage_reserved_mb = g_storage_reserved_space.rs.mb
-						/ g_fdfs_store_paths.count;
-	}
-	else
-	{
-		g_avg_storage_reserved_mb = 0;
-	}
+    storage_calc_avg_reserved_space();
 
 	g_use_storage_id = iniGetBoolValue(NULL, "use_storage_id",
 				&iniContext, false);

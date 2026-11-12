@@ -128,6 +128,19 @@ char *storage_trunk_get_data_filename(char *full_filename);
 #define storage_get_storage_reserved_space_mb(total_mb) \
 	fdfs_get_storage_reserved_space_mb(total_mb, &g_storage_reserved_space)
 
+static inline void storage_calc_avg_reserved_space()
+{
+    if (g_storage_reserved_space.flag == TRACKER_STORAGE_RESERVED_SPACE_FLAG_MB)
+    {
+        g_avg_storage_reserved_mb = g_storage_reserved_space.rs.mb
+            / g_fdfs_store_paths.count;
+    }
+    else
+    {
+        g_avg_storage_reserved_mb = 0;
+    }
+}
+
 #ifdef __cplusplus
 }
 #endif

@@ -99,6 +99,7 @@
 #define FDFS_CHANGE_FLAG_TRACKER_LEADER	1  //tracker leader changed
 #define FDFS_CHANGE_FLAG_TRUNK_SERVER	2  //trunk server changed
 #define FDFS_CHANGE_FLAG_GROUP_SERVER	4  //group server changed
+#define FDFS_CHANGE_FLAG_CONFIG_ITEMS	8  //config items changed
 
 #define IS_APPENDER_FILE(file_size)   ((file_size & FDFS_APPENDER_FILE_SIZE)!=0)
 #define IS_TRUNK_FILE(file_size)     ((file_size&FDFS_TRUNK_FILE_MARK_SIZE)!=0)

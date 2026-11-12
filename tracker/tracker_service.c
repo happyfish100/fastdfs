@@ -148,6 +148,7 @@ static int tracker_check_and_sync(struct fast_task_info *pTask,
     int tracker_leader_chg_count;
     int trunk_chg_count;
     int group_chg_count;
+    int config_chg_count;
 	char *pFlags;
 	char *p;
 
@@ -163,6 +164,25 @@ static int tracker_check_and_sync(struct fast_task_info *pTask,
 	*pFlags = 0;
 	if (g_if_leader_self)
     {
+        if (pClientInfo->config_chg_count != g_tracker_config_chg_count)
+        {
+            char reserved_space_str[32];
+            int config_len;
+
+            config_chg_count = g_tracker_config_chg_count;
+            *pFlags |= FDFS_CHANGE_FLAG_CONFIG_ITEMS;
+
+            fdfs_storage_reserved_space_to_string(
+                    &g_storage_reserved_space,
+                    reserved_space_str);
+            config_len = sprintf(p + 2, "reserved_storage_space=%s\n",
+                    reserved_space_str);
+            short2buff(config_len, p);
+            p += 2 + config_len;
+
+            pClientInfo->config_chg_count = config_chg_count;
+        }
+
         tracker_leader_chg_count = g_tracker_leader_chg_count;
         if (pClientInfo->chg_count.tracker_leader !=
                 tracker_leader_chg_count)
