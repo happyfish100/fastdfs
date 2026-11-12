@@ -341,7 +341,7 @@ typedef struct StructFDFSStorageDetail
 	int current_write_path; //current write path index
 
 	int chg_count;         //current server changed counter
-	int trunk_chg_count;   //trunk server changed count
+	int trunk_chg_count;   //trunk server changed counter
 	volatile char status;
 	FDFSStorageStat stat;
 } FDFSStorageDetail;
@@ -417,9 +417,10 @@ typedef struct
     };
 
     union {
-        int tracker_leader;  //for notify storage servers
-        int trunk_server;    //for notify other tracker servers
+        int tracker_leader;  //for notify storage server
+        int trunk_server;    //for notify other tracker server
     } chg_count;
+    int config_chg_count;    //for notify storage server, since V6.18.2
     TaskFinishCallback finish_callback;
 } TrackerClientInfo;
 

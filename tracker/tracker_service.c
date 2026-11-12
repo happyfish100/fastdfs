@@ -84,6 +84,7 @@ static void task_finish_clean_up(struct fast_task_info *pTask)
         pClientInfo->finish_callback = NULL;
     }
     pClientInfo->chg_count.tracker_leader = 0;
+    pClientInfo->config_chg_count = 0;
 
     sf_task_finish_clean_up(pTask);
 }
@@ -247,7 +248,7 @@ static int tracker_check_and_sync(struct fast_task_info *pTask,
 	return 0;
 }
 
-static int tracker_changelog_response(struct fast_task_info *pTask, \
+static int tracker_changelog_response(struct fast_task_info *pTask,
 		FDFSStorageDetail *pStorage)
 {
 	char filename[MAX_PATH_SIZE];

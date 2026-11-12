@@ -34,6 +34,7 @@ extern "C" {
 extern FDFSGroups g_groups;
 extern int g_storage_stat_chg_count;
 extern int g_storage_sync_time_chg_count; //sync timestamp
+extern int g_tracker_config_chg_count;    //since V6.18.2
 
 extern FDFSStorageReservedSpace g_storage_reserved_space;
 extern int g_check_active_interval; //check storage server alive every interval seconds

@@ -38,6 +38,7 @@
 #include "tracker_func.h"
 #include "tracker_status.h"
 #include "tracker_relationship.h"
+#include "fdfs_shared_func.h"
 
 #if defined(DEBUG_FLAG)
 #include "tracker_dump.h"
@@ -358,10 +359,44 @@ static void sigQuitHandler(int sig)
 
 static void sigHupHandler(int sig)
 {
+    IniContext iniContext;
+    bool changed;
+    FDFSStorageReservedSpace reserved_space;
+    char old_reserved_space_str[32];
+    char new_reserved_space_str[32];
+
     logInfo("file: "__FILE__", line: %d, "
-            "catch signal %d, reload log_level from config %s",
-            __LINE__, sig, SF_G_CONFIG_FILENAME);
-    reload_log_level_ex(SF_G_CONFIG_FILENAME);
+            "catch signal %d, reload reserved_storage_space "
+            "and log_level from config %s", __LINE__, sig,
+            SF_G_CONFIG_FILENAME);
+
+    memset(&iniContext, 0, sizeof(IniContext));
+    if (iniLoadFromFile(SF_G_CONFIG_FILENAME, &iniContext) != 0)
+    {
+        return;
+    }
+
+    if (fdfs_parse_storage_reserved_space(&iniContext,
+                &reserved_space) == 0)
+    {
+        fdfs_storage_reserved_space_to_string(
+                &g_storage_reserved_space,
+                old_reserved_space_str);
+        fdfs_storage_reserved_space_to_string(
+                &reserved_space, new_reserved_space_str);
+        if (strcmp(old_reserved_space_str, new_reserved_space_str) != 0)
+        {
+            logInfo("file: "__FILE__", line: %d, "
+                    "set reserved_storage_space from %s to %s",
+                    __LINE__, old_reserved_space_str,
+                    new_reserved_space_str);
+            g_storage_reserved_space = reserved_space;
+            ++g_tracker_config_chg_count;
+        }
+    }
+
+    reload_log_level(&iniContext, &changed);
+    iniFreeContext(&iniContext);
 }
 
 static void sigAlarmHandler(int sig)

@@ -11,6 +11,7 @@
 FDFSGroups g_groups;
 int g_storage_stat_chg_count = 0;
 int g_storage_sync_time_chg_count = 0; //sync timestamp
+int g_tracker_config_chg_count = 1;    //since V6.18.2
 FDFSStorageReservedSpace g_storage_reserved_space = {
 		TRACKER_STORAGE_RESERVED_SPACE_FLAG_MB};
 

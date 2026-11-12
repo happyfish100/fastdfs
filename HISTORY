@@ -1,7 +1,9 @@
 
-Version 6.18.2  2026-11-10
+Version 6.18.2  2026-11-12
  * change signal HUP to USR1 and USR2 for rotating log
  * reload log_level from config file when receive signal HUP
+ * tracker realod reserved_storage_space from tracker.conf
+   when receive signal HUP
 
 Version 6.18.1  2026-09-12
  * storage_sync_rename_file and storage_sync_link_file:
