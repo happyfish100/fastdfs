@@ -61,6 +61,10 @@ Client test code use client library please refer to the directory: client/test.
 For [FastDFS installation and configuration documentation](https://github.com/happyfish100/fastdfs/wiki), please refer to [the Wiki](https://github.com/happyfish100/fastdfs/wiki);
 For more FastDFS related articles, please subscribe the Wechat/Weixin public account (Chinese Language): fastdfs
 
+### Important notice
+
+Due to a known serious bug, users who are currently using versions V6.9.0 to V6.15.1 are advised to upgrade to version V6.15.2 and subsequent versions as soon as possible. It is recommended to upgrade to the latest version 6.18.2.
+
 ### See also
 
 FastDFS is a lightweight object storage solution. If you need a general distributed

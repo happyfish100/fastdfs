@@ -84,6 +84,10 @@ V6.15.5 起开始维护和改进第三方贡献的 `fdfs_exporter`，为 Prometh
 - 部署及配置建议：[recommended-deployment-plan_CN.md](docs/recommended-deployment-plan_CN.md)
 - 更多功能与特性介绍：搜索微信公众号 **fastdfs**
 
+## 重要提示
+
+因存在已知严重bug，使用V6.9.0到V6.15.1的用户，请尽快升级到V6.15.2及后续版本，建议升级到最新版本V6.18.2。
+
 ## 技术支持
 
 FastDFS 是轻量级的对象存储解决方案。如需在数据库、K8s 和虚拟机（如 KVM）等场景使用通用分布式文件系统，可了解保证数据强一致性且高性能的 [FastCFS](https://gitee.com/fastdfs100/FastCFS)。
