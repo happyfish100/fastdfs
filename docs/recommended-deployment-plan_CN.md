@@ -35,9 +35,11 @@
   用fdfs_monitor、fdfs_tracker_stat和fdfs_storage_stat看到连接统计中的三个指标：
     alloc_count 内存池预分配的buffer数
     current_count 当前连接数（正在使用的buffer数）
-    max_count 曾经达到过的最大连接数，max_count小于等于alloc_count，二者数值相差不会超过一次预分配的buffer数（比如storage server为64，tracker server为256）
+    max_count 曾经达到过的最大连接数，max_count小于等于alloc_count，二者数值相差
+    不会超过一次预分配的buffer数（比如storage server为64，tracker server为256）
 
-  fdfs_tracker_stat 从V6.15.5开始支持，fdfs_storage_stat 从V6.16开始支持，输出片段示例： connections {alloc: 256, current: 2, max: 23}
+  fdfs_tracker_stat 从V6.15.5开始支持，fdfs_storage_stat 从V6.16.0开始支持。
+  输出片段示例： connections {alloc: 256, current: 2, max: 23}
 ```
 
 ## 预留磁盘空间参数
@@ -91,7 +93,8 @@
  section：[access-log] 采用全局配置和本section配置相结合的方式
  enabled：缺省值为false，需要显式设置为true
  time_precision：V6.16开始支持，缺省值为ms（毫秒），可以配置为us（微秒）
- 说明：其他参数参见 log_file_ 打头的全局配置项，比如log_file_rotate_everyday，log_file_keep_days 等配置项，[access-log]下可以重新设置
+ 说明：其他参数参见 log_file_ 打头的全局配置项，比如log_file_rotate_everyday，
+       log_file_keep_days 等配置项，在[access-log]下可以重新设置
 ```
 
 ## 使用io_uring设置
