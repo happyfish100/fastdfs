@@ -37,14 +37,14 @@
     current_count 当前连接数（正在使用的buffer数）
     max_count 曾经达到过的最大连接数，max_count小于等于alloc_count，二者数值相差不会超过一次预分配的buffer数（比如storage server为64，tracker server为256）
 
-    fdfs_tracker_stat 从V6.15.5开始支持，fdfs_storage_stat 从V6.16开始支持，输出片段示例： connections {alloc: 256, current: 2, max: 23}
+  fdfs_tracker_stat 从V6.15.5开始支持，fdfs_storage_stat 从V6.16开始支持，输出片段示例： connections {alloc: 256, current: 2, max: 23}
 ```
 
 ## 预留磁盘空间参数
 * 配置文件：tracker.conf
 * 参数名：reserved_storage_space
 * 缺省值：1GB
-* 说明：可以配置绝对值或百分比，建议配置为百分比，比如设置为10%。当所有组均出现磁盘剩余空间小于本参数时，上传文件将失败。此时可以降低本参数值作为应急方案，同时抓紧进行集群扩容。
+* 说明：可以配置绝对值或百分比，建议配置为百分比，比如设置为10%。当所有组均出现磁盘剩余空间小于本参数时，上传文件将失败。此时可以降低本参数值作为应急方案，同时抓紧进行集群扩容。V6.18.2及后续版本，可以执行 fdfs_trackerd /etc/fdfs/tracker.conf reload 热加载本配置，tracker会将本参数自动同步到storage。V6.18.2之前的版本，需要先重启fdfs_trackerd，然后重启fdfs_storaged。
 
 ## 网络线程数设置
 * 配置文件：tracker.conf 和 storage.conf
