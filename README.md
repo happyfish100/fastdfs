@@ -63,7 +63,7 @@ For more FastDFS related articles, please subscribe the Wechat/Weixin public acc
 
 ### Important notice
 
-Due to a known serious bug, users who are currently using versions V6.9.0 to V6.15.1 are advised to upgrade to version V6.15.2 and subsequent versions as soon as possible. It is recommended to upgrade to the latest version 6.18.2.
+Due to a known serious bug, users who are currently using versions V6.9.0 to V6.15.1 are advised to upgrade to version V6.17.0 and subsequent versions as soon as possible. It is recommended to upgrade to the latest version 6.18.2.
 
 ### See also
 
